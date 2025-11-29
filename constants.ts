@@ -1,0 +1,194 @@
+
+import type { PlotPoint, Character, ScriptData, ProjectType } from './types';
+
+export const GENRES = [
+  "Action", "Adventure", "Comedy", "Crime", "Drama", 
+  "Fantasy", "Horror", "Romantic", "Feel Good", "Reality", "Sci-Fi",
+  "Mystery", "Thriller", "War", "Western", "Historical", "Musical", 
+  "Documentary", "Biographical", "Sport", "Family", "Noir"
+];
+
+export const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
+  { value: 'Movie', label: 'ภาพยนตร์ (Movie)' },
+  { value: 'Series', label: 'ซีรีส์ (Series)' },
+  { value: 'Moral Drama', label: 'ละครคุณธรรม (Moral Drama)' },
+  { value: 'Short Film', label: 'หนังสั้น (Short Film)' },
+  { value: 'Commercial', label: 'โฆษณา (Commercial)' },
+  { value: 'MV', label: 'มิวสิควิดีโอ (Music Video)' },
+  { value: 'Reels', label: 'คลิปสั้น/เรียล (Reels/Shorts)' },
+];
+
+export const CHARACTER_ROLES = [
+  "Protagonist (Main)",
+  "Antagonist (Main)",
+  "Main Character",
+  "Supporting Character",
+  "Minor Character / Extra",
+  "Guest Appearance"
+];
+
+export const CHARACTER_IMAGE_STYLES = [
+  // Cinematic / Realistic
+  "Cinematic Realistic (4K Movie Still)",
+  "Film Noir (Black & White, High Contrast)",
+  "Documentary Photography (Raw, Natural)",
+  "Vintage Polaroid (Faded, Retro)",
+  "Cyberpunk (Neon, High Tech)",
+  
+  // Animation / 3D
+  "Pixar Style 3D (Cute, Soft Lighting)",
+  "Disney Animation (Expressive, Vibrant)",
+  "Japanese Anime (Studio Ghibli Style)",
+  "Japanese Anime (Shonen Action Style)",
+  "Stop Motion / Claymation",
+  "Low Poly 3D (Retro Game)",
+
+  // Art / Illustration
+  "American Comic Book (Marvel/DC Style)",
+  "Graphic Novel (Noir/Sin City Style)",
+  "Oil Painting (Classic, Textured)",
+  "Watercolor (Soft, Artistic)",
+  "Pencil Sketch (Rough, Storyboard)",
+  "Charcoal Drawing (Dramatic, Smudged)",
+  "Concept Art (Digital Painting, Detailed)",
+  "Pixel Art (8-bit / 16-bit)",
+  "Ukiyo-e (Japanese Woodblock Print)"
+];
+
+export const TEAM_ROLES = [
+  "Director",
+  "Producer",
+  "Screenwriter",
+  "Cast",
+  "Cinematographer (DOP)",
+  "Editor",
+  "Sound Designer",
+  "Production Designer",
+  "Art Director",
+  "Costume Designer",
+  "Makeup Artist",
+  "Gaffer",
+  "Key Grip",
+  "Boom Operator",
+  "Script Supervisor",
+  "Colorist",
+  "VFX Supervisor",
+  "Composer",
+  "Stunt Coordinator",
+  "Location Manager"
+];
+
+export const PLOT_POINTS: PlotPoint[] = [
+  { title: 'Equilibrium', description: 'Peace. At the beginning of the story, the main character may not have a good life, but he doesn\'t feel like he has any problems.' },
+  { title: 'Inciting Incident', description: 'There have been events that have shaken the peace, both physically and mentally.' },
+  { title: 'Turning Point', description: 'A crucial moment that reveals the theme of the story, but the protagonist does not understand it. The character decides to fight, causing life to change and is difficult to predict.' },
+  { title: 'Act Break', description: 'As a result of the turning point, the characters have to face high conflicts. The characters have to solve many problems in order to move forward to reach their goals.' },
+  { title: 'Rising Action', description: 'Solving problems in various ways often makes things even more complicated. The characters\' lives may be closer to their goals or further away from them.' },
+  { title: 'Crisis', description: 'The biggest crisis in a story is often the one that comes out the hardest, preventing the character from reaching his or her goal.' },
+  { title: 'Falling Action', description: 'The lowest point of a character. After reflecting on themselves, the protagonist may find the ultimate solution at this point.' },
+  { title: 'Climax', description: 'The most intense point of the story where the main conflict is confronted.' },
+  { title: 'Ending', description: 'The conclusion of the story, answering the important question, Premise.' }
+];
+
+export const EMPTY_CHARACTER: Character = {
+  id: "default-character",
+  name: "Protagonist",
+  role: "Protagonist (Main)",
+  description: "A former boxer, wise but carries the weight of his past.",
+  image: "",
+  faceReferenceImage: "",
+  fashionReferenceImage: "",
+  imageStyle: "Cinematic Realistic (4K Movie Still)",
+  outfitCollection: [],
+  external: {
+    "Last Name": "",
+    "Nickname": "",
+    "Alias": "",
+    "Date of Birth Age": "",
+    "Address": "",
+    "Relationship": "",
+    "Ethnicity": "Thai",
+    "Nationality": "Thai",
+    "Religion": "Buddhist",
+    "Blood Type": "",
+    "Health": "",
+    "Education": "",
+    "Financial Status": "",
+    "Occupation": "",
+  },
+  physical: {
+    "Physical Characteristics": "",
+    "Voice characteristics": "",
+    "Eye characteristics": "",
+    "Facial characteristics": "",
+    "Gender": "Male",
+    "Height, Weight": "",
+    "Skin color": "",
+    "Hair style": "",
+  },
+  fashion: {
+    "Style Concept": "",
+    "Main Outfit": "",
+    "Accessories": "",
+    "Color Palette": "",
+    "Condition/Texture": ""
+  },
+  internal: {
+    consciousness: {
+      "Mindfulness (remembrance)": 80,
+      "Wisdom (right view)": 75,
+      "Faith (Belief in the right)": 85,
+      "Hiri (Shame of sin)": 80,
+      "Karuna (Compassion, knowing suffering)": 90,
+      "Mudita (Joy in happiness)": 70,
+    },
+    subconscious: {
+      "Attachment": "",
+      "Taanha": "",
+    },
+    defilement: {
+      "Lobha (Greed)": 30,
+      "Anger (Anger)": 40,
+      "Moha (delusion)": 45,
+      "Mana (arrogance)": 50,
+      "Titthi (obsession)": 55,
+      "Vicikiccha (doubt)": 30,
+      "Thina (depression)": 25,
+      "Uthachcha (distraction)": 30,
+      "Ahirika (shamelessness)": 15,
+      "Amodtappa (fearlessness of sin)": 15,
+    },
+  },
+  goals: {
+    objective: "",
+    need: "",
+    action: "",
+    conflict: "",
+    backstory: "",
+  },
+};
+
+export const INITIAL_SCRIPT_DATA: ScriptData = {
+  title: 'Untitled Project',
+  projectType: 'Movie',
+  mainGenre: GENRES[0],
+  secondaryGenres: [GENRES[1], GENRES[2]],
+  language: 'Thai',
+  bigIdea: '',
+  premise: '',
+  theme: '',
+  logLine: '',
+  timeline: {
+    movieTiming: '',
+    seasons: '',
+    date: '',
+    social: '',
+    economist: '',
+    environment: '',
+  },
+  characters: [EMPTY_CHARACTER],
+  structure: PLOT_POINTS.map(p => ({ ...p })),
+  scenesPerPoint: Object.fromEntries(PLOT_POINTS.map((p): [string, number] => [p.title, 1])),
+  generatedScenes: Object.fromEntries(PLOT_POINTS.map((p): [string, any[]] => [p.title, []])),
+  team: [],
+};
