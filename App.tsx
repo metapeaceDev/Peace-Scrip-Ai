@@ -518,7 +518,7 @@ function App() {
               <div className="bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700 max-w-md text-center">
                   <h1 className="text-2xl font-bold text-white mb-3">API Key Required</h1>
                   <p className="text-gray-400 mb-6 text-sm leading-relaxed">
-                      Peace Script uses Google's advanced Veo model. Each user must select their own API key.
+                      Peace Script uses Google&apos;s advanced Veo model. Each user must select their own API key.
                   </p>
                   <button onClick={handleSelectApiKey} className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all">
                       Select API Key to Continue

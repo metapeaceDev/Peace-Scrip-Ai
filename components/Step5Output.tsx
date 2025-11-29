@@ -263,8 +263,8 @@ const SceneDisplay: React.FC<{
         const prefixMatch = loc.match(/^(INT\.\/EXT\.|INT\.|EXT\.|I\/E\.)/);
         const timeMatch = loc.match(/-\s*(DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER|MORNING|EVENING)$/);
         
-        let prefix = prefixMatch ? prefixMatch[0] : 'INT.';
-        let time = timeMatch ? timeMatch[1] : 'DAY';
+        const prefix = prefixMatch ? prefixMatch[0] : 'INT.';
+        const time = timeMatch ? timeMatch[1] : 'DAY';
         
         let name = loc;
         if (prefixMatch) name = name.replace(prefixMatch[0], '').trim();

@@ -187,7 +187,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({ scriptData, updateScriptData, n
                           <span className="text-xs bg-cyan-900/50 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50">AI Powered</span>
                       </h3>
                       <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                          Generate a cinematic poster for "{scriptData.title || 'Your Project'}". 
+                          Generate a cinematic poster for &quot;{scriptData.title || 'Your Project'}&quot;. 
                           The AI uses your genre and title to create a unique visual identity. 
                           You can customize the prompt below to refine the style, mood, or composition.
                       </p>
