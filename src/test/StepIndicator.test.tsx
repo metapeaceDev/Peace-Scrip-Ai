@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import StepIndicator from '../components/StepIndicator';
+import StepIndicator from '../../components/StepIndicator';
 
 describe('StepIndicator', () => {
   it('renders all 5 steps', () => {
