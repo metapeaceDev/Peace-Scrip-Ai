@@ -12,13 +12,16 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor';
             }
-            if (id.includes('@google')) {
+            if (id.includes('@google/genai')) {
               return 'ai-vendor';
+            }
+            if (id.includes('firebase')) {
+              return 'firebase-vendor';
             }
           }
         }
       }
     },
-    chunkSizeWarningLimit: 600
+    chunkSizeWarningLimit: 700
   }
 })

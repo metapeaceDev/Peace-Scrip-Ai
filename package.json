@@ -14,10 +14,14 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "firebase:deploy": "npm run build && firebase deploy",
+    "firebase:rules": "firebase deploy --only firestore:rules,storage:rules",
+    "firebase:hosting": "npm run build && firebase deploy --only hosting"
   },
   "dependencies": {
     "@google/genai": "^1.29.1",
+    "firebase": "^12.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

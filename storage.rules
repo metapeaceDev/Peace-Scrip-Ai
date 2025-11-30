@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check file size (max 10MB)
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Helper function to check if file is an image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true; // Anyone can read profile images
+      allow write: if isAuthenticated() 
+                   && request.auth.uid == userId 
+                   && isImage() 
+                   && isValidSize();
+    }
+    
+    // Project assets (storyboards, images, etc.)
+    match /projects/{projectId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && isValidSize();
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
