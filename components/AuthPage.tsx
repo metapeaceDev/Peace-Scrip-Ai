@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { firebaseAuth } from '../src/services/firebaseAuth';
 import { firestoreService } from '../src/services/firestoreService';
 
+interface SimpleUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
+
 interface AuthPageProps {
-    onLoginSuccess: (username: string) => void;
+    onLoginSuccess: (user: SimpleUser) => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
@@ -22,7 +28,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             if (isLogin) {
                 const result = await firebaseAuth.login(email, password);
                 localStorage.setItem('peace_user', JSON.stringify(result.user));
-                onLoginSuccess(result.user.displayName || result.user.email || 'User');
+                onLoginSuccess(result.user as SimpleUser);
             } else {
                 await firebaseAuth.register(email, password, username);
                 setIsLogin(true);
@@ -46,7 +52,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             // Sync local projects to Firestore
             await firestoreService.syncLocalProjects(result.user.uid);
             
-            onLoginSuccess(result.user.displayName || result.user.email || 'User');
+            onLoginSuccess(result.user as SimpleUser);
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google');
@@ -57,7 +63,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
     const handleOfflineMode = () => {
         localStorage.setItem('peace_offline_mode', 'true');
-        onLoginSuccess('Guest (Offline)');
+        const guestUser: SimpleUser = {
+            uid: 'offline-guest',
+            email: 'guest@offline.local',
+            displayName: 'Guest (Offline)'
+        };
+        onLoginSuccess(guestUser);
     };
 
     return (

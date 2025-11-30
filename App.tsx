@@ -13,6 +13,14 @@ import TeamManager from './components/TeamManager';
 import AuthPage from './components/AuthPage';
 import { api } from './services/api';
 import { parseDocumentToScript } from './services/geminiService';
+import { firebaseAuth } from './src/services/firebaseAuth';
+import { firestoreService } from './src/services/firestoreService';
+
+interface SimpleUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
 
 // --- DATA SANITIZATION HELPERS ---
 const sanitizeGeneratedScenes = (scenesMap: Record<string, GeneratedScene[]>): Record<string, GeneratedScene[]> => {
@@ -156,8 +164,10 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
-  const [currentUser, setCurrentUser] = useState('');
+  const [currentUser, setCurrentUser] = useState<SimpleUser | null>(null);
+  const [currentUserDisplayName, setCurrentUserDisplayName] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const [view, setView] = useState<'studio' | 'editor'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
@@ -189,22 +199,38 @@ function App() {
           }
           setHasApiKey(keySelected);
 
-          const token = localStorage.getItem('peace_token');
-          const username = localStorage.getItem('peace_username');
-          const isOffline = api.isOffline();
+          // Check for offline mode preference
+          const offlineMode = api.isOffline();
+          setIsOfflineMode(offlineMode);
 
-          if (isOffline) {
+          if (offlineMode) {
+              // Offline mode: use IndexedDB
               setIsAuthenticated(true);
-              setCurrentUser('Guest (Offline)');
+              setCurrentUserDisplayName('Guest (Offline)');
               await loadCloudProjects();
-          } else if (token && username) {
-              setIsAuthenticated(true);
-              setCurrentUser(username);
-              await loadCloudProjects();
+              setIsLoadingAuth(false);
           } else {
-              setIsAuthenticated(false);
+              // Online mode: use Firebase Auth
+              const unsubscribe = firebaseAuth.onAuthStateChange((user) => {
+                  if (user) {
+                      const simpleUser: SimpleUser = {
+                          uid: user.uid,
+                          email: user.email,
+                          displayName: user.displayName
+                      };
+                      setIsAuthenticated(true);
+                      setCurrentUser(simpleUser);
+                      setCurrentUserDisplayName(user.displayName || user.email || 'User');
+                      loadCloudProjects();
+                  } else {
+                      setIsAuthenticated(false);
+                      setCurrentUser(null);
+                      setCurrentUserDisplayName('');
+                  }
+                  setIsLoadingAuth(false);
+              });
+              return () => unsubscribe();
           }
-          setIsLoadingAuth(false);
       };
       initApp();
   }, []);
@@ -227,27 +253,52 @@ function App() {
 
   const loadCloudProjects = async () => {
       try {
-          const cloudProjects = await api.getProjects();
-          setProjects(cloudProjects);
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              const localProjects = await api.getProjects();
+              setProjects(localProjects);
+          } else {
+              // Online mode: use Firestore
+              const response = await firestoreService.getUserProjects(currentUser.uid);
+              // Convert ScriptProject[] to ProjectMetadata[]
+              const projectMetadata = response.projects.map(p => ({
+                  id: p.id,
+                  title: p.title,
+                  type: p.type as any,
+                  lastModified: p.updatedAt.getTime(),
+                  posterImage: undefined as string | undefined
+              }));
+              setProjects(projectMetadata);
+          }
       } catch (e) {
           console.error("Failed to load projects", e);
-          if (!api.isOffline()) setProjects([]);
+          setProjects([]);
       }
   };
 
-  const handleLoginSuccess = (username: string) => {
+  const handleLoginSuccess = async (user: SimpleUser) => {
       setIsAuthenticated(true);
-      setCurrentUser(username);
-      loadCloudProjects();
+      setCurrentUser(user);
+      setCurrentUserDisplayName(user.displayName || user.email || 'User');
+      await loadCloudProjects();
   };
 
-  const handleLogout = () => {
-      localStorage.removeItem('peace_token');
-      localStorage.removeItem('peace_username');
-      api.setOfflineMode(false);
-      setIsAuthenticated(false);
-      setCurrentUser('');
-      setProjects([]);
+  const handleLogout = async () => {
+      if (isOfflineMode) {
+          // Offline mode logout
+          api.setOfflineMode(false);
+          setIsOfflineMode(false);
+          setIsAuthenticated(false);
+          setCurrentUserDisplayName('');
+          setProjects([]);
+      } else {
+          // Firebase logout
+          await firebaseAuth.logout();
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          setCurrentUserDisplayName('');
+          setProjects([]);
+      }
   };
 
   const registerUndo = () => {
@@ -284,7 +335,17 @@ function App() {
   const handleCreateProject = async (title: string, type: ProjectType) => {
     try {
         const newData: ScriptData = { ...INITIAL_SCRIPT_DATA, title, projectType: type };
-        const newId = await api.createProject(title, type, newData);
+        let newId: string;
+        
+        if (isOfflineMode || !currentUser) {
+            // Offline mode: use IndexedDB
+            newId = await api.createProject(title, type, newData);
+        } else {
+            // Online mode: use Firestore
+            const response = await firestoreService.createProject(currentUser.uid, newData as any);
+            newId = response.project.id;
+        }
+        
         newData.id = newId;
         await loadCloudProjects();
         setScriptData(newData);
@@ -310,7 +371,17 @@ function App() {
       setIsUploading(true);
       setUploadStatusText("Loading Project...");
       try {
-          const data = await api.getProjectById(id);
+          let data: ScriptData;
+          
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              data = await api.getProjectById(id);
+          } else {
+              // Online mode: use Firestore
+              const response = await firestoreService.getProject(id);
+              data = response.project as any as ScriptData;
+          }
+          
           const sanitized = sanitizeScriptData(data);
           setScriptData(sanitized);
           setCurrentProjectId(id);
@@ -338,7 +409,13 @@ function App() {
 
   const handleDeleteProject = async (id: string) => {
       try {
-          await api.deleteProject(id);
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              await api.deleteProject(id);
+          } else {
+              // Online mode: use Firestore
+              await firestoreService.deleteProject(id);
+          }
           await loadCloudProjects();
       } catch (e) {
           alert("Failed to delete project.");
@@ -380,7 +457,15 @@ function App() {
           const newData = sanitizeScriptData(projectData);
           const pType: ProjectType = newData.projectType || 'Movie';
           const title = newData.title || file.name.replace(/\.[^/.]+$/, "");
-          await api.createProject(title, pType, newData);
+          
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              await api.createProject(title, pType, newData);
+          } else {
+              // Online mode: use Firestore
+              await firestoreService.createProject(currentUser.uid, newData as any);
+          }
+          
           await loadCloudProjects();
           alert("Project imported successfully!");
       } catch (e: any) {
@@ -394,7 +479,17 @@ function App() {
 
   const handleExportProjectFromStudio = async (id: string) => {
       try {
-          const data = await api.getProjectById(id);
+          let data: ScriptData;
+          
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              data = await api.getProjectById(id);
+          } else {
+              // Online mode: use Firestore
+              const response = await firestoreService.getProject(id);
+              data = response.project as any as ScriptData;
+          }
+          
           const jsonString = JSON.stringify(data, null, 2);
           const blob = new Blob([jsonString], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
@@ -412,7 +507,15 @@ function App() {
   };
 
   const handleBackToStudio = async () => {
-      if (currentProjectId) await api.updateProject(currentProjectId, scriptData);
+      if (currentProjectId) {
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              await api.updateProject(currentProjectId, scriptData);
+          } else {
+              // Online mode: use Firestore
+              await firestoreService.updateProject(currentProjectId, scriptData);
+          }
+      }
       setView('studio');
       setCurrentProjectId(null);
       await loadCloudProjects();
@@ -421,7 +524,13 @@ function App() {
   const saveCurrentProject = async (data: ScriptData): Promise<boolean> => {
       if (!data.id) return false;
       try {
-          await api.updateProject(data.id, data);
+          if (isOfflineMode || !currentUser) {
+              // Offline mode: use IndexedDB
+              await api.updateProject(data.id, data);
+          } else {
+              // Online mode: use Firestore
+              await firestoreService.updateProject(data.id, data);
+          }
           return true;
       } catch (e: any) {
           console.error("Auto-save failed", e);
@@ -492,7 +601,7 @@ function App() {
   const handleManualSave = async () => {
       const success = await saveCurrentProject(scriptData);
       if (success) {
-          setSaveFeedback(api.isOffline() ? 'Saved Locally!' : 'Saved to Cloud!');
+          setSaveFeedback(isOfflineMode ? 'Saved Locally!' : 'Saved to Cloud!');
           setTimeout(() => setSaveFeedback(''), 2000);
       }
   };
@@ -544,8 +653,8 @@ function App() {
             )}
             <div className="bg-gray-900 border-b border-gray-800 px-8 py-2 flex justify-end items-center text-xs text-gray-500 gap-4">
                 <span className="flex items-center gap-2">
-                    {api.isOffline() && <span className="w-2 h-2 rounded-full bg-yellow-500" title="Offline Mode"></span>}
-                    Logged in as <strong className="text-cyan-500">{currentUser}</strong>
+                    {isOfflineMode && <span className="w-2 h-2 rounded-full bg-yellow-500" title="Offline Mode"></span>}
+                    Logged in as <strong className="text-cyan-500">{currentUserDisplayName}</strong>
                 </span>
                 <button onClick={handleLogout} className="hover:text-white transition-colors">Logout</button>
             </div>
@@ -599,8 +708,8 @@ function App() {
                  <span className="hidden sm:inline">Crew</span>
              </button>
              <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 py-1 px-3 rounded-full border border-gray-700">
-                <span className={`w-2 h-2 rounded-full ${isAutoSaving ? 'bg-yellow-400 animate-pulse' : (api.isOffline() ? 'bg-orange-500' : 'bg-green-500')}`}></span>
-                <span className="hidden sm:inline">{isAutoSaving ? 'Saving...' : (api.isOffline() ? 'Local Save' : 'Cloud Save')}</span>
+                <span className={`w-2 h-2 rounded-full ${isAutoSaving ? 'bg-yellow-400 animate-pulse' : (isOfflineMode ? 'bg-orange-500' : 'bg-green-500')}`}></span>
+                <span className="hidden sm:inline">{isAutoSaving ? 'Saving...' : (isOfflineMode ? 'Local Save' : 'Cloud Save')}</span>
              </div>
              <select value={scriptData.language} onChange={(e) => updateScriptData({ language: e.target.value as 'Thai' | 'English' })} className="bg-gray-700 text-white text-sm rounded-md border-gray-600 focus:ring-cyan-500 focus:border-cyan-500 py-1 pl-2 pr-6">
                 <option value="Thai">🇹🇭 TH</option>
