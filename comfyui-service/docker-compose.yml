@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Redis for queue
+  redis:
+    image: redis:7-alpine
+    container_name: peace-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ComfyUI Service
+  comfyui-service:
+    build: .
+    container_name: peace-comfyui-service
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - COMFYUI_WORKERS=${COMFYUI_WORKERS:-http://host.docker.internal:8188}
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./service-account.json:/app/service-account.json:ro
+    restart: unless-stopped
+
+  # Optional: ComfyUI instance (requires GPU)
+  # comfyui:
+  #   image: comfyanonymous/comfyui:latest
+  #   container_name: peace-comfyui
+  #   ports:
+  #     - "8188:8188"
+  #   volumes:
+  #     - comfyui-models:/app/models
+  #     - comfyui-output:/app/output
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+
+volumes:
+  redis-data:
+  # comfyui-models:
+  # comfyui-output:

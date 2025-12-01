@@ -1,5 +1,5 @@
 
-import { ScriptData, ProjectMetadata, ProjectType } from '../types';
+import { ScriptData, ProjectMetadata, ProjectType } from '../../types';
 
 // No backend needed - Pure offline/cloud hybrid app
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.peacescript.app'; // Cloud API (optional)
@@ -7,7 +7,7 @@ const DB_NAME = 'PeaceScriptDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'projects';
 
-let isOfflineMode = true; // Start in offline mode by default
+let isOfflineMode = false; // Start in ONLINE mode by default (use Firebase Auth + Firestore)
 
 // --- INDEXED DB ADAPTER ---
 

@@ -1,7 +1,8 @@
 
 import React, { useState, useRef } from 'react';
-import { ProjectMetadata, ProjectType } from '../types';
-import { PROJECT_TYPES } from '../constants';
+import { ProjectMetadata, ProjectType } from '../../types';
+import { PROJECT_TYPES } from '../../constants';
+import ComfyUIStatus from './ComfyUIStatus';
 
 interface StudioProps {
   projects: ProjectMetadata[];
@@ -79,6 +80,9 @@ const Studio: React.FC<StudioProps> = ({ projects, onCreateProject, onOpenProjec
             </div>
         </header>
 
+        {/* ComfyUI Backend Status */}
+        <ComfyUIStatus />
+
         {projects.length === 0 ? (
              <div className="flex flex-col items-center justify-center py-20 bg-gray-800/30 rounded-3xl border-2 border-dashed border-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,17 +101,13 @@ const Studio: React.FC<StudioProps> = ({ projects, onCreateProject, onOpenProjec
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {projects.sort((a,b) => b.lastModified - a.lastModified).map(project => (
                     <div key={project.id} className="bg-gray-800 rounded-xl border border-gray-700 hover:border-cyan-500/50 transition-all hover:shadow-xl hover:shadow-cyan-900/10 group flex flex-col h-[280px] relative overflow-hidden">
-                         {/* Poster Background */}
+                         {/* Poster Background - Removed for performance (posterImage too large for Firestore) */}
                          <div className="absolute inset-0 bg-gray-900 z-0">
-                            {project.posterImage ? (
-                                <img src={project.posterImage} alt={project.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                            )}
+                            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
                             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
                          </div>
 

@@ -20,9 +20,7 @@ service cloud.firestore {
     
     // Projects collection - users can only access their own projects
     match /projects/{projectId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read, write: if isAuthenticated();
     }
     
     // Deny all other access

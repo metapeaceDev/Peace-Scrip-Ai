@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { firebaseAuth } from '../src/services/firebaseAuth';
-import { firestoreService } from '../src/services/firestoreService';
+import { firebaseAuth } from '../services/firebaseAuth';
+import { firestoreService } from '../services/firestoreService';
 
 interface SimpleUser {
   uid: string;
@@ -46,17 +46,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         setError('');
         setLoading(true);
         try {
-            const result = await firebaseAuth.loginWithGoogle();
-            localStorage.setItem('peace_user', JSON.stringify(result.user));
-            
-            // Sync local projects to Firestore
-            await firestoreService.syncLocalProjects(result.user.uid);
-            
-            onLoginSuccess(result.user as SimpleUser);
+            // Redirect to Google Sign-in immediately (no alert)
+            await firebaseAuth.loginWithGoogle();
+            // User will be redirected away, loading state will persist
+            // The result will be handled in App.tsx on page load after redirect back
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google');
-        } finally {
             setLoading(false);
         }
     };

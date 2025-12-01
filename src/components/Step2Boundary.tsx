@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { ScriptData } from '../types';
+import type { ScriptData } from '../../types';
 
 interface Step2BoundaryProps {
   scriptData: ScriptData;

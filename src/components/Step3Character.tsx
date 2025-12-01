@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { ScriptData, Character, GeneratedScene } from '../types';
+import type { ScriptData, Character, GeneratedScene } from '../../types';
 import { generateCharacterDetails, fillMissingCharacterDetails, generateCharacterImage, generateCostumeImage } from '../services/geminiService';
-import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../constants';
+import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../../constants';
 
 interface Step3CharacterProps {
   scriptData: ScriptData;
@@ -302,10 +302,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
 
     setIsCostumeLoading(true);
     try {
-        const physicalDesc = activeCharacter.physical["Physical Characteristics"] || activeCharacter.description;
         const style = activeCharacter.imageStyle || CHARACTER_IMAGE_STYLES[0];
-        const ethnicity = activeCharacter.external["Ethnicity"] || activeCharacter.external["Nationality"] || "Global";
-        const hairStyle = activeCharacter.physical["Hair style"] || "Natural";
 
         // PRIORITY: Use Master Face Ref if available, otherwise use Profile Picture (image) if available
         // This ensures profile pics uploaded by users are used as the "Face ID"
@@ -313,14 +310,30 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
         
         // Pass Costume Reference if available
         const costumeReference = activeCharacter.fashionReferenceImage;
+        
+        // Merge external and physical info for comprehensive character data
+        const completePhysicalInfo = {
+            ...activeCharacter.external,
+            ...activeCharacter.physical
+        };
+
+        // Show detailed debug info
+        if (referenceImage) {
+            console.log("🎯 Generating outfit with Face ID reference...");
+            console.log("📸 Reference image source:", activeCharacter.faceReferenceImage ? "Face Reference" : "Profile Picture");
+            console.log("🎨 Original style:", style);
+            console.log("👤 Character:", activeCharacter.name);
+            console.log("📋 Physical Info:", completePhysicalInfo);
+            console.log("👔 Outfit:", mainOutfit);
+        } else {
+            console.log("⚠️ No reference image available - generating without Face ID");
+        }
 
         const base64Image = await generateCostumeImage(
-            activeCharacter.name, 
-            physicalDesc, 
+            activeCharacter.name,
             mainOutfit, 
             style,
-            ethnicity,
-            hairStyle,
+            completePhysicalInfo,
             referenceImage,
             costumeReference
         );
@@ -338,9 +351,64 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
         // Auto-select the new image for preview
         setSelectedOutfitIndex(0);
 
-    } catch (e) {
-        alert("Failed to generate costume image.");
-        console.error(e);
+    } catch (e: any) {
+        // Parse error message
+        const errorMsg = e?.message || "Failed to generate costume image.";
+        
+        // Check if it's Face ID limitation error
+        if (errorMsg.includes("Face ID matching requires")) {
+            // Show user-friendly message with solutions
+            const retryWithoutFaceID = window.confirm(
+                "⚠️ Cannot generate outfit with Face ID\n\n" +
+                "Gemini API quota exceeded. Pollinations.ai doesn't support Face ID matching.\n\n" +
+                "✅ Solutions:\n" +
+                "1. Wait 1 minute, then try again (Gemini quota resets)\n" +
+                "2. Enable ComfyUI in AI Settings (top-right)\n" +
+                "3. Generate without Face ID (won't match profile)\n\n" +
+                "Click OK to generate without Face ID now, or Cancel to wait."
+            );
+            
+            if (retryWithoutFaceID) {
+                // Retry generation without reference images
+                try {
+                    const style = activeCharacter.imageStyle || CHARACTER_IMAGE_STYLES[0];
+                    const completePhysicalInfo = {
+                        ...activeCharacter.external,
+                        ...activeCharacter.physical
+                    };
+                    
+                    console.log("🔄 Retrying without Face ID...");
+                    const base64Image = await generateCostumeImage(
+                        activeCharacter.name,
+                        mainOutfit, 
+                        style,
+                        completePhysicalInfo
+                        // No reference images passed
+                    );
+
+                    const newOutfitId = `OTF-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+                    const newOutfit = { id: newOutfitId, description: mainOutfit, image: base64Image };
+                    const updatedCollection = [newOutfit, ...(activeCharacter.outfitCollection || [])];
+                    updateCharacterAtIndex(activeCharIndex, { outfitCollection: updatedCollection });
+                    setSelectedOutfitIndex(0);
+                    console.log("✅ Generated without Face ID successfully");
+                    return; // Success - exit without showing error
+                } catch (retryError: any) {
+                    const retryMsg = retryError?.message || "Unknown error";
+                    // Only show alert if retry also failed
+                    if (!retryMsg.includes("Face ID matching requires")) {
+                        alert(`Retry failed: ${retryMsg}`);
+                    }
+                    console.error("Retry error:", retryError);
+                } finally {
+                    setIsCostumeLoading(false);
+                }
+            }
+            // Don't show additional error message - user already saw the confirm dialog
+        } else {
+            alert(`Failed to generate costume image.\n\n${errorMsg}`);
+            console.error("Costume generation error:", e);
+        }
     } finally {
         setIsCostumeLoading(false);
     }
@@ -878,7 +946,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
 
                              <button 
                                 onClick={handleGenerateCostume}
-                                disabled={isCostumeLoading}
+                                disabled={isCostumeLoading || (typeof window !== 'undefined' && localStorage.getItem('peace_comfyui_skipped') === 'true' && Boolean(activeCharacter.faceReferenceImage || activeCharacter.image))}
                                 className={`w-full text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${activeCharacter.faceReferenceImage || activeCharacter.image ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20'}`}
                             >
                                 {isCostumeLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (
@@ -886,6 +954,29 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                                 )}
                                 {activeCharacter.faceReferenceImage || activeCharacter.image ? 'Generate Outfit (Face ID)' : 'Generate Outfit'}
                             </button>
+                            
+                            {/* ComfyUI Skipped Warning */}
+                            {typeof window !== 'undefined' && localStorage.getItem('peace_comfyui_skipped') === 'true' && (activeCharacter.faceReferenceImage || activeCharacter.image) && (
+                                <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                                    <div className="flex gap-2 items-start">
+                                        <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <div className="text-amber-300 text-xs">
+                                            <strong>Face ID Disabled:</strong> ComfyUI setup was skipped. Face matching will not work. 
+                                            <button 
+                                                onClick={() => {
+                                                    localStorage.removeItem('peace_comfyui_skipped');
+                                                    window.location.reload();
+                                                }}
+                                                className="underline ml-1 hover:text-amber-200"
+                                            >
+                                                Enable Face ID
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* RIGHT: Fitting Room (Mirror) */}

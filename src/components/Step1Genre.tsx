@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { ScriptData } from '../types';
-import { GENRES } from '../constants';
+import type { ScriptData } from '../../types';
+import { GENRES } from '../../constants';
 import { generateFullScriptOutline, generateMoviePoster } from '../services/geminiService';
 
 interface Step1GenreProps {

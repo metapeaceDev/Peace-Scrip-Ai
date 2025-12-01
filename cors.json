@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://peace-script-ai.web.app", "https://peace-script-ai.firebaseapp.com"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600
+  }
+]

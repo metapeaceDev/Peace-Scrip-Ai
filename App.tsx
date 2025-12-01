@@ -1,20 +1,24 @@
-
 import React, { useState, useEffect } from 'react';
 import type { ScriptData, Character, GeneratedScene, ProjectMetadata, ProjectType, DialogueLine } from './types';
 import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './constants';
-import StepIndicator from './components/StepIndicator';
-import Step1Genre from './components/Step1Genre';
-import Step2Boundary from './components/Step2Boundary';
-import Step3Character from './components/Step3Character';
-import Step4Structure from './components/Step4Structure';
-import Step5Output from './components/Step5Output';
-import Studio from './components/Studio';
-import TeamManager from './components/TeamManager';
-import AuthPage from './components/AuthPage';
-import { api } from './services/api';
-import { parseDocumentToScript } from './services/geminiService';
+import StepIndicator from './src/components/StepIndicator';
+import Step1Genre from './src/components/Step1Genre';
+import Step2Boundary from './src/components/Step2Boundary';
+import Step3Character from './src/components/Step3Character';
+import Step4Structure from './src/components/Step4Structure';
+import Step5Output from './src/components/Step5Output';
+import Studio from './src/components/Studio';
+import TeamManager from './src/components/TeamManager';
+import AuthPage from './src/components/AuthPage';
+import ComfyUISetup from './src/components/ComfyUISetup';
+import LoRASetup from './src/components/LoRASetup';
+import { ProviderSettings } from './src/components/ProviderSettings';
+import { api } from './src/services/api';
+import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
 import { firestoreService } from './src/services/firestoreService';
+import { checkComfyUIStatus } from './src/services/comfyuiInstaller';
+import { checkAllRequiredModels } from './src/services/loraInstaller';
 
 interface SimpleUser {
   uid: string;
@@ -168,6 +172,11 @@ function App() {
   const [currentUserDisplayName, setCurrentUserDisplayName] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [showComfyUISetup, setShowComfyUISetup] = useState(false);
+  const [comfyUIReady, setComfyUIReady] = useState(false);
+  const [showLoRASetup, setShowLoRASetup] = useState(false);
+  const [loraReady, setLoraReady] = useState(false);
+  const [comfyUISkipped, setComfyUISkipped] = useState(false);
 
   const [view, setView] = useState<'studio' | 'editor'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
@@ -199,9 +208,54 @@ function App() {
           }
           setHasApiKey(keySelected);
 
+          // Check if user previously skipped ComfyUI setup
+          const skipFlag = localStorage.getItem('peace_comfyui_skipped');
+          if (skipFlag === 'true') {
+              console.log('ℹ️ ComfyUI setup was skipped - Face ID disabled');
+              setComfyUISkipped(true);
+              setComfyUIReady(false);
+              setLoraReady(false);
+              // Continue to auth without ComfyUI/LoRA checks
+          } else {
+              // Check ComfyUI status before anything else
+              console.log('🔍 Checking ComfyUI status...');
+              const comfyStatus = await checkComfyUIStatus();
+              
+              if (!comfyStatus.running) {
+                  console.log('⚠️ ComfyUI not running - showing setup screen');
+                  setShowComfyUISetup(true);
+                  setIsLoadingAuth(false);
+                  return; // Stop initialization until ComfyUI is ready
+              }
+              
+              console.log('✅ ComfyUI is running:', comfyStatus.url);
+              setComfyUIReady(true);
+
+              // Check LoRA models after ComfyUI is confirmed running
+              console.log('🔍 Checking LoRA models...');
+              const loraCheck = await checkAllRequiredModels();
+              
+              if (!loraCheck.allInstalled) {
+                  console.log('⚠️ Missing required LoRA models - showing setup screen');
+                  console.log('Missing models:', loraCheck.missing.map(m => m.displayName));
+                  setShowLoRASetup(true);
+                  setIsLoadingAuth(false);
+                  return; // Stop initialization until LoRAs are ready
+              }
+              
+              console.log('✅ All required LoRA models installed');
+              setLoraReady(true);
+          }
+
+          // FORCE ONLINE MODE: Clear any old offline mode flag
+          localStorage.removeItem('peace_offline_mode');
+          api.setOfflineMode(false);
+          
           // Check for offline mode preference
           const offlineMode = api.isOffline();
           setIsOfflineMode(offlineMode);
+          
+          console.log('🌐 App Mode:', offlineMode ? 'OFFLINE' : 'ONLINE');
 
           if (offlineMode) {
               // Offline mode: use IndexedDB
@@ -211,8 +265,35 @@ function App() {
               setIsLoadingAuth(false);
           } else {
               // Online mode: use Firebase Auth
-              const unsubscribe = firebaseAuth.onAuthStateChange((user) => {
+              
+              // Handle redirect result first (for Google Sign-in)
+              console.log('🔍 Checking for Google Sign-in redirect result...');
+              try {
+                  const redirectResult = await firebaseAuth.handleRedirectResult();
+                  if (redirectResult) {
+                      console.log('✅ Google Sign-in redirect successful!');
+                      console.log('User info:', redirectResult.user);
+                      // Sync will happen in onAuthStateChange
+                  } else {
+                      console.log('ℹ️ No redirect result (normal page load)');
+                  }
+              } catch (error: any) {
+                  console.error('❌ Redirect result error:', error);
+                  console.error('Error code:', error.code);
+                  console.error('Error message:', error.message);
+                  // Show user-friendly error
+                  if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                      console.log('User cancelled Google Sign-in');
+                  } else if (error.code === 'auth/operation-not-allowed') {
+                      alert('❌ Google Sign-in ยังไม่ได้เปิดใช้งานใน Firebase Console\n\nกรุณาติดต่อผู้ดูแลระบบ');
+                  } else {
+                      alert('❌ เกิดข้อผิดพลาดใน Google Sign-in:\n' + error.message);
+                  }
+              }
+              
+              const unsubscribe = firebaseAuth.onAuthStateChange(async (user) => {
                   if (user) {
+                      console.log('👤 User authenticated:', user.email);
                       const simpleUser: SimpleUser = {
                           uid: user.uid,
                           email: user.email,
@@ -221,7 +302,26 @@ function App() {
                       setIsAuthenticated(true);
                       setCurrentUser(simpleUser);
                       setCurrentUserDisplayName(user.displayName || user.email || 'User');
-                      loadCloudProjects();
+                      
+                      // Load projects with user object directly
+                      try {
+                          console.log('☁️ Loading projects from Firestore (Online Mode)');
+                          console.log('👤 User ID:', user.uid);
+                          const response = await firestoreService.getUserProjects(user.uid);
+                          console.log(`📊 Found ${response.projects.length} projects in Firestore`);
+                          const projectMetadata = response.projects.map(p => ({
+                              id: p.id,
+                              title: p.title,
+                              type: p.type as any,
+                              lastModified: p.updatedAt.getTime(),
+                              posterImage: undefined as string | undefined
+                          }));
+                          setProjects(projectMetadata);
+                          console.log('✅ Projects loaded successfully');
+                      } catch (e) {
+                          console.error("❌ Failed to load projects", e);
+                          setProjects([]);
+                      }
                   } else {
                       setIsAuthenticated(false);
                       setCurrentUser(null);
@@ -253,13 +353,18 @@ function App() {
 
   const loadCloudProjects = async () => {
       try {
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
+              console.log('📦 Loading projects from IndexedDB (Offline Mode)');
               const localProjects = await api.getProjects();
+              console.log(`📊 Found ${localProjects.length} projects in IndexedDB`);
               setProjects(localProjects);
-          } else {
-              // Online mode: use Firestore
+          } else if (currentUser) {
+              // Online mode with logged-in user: use Firestore
+              console.log('☁️ Loading projects from Firestore (Online Mode)');
+              console.log('👤 User ID:', currentUser.uid);
               const response = await firestoreService.getUserProjects(currentUser.uid);
+              console.log(`📊 Found ${response.projects.length} projects in Firestore`);
               // Convert ScriptProject[] to ProjectMetadata[]
               const projectMetadata = response.projects.map(p => ({
                   id: p.id,
@@ -269,17 +374,38 @@ function App() {
                   posterImage: undefined as string | undefined
               }));
               setProjects(projectMetadata);
+              console.log('✅ Projects loaded successfully');
+          } else {
+              // No user yet, don't load anything
+              console.log('⚠️ No user logged in, skipping project load');
+              setProjects([]);
           }
       } catch (e) {
-          console.error("Failed to load projects", e);
+          console.error("❌ Failed to load projects", e);
           setProjects([]);
       }
   };
 
   const handleLoginSuccess = async (user: SimpleUser) => {
+      console.log('🔐 Login Success:', user.email);
       setIsAuthenticated(true);
       setCurrentUser(user);
       setCurrentUserDisplayName(user.displayName || user.email || 'User');
+      
+      // Auto-sync local projects to Firestore
+      console.log('🔄 Starting auto-sync from IndexedDB to Firestore...');
+      try {
+          const syncResult = await firestoreService.syncLocalProjects(user.uid);
+          console.log(`✅ Synced ${syncResult.synced} local projects to Firestore`);
+          if (syncResult.synced > 0) {
+              alert(`✅ Sync สำเร็จ! อัปโหลด ${syncResult.synced} โปรเจ็คขึ้น Cloud แล้ว`);
+          }
+      } catch (e) {
+          console.error('❌ Failed to sync local projects:', e);
+          alert('⚠️ Sync ล้มเหลว: ' + (e instanceof Error ? e.message : 'Unknown error'));
+      }
+      
+      console.log('📊 Loading projects from Firestore...');
       await loadCloudProjects();
   };
 
@@ -337,13 +463,15 @@ function App() {
         const newData: ScriptData = { ...INITIAL_SCRIPT_DATA, title, projectType: type };
         let newId: string;
         
-        if (isOfflineMode || !currentUser) {
+        if (isOfflineMode) {
             // Offline mode: use IndexedDB
             newId = await api.createProject(title, type, newData);
-        } else {
+        } else if (currentUser) {
             // Online mode: use Firestore
             const response = await firestoreService.createProject(currentUser.uid, newData as any);
             newId = response.project.id;
+        } else {
+            throw new Error('No user logged in');
         }
         
         newData.id = newId;
@@ -369,17 +497,22 @@ function App() {
 
   const handleOpenProject = async (id: string) => {
       setIsUploading(true);
-      setUploadStatusText("Loading Project...");
+      setUploadStatusText("📥 Downloading project from Cloud...");
       try {
           let data: ScriptData;
           
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
+              setUploadStatusText("Loading from local storage...");
               data = await api.getProjectById(id);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
+              setUploadStatusText("Downloading project data...");
               const response = await firestoreService.getProject(id);
               data = response.project as any as ScriptData;
+              setUploadStatusText("Preparing workspace...");
+          } else {
+              throw new Error('No user logged in');
           }
           
           const sanitized = sanitizeScriptData(data);
@@ -409,12 +542,14 @@ function App() {
 
   const handleDeleteProject = async (id: string) => {
       try {
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
               await api.deleteProject(id);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
               await firestoreService.deleteProject(id);
+          } else {
+              throw new Error('No user logged in');
           }
           await loadCloudProjects();
       } catch (e) {
@@ -438,11 +573,20 @@ function App() {
       
       setIsUploading(true);
       setUploadStatusText("Analyzing File...");
+      
+      console.log(`📁 Importing file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      
       try {
           let projectData: Partial<ScriptData> = {};
           if (file.name.endsWith('.json')) {
+              setUploadStatusText(`Reading ${(file.size / 1024 / 1024).toFixed(1)} MB file...`);
+              console.log('📖 Reading JSON file...');
               const text = await readTextFile(file);
+              
+              setUploadStatusText("Parsing JSON data...");
+              console.log('🔍 Parsing JSON...');
               projectData = JSON.parse(text);
+              console.log('✅ JSON parsed successfully');
           } else {
               let rawText = "";
               if (file.name.endsWith('.docx')) rawText = await extractTextFromDocx(file);
@@ -454,23 +598,44 @@ function App() {
               setUploadStatusText("AI is structuring your script (Step 1/3)...");
               projectData = await parseDocumentToScript(rawText);
           }
+          setUploadStatusText("Validating project data...");
+          console.log('🔧 Sanitizing project data...');
           const newData = sanitizeScriptData(projectData);
           const pType: ProjectType = newData.projectType || 'Movie';
           const title = newData.title || file.name.replace(/\.[^/.]+$/, "");
           
-          if (isOfflineMode || !currentUser) {
+          setUploadStatusText("Saving to database...");
+          console.log('💾 Saving project:', title);
+          
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
               await api.createProject(title, pType, newData);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
               await firestoreService.createProject(currentUser.uid, newData as any);
+          } else {
+              throw new Error('No user logged in');
           }
           
+          setUploadStatusText("Refreshing project list...");
           await loadCloudProjects();
-          alert("Project imported successfully!");
+          
+          console.log('✅ Import completed successfully!');
+          alert(`✅ Project imported successfully!\n\nTitle: ${title}\nType: ${pType}`);
       } catch (e: any) {
-          console.error(e);
-          alert(`Import failed: ${e.message}`);
+          console.error('❌ Import error:', e);
+          console.error('Error details:', e.message);
+          
+          let errorMsg = 'Import failed: ';
+          if (e.message.includes('JSON')) {
+              errorMsg += 'Invalid JSON format. Please check the file.';
+          } else if (e.message.includes('timeout')) {
+              errorMsg += 'Operation timed out. File may be too large.';
+          } else {
+              errorMsg += e.message;
+          }
+          
+          alert(errorMsg);
       } finally {
           setIsUploading(false);
           setUploadStatusText("Processing...");
@@ -481,13 +646,15 @@ function App() {
       try {
           let data: ScriptData;
           
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
               data = await api.getProjectById(id);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
               const response = await firestoreService.getProject(id);
               data = response.project as any as ScriptData;
+          } else {
+              throw new Error('No user logged in');
           }
           
           const jsonString = JSON.stringify(data, null, 2);
@@ -508,10 +675,10 @@ function App() {
 
   const handleBackToStudio = async () => {
       if (currentProjectId) {
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
               await api.updateProject(currentProjectId, scriptData);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
               await firestoreService.updateProject(currentProjectId, scriptData);
           }
@@ -524,12 +691,14 @@ function App() {
   const saveCurrentProject = async (data: ScriptData): Promise<boolean> => {
       if (!data.id) return false;
       try {
-          if (isOfflineMode || !currentUser) {
+          if (isOfflineMode) {
               // Offline mode: use IndexedDB
               await api.updateProject(data.id, data);
-          } else {
+          } else if (currentUser) {
               // Online mode: use Firestore
               await firestoreService.updateProject(data.id, data);
+          } else {
+              return false; // No user, can't save
           }
           return true;
       } catch (e: any) {
@@ -621,6 +790,58 @@ function App() {
 
   if (isLoadingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">Loading Peace Script...</div>;
 
+  // Show ComfyUI Setup if not running
+  if (showComfyUISetup) {
+      return <ComfyUISetup 
+          onComplete={() => {
+              setShowComfyUISetup(false);
+              setComfyUIReady(true);
+              // Check LoRA after ComfyUI is ready
+              checkAllRequiredModels().then(result => {
+                  if (!result.allInstalled) {
+                      setShowLoRASetup(true);
+                  } else {
+                      setLoraReady(true);
+                      window.location.reload();
+                  }
+              });
+          }}
+          onSkip={() => {
+              console.log('ℹ️ User skipped ComfyUI setup - Face ID will be disabled');
+              localStorage.setItem('peace_comfyui_skipped', 'true');
+              setShowComfyUISetup(false);
+              setComfyUISkipped(true);
+              setComfyUIReady(false);
+              setLoraReady(false);
+              // Continue to app without ComfyUI
+              window.location.reload();
+          }}
+      />;
+  }
+
+  // Show LoRA Setup if required models not installed
+  if (showLoRASetup) {
+      return <LoRASetup 
+          onComplete={() => {
+              setShowLoRASetup(false);
+              setLoraReady(true);
+              window.location.reload(); // Reload to reinitialize
+          }}
+          onSkip={() => {
+              // Allow skipping but warn about Face ID limitations
+              if (window.confirm(
+                  "⚠️ Skip LoRA Installation?\n\n" +
+                  "Without Character Consistency LoRA, Face ID generation will not work properly.\n\n" +
+                  "You can install it later from AI Settings.\n\n" +
+                  "Continue without LoRA?"
+              )) {
+                  setShowLoRASetup(false);
+                  window.location.reload();
+              }
+          }}
+      />;
+  }
+
   if (!hasApiKey) {
       return (
           <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -681,6 +902,9 @@ function App() {
              </h1>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
+             
+             {/* AI Provider Settings */}
+             <ProviderSettings />
              
              {/* GLOBAL ACTIONS (Moved from bottom) */}
              <button 

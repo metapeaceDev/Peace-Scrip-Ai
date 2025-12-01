@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ScriptData, TeamMember } from '../types';
-import { TEAM_ROLES } from '../constants';
+import { ScriptData, TeamMember } from '../../types';
+import { TEAM_ROLES } from '../../constants';
 
 interface TeamManagerProps {
   scriptData: ScriptData;

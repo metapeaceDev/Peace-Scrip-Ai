@@ -12,7 +12,7 @@
 
 ## 🎯 3 Steps to Deploy
 
-### Step 1: สร้าง Firebase Project (5 นาที)
+### Step 1: สร้าง ffirebase loginProject (5 นาที)
 
 1. **ไปที่:** https://console.firebase.google.com/
 2. **คลิก:** "Add project"

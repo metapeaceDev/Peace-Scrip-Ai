@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine } from '../types';
+import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine } from '../../types';
 import { generateScene, generateStoryboardImage, generateStoryboardVideo } from '../services/geminiService';
-import { CHARACTER_IMAGE_STYLES } from '../constants';
+import { CHARACTER_IMAGE_STYLES } from '../../constants';
 
 interface Step5OutputProps {
   scriptData: ScriptData;

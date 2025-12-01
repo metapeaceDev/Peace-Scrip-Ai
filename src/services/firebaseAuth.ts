@@ -6,7 +6,8 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   User,
@@ -79,33 +80,65 @@ class FirebaseAuthService {
   }
 
   /**
-   * Login with Google
+   * Login with Google (using redirect to avoid COOP issues)
    */
   async loginWithGoogle() {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      // Check if user profile exists, if not create it
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (!userDoc.exists()) {
-        await this.createUserProfile(user, user.displayName || 'User');
-      } else {
-        await this.updateLastLogin(user.uid);
-      }
-
-      return {
-        success: true,
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-      };
+      await signInWithRedirect(auth, googleProvider);
+      // User will be redirected to Google, then back to the app
+      // Handle result in handleRedirectResult()
     } catch (error: any) {
       console.error('Google login error:', error);
       throw new Error(this.getErrorMessage(error.code));
+    }
+  }
+
+  /**
+   * Handle redirect result after Google login
+   * Call this on app initialization
+   */
+  async handleRedirectResult() {
+    try {
+      console.log('🔍 [firebaseAuth] Getting redirect result...');
+      const result = await getRedirectResult(auth);
+      
+      if (result) {
+        console.log('✅ [firebaseAuth] Redirect result found');
+        const user = result.user;
+        console.log('👤 [firebaseAuth] User:', {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName
+        });
+
+        // Check if user profile exists, if not create it
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (!userDoc.exists()) {
+          console.log('📝 [firebaseAuth] Creating new user profile...');
+          await this.createUserProfile(user, user.displayName || 'User');
+        } else {
+          console.log('🔄 [firebaseAuth] Updating last login...');
+          await this.updateLastLogin(user.uid);
+        }
+
+        return {
+          success: true,
+          user: {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+          }
+        };
+      }
+      
+      console.log('ℹ️ [firebaseAuth] No redirect result');
+      return null;
+    } catch (error: any) {
+      console.error('❌ [firebaseAuth] Redirect result error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      throw error; // Re-throw to be caught in App.tsx
     }
   }
 
@@ -140,14 +173,18 @@ class FirebaseAuthService {
    * Create user profile in Firestore
    */
   private async createUserProfile(user: User, displayName: string) {
-    const userProfile: UserProfile = {
+    const userProfile: any = {
       uid: user.uid,
       email: user.email || '',
       displayName,
-      photoURL: user.photoURL || undefined,
       createdAt: new Date(),
       lastLogin: new Date()
     };
+
+    // Only add photoURL if it exists
+    if (user.photoURL) {
+      userProfile.photoURL = user.photoURL;
+    }
 
     await setDoc(doc(db, 'users', user.uid), userProfile);
   }
@@ -170,6 +207,7 @@ class FirebaseAuthService {
     const errorMessages: { [key: string]: string } = {
       'auth/email-already-in-use': 'อีเมลนี้ถูกใช้งานแล้ว',
       'auth/invalid-email': 'รูปแบบอีเมลไม่ถูกต้อง',
+      'auth/invalid-credential': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
       'auth/operation-not-allowed': 'การดำเนินการนี้ไม่ได้รับอนุญาต',
       'auth/weak-password': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
       'auth/user-disabled': 'บัญชีนี้ถูกระงับ',

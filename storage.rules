@@ -26,6 +26,13 @@ service firebase.storage {
                    && isValidSize();
     }
     
+    // Project JSON files stored by userId (supports large files 16MB+)
+    match /projects/{userId}/{fileName} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
     // Project assets (storyboards, images, etc.)
     match /projects/{projectId}/{allPaths=**} {
       allow read: if isAuthenticated();

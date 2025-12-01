@@ -1,22 +1,41 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Step3Character from '../components/Step3Character';
+import { EMPTY_CHARACTER } from '../../constants';
 
 describe('Step3Character', () => {
-  const mockOnNext = vi.fn();
-  const mockOnBack = vi.fn();
-  const mockOnUpdate = vi.fn();
+  const mockSetScriptData = vi.fn();
+  const mockNextStep = vi.fn();
+  const mockPrevStep = vi.fn();
 
   const defaultProps = {
-    onNext: mockOnNext,
-    onBack: mockOnBack,
-    onUpdate: mockOnUpdate,
     scriptData: {
       title: 'Test Script',
-      genre: 'Drama',
-      type: 'feature',
-      characters: []
-    }
+      mainGenre: 'Drama',
+      projectType: 'Movie' as const,
+      characters: [],
+      secondaryGenres: [],
+      language: 'English' as const,
+      bigIdea: '',
+      premise: '',
+      theme: '',
+      logLine: '',
+      timeline: {
+        movieTiming: '',
+        seasons: '',
+        date: '',
+        social: '',
+        economist: '',
+        environment: ''
+      },
+      structure: [],
+      scenesPerPoint: {},
+      generatedScenes: {},
+      team: []
+    },
+    setScriptData: mockSetScriptData,
+    nextStep: mockNextStep,
+    prevStep: mockPrevStep
   };
 
   it('renders character creation section', () => {
@@ -30,21 +49,25 @@ describe('Step3Character', () => {
     expect(generateBtn).toBeInTheDocument();
   });
 
-  it('calls onBack when back button is clicked', () => {
+  it('calls prevStep when back button is clicked', () => {
     render(<Step3Character {...defaultProps} />);
     const backButton = screen.getByText(/ย้อนกลับ/i);
     fireEvent.click(backButton);
-    expect(mockOnBack).toHaveBeenCalled();
+    expect(mockPrevStep).toHaveBeenCalled();
   });
 
   it('shows character list when characters exist', () => {
+    const testCharacter = { 
+      ...EMPTY_CHARACTER, 
+      id: '1', 
+      name: 'Test Character'
+    };
+    
     const propsWithCharacters = {
       ...defaultProps,
       scriptData: {
         ...defaultProps.scriptData,
-        characters: [
-          { id: '1', name: 'Test Character', age: 30, role: 'protagonist' }
-        ]
+        characters: [testCharacter]
       }
     };
     render(<Step3Character {...propsWithCharacters} />);

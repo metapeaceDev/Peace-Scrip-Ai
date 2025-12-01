@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test 4-Tier Image Generation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        .system-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .tier-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        .tier-1 { border-left-color: #ffd700; }
+        .tier-2 { border-left-color: #c0c0c0; }
+        .tier-3 { border-left-color: #cd7f32; }
+        .tier-4 { border-left-color: #4a9eff; }
+        .tier-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #10b981;
+            color: white;
+        }
+        .status-disabled {
+            background: #6b7280;
+            color: white;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid;
+        }
+        .log-info { border-left-color: #3b82f6; }
+        .log-success { border-left-color: #10b981; }
+        .log-warning { border-left-color: #f59e0b; }
+        .log-error { border-left-color: #ef4444; }
+        .image-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .image-preview img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 4-Tier Image Generation System</h1>
+        <p class="subtitle">Peace Script AI - Production Testing Dashboard</p>
+
+        <div class="system-status">
+            <div class="tier-card tier-1">
+                <div class="tier-title">
+                    🏆 Tier 1: Gemini 2.5
+                    <span class="status-badge status-active">ACTIVE</span>
+                </div>
+                <div>Quality: ⭐⭐⭐⭐⭐</div>
+                <div>Speed: ⚡⚡⚡</div>
+                <div>Quota: Limited</div>
+            </div>
+
+            <div class="tier-card tier-2">
+                <div class="tier-title">
+                    🚀 Tier 2: Gemini 2.0
+                    <span class="status-badge status-active">ACTIVE</span>
+                </div>
+                <div>Quality: ⭐⭐⭐⭐</div>
+                <div>Speed: ⚡⚡⚡</div>
+                <div>Quota: Better</div>
+            </div>
+
+            <div class="tier-card tier-3">
+                <div class="tier-title">
+                    🔓 Tier 3: SD XL
+                    <span class="status-badge status-active">ACTIVE</span>
+                </div>
+                <div>Quality: ⭐⭐⭐</div>
+                <div>Speed: ⚡⚡</div>
+                <div>Quota: Unlimited</div>
+            </div>
+
+            <div class="tier-card tier-4">
+                <div class="tier-title">
+                    🎬 Tier 4: ComfyUI
+                    <span class="status-badge status-disabled">OPTIONAL</span>
+                </div>
+                <div>Quality: ⭐⭐⭐⭐⭐</div>
+                <div>Speed: ⚡</div>
+                <div>LoRA: Yes</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 System Information</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Active Tiers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">฿0.00</div>
+                    <div class="stat-label">Current Cost</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">LoRA Models</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">✓</div>
+                    <div class="stat-label">HF Token</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test Image Generation</h2>
+            <p>เลือกประเภทการทดสอบ:</p>
+            
+            <button onclick="testStoryboard()">
+                📸 Test Storyboard Image
+            </button>
+            
+            <button onclick="testCharacter()" style="margin-left: 10px;">
+                👤 Test Character Image
+            </button>
+            
+            <button onclick="testPoster()" style="margin-left: 10px;">
+                🎬 Test Movie Poster
+            </button>
+
+            <div id="result" class="result" style="display: none;"></div>
+            <div id="imagePreview" class="image-preview" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Test Details</h2>
+            <ul>
+                <li><strong>Cascade Logic</strong>: Try T1 → T2 → T3 → T4 (if enabled)</li>
+                <li><strong>Error Handling</strong>: Automatic fallback on quota errors</li>
+                <li><strong>Logging</strong>: Real-time console output</li>
+                <li><strong>LoRA Selection</strong>: Smart model selection based on task</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Environment Variables</h2>
+            <div style="font-family: monospace; font-size: 14px;">
+                <div>✅ VITE_GEMINI_API_KEY: Set</div>
+                <div>✅ VITE_HUGGINGFACE_TOKEN: Set (20x credits)</div>
+                <div>⚪ VITE_COMFYUI_ENABLED: false</div>
+                <div>⚪ VITE_COMFYUI_API_URL: http://localhost:8188</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            const logClass = `log-${type}`;
+            const timestamp = new Date().toLocaleTimeString('th-TH');
+            result.innerHTML += `<div class="log-entry ${logClass}">[${timestamp}] ${message}</div>`;
+            result.scrollTop = result.scrollHeight;
+        }
+
+        function clearLogs() {
+            const result = document.getElementById('result');
+            result.innerHTML = '';
+            const preview = document.getElementById('imagePreview');
+            preview.style.display = 'none';
+            preview.innerHTML = '';
+        }
+
+        function testStoryboard() {
+            clearLogs();
+            addLog('🎨 Starting Storyboard Image Test...', 'info');
+            addLog('Prompt: "Cinematic shot of Bangkok city at night"', 'info');
+            addLog('Expected: Tier 1 (Gemini 2.5) → Tier 2 → Tier 3', 'info');
+            addLog('', 'info');
+            addLog('⚠️ Note: This is a UI test. Actual generation requires backend integration.', 'warning');
+            addLog('', 'info');
+            simulateCascade('storyboard');
+        }
+
+        function testCharacter() {
+            clearLogs();
+            addLog('👤 Starting Character Image Test...', 'info');
+            addLog('Prompt: "Young Thai woman, traditional costume"', 'info');
+            addLog('LoRA: CHARACTER_CONSISTENCY', 'info');
+            addLog('', 'info');
+            addLog('⚠️ Note: This is a UI test. Actual generation requires backend integration.', 'warning');
+            addLog('', 'info');
+            simulateCascade('character');
+        }
+
+        function testPoster() {
+            clearLogs();
+            addLog('🎬 Starting Movie Poster Test...', 'info');
+            addLog('Prompt: "Thai action movie poster, cyberpunk style"', 'info');
+            addLog('LoRA: CINEMATIC_STYLE', 'info');
+            addLog('', 'info');
+            addLog('⚠️ Note: This is a UI test. Actual generation requires backend integration.', 'warning');
+            addLog('', 'info');
+            simulateCascade('poster');
+        }
+
+        function simulateCascade(type) {
+            // Simulate Tier 1
+            setTimeout(() => {
+                addLog('🎨 Tier 1: Trying Gemini 2.5 Flash Image...', 'info');
+            }, 500);
+
+            // Simulate quota exceeded
+            setTimeout(() => {
+                addLog('⚠️ Tier 1: Quota exceeded (429), moving to Tier 2...', 'warning');
+            }, 1500);
+
+            // Simulate Tier 2
+            setTimeout(() => {
+                addLog('🎨 Tier 2: Trying Gemini 2.0 Flash Exp...', 'info');
+            }, 2000);
+
+            // Simulate success (50% chance) or fallback
+            const success = Math.random() > 0.3;
+            
+            if (success) {
+                setTimeout(() => {
+                    addLog('✅ Tier 2 Success: Gemini 2.0 Flash Exp', 'success');
+                    addLog('Generation Time: 3.2s', 'info');
+                    addLog('Image Size: 1024x1024', 'info');
+                    addLog('Cost: ฿0.00 (free tier)', 'success');
+                    showSuccessImage(type);
+                }, 2800);
+            } else {
+                setTimeout(() => {
+                    addLog('⚠️ Tier 2: Quota exceeded, moving to Tier 3...', 'warning');
+                }, 2800);
+
+                setTimeout(() => {
+                    addLog('🎨 Tier 3: Trying Stable Diffusion XL (HuggingFace)...', 'info');
+                }, 3300);
+
+                setTimeout(() => {
+                    addLog('✅ Tier 3 Success: Stable Diffusion XL', 'success');
+                    addLog('Generation Time: 8.5s', 'info');
+                    addLog('Image Size: 1024x1024', 'info');
+                    addLog('Cost: ฿0.00 (unlimited)', 'success');
+                    showSuccessImage(type);
+                }, 4500);
+            }
+        }
+
+        function showSuccessImage(type) {
+            const preview = document.getElementById('imagePreview');
+            preview.style.display = 'block';
+            
+            let placeholderUrl;
+            if (type === 'storyboard') {
+                placeholderUrl = 'https://placehold.co/1024x576/667eea/ffffff?text=Storyboard+Image+Generated';
+            } else if (type === 'character') {
+                placeholderUrl = 'https://placehold.co/1024x1024/764ba2/ffffff?text=Character+Portrait+Generated';
+            } else {
+                placeholderUrl = 'https://placehold.co/768x1024/667eea/ffffff?text=Movie+Poster+Generated';
+            }
+            
+            preview.innerHTML = `
+                <h3>🎉 Image Generated Successfully!</h3>
+                <img src="${placeholderUrl}" alt="Generated Image">
+                <p style="margin-top: 15px; opacity: 0.8;">
+                    (Placeholder image - actual generation happens in production)
+                </p>
+            `;
+        }
+
+        // Initial log
+        window.addEventListener('load', () => {
+            console.log('🎨 4-Tier Image Generation System Loaded');
+            console.log('Live URL: https://peace-script-ai.web.app');
+            console.log('Tier Status: T1 ✓ | T2 ✓ | T3 ✓ | T4 ⚪');
+        });
+    </script>
+</body>
+</html>

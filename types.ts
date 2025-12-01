@@ -131,3 +131,27 @@ export interface ScriptData {
   generatedScenes: Record<string, GeneratedScene[]>;
   team: TeamMember[];
 }
+
+// AI Provider Types for Multi-Provider Selection
+export type ImageProvider = 'auto' | 'gemini-2.5' | 'gemini-2.0' | 'stable-diffusion' | 'comfyui';
+export type VideoProvider = 'auto' | 'gemini-veo' | 'comfyui-svd';
+export type AutoSelectionCriteria = 'speed' | 'quality' | 'balanced';
+
+export interface AIProviderSettings {
+  imageProvider: ImageProvider;
+  videoProvider: VideoProvider;
+  autoSelectionCriteria: AutoSelectionCriteria;
+  comfyuiUrl?: string;
+  comfyuiEnabled: boolean;
+}
+
+export interface ProviderStatus {
+  provider: string;
+  displayName: string;
+  available: boolean;
+  quota?: 'available' | 'low' | 'exhausted';
+  speed?: 'fast' | 'medium' | 'slow';
+  quality?: 'excellent' | 'good' | 'fair';
+  estimatedTime?: string;
+  lastChecked?: Date;
+}
