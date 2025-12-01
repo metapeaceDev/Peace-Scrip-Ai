@@ -25,20 +25,47 @@ export async function initializeQueue() {
     : {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT) || 6379,
-        password: process.env.REDIS_PASSWORD
+        password: process.env.REDIS_PASSWORD,
+        retryStrategy: (times) => {
+          // Fallback to in-memory if Redis fails
+          if (times > 3) {
+            return null; // Stop retrying
+          }
+          return Math.min(times * 1000, 3000);
+        }
       };
 
-  imageQueue = new Queue('comfyui-images', redisConfig, {
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000
-      },
-      removeOnComplete: 100, // Keep last 100 completed jobs
-      removeOnFail: 500      // Keep last 500 failed jobs
-    }
-  });
+  try {
+    imageQueue = new Queue('comfyui-images', redisConfig, {
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000
+        },
+        removeOnComplete: 100, // Keep last 100 completed jobs
+        removeOnFail: 500      // Keep last 500 failed jobs
+      }
+    });
+
+    // Test Redis connection
+    await imageQueue.isReady();
+    console.log('✅ Queue initialized: Redis');
+  } catch (error) {
+    // Fallback to in-memory queue (for development)
+    imageQueue = new Queue('comfyui-images', undefined, {
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 500
+      }
+    });
+    console.log('✅ Queue initialized: In-memory');
+  }
 
   // Process jobs
   imageQueue.process(parseInt(process.env.QUEUE_CONCURRENCY) || 3, async (job) => {
