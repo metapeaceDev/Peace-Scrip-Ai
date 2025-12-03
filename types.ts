@@ -8,6 +8,7 @@ export interface Character {
   faceReferenceImage?: string; // New: Master face reference for identity consistency
   fashionReferenceImage?: string; // New: Reference image for costume/outfit style
   imageStyle?: string; // Selected art style
+  preferredModel?: string; // New: Preferred AI model ID (e.g., 'pollinations', 'comfyui-sdxl', 'gemini-pro')
   outfitCollection?: { id?: string; description: string; image: string }[]; // New: Collection of generated outfits with IDs
   external: Record<string, string>;
   physical: Record<string, string>;
@@ -16,6 +17,13 @@ export interface Character {
     consciousness: Record<string, number>;
     subconscious: Record<string, string>;
     defilement: Record<string, number>;
+  };
+  // NEW: Emotional State Tracking (calculated per scene)
+  emotionalState?: {
+    currentMood: 'peaceful' | 'joyful' | 'angry' | 'confused' | 'fearful' | 'neutral';
+    energyLevel: number; // 0-100
+    mentalBalance: number; // -100 to +100
+    lastUpdated?: string; // Scene number or timestamp
   };
   goals: {
     objective: string;
@@ -154,4 +162,23 @@ export interface ProviderStatus {
   quality?: 'excellent' | 'good' | 'fair';
   estimatedTime?: string;
   lastChecked?: Date;
+}
+
+export type SubscriptionTier = 'free' | 'basic' | 'pro' | 'enterprise';
+
+export interface UserSubscription {
+  tier: SubscriptionTier;
+  credits: number;
+  maxCredits: number;
+  features: {
+    maxResolution: '1024x1024' | '2048x2048' | '4096x4096';
+    allowedImageModels: string[];
+    allowedVideoModels: string[];
+    videoDurationLimit: number; // seconds
+    storageLimit: number; // GB
+    maxProjects: number; // -1 = unlimited
+    maxCharacters: number; // -1 = unlimited
+    maxScenes: number; // -1 = unlimited
+    exportFormats: string[]; // ['pdf', 'fdx', 'fountain', 'production-package', 'white-label']
+  };
 }

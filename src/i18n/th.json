@@ -1,0 +1,177 @@
+{
+  "common": {
+    "appName": "Peace Script",
+    "slogan": "AI-Powered Screenwriting Studio",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "create": "สร้าง",
+    "close": "ปิด",
+    "back": "กลับ",
+    "next": "ถัดไป",
+    "previous": "ก่อนหน้า",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "success": "สำเร็จ"
+  },
+  
+  "auth": {
+    "login": "เข้าสู่ระบบ",
+    "logout": "ออกจากระบบ",
+    "signup": "สมัครสมาชิก",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "forgotPassword": "ลืมรหัสผ่าน?",
+    "rememberMe": "จดจำฉัน",
+    "welcomeBack": "ยินดีต้อนรับกลับ!",
+    "createAccount": "สร้างบัญชีใหม่"
+  },
+
+  "pricing": {
+    "title": "แพ็กเกจและราคา",
+    "subtitle": "เลือกแพ็กเกจที่เหมาะกับคุณ",
+    "free": "ฟรี",
+    "basic": "เบสิก",
+    "pro": "โปร",
+    "enterprise": "องค์กร",
+    "perMonth": "ต่อเดือน",
+    "perYear": "ต่อปี",
+    "currentPlan": "แพ็กเกจปัจจุบัน",
+    "upgrade": "อัพเกรด",
+    "downgrade": "ดาวน์เกรด",
+    "earlyBird": "Early Bird ลด 50%!",
+    "saveTwoMonths": "ประหยัด 2 เดือน",
+    "features": "ฟีเจอร์",
+    "compare": "เปรียบเทียบแพ็กเกจ",
+    "faq": "คำถามที่พบบ่อย"
+  },
+
+  "dashboard": {
+    "title": "แดชบอร์ด",
+    "welcome": "สวัสดี",
+    "yourProjects": "โปรเจกต์ของคุณ",
+    "recentActivity": "กิจกรรมล่าสุด",
+    "statistics": "สถิติ",
+    "usage": "การใช้งาน"
+  },
+
+  "analytics": {
+    "title": "แดชบอร์ดการใช้งาน",
+    "credits": "Credits",
+    "storage": "พื้นที่จัดเก็บ",
+    "projects": "โปรเจกต์",
+    "characters": "ตัวละคร",
+    "scenes": "ฉาก",
+    "usedOf": "ใช้ไป",
+    "unlimited": "ไม่จำกัด",
+    "images": "รูปภาพ",
+    "videos": "วิดีโอ",
+    "apiCalls": "API Calls",
+    "generated": "สร้างสำเร็จ",
+    "failed": "ล้มเหลว",
+    "totalDuration": "ระยะเวลารวม",
+    "averagePerDay": "เฉลี่ยต่อวัน",
+    "successRate": "อัตราสำเร็จ",
+    "exportData": "Export ข้อมูล",
+    "timeRange": {
+      "7days": "7 วันที่แล้ว",
+      "30days": "30 วันที่แล้ว",
+      "all": "ทั้งหมด"
+    },
+    "costSavings": {
+      "title": "คุณประหยัดได้",
+      "thisMonth": "ในเดือนนี้!",
+      "fromFreeProviders": "จากการใช้ Free Providers"
+    },
+    "upgradePrompt": {
+      "title": "คุณใช้งานเกือบหมดแล้ว!",
+      "subtitle": "พิจารณา Upgrade?",
+      "action": "Upgrade เลย"
+    }
+  },
+
+  "referral": {
+    "title": "Referral Program",
+    "subtitle": "แนะนำเพื่อน รับ 50 credits ต่อคน",
+    "yourCode": "รหัส Referral ของคุณ",
+    "totalReferrals": "Total Referrals",
+    "successfulReferrals": "Successful",
+    "creditsEarned": "Credits Earned",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "shareTwitter": "Share on Twitter",
+    "shareEmail": "Share via Email",
+    "createCustomCode": "สร้างรหัสที่จดจำง่าย",
+    "customCodePlaceholder": "เช่น PEACE2024",
+    "howItWorks": {
+      "title": "วิธีการทำงาน",
+      "step1": "แชร์รหัสของคุณ",
+      "step1Desc": "ส่งลิงก์หรือรหัส referral ให้เพื่อนๆ ผ่าน social media, email, หรือวิธีอื่นๆ",
+      "step2": "เพื่อนลงทะเบียน",
+      "step2Desc": "เมื่อเพื่อนสมัครใช้งานด้วยรหัสของคุณ พวกเขาจะได้รับ 50 credits ฟรีทันที",
+      "step3": "คุณได้รับ Credits",
+      "step3Desc": "คุณจะได้รับ 50 credits เข้าบัญชีทันที ไม่มีขีดจำกัด - แนะนำเท่าไหร่ก็ได้!"
+    },
+    "tips": {
+      "title": "เคล็ดลับเพื่อเพิ่ม Referrals",
+      "tip1": "แชร์ผลงานที่คุณสร้างด้วย Peace Script บน social media",
+      "tip2": "เล่าถึงประโยชน์ที่ได้รับจากการใช้งาน (ประหยัดเวลา, ความคิดสร้างสรรค์)",
+      "tip3": "แนะนำให้ผู้ที่สนใจเขียนบท, ผู้กำกับ, นักแสดง, หรือนักเรียนภาพยนตร์",
+      "tip4": "ใช้รหัสที่จำง่าย เช่น ชื่อของคุณหรือชื่อทีม"
+    }
+  },
+
+  "payment": {
+    "title": "ชำระเงิน",
+    "orderSummary": "สรุปคำสั่งซื้อ",
+    "package": "แพ็กเกจ",
+    "billingCycle": "รอบบิล",
+    "monthly": "รายเดือน",
+    "yearly": "รายปี",
+    "price": "ราคา",
+    "discount": "ส่วนลด",
+    "total": "รวมทั้งหมด",
+    "promoCode": "รหัสโปรโมชั่น",
+    "applyPromo": "ใช้รหัส",
+    "removePromo": "ยกเลิก",
+    "paymentMethod": "วิธีการชำระเงิน",
+    "creditCard": "บัตรเครดิต/เดบิต",
+    "promptPay": "พร้อมเพย์",
+    "processing": "กำลังดำเนินการ...",
+    "payNow": "ชำระเงิน",
+    "securePayment": "การชำระเงินปลอดภัย เข้ารหัสด้วย SSL"
+  },
+
+  "studio": {
+    "step1": "ประเภทเรื่อง",
+    "step2": "ขอบเขตเรื่อง",
+    "step3": "ตัวละคร",
+    "step4": "โครงสร้างเรื่อง",
+    "step5": "ผลลัพธ์",
+    "mainGenre": "ประเภทหลัก",
+    "secondaryGenres": "ประเภทรอง",
+    "selectGenre": "เลือกประเภทเรื่อง",
+    "projectName": "ชื่อโปรเจกต์",
+    "createProject": "สร้างโปรเจกต์"
+  },
+
+  "errors": {
+    "generic": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+    "networkError": "ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต",
+    "unauthorized": "คุณไม่มีสิทธิ์เข้าถึง",
+    "notFound": "ไม่พบข้อมูล",
+    "limitExceeded": "เกินขีดจำกัดการใช้งาน",
+    "insufficientCredits": "Credits ไม่เพียงพอ",
+    "storageFull": "พื้นที่เต็ม"
+  },
+
+  "notifications": {
+    "saveSuccess": "บันทึกสำเร็จ",
+    "deleteSuccess": "ลบสำเร็จ",
+    "updateSuccess": "อัปเดตสำเร็จ",
+    "copySuccess": "คัดลอกสำเร็จ",
+    "uploadSuccess": "อัปโหลดสำเร็จ",
+    "exportSuccess": "Export สำเร็จ"
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "common": {
+    "appName": "Peace Script",
+    "slogan": "AI-Powered Screenwriting Studio",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember Me",
+    "welcomeBack": "Welcome Back!",
+    "createAccount": "Create New Account"
+  },
+
+  "pricing": {
+    "title": "Pricing Plans",
+    "subtitle": "Choose the plan that fits you",
+    "free": "Free",
+    "basic": "Basic",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "earlyBird": "Early Bird 50% OFF!",
+    "saveTwoMonths": "Save 2 Months",
+    "features": "Features",
+    "compare": "Compare Plans",
+    "faq": "Frequently Asked Questions"
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "yourProjects": "Your Projects",
+    "recentActivity": "Recent Activity",
+    "statistics": "Statistics",
+    "usage": "Usage"
+  },
+
+  "analytics": {
+    "title": "Usage Dashboard",
+    "credits": "Credits",
+    "storage": "Storage",
+    "projects": "Projects",
+    "characters": "Characters",
+    "scenes": "Scenes",
+    "usedOf": "used of",
+    "unlimited": "Unlimited",
+    "images": "Images",
+    "videos": "Videos",
+    "apiCalls": "API Calls",
+    "generated": "Generated",
+    "failed": "Failed",
+    "totalDuration": "Total Duration",
+    "averagePerDay": "Average per Day",
+    "successRate": "Success Rate",
+    "exportData": "Export Data",
+    "timeRange": {
+      "7days": "Last 7 Days",
+      "30days": "Last 30 Days",
+      "all": "All Time"
+    },
+    "costSavings": {
+      "title": "You saved",
+      "thisMonth": "this month!",
+      "fromFreeProviders": "from using Free Providers"
+    },
+    "upgradePrompt": {
+      "title": "You're almost out of resources!",
+      "subtitle": "Consider upgrading?",
+      "action": "Upgrade Now"
+    }
+  },
+
+  "referral": {
+    "title": "Referral Program",
+    "subtitle": "Refer friends, earn 50 credits each",
+    "yourCode": "Your Referral Code",
+    "totalReferrals": "Total Referrals",
+    "successfulReferrals": "Successful",
+    "creditsEarned": "Credits Earned",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "shareTwitter": "Share on Twitter",
+    "shareEmail": "Share via Email",
+    "createCustomCode": "Create Custom Code",
+    "customCodePlaceholder": "e.g. PEACE2024",
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": "Share Your Code",
+      "step1Desc": "Send your referral link or code to friends via social media, email, or other channels",
+      "step2": "Friends Sign Up",
+      "step2Desc": "When friends sign up with your code, they get 50 free credits instantly",
+      "step3": "You Get Credits",
+      "step3Desc": "You receive 50 credits to your account immediately. No limits - refer as many as you want!"
+    },
+    "tips": {
+      "title": "Tips to Increase Referrals",
+      "tip1": "Share your creations made with Peace Script on social media",
+      "tip2": "Talk about the benefits you get (time saving, creativity boost)",
+      "tip3": "Recommend to screenwriters, directors, actors, or film students",
+      "tip4": "Use an easy-to-remember code like your name or team name"
+    }
+  },
+
+  "payment": {
+    "title": "Payment",
+    "orderSummary": "Order Summary",
+    "package": "Package",
+    "billingCycle": "Billing Cycle",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "price": "Price",
+    "discount": "Discount",
+    "total": "Total",
+    "promoCode": "Promo Code",
+    "applyPromo": "Apply",
+    "removePromo": "Remove",
+    "paymentMethod": "Payment Method",
+    "creditCard": "Credit/Debit Card",
+    "promptPay": "PromptPay",
+    "processing": "Processing...",
+    "payNow": "Pay Now",
+    "securePayment": "Secure payment encrypted with SSL"
+  },
+
+  "studio": {
+    "step1": "Genre",
+    "step2": "Story Scope",
+    "step3": "Characters",
+    "step4": "Story Structure",
+    "step5": "Output",
+    "mainGenre": "Main Genre",
+    "secondaryGenres": "Secondary Genres",
+    "selectGenre": "Select Genre",
+    "projectName": "Project Name",
+    "createProject": "Create Project"
+  },
+
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "networkError": "Cannot connect. Please check your internet.",
+    "unauthorized": "You don't have permission to access this.",
+    "notFound": "Not found",
+    "limitExceeded": "Usage limit exceeded",
+    "insufficientCredits": "Insufficient credits",
+    "storageFull": "Storage full"
+  },
+
+  "notifications": {
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "updateSuccess": "Updated successfully",
+    "copySuccess": "Copied successfully",
+    "uploadSuccess": "Uploaded successfully",
+    "exportSuccess": "Exported successfully"
+  }
+}

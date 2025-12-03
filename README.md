@@ -24,6 +24,21 @@ Peace Script is a professional AI-assisted screenwriting and pre-production tool
 
 **Production**: https://peace-script-ai.web.app
 
+## 💰 Pricing
+
+Peace Script AI offers flexible pricing tiers for every creator:
+
+| Plan | Price | Best For | Key Features |
+|------|-------|----------|--------------|
+| **FREE** | ฿0/เดือน | Students, Hobbyists | 1 project, 3 characters, 9 scenes, 500MB storage |
+| **BASIC** | **฿299/เดือน** ⭐ | Indie Filmmakers | 5 projects, 100 credits, Premium AI models |
+| **PRO** | **฿999/เดือน** | Production Houses | Unlimited projects, 500 credits, All features |
+| **ENTERPRISE** | Custom | Studios, Organizations | Custom quotas, On-premise, White label |
+
+**💡 Early Bird:** Get 50% OFF for the first year!
+
+📊 See full pricing details in [PRICING_STRATEGY.md](./PRICING_STRATEGY.md)
+
 ## 🛠️ Tech Stack
 
 ### Frontend

@@ -178,27 +178,48 @@ class FirestoreService {
       console.log('📂 Storage path:', metadata.storagePath);
       console.log('📊 File size:', (metadata.fileSize / 1024 / 1024).toFixed(2), 'MB');
       
-      const downloadStart = performance.now();
-      // Download using Firebase SDK with path directly
-      const storageRef = ref(storage, metadata.storagePath);
-      const bytes = await getBytes(storageRef);
-      console.log(`⏱️ Downloaded in ${(performance.now() - downloadStart).toFixed(0)}ms`);
-      
-      const parseStart = performance.now();
-      const text = new TextDecoder().decode(bytes);
-      const fullData = JSON.parse(text);
-      console.log(`⏱️ Parsed in ${(performance.now() - parseStart).toFixed(0)}ms`);
-      console.log(`✅ Total time: ${(performance.now() - startTime).toFixed(0)}ms`);
+      try {
+        const downloadStart = performance.now();
+        // Download using Firebase SDK with path directly
+        const storageRef = ref(storage, metadata.storagePath);
+        const bytes = await getBytes(storageRef);
+        console.log(`⏱️ Downloaded in ${(performance.now() - downloadStart).toFixed(0)}ms`);
+        
+        const parseStart = performance.now();
+        const text = new TextDecoder().decode(bytes);
+        const fullData = JSON.parse(text);
+        console.log(`⏱️ Parsed in ${(performance.now() - parseStart).toFixed(0)}ms`);
+        console.log(`✅ Total time: ${(performance.now() - startTime).toFixed(0)}ms`);
 
-      return {
-        success: true,
-        project: {
-          ...fullData,
-          id: docSnap.id, // Use Firestore ID, not the ID from Storage
-          createdAt: metadata.createdAt?.toDate() || new Date(),
-          updatedAt: metadata.updatedAt?.toDate() || new Date()
-        } as ScriptProject
-      };
+        return {
+          success: true,
+          project: {
+            ...fullData,
+            id: docSnap.id, // Use Firestore ID, not the ID from Storage
+            createdAt: metadata.createdAt?.toDate() || new Date(),
+            updatedAt: metadata.updatedAt?.toDate() || new Date()
+          } as ScriptProject
+        };
+      } catch (storageError: any) {
+        console.warn('⚠️ Storage download failed (likely CORS), falling back to Firestore data:', storageError.message);
+        
+        // Fallback: Return metadata from Firestore (may be incomplete but better than nothing)
+        if (metadata.title) {
+          console.log('📋 Using Firestore metadata as fallback');
+          return {
+            success: true,
+            project: {
+              id: docSnap.id,
+              ...metadata,
+              createdAt: metadata.createdAt?.toDate() || new Date(),
+              updatedAt: metadata.updatedAt?.toDate() || new Date()
+            } as ScriptProject
+          };
+        }
+        
+        // If no fallback data, throw the original error
+        throw storageError;
+      }
     } catch (error) {
       console.error('❌ Error getting project:', error);
       throw new Error('Failed to get project: ' + (error as Error).message);
