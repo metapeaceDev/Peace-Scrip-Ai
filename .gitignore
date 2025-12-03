@@ -39,3 +39,19 @@ dist-ssr
 # Temporary files
 *.tmp
 *.temp
+*.bak
+*.backup
+*.backup-*
+
+# Git planning files
+.gitcommit_plan.md
+
+# Firebase cache
+.firebase/hosting.*.cache
+
+# Duplicate folders (keep only src/ versions)
+/services
+/components
+
+# Planning documents (optional)
+/planning_documents

@@ -15,13 +15,14 @@
 
 ```bash
 # อยู่ที่ project folder
-cd ~/Desktop/peace-script-basic-v1\ 
+cd ~/Desktop/peace-script-basic-v1\
 
 # รัน startup script
 ./start-comfyui.sh
 ```
 
 Script จะทำให้อัตโนมัติ:
+
 - ติดตั้ง ComfyUI (ถ้ายังไม่มี)
 - Setup Python environment
 - ตรวจสอบ models
@@ -32,6 +33,7 @@ Script จะทำให้อัตโนมัติ:
 ## 📥 Step 2: ดาวน์โหลด Models
 
 ### Images (Required)
+
 ```bash
 cd ~/Desktop/ComfyUI/models/checkpoints
 
@@ -40,12 +42,14 @@ wget https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/mai
 ```
 
 ### Videos (Optional)
+
 ```bash
 # Stable Video Diffusion (4.7GB)
 wget https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt-1-1/resolve/main/svd_xt_1_1.safetensors
 ```
 
 ### LoRA Models (Optional)
+
 ```bash
 cd ../loras
 
@@ -80,13 +84,14 @@ pip install -r requirements.txt
 ## ⚙️ Step 4: เปิดใช้งานใน Peace Script AI
 
 ```bash
-cd ~/Desktop/peace-script-basic-v1\ 
+cd ~/Desktop/peace-script-basic-v1\
 
 # Edit .env.local
 nano .env.local
 ```
 
 เปลี่ยน:
+
 ```env
 VITE_COMFYUI_ENABLED=true
 ```
@@ -104,6 +109,7 @@ firebase deploy --only hosting
 ## 🧪 Step 5: ทดสอบ
 
 ### ทดสอบ ComfyUI UI
+
 ```bash
 # เปิด browser
 open http://localhost:8188
@@ -113,6 +119,7 @@ open http://localhost:8188
 ```
 
 ### ทดสอบกับ Peace Script AI
+
 ```bash
 # เปิด production
 open https://peace-script-ai.web.app
@@ -126,6 +133,7 @@ open https://peace-script-ai.web.app
 ## 📊 การทำงาน
 
 ### Image Generation Flow
+
 ```
 User กด Generate Image
     ↓
@@ -139,6 +147,7 @@ Try SD XL (HF) → (401 auth error)
 ```
 
 ### Video Generation Flow
+
 ```
 User กด Generate Video
     ↓
@@ -152,6 +161,7 @@ Try Gemini Veo 3.1 → (quota/timeout)
 ## 💡 Tips & Tricks
 
 ### เร่งความเร็ว
+
 ```bash
 # ใช้ GPU (ถ้ามี NVIDIA)
 python main.py --highvram
@@ -161,6 +171,7 @@ python main.py --highvram
 ```
 
 ### ประหยัด VRAM
+
 ```bash
 # ใช้ CPU mode (ช้ากว่าแต่ใช้ RAM)
 python main.py --cpu
@@ -170,6 +181,7 @@ python main.py --cpu
 ```
 
 ### Debug
+
 ```bash
 # ดู logs
 tail -f ~/Desktop/ComfyUI/comfyui.log
@@ -183,6 +195,7 @@ curl http://localhost:8188/queue
 ## 🆘 Troubleshooting
 
 ### ComfyUI ไม่เริ่มต้น
+
 ```bash
 # ติดตั้ง dependencies ใหม่
 cd ~/Desktop/ComfyUI
@@ -193,6 +206,7 @@ pip install -r requirements.txt
 ```
 
 ### Models ไม่โหลด
+
 ```bash
 # ตรวจสอบชื่อไฟล์และ path
 ls -lh ~/Desktop/ComfyUI/models/checkpoints/
@@ -202,6 +216,7 @@ ls -lh ~/Desktop/ComfyUI/models/loras/
 ```
 
 ### Video ไม่ export
+
 ```bash
 # ติดตั้ง ffmpeg
 brew install ffmpeg
@@ -215,16 +230,19 @@ ls ~/Desktop/ComfyUI/custom_nodes/ | grep Video
 ## 📈 Performance Benchmarks
 
 ### M1 Mac (8GB RAM)
+
 - Image (1024x1024): ~30s
 - Video (25 frames): ~2-3 min
 - LoRA: ~40s
 
 ### M2 Mac (16GB RAM)
+
 - Image: ~20s
 - Video: ~1.5 min
 - LoRA: ~25s
 
 ### RTX 3090 (Cloud)
+
 - Image: ~5s
 - Video: ~30s
 - LoRA: ~8s

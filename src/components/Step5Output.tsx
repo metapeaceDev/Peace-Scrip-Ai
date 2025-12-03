@@ -1,8 +1,9 @@
-
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine } from '../../types';
-import { generateScene, generateStoryboardImage, generateStoryboardVideo } from '../services/geminiService';
+import { generateScene, generateStoryboardImage, generateStoryboardVideo, VIDEO_MODELS_CONFIG } from '../services/geminiService';
 import { CHARACTER_IMAGE_STYLES } from '../../constants';
+import { getUserSubscription, setUserTier, hasAccessToModel } from '../services/userStore';
+import { SubscriptionTier } from '../../types';
 
 interface Step5OutputProps {
   scriptData: ScriptData;
@@ -245,6 +246,8 @@ const SceneDisplay: React.FC<{
     const [generatingVideoShotId, setGeneratingVideoShotId] = useState<number | null>(null);
     const [isGeneratingAll, setIsGeneratingAll] = useState(false);
     const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
+    const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
+    const [progress, setProgress] = useState(0);
 
     // Deletion confirmation states (UI based to avoid window.confirm issues)
     const [confirmDeleteSituationId, setConfirmDeleteSituationId] = useState<number | null>(null);
@@ -644,9 +647,17 @@ const SceneDisplay: React.FC<{
         if (!shotNumber) return;
 
         setGeneratingShotId(shotIndex);
+        setProgress(0);
         try {
             const prompt = buildPrompt(shotData, editedScene, false);
-            const base64Image = await generateStoryboardImage(prompt);
+            
+            // Get characters involved in this scene
+            const sceneCharacterNames = editedScene.sceneDesign?.characters || [];
+            const sceneCharacters: Character[] = allCharacters.filter((c: Character) => 
+                sceneCharacterNames.includes(c.name)
+            );
+            
+            const base64Image = await generateStoryboardImage(prompt, sceneCharacters, (p) => setProgress(p));
 
             const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {};
             const newItem = { ...oldStoryboardItem, shot: shotNumber, image: base64Image };
@@ -667,6 +678,7 @@ const SceneDisplay: React.FC<{
             console.error(error);
         } finally {
             setGeneratingShotId(null);
+            setProgress(0);
         }
     };
 
@@ -676,6 +688,7 @@ const SceneDisplay: React.FC<{
         if (!shotNumber) return;
 
         setGeneratingVideoShotId(shotIndex);
+        setProgress(0);
         try {
             // Pass true for isVideo to force realistic style for text-to-video prompt
             const prompt = buildPrompt(shotData, editedScene, true);
@@ -685,7 +698,7 @@ const SceneDisplay: React.FC<{
                 ? editedScene.storyboard?.find(s => s.shot === shotNumber)?.image 
                 : undefined;
             
-            const videoUri = await generateStoryboardVideo(prompt, existingImage);
+            const videoUri = await generateStoryboardVideo(prompt, existingImage, (p) => setProgress(p), preferredVideoModel);
 
             const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || { shot: shotNumber, image: '' };
             const newItem = { ...oldStoryboardItem, video: videoUri };
@@ -705,6 +718,7 @@ const SceneDisplay: React.FC<{
             console.error(error);
         } finally {
             setGeneratingVideoShotId(null);
+            setProgress(0);
         }
     };
 
@@ -734,9 +748,17 @@ const SceneDisplay: React.FC<{
             if (currentSceneState.storyboard?.some(s => s.shot === shotNumber)) continue;
 
             setGeneratingShotId(i); // Update UI to show which shot is generating
+            setProgress(0);
             try {
                 const prompt = buildPrompt(shot, currentSceneState, false);
-                const base64Image = await generateStoryboardImage(prompt);
+                
+                // Get characters involved in this scene
+                const sceneCharacterNames = currentSceneState.sceneDesign?.characters || [];
+                const sceneCharacters: Character[] = allCharacters.filter((c: Character) => 
+                    sceneCharacterNames.includes(c.name)
+                );
+                
+                const base64Image = await generateStoryboardImage(prompt, sceneCharacters, (p) => setProgress(p));
                 
                 // Update local accumulation object
                 const oldItem = currentSceneState.storyboard?.find(s => s.shot === shotNumber) || {};
@@ -762,6 +784,7 @@ const SceneDisplay: React.FC<{
 
         setIsGeneratingAll(false);
         setGeneratingShotId(null);
+        setProgress(0);
         if (abortGenerationRef.current) {
             alert("Auto-generation stopped by user.");
         } else {
@@ -1122,7 +1145,6 @@ const SceneDisplay: React.FC<{
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                                                     </svg>
-                                                    Delete Situation
                                                 </>
                                             )}
                                          </button>
@@ -1240,15 +1262,46 @@ const SceneDisplay: React.FC<{
                 {activeTab === 'storyboard' && (
                      <div className="flex flex-col gap-6">
                         <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="flex-1 w-full sm:w-auto">
-                                <label className="block text-xs font-bold text-gray-400 mb-1">SCENE VISUAL STYLE (CONTINUITY)</label>
-                                <select 
-                                    value={storyboardStyle} 
-                                    onChange={(e) => setStoryboardStyle(e.target.value)}
-                                    className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
-                                >
-                                    {CHARACTER_IMAGE_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
-                                </select>
+                            <div className="flex-1 w-full sm:w-auto flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-bold text-gray-400 mb-1">SCENE VISUAL STYLE</label>
+                                    <select 
+                                        value={storyboardStyle} 
+                                        onChange={(e) => setStoryboardStyle(e.target.value)}
+                                        className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                    >
+                                        {CHARACTER_IMAGE_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-bold text-gray-400 mb-1">VIDEO MODEL</label>
+                                    <select 
+                                        value={preferredVideoModel} 
+                                        onChange={(e) => setPreferredVideoModel(e.target.value)}
+                                        className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                    >
+                                        <option value="auto">🤖 AUTO - Smart Selection</option>
+                                        <optgroup label="🎁 FREE MODELS">
+                                            {Object.values(VIDEO_MODELS_CONFIG.FREE).map(model => (
+                                                <option key={model.id} value={model.id}>
+                                                    {model.name} ({model.costPerGen === 0 ? 'Free' : `${model.costPerGen} credits`})
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="💵 PAID MODELS">
+                                            {Object.values(VIDEO_MODELS_CONFIG.PAID).map(model => {
+                                                const hasAccess = hasAccessToModel(model.id, 'video');
+                                                return (
+                                                    <option key={model.id} value={model.id} disabled={!hasAccess}>
+                                                        {hasAccess ? '' : '🔒 '}
+                                                        {model.name} ({model.costPerGen} credits)
+                                                        {!hasAccess && ' - Upgrade Required'}
+                                                    </option>
+                                                );
+                                            })}
+                                        </optgroup>
+                                    </select>
+                                </div>
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto">
                                 {isGeneratingAll ? (
@@ -1267,7 +1320,7 @@ const SceneDisplay: React.FC<{
                                         disabled={isGeneratingAll}
                                         className="w-full sm:w-auto bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>
                                         Auto-Generate All Missing Shots
                                     </button>
                                 )}
@@ -1328,6 +1381,17 @@ const SceneDisplay: React.FC<{
                                                         <span className="text-cyan-400 text-xs font-bold animate-pulse">
                                                             {isGeneratingVideo ? 'Rendering Video...' : 'Painting...'}
                                                         </span>
+                                                        {progress > 0 && (
+                                                            <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
+                                                                <div 
+                                                                    className="h-full bg-cyan-400 transition-all duration-300 ease-out"
+                                                                    style={{ width: `${progress}%` }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {progress > 0 && (
+                                                            <span className="text-cyan-400 text-[10px] mt-1">{Math.round(progress)}%</span>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -1490,6 +1554,149 @@ const SceneItem: React.FC<{
     );
 };
 
+
+// --- User Status Component (For Demo/Control) ---
+const UserStatus = () => {
+    const [subscription, setSubscription] = useState(getUserSubscription());
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Update local state when store changes (in a real app, use a proper hook/context)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSubscription(getUserSubscription());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleTierChange = (tier: SubscriptionTier) => {
+        setUserTier(tier);
+        setSubscription(getUserSubscription());
+        setIsOpen(false);
+    };
+
+    const getTierColor = (tier: SubscriptionTier) => {
+        switch (tier) {
+            case 'free': return 'bg-gray-600';
+            case 'basic': return 'bg-blue-600';
+            case 'pro': return 'bg-purple-600';
+            case 'enterprise': return 'bg-gradient-to-r from-yellow-600 to-orange-600';
+            default: return 'bg-gray-600';
+        }
+    };
+
+    const getTierPrice = (tier: SubscriptionTier) => {
+        switch (tier) {
+            case 'free': return 'ฟรี';
+            case 'basic': return '฿299/เดือน';
+            case 'pro': return '฿999/เดือน';
+            case 'enterprise': return 'ติดต่อ';
+            default: return '';
+        }
+    };
+
+    const getStorageUsed = () => {
+        // Mock calculation (in real app, track actual usage)
+        return '34.86 MB';
+    };
+
+    return (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+            {isOpen && (
+                <div className="bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 mb-2 w-80 animate-fade-in-up">
+                    {/* Current Plan Info */}
+                    <div className="border-b border-gray-700 pb-3 mb-3">
+                        <div className="text-sm font-bold text-white mb-1">Current Plan</div>
+                        <div className="flex justify-between items-center mb-2">
+                            <span className={`text-lg font-bold uppercase ${subscription.tier === 'enterprise' ? 'bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent' : 'text-cyan-400'}`}>
+                                {subscription.tier}
+                            </span>
+                            <span className="text-xs text-gray-400">{getTierPrice(subscription.tier)}</span>
+                        </div>
+                        {subscription.tier !== 'free' && (
+                            <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Credits:</span>
+                                    <span className="text-white font-mono">{subscription.credits}/{subscription.maxCredits}</span>
+                                </div>
+                                <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                    <div 
+                                        className="bg-cyan-500 h-1.5 rounded-full transition-all" 
+                                        style={{ width: `${(subscription.credits / subscription.maxCredits) * 100}%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between mt-2">
+                                    <span className="text-gray-400">Storage:</span>
+                                    <span className="text-white font-mono">{getStorageUsed()} / {subscription.features.storageLimit} GB</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-gray-800 p-2 rounded">
+                            <div className="text-gray-400">โปรเจกต์</div>
+                            <div className="text-white font-bold">
+                                {subscription.features.maxProjects === -1 ? 'Unlimited' : `${subscription.features.maxProjects}`}
+                            </div>
+                        </div>
+                        <div className="bg-gray-800 p-2 rounded">
+                            <div className="text-gray-400">ความละเอียด</div>
+                            <div className="text-white font-bold">{subscription.features.maxResolution}</div>
+                        </div>
+                    </div>
+
+                    {/* Plan Selector */}
+                    <div className="text-xs text-gray-400 mb-2">Change Plan (Demo Mode)</div>
+                    {(['free', 'basic', 'pro', 'enterprise'] as SubscriptionTier[]).map((tier) => (
+                        <button
+                            key={tier}
+                            onClick={() => handleTierChange(tier)}
+                            className={`w-full text-left px-3 py-2.5 rounded text-sm mb-1 hover:bg-gray-800 transition-all ${
+                                subscription.tier === tier 
+                                    ? 'bg-gray-800 border border-cyan-500 text-cyan-400 font-bold' 
+                                    : 'text-gray-300 border border-transparent'
+                            }`}
+                        >
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <div className="font-semibold uppercase">{tier}</div>
+                                    <div className="text-[10px] text-gray-400">{getTierPrice(tier)}</div>
+                                </div>
+                                {subscription.tier === tier && <span className="text-cyan-400">✓</span>}
+                            </div>
+                        </button>
+                    ))}
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                        <a 
+                            href="#pricing" 
+                            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                        >
+                            <span>📊</span>
+                            <span>ดูรายละเอียดแพ็กเกจทั้งหมด</span>
+                        </a>
+                    </div>
+                </div>
+            )}
+            
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`${getTierColor(subscription.tier)} text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 hover:brightness-110 transition-all`}
+            >
+                <div className="flex flex-col items-start">
+                    <span className="text-xs font-bold uppercase tracking-wider">{subscription.tier} Plan</span>
+                    <span className="text-[10px] opacity-90">
+                        {subscription.tier === 'free' ? 'ฟรี' : `${subscription.credits} Credits`}
+                    </span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    );
+};
 
 const Step5Output: React.FC<Step5OutputProps> = ({ scriptData, setScriptData, prevStep, onRegisterUndo, goToStep, onNavigateToCharacter, returnToScene, onResetReturnToScene }) => {
   type Status = 'pending' | 'loading' | 'done' | 'error';
@@ -1716,196 +1923,136 @@ const Step5Output: React.FC<Step5OutputProps> = ({ scriptData, setScriptData, pr
   };
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold text-cyan-400">STEP 5: Scene Design & Final Output</h2>
-          
-          {/* TOP ACTION BUTTONS (Moved from bottom) */}
-          <div className="flex flex-wrap gap-2">
-             <button type="button" onClick={() => setShowPreview(true)} className="flex items-center gap-2 bg-teal-700 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm shadow-lg">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
-                 Preview
-             </button>
-
-             {/* Export Dropdown */}
-             <div className="relative">
-                 <button 
-                    type="button" 
-                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm border border-gray-600 shadow-lg"
-                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Export Options
-                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                 </button>
-                 
-                 {isExportMenuOpen && (
-                     <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-xl border border-gray-700 z-50 overflow-hidden animate-fade-in-scene">
-                         <div className="py-1">
-                             <button onClick={() => { downloadScreenplay(); setIsExportMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-cyan-400 hover:bg-gray-700 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Screenplay (.txt)
-                             </button>
-                             <button onClick={() => { downloadShotList(); setIsExportMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-green-400 hover:bg-gray-700 flex items-center gap-2 border-t border-gray-700/50">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                                Shot List (.csv)
-                             </button>
-                             <button onClick={() => { downloadStoryboard(); setIsExportMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm text-purple-400 hover:bg-gray-700 flex items-center gap-2 border-t border-gray-700/50">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                Storyboard (.html)
-                             </button>
-                         </div>
-                     </div>
-                 )}
-             </div>
-          </div>
-      </div>
+    <div className="p-6 animate-fade-in pb-24">
+      <UserStatus />
       
-      {!allDone && (
-        <div className="text-center mb-8 p-4 bg-gray-900/70 rounded-lg border border-gray-700">
-            <p className="text-gray-400 mb-4">Generate scenes one-by-one or all at once.</p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
+            Step 5: Production Output
+          </h2>
+          <p className="text-gray-400 mt-1">Review generated scenes, create shot lists, and export your screenplay.</p>
+        </div>
+        
+        <div className="flex gap-3">
             <button
-            type="button"
-            onClick={handleGenerateAll}
-            disabled={isLoading || allDone}
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 text-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+                onClick={() => setShowPreview(!showPreview)}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
             >
-            {isLoading ? 'Generating...' : `Generate All Pending (${allTasks.length})`}
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
             </button>
-            {globalError && <p className="text-red-400 mt-2 text-sm">{globalError}</p>}
+            
+            <div className="relative">
+                <button
+                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
+                >
+                    <span>Export</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                </button>
+                
+                {isExportMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                        <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700">
+                            Export as PDF
+                        </button>
+                        <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700">
+                            Export as Final Draft (.fdx)
+                        </button>
+                        <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm">
+                            Export as Text
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+      </div>
+
+      {globalError && (
+        <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6 flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {globalError}
         </div>
       )}
 
-      <div className="space-y-6">
-        {scriptData.structure.map(point => (
-          <div key={point.title} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-             <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xl font-semibold text-gray-200">{point.title}</h3>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
+      <div className="space-y-8">
+        {scriptData.structure.map((point, pointIndex) => (
+            <div key={pointIndex} className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+                <div className="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                        {point.title}
+                    </h3>
+                    <button 
                         onClick={() => handleAddScene(point.title)}
-                        className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-xs text-cyan-400 font-bold transition-colors"
-                        title="Add Scene"
+                        className="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
                         Add Scene
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => handleRemoveScene(point.title)}
-                        className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-red-900/50 rounded-md text-xs text-red-400 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Remove Scene"
-                        disabled={(scriptData.scenesPerPoint[point.title] || 0) <= 0}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
-                        Remove
-                    </button>
+                </div>
+                
+                <div className="p-4 space-y-4">
+                    {Array.from({ length: scriptData.scenesPerPoint[point.title] || 1 }).map((_, sceneIndex) => {
+                        const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
+                        const status = generationStatus[point.title]?.[sceneIndex] || 'pending';
+                        
+                        return (
+                            <div key={sceneIndex} id={`scene-${point.title.replace(/\s+/g, '-')}-${sceneIndex}`} className="relative group">
+                                <SceneItem
+                                    sceneIndex={sceneIndex}
+                                    sceneNumber={sceneIndex + 1}
+                                    isPart={scriptData.scenesPerPoint[point.title] > 1}
+                                    status={status}
+                                    sceneData={sceneData}
+                                    button={getButtonForScene(point, sceneIndex)}
+                                    onUpdate={(updated) => handleSceneUpdate(point.title, sceneIndex, updated)}
+                                    allCharacters={scriptData.characters}
+                                    onRegisterUndo={onRegisterUndo}
+                                    goToStep={goToStep}
+                                    onNavigateToCharacter={onNavigateToCharacter}
+                                    pointTitle={point.title}
+                                />
+                                
+                                {(scriptData.scenesPerPoint[point.title] > 1 || sceneIndex > 0) && (
+                                    <button
+                                        onClick={() => handleRemoveScene(point.title)}
+                                        className="absolute -right-2 -top-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                                        title="Remove Scene"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
-            {/* Added Description/Context Display */}
-            {point.description && <p className="text-gray-400 text-sm mb-4 italic">{point.description}</p>}
-            
-            <div className="space-y-4">
-              {Array.from({ length: scriptData.scenesPerPoint[point.title] ?? 1 }).map((_, sceneIndex) => {
-                  const sceneDataForPoint = scriptData.generatedScenes[point.title]?.[sceneIndex];
-                  const sceneNumber = sceneNumberMap[point.title][sceneIndex];
-                  const status = generationStatus[point.title]?.[sceneIndex];
-                  const button = getButtonForScene(point, sceneIndex);
-
-                  return (
-                    <div id={`scene-${point.title.replace(/\s+/g, '-')}-${sceneIndex}`} key={sceneIndex} className="scroll-mt-32">
-                        <SceneItem 
-                            sceneIndex={sceneIndex}
-                            sceneNumber={sceneNumber}
-                            isPart={scriptData.scenesPerPoint[point.title] > 1}
-                            status={status}
-                            sceneData={sceneDataForPoint}
-                            button={button}
-                            onUpdate={(updatedScene) => handleSceneUpdate(point.title, sceneIndex, updatedScene)}
-                            allCharacters={scriptData.characters}
-                            onRegisterUndo={onRegisterUndo}
-                            goToStep={goToStep}
-                            onNavigateToCharacter={onNavigateToCharacter}
-                            pointTitle={point.title}
-                        />
-                    </div>
-                  );
-              })}
-              {(scriptData.scenesPerPoint[point.title] || 0) === 0 && (
-                   <div className="p-8 text-center bg-gray-900/20 rounded-lg border border-gray-800 text-gray-500 italic">
-                       No scenes added for this plot point.
-                   </div>
-              )}
-            </div>
-          </div>
         ))}
       </div>
       
-      <div className="mt-8 flex justify-between items-center">
-        <button type="button" onClick={prevStep} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Back</button>
+      <div className="mt-12 flex justify-between border-t border-gray-700 pt-8">
+        <button
+            onClick={prevStep}
+            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors flex items-center gap-2"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Back to Structure
+        </button>
       </div>
-
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-100 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-gray-300 bg-gray-200 flex justify-between items-center flex-shrink-0 text-gray-800">
-              <h3 className="text-lg font-bold font-mono">SCRIPT PREVIEW MODE</h3>
-              <div className="flex gap-4">
-                  <button onClick={downloadScreenplay} className="text-xs bg-white border border-gray-400 hover:bg-gray-50 px-3 py-1 rounded font-bold shadow-sm">Download .txt</button>
-                  <button 
-                    type="button"
-                    onClick={() => setShowPreview(false)} 
-                    className="text-gray-500 hover:text-red-600 text-2xl font-bold leading-none"
-                  >
-                    &times;
-                  </button>
-              </div>
-            </div>
-            {/* Screenplay Viewer */}
-            <div className="flex-1 overflow-y-auto p-8 sm:p-12 font-mono text-black bg-white shadow-inner">
-                <div className="max-w-[800px] mx-auto text-[14px] sm:text-[16px] leading-relaxed">
-                    <div className="text-center mb-24 mt-12">
-                        <h1 className="underline font-bold text-xl uppercase mb-4">{scriptData.title}</h1>
-                        <p className="text-sm">by</p>
-                        <p className="font-bold mb-8">Peace Script AI</p>
-                        <p className="text-xs text-gray-500">Logline: {scriptData.logLine}</p>
-                    </div>
-
-                    {scriptData.structure.map((point, pIdx) => (
-                        <div key={pIdx}>
-                            {scriptData.generatedScenes[point.title]?.map((scene, sIdx) => (
-                                <div key={sIdx} className="mb-6">
-                                    <h3 className="font-bold uppercase mb-4 mt-8">
-                                        {(scene.sceneDesign.location || "INT. UNKNOWN - DAY").toUpperCase()}
-                                    </h3>
-                                    
-                                    {scene.sceneDesign.situations.map((sit, sitIdx) => (
-                                        <div key={sitIdx} className="mb-4">
-                                            <p className="mb-4">{sit.description}</p>
-                                            
-                                            {sit.dialogue.map((d, dIdx) => (
-                                                <div key={dIdx} className="mb-3">
-                                                    <div className="text-center font-bold uppercase w-1/2 mx-auto">{d.character}</div>
-                                                    {sit.characterThoughts && dIdx === 0 && (
-                                                        <div className="text-center text-xs w-1/3 mx-auto italic mb-1">({sit.characterThoughts})</div>
-                                                    )}
-                                                    <div className="w-2/3 mx-auto">{d.dialogue}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 export default Step5Output;
+
+

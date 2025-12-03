@@ -1,6 +1,7 @@
 # ComfyUI Backend Integration - Implementation Summary
 
 ## 🎯 Objective
+
 Move ComfyUI image generation from client-side (requires local installation) to server-side backend service for simplified user experience and scalability.
 
 ---
@@ -12,6 +13,7 @@ Move ComfyUI image generation from client-side (requires local installation) to 
 Created complete ComfyUI Backend Service with 16 files:
 
 #### Core Service Files
+
 - **`package.json`** - Dependencies: express, bull, redis, firebase-admin, ws, sharp
 - **`src/server.js`** - Main Express app with routes, middleware, initialization
 - **`src/services/workerManager.js`** - GPU pool management, health checks, load balancing
@@ -20,16 +22,19 @@ Created complete ComfyUI Backend Service with 16 files:
 - **`src/services/firebaseService.js`** - Firestore job storage, Firebase Storage integration
 
 #### API Routes
+
 - **`src/routes/comfyui.js`** - Generate endpoints (async/sync), status, workers
 - **`src/routes/queue.js`** - Queue stats and management
 - **`src/routes/health.js`** - Health check endpoints
 
 #### Middleware & Config
+
 - **`src/middleware/auth.js`** - Firebase ID token verification
 - **`src/middleware/errorHandler.js`** - Error handling with proper status codes
 - **`src/config/firebase.js`** - Firebase Admin SDK initialization
 
 #### Deployment Files
+
 - **`Dockerfile`** - Container configuration for production
 - **`docker-compose.yml`** - Multi-service setup (Redis + Service)
 - **`.env.example`** - Environment configuration template
@@ -38,6 +43,7 @@ Created complete ComfyUI Backend Service with 16 files:
 ### 2. Frontend Integration
 
 #### New Client Library
+
 - **`src/services/comfyuiBackendClient.ts`** - Backend API client with:
   - `generateWithComfyUI()` - Main generation function
   - `checkBackendStatus()` - Service health check
@@ -47,6 +53,7 @@ Created complete ComfyUI Backend Service with 16 files:
   - Firebase authentication headers
 
 #### Updated Services
+
 - **`src/services/geminiService.ts`** - Modified to use backend client:
   - Import backend client
   - Route ComfyUI calls to backend service
@@ -54,6 +61,7 @@ Created complete ComfyUI Backend Service with 16 files:
   - Environment flag: `VITE_USE_COMFYUI_BACKEND`
 
 #### New Components
+
 - **`src/components/ComfyUIStatus.tsx`** - Status widget showing:
   - Service online/offline status
   - Worker pool health
@@ -64,6 +72,7 @@ Created complete ComfyUI Backend Service with 16 files:
 ### 3. Configuration Updates
 
 #### Environment Variables
+
 - **`.env.example`** - Added:
   ```env
   VITE_COMFYUI_SERVICE_URL=http://localhost:8000
@@ -71,6 +80,7 @@ Created complete ComfyUI Backend Service with 16 files:
   ```
 
 #### Documentation
+
 - **`README.md`** - Updated with:
   - New architecture diagram
   - Backend service description
@@ -89,6 +99,7 @@ Created complete ComfyUI Backend Service with 16 files:
 ## 🏗️ Architecture
 
 ### Before (Client-Side)
+
 ```
 User ──▶ React App ──▶ Local ComfyUI (localhost:8188)
                            ↓
@@ -98,6 +109,7 @@ User ──▶ React App ──▶ Local ComfyUI (localhost:8188)
 ```
 
 ### After (Server-Side)
+
 ```
 User ──▶ React App ──▶ ComfyUI Service ──▶ GPU Worker Pool
                            ↓                      ↓
@@ -109,18 +121,20 @@ User ──▶ React App ──▶ ComfyUI Service ──▶ GPU Worker Pool
 ```
 
 ### Benefits
+
 ✅ **No user installation** - Works on any device  
 ✅ **Scalable** - Multi-worker GPU pool with load balancing  
 ✅ **Reliable** - Queue system with auto-retry  
 ✅ **Monitored** - Real-time progress tracking  
 ✅ **Secure** - Firebase Auth integration  
-✅ **Flexible** - Easy to add/remove workers  
+✅ **Flexible** - Easy to add/remove workers
 
 ---
 
 ## 📋 API Endpoints
 
 ### Image Generation
+
 - `POST /api/comfyui/generate` - Queue job (async, returns jobId)
 - `POST /api/comfyui/generate/sync` - Synchronous generation (2min timeout)
 - `GET /api/comfyui/job/:jobId` - Check job status
@@ -128,10 +142,12 @@ User ──▶ React App ──▶ ComfyUI Service ──▶ GPU Worker Pool
 - `POST /api/comfyui/verify-lora` - Verify LoRA models
 
 ### Queue Management
+
 - `GET /api/queue/stats` - Queue statistics
 - `POST /api/queue/clean` - Clean old jobs (admin only)
 
 ### Health Checks
+
 - `GET /health` - Basic health check
 - `GET /health/detailed` - Worker + queue stats
 
@@ -140,15 +156,19 @@ User ──▶ React App ──▶ ComfyUI Service ──▶ GPU Worker Pool
 ## 🔄 Migration Path
 
 ### For Users
+
 **Before**: Install ComfyUI + Python + LoRA models locally  
 **After**: Just use the app - everything runs on server
 
 ### For Developers
+
 **Before**: Check `localhost:8188` availability  
 **After**: Set `VITE_USE_COMFYUI_BACKEND=true`
 
 ### Backward Compatibility
+
 Legacy local ComfyUI code removed from `generateImageWithComfyUI()`. Now throws error if backend not enabled:
+
 ```typescript
 throw new Error('Local ComfyUI not supported. Please enable VITE_USE_COMFYUI_BACKEND=true');
 ```
@@ -158,6 +178,7 @@ throw new Error('Local ComfyUI not supported. Please enable VITE_USE_COMFYUI_BAC
 ## 🚀 Quick Start
 
 ### Backend Service
+
 ```bash
 cd comfyui-service
 npm install
@@ -166,6 +187,7 @@ npm run dev
 ```
 
 ### Frontend
+
 ```bash
 # .env.local
 VITE_COMFYUI_SERVICE_URL=http://localhost:8000
@@ -179,12 +201,14 @@ npm run dev
 ## 📊 Technical Highlights
 
 ### Worker Management
+
 - **Round-robin load balancing** - Distribute jobs evenly
 - **Health checks** - Every 30s, mark unhealthy workers
 - **Dynamic pool** - Add/remove workers at runtime
 - **Fallback** - Skip unhealthy workers automatically
 
 ### Queue System
+
 - **Bull + Redis** - Industry-standard job queue
 - **Priority support** - Jobs with priority 1-10
 - **Auto-retry** - 3 attempts with exponential backoff
@@ -192,12 +216,14 @@ npm run dev
 - **Progress tracking** - Real-time via WebSocket
 
 ### Firebase Integration
+
 - **Authentication** - Bearer token verification
 - **Job persistence** - Store jobs in Firestore
 - **Image storage** - Upload to Firebase Storage
 - **User history** - Track per-user job history
 
 ### Error Handling
+
 - **Graceful degradation** - Return user-friendly errors
 - **Timeout handling** - 5min generation timeout
 - **Worker failure** - Automatic failover
@@ -208,6 +234,7 @@ npm run dev
 ## 📝 Files Changed
 
 ### New Files (18 total)
+
 ```
 comfyui-service/                    # Backend microservice
 ├── package.json
@@ -234,6 +261,7 @@ src/components/ComfyUIStatus.tsx      # Status widget
 ```
 
 ### Modified Files (4 total)
+
 ```
 .env.example                        # Added backend URL config
 README.md                           # Updated architecture
@@ -246,12 +274,14 @@ src/services/geminiService.ts       # Integrated backend client
 ## 🎯 Next Steps
 
 ### Immediate
+
 - [ ] Test backend service locally
 - [ ] Test frontend integration
 - [ ] Verify queue processing
 - [ ] Test worker failover
 
 ### Before Production
+
 - [ ] Setup GPU workers (Cloud/RunPod)
 - [ ] Deploy to Cloud Run/GKE
 - [ ] Setup Redis instance (Memorystore/Redis Cloud)
@@ -261,6 +291,7 @@ src/services/geminiService.ts       # Integrated backend client
 - [ ] Security review
 
 ### Optional Enhancements
+
 - [ ] WebSocket for real-time progress in UI
 - [ ] Job history page
 - [ ] Admin dashboard for queue management
@@ -273,24 +304,28 @@ src/services/geminiService.ts       # Integrated backend client
 ## 💡 Design Decisions
 
 ### Why Microservice Architecture?
+
 - **Separation of concerns** - Frontend/backend can scale independently
 - **Language flexibility** - Use best tool for each job
 - **Deployment independence** - Deploy services separately
 - **Resource optimization** - GPU workers only run when needed
 
 ### Why Bull + Redis?
+
 - **Battle-tested** - Used by thousands of production apps
 - **Feature-rich** - Priority, retry, delayed jobs, etc.
 - **Scalable** - Handles millions of jobs
 - **Observable** - Built-in UI and monitoring
 
 ### Why Firebase Admin?
+
 - **Consistent auth** - Same tokens as frontend
 - **Free tier** - Good for startups
 - **Real-time** - Firestore for live updates
 - **Scalable storage** - Firebase Storage for images
 
 ### Why Docker?
+
 - **Consistent environments** - Dev/staging/prod parity
 - **Easy deployment** - Works on any cloud platform
 - **Scalability** - Easy to add replicas
@@ -301,18 +336,21 @@ src/services/geminiService.ts       # Integrated backend client
 ## 📈 Expected Impact
 
 ### User Experience
+
 - ✅ Simplified onboarding (no installation)
 - ✅ Works on mobile devices
 - ✅ Faster first-time experience
 - ✅ Consistent results across devices
 
 ### Developer Experience
+
 - ✅ Easier to test (no local ComfyUI needed for frontend dev)
 - ✅ Easier to debug (centralized logs)
 - ✅ Easier to scale (add more workers)
 - ✅ Easier to monitor (queue metrics)
 
 ### Business Impact
+
 - ✅ Lower barrier to entry → more users
 - ✅ Better resource utilization → lower costs
 - ✅ More reliable → higher satisfaction
@@ -323,6 +361,7 @@ src/services/geminiService.ts       # Integrated backend client
 ## 🔍 Testing Checklist
 
 ### Unit Tests (TODO)
+
 - [ ] Worker manager selection algorithm
 - [ ] Queue job processing
 - [ ] Firebase integration
@@ -330,6 +369,7 @@ src/services/geminiService.ts       # Integrated backend client
 - [ ] Error handlers
 
 ### Integration Tests (TODO)
+
 - [ ] Full generation flow
 - [ ] Worker health checks
 - [ ] Queue retry logic
@@ -337,12 +377,14 @@ src/services/geminiService.ts       # Integrated backend client
 - [ ] WebSocket progress tracking
 
 ### Load Tests (TODO)
+
 - [ ] 100 concurrent users
 - [ ] Queue backpressure handling
 - [ ] Worker failure scenarios
 - [ ] Network timeout handling
 
 ### Manual Tests
+
 - [ ] Generate image via API
 - [ ] Check job status polling
 - [ ] Verify Firebase storage upload

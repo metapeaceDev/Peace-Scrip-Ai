@@ -16,6 +16,7 @@ interface Step1GenreProps {
 const Step1Genre: React.FC<Step1GenreProps> = ({ scriptData, updateScriptData, nextStep, setScriptData, setCurrentStep, onRegisterUndo }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
   // Poster Editor State
@@ -79,15 +80,17 @@ const Step1Genre: React.FC<Step1GenreProps> = ({ scriptData, updateScriptData, n
       }
       if (onRegisterUndo) onRegisterUndo();
       setIsGeneratingPoster(true);
+      setProgress(0);
       try {
           // Pass the user's custom prompt (or the default one) to the service
-          const posterBase64 = await generateMoviePoster(scriptData, posterPrompt);
+          const posterBase64 = await generateMoviePoster(scriptData, posterPrompt, (p) => setProgress(p));
           updateScriptData({ posterImage: posterBase64 });
       } catch (error) {
           alert("Failed to generate poster.");
           console.error(error);
       } finally {
           setIsGeneratingPoster(false);
+          setProgress(0);
       }
   };
 
@@ -148,6 +151,17 @@ const Step1Genre: React.FC<Step1GenreProps> = ({ scriptData, updateScriptData, n
                          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
                              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
                              <span className="text-cyan-400 text-xs font-bold animate-pulse">Generating...</span>
+                             {progress > 0 && (
+                                 <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
+                                     <div 
+                                         className="h-full bg-cyan-400 transition-all duration-300 ease-out"
+                                         style={{ width: `${progress}%` }}
+                                     />
+                                 </div>
+                             )}
+                             {progress > 0 && (
+                                 <span className="text-cyan-400 text-[10px] mt-1">{Math.round(progress)}%</span>
+                             )}
                          </div>
                      )}
                      
@@ -286,24 +300,27 @@ const Step1Genre: React.FC<Step1GenreProps> = ({ scriptData, updateScriptData, n
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <button
                 onClick={nextStep}
-                disabled={isGenerating}
-                className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
             >
                 Start Manually (Step-by-Step)
             </button>
             <span className="text-gray-500">OR</span>
-            <button
-                onClick={handleAutoGenerate}
-                disabled={isGenerating}
-                className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-                {isGenerating ? (
-                    <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Generating Outline...
-                    </>
-                ) : "Auto-Generate Full Script"}
-            </button>
+            {isGenerating ? (
+                <button
+                    onClick={() => setIsGenerating(false)}
+                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    Stop / Reset
+                </button>
+            ) : (
+                <button
+                    onClick={handleAutoGenerate}
+                    className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center"
+                >
+                    Auto-Generate Full Script
+                </button>
+            )}
         </div>
       </div>
     </div>

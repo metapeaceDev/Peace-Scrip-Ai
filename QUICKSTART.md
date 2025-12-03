@@ -73,6 +73,7 @@ python main.py --listen 0.0.0.0 --port 8188
 ### ติดตั้ง Required LoRA Models
 
 ดาวน์โหลดและใส่ใน `ComfyUI/models/loras/`:
+
 - `Character-Consistency.safetensors` - สร้างตัวละครสม่ำเสมอ
 - `Cinematic.safetensors` - สไตล์ภาพยนตร์
 

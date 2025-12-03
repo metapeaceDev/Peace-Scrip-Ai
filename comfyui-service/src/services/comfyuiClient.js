@@ -12,6 +12,7 @@
 import axios from 'axios';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import { getWorkerManager } from './workerManager.js';
 
 /**
  * Generate image with ComfyUI
@@ -27,6 +28,12 @@ export async function generateWithComfyUI({ worker, prompt, workflow, referenceI
       referenceImage,
       workerId: worker.id
     });
+
+    console.log(`🔍 Workflow nodes: ${Object.keys(finalWorkflow).length}`);
+    console.log(`🔍 Workflow structure:`, JSON.stringify(Object.keys(finalWorkflow).reduce((acc, key) => {
+      acc[key] = finalWorkflow[key].class_type;
+      return acc;
+    }, {})));
 
     // Submit workflow to ComfyUI
     const response = await axios.post(`${worker.url}/prompt`, {
@@ -58,17 +65,25 @@ export async function generateWithComfyUI({ worker, prompt, workflow, referenceI
  * Prepare workflow with dynamic values
  */
 async function prepareWorkflow(workflowTemplate, params) {
-  const { prompt, referenceImage, workerId } = params;
+  const { referenceImage, workerId } = params;
   
   // Clone workflow
   const workflow = JSON.parse(JSON.stringify(workflowTemplate));
   
-  // Replace prompt in CLIPTextEncode nodes
-  for (const [nodeId, node] of Object.entries(workflow)) {
-    if (node.class_type === 'CLIPTextEncode' && node.inputs.text) {
-      node.inputs.text = prompt;
-    }
-    
+  // ❌ REMOVED BUG: Don't replace prompts!
+  // Frontend workflow builder already set Node 6 (positive prompt) and Node 7 (negative prompt) correctly
+  // The old code below REPLACED BOTH positive AND negative nodes with the same prompt!
+  // This caused negative prompt to be overwritten, making all images cartoon style
+  
+  // OLD BUGGY CODE (commented out):
+  // for (const [nodeId, node] of Object.entries(workflow)) {
+  //   if (node.class_type === 'CLIPTextEncode' && node.inputs.text) {
+  //     node.inputs.text = prompt; // ← BUG: This replaced negative prompt too!
+  //   }
+  // }
+  
+  // ✅ NEW: Only handle reference image uploads
+  for (const node of Object.values(workflow)) {
     // If LoadImage node and we have reference image
     if (node.class_type === 'LoadImage' && referenceImage) {
       // Upload reference image first
@@ -97,7 +112,8 @@ async function uploadImageToComfyUI(base64Image, workerId) {
     const imageData = base64Image.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(imageData, 'base64');
     
-    const FormData = (await import('formidable')).default;
+    // Use form-data package for creating multipart/form-data
+    const FormData = (await import('form-data')).default;
     const form = new FormData();
     form.append('image', buffer, {
       filename: `ref-${Date.now()}.png`,
@@ -137,6 +153,7 @@ function trackProgress(workerUrl, promptId, onProgress) {
         if (message.type === 'progress') {
           const progress = Math.round((message.data.value / message.data.max) * 100);
           currentProgress = progress;
+          console.log(`📊 WebSocket Progress: ${progress}%`);
           
           if (onProgress) {
             await onProgress(progress);
@@ -146,6 +163,10 @@ function trackProgress(workerUrl, promptId, onProgress) {
         if (message.type === 'executing' && message.data.node === null) {
           // Execution complete
           console.log(`✅ Execution complete for prompt ${promptId}`);
+          
+          if (onProgress) {
+            await onProgress(100);
+          }
           
           // Retrieve image
           try {
@@ -178,13 +199,72 @@ function trackProgress(workerUrl, promptId, onProgress) {
       console.log('🔌 WebSocket disconnected');
     });
 
-    // Timeout after 5 minutes
+    // Polling fallback if WebSocket doesn't work
+    let pollCount = 0;
+    const maxPolls = 300; // 300 polls * 2s = 10 minutes
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      
+      // Estimate progress based on time elapsed (simple linear estimation)
+      // This gives user feedback even if WebSocket doesn't work
+      const estimatedProgress = Math.min(90, 10 + (pollCount / maxPolls) * 80);
+      
+      if (onProgress && pollCount % 3 === 0) { // Update every 6 seconds
+        await onProgress(Math.floor(estimatedProgress));
+        console.log(`📊 Polling Progress (estimated): ${Math.floor(estimatedProgress)}%`);
+      }
+      
+      try {
+        const historyResponse = await axios.get(`${workerUrl}/history/${promptId}`);
+        const history = historyResponse.data[promptId];
+        
+        if (history) {
+            // Check for outputs (success)
+            if (history.outputs && Object.keys(history.outputs).length > 0) {
+                console.log(`✅ Job completed (detected via polling - outputs found)`);
+                if (onProgress) await onProgress(100);
+                clearInterval(pollInterval);
+                try {
+                    const imageData = await retrieveImage(workerUrl, promptId);
+                    if (ws.readyState === WebSocket.OPEN) ws.close();
+                    resolve(imageData);
+                } catch (error) {
+                    if (ws.readyState === WebSocket.OPEN) ws.close();
+                    reject(error);
+                }
+                return;
+            }
+
+            // Check for status.completed
+            if (history.status && history.status.completed) {
+                console.log(`✅ Job completed (detected via polling - status.completed)`);
+                if (onProgress) await onProgress(100);
+                clearInterval(pollInterval);
+                try {
+                    const imageData = await retrieveImage(workerUrl, promptId);
+                    if (ws.readyState === WebSocket.OPEN) ws.close();
+                    resolve(imageData);
+                } catch (error) {
+                    if (ws.readyState === WebSocket.OPEN) ws.close();
+                    reject(error);
+                }
+                return;
+            }
+        }
+      } catch (error) {
+        // Ignore polling errors
+        // console.warn('Polling error:', error.message);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Timeout after 10 minutes (increased from 5)
     setTimeout(() => {
+      clearInterval(pollInterval);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
-        reject(new Error('Generation timeout (5 minutes)'));
+        reject(new Error('Generation timeout (10 minutes)'));
       }
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);
   });
 }
 
@@ -203,7 +283,7 @@ async function retrieveImage(workerUrl, promptId) {
 
     // Find SaveImage node output
     let imageInfo = null;
-    for (const [nodeId, output] of Object.entries(history.outputs)) {
+    for (const [, output] of Object.entries(history.outputs)) {
       if (output.images && output.images.length > 0) {
         imageInfo = output.images[0];
         break;

@@ -16,7 +16,7 @@
 ## ✅ สิ่งที่เตรียมพร้อมแล้ว
 
 - [x] ComfyUI installed และทดสอบแล้ว
-- [x] Python dependencies complete  
+- [x] Python dependencies complete
 - [x] Backend service configured
 - [x] Redis running
 - [x] Frontend ready
@@ -70,12 +70,14 @@ open http://localhost:5173
 เมื่อทุกอย่างพร้อม คุณจะมี:
 
 ### Services:
+
 - ✅ Frontend: http://localhost:5173
-- ✅ Backend API: http://localhost:8000  
+- ✅ Backend API: http://localhost:8000
 - ✅ ComfyUI: http://localhost:8188
 - ✅ Redis: localhost:6379
 
 ### Features:
+
 - ✅ Story Generation (Gemini AI)
 - ✅ Character Management
 - ✅ Image Generation (ComfyUI)
@@ -108,6 +110,7 @@ curl -L -O "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main
 ## 📚 Documentation
 
 อ่านเอกสารเพิ่มเติม:
+
 - `COMFYUI_STATUS.md` - ComfyUI setup guide
 - `START_HERE.md` - Quick start overview
 - `QUICKSTART.md` - 5-minute setup
@@ -118,6 +121,7 @@ curl -L -O "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main
 ในระหว่างที่รอ คุณสามารถ:
 
 1. **ทดสอบ Frontend + Backend** (ยังไม่มี ComfyUI)
+
    ```bash
    npm run dev:all
    open http://localhost:5173
@@ -139,7 +143,7 @@ curl -L -O "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main
 ✅ Peace Script AI - Complete Stack
 
 📝 Story Generation (Gemini)
-🎨 Image Generation (ComfyUI)  
+🎨 Image Generation (ComfyUI)
 👥 Character Management
 📊 Queue System
 🔐 Authentication
@@ -148,7 +152,7 @@ curl -L -O "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main
 
 ---
 
-*การดาวน์โหลดกำลังดำเนินการใน background...*  
-*ใช้ `./check-models.sh` เพื่อตรวจสอบความคืบหน้า*
+_การดาวน์โหลดกำลังดำเนินการใน background..._  
+_ใช้ `./check-models.sh` เพื่อตรวจสอบความคืบหน้า_
 
 **Estimated completion**: 10-30 นาที (ขึ้นกับความเร็วอินเทอร์เน็ต)

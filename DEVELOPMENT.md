@@ -3,6 +3,7 @@
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - Docker Desktop
 - Firebase project with credentials
@@ -41,6 +42,7 @@ cd ..
 ### 2. Configure Environment
 
 #### Frontend `.env.local`
+
 ```env
 VITE_FIREBASE_API_KEY=your_key
 VITE_FIREBASE_PROJECT_ID=your_project
@@ -50,6 +52,7 @@ VITE_USE_COMFYUI_BACKEND=true
 ```
 
 #### Backend `comfyui-service/.env`
+
 ```env
 PORT=8000
 REDIS_URL=redis://localhost:6379
@@ -85,12 +88,14 @@ python main.py --listen 0.0.0.0 --port 8188
 ### Making Changes
 
 #### Frontend Changes
+
 1. Edit files in `src/`
 2. Hot reload automatically updates browser
 3. Check errors in browser console
 4. Test with React DevTools
 
 #### Backend Changes
+
 1. Edit files in `comfyui-service/src/`
 2. Service auto-restarts (nodemon)
 3. Check logs in terminal
@@ -238,6 +243,7 @@ node --inspect src/server.js
 ## Troubleshooting
 
 ### Frontend won't start
+
 ```bash
 # Clear cache and reinstall
 rm -rf node_modules package-lock.json
@@ -245,6 +251,7 @@ npm install
 ```
 
 ### Backend won't connect to Redis
+
 ```bash
 # Check Redis is running
 docker ps | grep redis
@@ -258,6 +265,7 @@ redis-cli ping
 ```
 
 ### Firebase Auth errors
+
 ```bash
 # Check .env.local has correct keys
 cat .env.local | grep FIREBASE
@@ -267,6 +275,7 @@ cat .env.local | grep FIREBASE
 ```
 
 ### ComfyUI worker unhealthy
+
 ```bash
 # Check ComfyUI is running
 curl http://localhost:8188/system_stats
@@ -279,6 +288,7 @@ cat comfyui-service/.env | grep COMFYUI_WORKERS
 ```
 
 ### CORS errors
+
 ```bash
 # Check CORS_ORIGIN in backend .env
 # Should match frontend URL
@@ -290,18 +300,21 @@ CORS_ORIGIN=http://localhost:5173
 ## Debugging Tips
 
 ### Frontend Debugging
+
 1. Open browser DevTools (F12)
 2. Check Console for errors
 3. Network tab for API calls
 4. React DevTools for component state
 
 ### Backend Debugging
+
 1. Check terminal logs
 2. Add `console.log()` statements
 3. Use Postman for API testing
 4. Check Redis with `redis-cli`
 
 ### Database Debugging
+
 1. Firebase Console → Firestore
 2. Check document structure
 3. Verify security rules
@@ -312,6 +325,7 @@ CORS_ORIGIN=http://localhost:5173
 ## Performance Optimization
 
 ### Frontend
+
 ```bash
 # Analyze bundle size
 npm run build
@@ -322,6 +336,7 @@ npm run preview
 ```
 
 ### Backend
+
 ```bash
 # Monitor Redis
 redis-cli info
@@ -356,12 +371,14 @@ git push origin feature/my-feature
 ## Build & Deploy
 
 ### Development Build
+
 ```bash
 npm run build
 npm run preview
 ```
 
 ### Production Deploy
+
 ```bash
 # Frontend (Firebase)
 npm run firebase:hosting

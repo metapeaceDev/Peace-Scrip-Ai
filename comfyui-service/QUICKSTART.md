@@ -136,6 +136,7 @@ npm start
 ```
 
 Expected output:
+
 ```
 🚀 Server running on port 8000
 ✅ Redis connected
@@ -148,11 +149,13 @@ Expected output:
 ## Step 7: Verify Service
 
 ### Check Health
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -162,11 +165,13 @@ Expected response:
 ```
 
 ### Check Workers
+
 ```bash
 curl http://localhost:8000/api/comfyui/workers
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -205,6 +210,7 @@ npm run dev
 ## Step 9: Test Image Generation
 
 ### Via Frontend
+
 1. Open http://localhost:5173
 2. Login or skip
 3. Create new project
@@ -254,6 +260,7 @@ After setup, verify:
 ## 🐛 Troubleshooting
 
 ### Redis Connection Error
+
 ```bash
 # Check Redis is running
 docker ps | grep redis
@@ -267,6 +274,7 @@ docker-compose restart redis
 ```
 
 ### ComfyUI Worker Unhealthy
+
 ```bash
 # Check ComfyUI is running
 curl http://localhost:8188/system_stats
@@ -280,6 +288,7 @@ curl http://localhost:8188/system_stats
 ```
 
 ### Firebase Auth Error
+
 ```bash
 # Verify service account file exists
 ls -la service-account.json
@@ -292,6 +301,7 @@ node -e "require('./src/config/firebase'); console.log('✅ Firebase OK')"
 ```
 
 ### CORS Error
+
 ```bash
 # Check CORS_ORIGIN in .env matches frontend URL
 # Default: http://localhost:5173
@@ -301,6 +311,7 @@ CORS_ORIGIN=http://localhost:5173,http://localhost:3000
 ```
 
 ### "No healthy workers" Error
+
 ```bash
 # Check worker URL is correct
 curl http://localhost:8188/system_stats
@@ -317,6 +328,7 @@ curl http://localhost:8000/health/detailed
 ## 📊 Monitoring
 
 ### View Logs
+
 ```bash
 # Backend service logs
 npm run dev
@@ -330,11 +342,13 @@ tail -f ComfyUI/comfyui.log
 ```
 
 ### Queue Stats
+
 ```bash
 curl http://localhost:8000/api/queue/stats
 ```
 
 ### Worker Stats
+
 ```bash
 curl http://localhost:8000/api/comfyui/workers
 ```

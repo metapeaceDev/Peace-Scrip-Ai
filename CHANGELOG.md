@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎉 Major Changes - ComfyUI Backend Microservice
 
 #### Added
+
 - **ComfyUI Backend Service** - Complete microservice architecture
   - Node.js + Express API server (16 core files)
   - Bull + Redis queue management with priority support
@@ -17,20 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Firebase Admin SDK integration
   - WebSocket progress tracking (real-time)
   - Docker deployment ready (Dockerfile + docker-compose)
-  
 - **Frontend Integration**
   - `comfyuiBackendClient.ts` - Backend API client with authentication
   - `ComfyUIStatus.tsx` - Real-time service status widget
   - Updated `geminiService.ts` to route to backend
   - Auto-refresh status every 30 seconds
-  
 - **Development Tools**
   - `setup-dev.sh` - One-command development environment setup
   - `test-api.sh` - Backend API testing script
   - `npm run dev:all` - Run frontend + backend simultaneously
   - `npm run docker:redis` - Quick Redis startup
   - `concurrently` for parallel process management
-  
 - **Documentation** (5 new comprehensive guides)
   - `comfyui-service/QUICKSTART.md` - 5-minute setup guide
   - `DEVELOPMENT.md` - Complete development workflow
@@ -39,11 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced `README.md` with new architecture
 
 #### Changed
+
 - **Architecture Migration**
   - From: Client-side ComfyUI (requires local installation)
   - To: Server-side microservice (no user installation needed)
   - Benefit: Works on any device, scalable GPU pool
-  
 - **Environment Configuration**
   - Added `VITE_COMFYUI_SERVICE_URL=http://localhost:8000`
   - Added `VITE_USE_COMFYUI_BACKEND=true`
@@ -51,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Simplified `.env.example` structure
 
 #### Deprecated
+
 - Local ComfyUI installation requirement
 - Direct localhost:8188 connection from frontend
 - `VITE_COMFYUI_ENABLED` flag
@@ -58,13 +57,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Technical Implementation
 
 #### Backend Service (22 new files)
+
 **Core Services:**
+
 - `workerManager.js` - GPU pool, health checks, load balancing
 - `queueService.js` - Bull queue with retry logic (3 attempts)
 - `comfyuiClient.js` - ComfyUI API, WebSocket progress
 - `firebaseService.js` - Firestore jobs, Storage integration
 
 **API Endpoints (8 routes):**
+
 - `POST /api/comfyui/generate` - Queue job (async)
 - `POST /api/comfyui/generate/sync` - Sync generation (2min timeout)
 - `GET /api/comfyui/job/:jobId` - Job status polling
@@ -74,12 +76,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /health/detailed` - Workers + queue stats
 
 **Middleware:**
+
 - Firebase ID token authentication
 - Error handling with proper status codes
 - CORS configuration for local dev
 - Rate limiting (optional)
 
 #### Frontend Updates
+
 - Integrated status widget in Studio page
 - Real-time worker and queue monitoring
 - Job polling with progress tracking
@@ -89,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📦 New Dependencies
 
 **Backend:**
+
 - express v4.18.2 - Web framework
 - bull v4.12.0 - Queue management
 - redis v4.6.11 - Queue backend
@@ -100,15 +105,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - express-rate-limit v7.1.5 - Rate limiting
 
 **Frontend:**
+
 - concurrently v8.2.2 - Parallel commands
 
 ### 🐛 Bug Fixes
+
 - Fixed TypeScript errors in backend client
 - Improved CORS handling for local development
 - Fixed environment variable loading
 - Removed legacy ComfyUI code from geminiService
 
 ### 🔐 Security
+
 - Firebase Admin SDK for server-side operations
 - Bearer token authentication on protected routes
 - Secure error handling (no stack traces in prod)
@@ -116,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Helmet security headers
 
 ### 📈 Performance
+
 - Queue-based processing (no blocking)
 - Multi-worker GPU pool (horizontal scaling)
 - Health checks prevent routing to dead workers
@@ -123,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket for efficient progress updates
 
 ### 🎯 User Experience Improvements
+
 - **Before**: Install ComfyUI + Python + GPU + LoRA locally
 - **After**: Just use the app - everything server-side
 - No installation required
@@ -135,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-29
 
 ### Added
+
 - ✨ Complete 5-step screenwriting workflow (Genre, Boundary, Character, Structure, Output)
 - 🤖 AI-powered character generation with Google Gemini
 - 🎨 Character portrait and costume generation
@@ -151,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📊 MongoDB database integration
 
 ### Frontend
+
 - React 18 + TypeScript
 - Vite build system
 - Tailwind CSS (CDN)
@@ -159,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error boundary for graceful error handling
 
 ### Backend
+
 - Node.js 18 + Express
 - MongoDB + Mongoose
 - JWT authentication with bcrypt
@@ -169,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validation
 
 ### DevOps
+
 - GitHub Actions CI/CD pipeline
 - ESLint + Prettier configuration
 - Vitest testing framework
@@ -177,6 +191,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vercel deployment configuration
 
 ### Documentation
+
 - Comprehensive README
 - API documentation
 - Deployment guides
@@ -187,6 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
+
 - [ ] Unit test coverage >80%
 - [ ] E2E testing with Playwright
 - [ ] PWA support

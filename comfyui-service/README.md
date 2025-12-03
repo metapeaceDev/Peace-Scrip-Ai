@@ -200,6 +200,7 @@ docker-compose up -d
 ```
 
 **Services:**
+
 - `redis`: Queue backend (port 6379)
 - `comfyui-service`: API server (port 8000)
 

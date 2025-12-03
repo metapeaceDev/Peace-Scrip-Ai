@@ -45,11 +45,12 @@ Peace Script AI is now easier than ever to use with our new backend architecture
 ✅ **Storyboard Creation** - Visual shot-by-shot breakdown  
 ✅ **Offline Support** - Works without internet  
 ✅ **Cloud Sync** - Save to Firebase (optional)  
-✅ **Export** - TXT, CSV, HTML, JSON formats  
+✅ **Export** - TXT, CSV, HTML, JSON formats
 
 ### No Installation Needed! 🎉
 
 The new backend architecture means you don't need to:
+
 - ❌ Install ComfyUI
 - ❌ Install Python
 - ❌ Have a GPU
@@ -120,6 +121,7 @@ npm run dev
 ### 4. Configure Environment
 
 #### Frontend (.env.local)
+
 ```env
 VITE_FIREBASE_API_KEY=your_key
 VITE_FIREBASE_PROJECT_ID=your_project
@@ -129,6 +131,7 @@ VITE_USE_COMFYUI_BACKEND=true
 ```
 
 #### Backend (comfyui-service/.env)
+
 ```env
 PORT=8000
 REDIS_URL=redis://localhost:6379
@@ -172,6 +175,7 @@ curl http://localhost:8188/system_stats
 ```
 
 Update backend .env:
+
 ```env
 COMFYUI_WORKERS=http://localhost:8188
 ```
@@ -194,12 +198,14 @@ After setup, you can access:
 ## Next Steps
 
 ### For Users
+
 1. ✅ Create your first project
 2. ✅ Explore AI generation features
 3. ✅ Export and share your work
 4. 📚 Read [User Guide](./docs/USER_GUIDE.md) (if available)
 
 ### For Developers
+
 1. ✅ Read [DEVELOPMENT.md](./DEVELOPMENT.md)
 2. ✅ Check [API Documentation](./comfyui-service/README.md)
 3. ✅ Run tests: `npm test`
@@ -210,6 +216,7 @@ After setup, you can access:
 ## Troubleshooting
 
 ### Frontend won't start
+
 ```bash
 rm -rf node_modules
 npm install
@@ -217,6 +224,7 @@ npm run dev
 ```
 
 ### Backend won't start
+
 ```bash
 # Check Docker is running
 docker ps
@@ -229,6 +237,7 @@ npm run dev:backend
 ```
 
 ### Can't connect to backend
+
 ```bash
 # Verify URL in .env.local
 cat .env.local | grep COMFYUI_SERVICE
@@ -238,6 +247,7 @@ curl http://localhost:8000/health
 ```
 
 ### AI generation fails
+
 1. Check you have valid API keys (.env.local)
 2. Check backend is running (http://localhost:8000/health)
 3. Check browser console for errors
@@ -307,6 +317,7 @@ peace-script-ai/
 ## Tips for Success
 
 ### For Creating Great Stories
+
 - 💡 Spend time on character development
 - 💡 Use AI to generate initial ideas, then refine
 - 💡 Export frequently to save progress
@@ -314,6 +325,7 @@ peace-script-ai/
 - 💡 Use storyboards to visualize scenes
 
 ### For Developers
+
 - 💡 Read DEVELOPMENT.md for best practices
 - 💡 Use `npm run dev:all` for full-stack development
 - 💡 Check logs when debugging

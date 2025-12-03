@@ -6,6 +6,7 @@
  */
 
 import { auth } from '../config/firebase';
+import { buildWorkflow, buildFluxWorkflow } from './comfyuiWorkflowBuilder';
 
 const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 const USE_BACKEND_SERVICE = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
@@ -26,14 +27,18 @@ async function getIdToken() {
  */
 export async function generateImageWithBackend(
   prompt: string,
-  workflow: any,
+  workflow: Record<string, unknown>,
   referenceImage: string | null = null,
-  priority: number = 5
+  priority: number = 5,
+  onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
     const idToken = await getIdToken();
 
-    // Submit job to queue
+    // Submit job to queue with timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout for submission
+    
     const response = await fetch(`${COMFYUI_SERVICE_URL}/api/comfyui/generate`, {
       method: 'POST',
       headers: {
@@ -45,24 +50,47 @@ export async function generateImageWithBackend(
         workflow,
         referenceImage,
         priority
-      })
+      }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeout);
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({ message: response.statusText }));
       throw new Error(error.message || 'Failed to submit job');
     }
 
     const result = await response.json();
-    const { jobId } = result.data;
+    
+    console.log('📦 Backend response:', result);
+    
+    // Handle different response formats
+    const jobData = result.data || result;
+    const jobId = jobData.jobId || jobData.id;
+
+    if (!jobId) {
+      throw new Error('No job ID in response: ' + JSON.stringify(result));
+    }
 
     console.log(`📤 Job submitted: ${jobId}`);
 
     // Poll for result
-    return await pollJobStatus(jobId, idToken);
+    return await pollJobStatus(jobId, idToken, 300000, onProgress);
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Backend generation failed:', error);
+    
+    // Handle timeout error
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('ComfyUI Backend timeout - service may be down. Try again or check backend status.');
+    }
+    
+    // Handle connection errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Cannot connect to ComfyUI Backend Service. Please check if the service is running.');
+    }
+    
     throw error;
   }
 }
@@ -70,46 +98,104 @@ export async function generateImageWithBackend(
 /**
  * Poll job status until complete
  */
-async function pollJobStatus(jobId: string, idToken: string, maxWait: number = 300000): Promise<string> { // 5 minutes
+async function pollJobStatus(
+  jobId: string, 
+  idToken: string, 
+  maxWait: number = 4800000,
+  onProgress?: (progress: number) => void
+): Promise<string> { // 80 minutes (Mac IP-Adapter needs more time)
   const startTime = Date.now();
   const pollInterval = 2000; // 2 seconds
 
   while (Date.now() - startTime < maxWait) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout per poll
+      
       const response = await fetch(`${COMFYUI_SERVICE_URL}/api/comfyui/job/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
-        }
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error('Failed to get job status');
       }
 
       const result = await response.json();
-      const { state, progress, result: jobResult, failedReason } = result.data;
+      
+      // Handle different response formats
+      const jobData = result.data || result;
+      const state = jobData.state || jobData.status;
+      const progress = jobData.progress || 0;
+      const jobResult = jobData.result || jobData;
+      const failedReason = jobData.failedReason || jobData.error || jobData.message;
 
       console.log(`📊 Job ${jobId}: ${state} (${progress}%)`);
-
-      if (state === 'completed') {
-        console.log(`✅ Job ${jobId} completed`);
-        return jobResult.imageData; // Return base64 image
+      
+      // Update progress callback - ALWAYS call even if progress is 0
+      if (onProgress) {
+        const progressValue = typeof progress === 'number' ? Math.round(progress * 10) / 10 : 0; // Round to 1 decimal
+        console.log(`🔄 Calling onProgress with: ${progressValue}%`);
+        onProgress(progressValue);
       }
 
-      if (state === 'failed') {
+      if (state === 'completed' || state === 'success') {
+        console.log(`✅ Job ${jobId} completed`);
+        
+        // Set progress to 100% before returning
+        if (onProgress) {
+          console.log(`✅ Setting final progress: 100%`);
+          onProgress(100);
+        }
+        
+        // Return image from various possible locations
+        // Priority: imageUrl (Firebase Storage) > imageData (Base64 fallback)
+        const imageUrl = jobResult.imageUrl;
+        const imageData = jobResult.imageData || jobResult.image || jobResult;
+        
+        if (imageUrl) {
+          console.log(`🌐 Image available at Storage URL: ${imageUrl}`);
+          // TODO: Download from Storage URL and convert to base64 for frontend
+          // For now, return imageData if available
+          return imageData || imageUrl;
+        }
+        
+        return imageData;
+      }
+
+      if (state === 'failed' || state === 'error') {
         throw new Error(`Job failed: ${failedReason}`);
       }
 
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, pollInterval));
 
-    } catch (error) {
+    } catch (error: unknown) {
+      // Handle timeout - retry
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('⚠️ Poll timeout, retrying...');
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      
+      // Handle connection error - retry a few times
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('⚠️ Connection error, retrying...');
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      
       console.error('❌ Polling error:', error);
-      throw error;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to poll job status: ${errorMsg}`);
     }
   }
 
-  throw new Error('Job timeout after 5 minutes');
+  throw new Error('Job timeout after 80 minutes. ComfyUI Backend may be overloaded or stuck.');
 }
 
 /**
@@ -117,10 +203,15 @@ async function pollJobStatus(jobId: string, idToken: string, maxWait: number = 3
  */
 export async function checkBackendStatus() {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000)
+      signal: controller.signal
     });
+    
+    clearTimeout(timeout);
 
     if (!response.ok) {
       return { running: false, error: 'Service unavailable' };
@@ -136,10 +227,12 @@ export async function checkBackendStatus() {
       queue: data.queue
     };
 
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       running: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error && error.name === 'AbortError' 
+        ? 'Backend service timeout (not responding)' 
+        : (error instanceof Error ? error.message : 'Unknown error')
     };
   }
 }
@@ -201,12 +294,46 @@ export async function getQueueStats() {
  */
 export async function generateWithComfyUI(
   prompt: string,
-  workflow: any,
+  options: Record<string, unknown> = {},
   referenceImage: string | null = null
 ): Promise<string> {
   if (USE_BACKEND_SERVICE) {
     console.log('🌐 Using ComfyUI Backend Service');
-    return await generateImageWithBackend(prompt, workflow, referenceImage);
+    console.log('📋 Options:', options);
+    
+    // เลือกใช้ FLUX หรือ SDXL workflow
+    const useFlux = options.useFlux || false;
+    
+    // Extract typed values from options
+    const optionsRefImage = typeof options.referenceImage === 'string' ? options.referenceImage : null;
+    const onProgressCallback = typeof options.onProgress === 'function' ? options.onProgress as (progress: number) => void : undefined;
+    
+    let workflow;
+    if (useFlux) {
+      console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
+      workflow = buildFluxWorkflow(prompt, {
+        ...options,
+        referenceImage: referenceImage || optionsRefImage
+      });
+    } else {
+      const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
+      console.log(`🎨 Using SDXL workflow (${checkpointName})`);
+      workflow = buildWorkflow(prompt, {
+        ...options,
+        ckpt_name: checkpointName, // Ensure checkpoint name is set
+        referenceImage: referenceImage || optionsRefImage
+      });
+    }
+    
+    console.log('🔧 Built workflow with nodes:', Object.keys(workflow).length);
+    
+    return await generateImageWithBackend(
+      prompt, 
+      workflow, 
+      referenceImage || optionsRefImage,
+      5, // Default priority
+      onProgressCallback // Pass progress callback
+    );
   } else {
     console.log('💻 Using local ComfyUI');
     // Fallback to existing local ComfyUI logic

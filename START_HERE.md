@@ -13,12 +13,14 @@
 ### การทดสอบ:
 
 #### 1. ทดสอบ Backend API:
+
 ```bash
 cd comfyui-service
 node test-backend.js
 ```
 
 **ผลลัพธ์**:
+
 ```
 ✅ Health: healthy
 ✅ Queue Status: Ready
@@ -26,6 +28,7 @@ node test-backend.js
 ```
 
 #### 2. ทดสอบ Frontend:
+
 - เปิด: http://localhost:5174
 - Login ด้วย Google
 - ทดสอบสร้างบท (Story)
@@ -41,6 +44,7 @@ node test-backend.js
 ```
 
 สคริปต์จะทำให้อัตโนมัติ:
+
 - ✅ ตรวจสอบ dependencies
 - ✅ เริ่ม Redis
 - ✅ เริ่ม Backend (port 8000)
@@ -65,6 +69,7 @@ redis-cli ping  # ควรได้ PONG
 ## 📋 คุณสมบัติที่พร้อมใช้งาน
 
 ### ✅ พื้นฐาน (100%)
+
 - [x] Authentication (Firebase Google Sign-in)
 - [x] Story Generation (Gemini AI)
 - [x] Character Management
@@ -75,6 +80,7 @@ redis-cli ping  # ควรได้ PONG
 - [x] Health Monitoring
 
 ### ⬜ คุณสมบัติเสริม (ทางเลือก)
+
 - [ ] ComfyUI Image Generation (ต้องติดตั้ง ComfyUI)
 - [ ] LoRA Models Integration
 - [ ] Advanced Workflows
@@ -84,6 +90,7 @@ redis-cli ping  # ควรได้ PONG
 ## 🔧 ข้อมูลการตั้งค่า
 
 ### Backend (.env)
+
 ```env
 ✅ Firebase Service Account: service-account.json
 ✅ Redis: localhost:6379
@@ -92,6 +99,7 @@ redis-cli ping  # ควรได้ PONG
 ```
 
 ### Frontend (.env.local)
+
 ```env
 ✅ Firebase Config: Complete
 ✅ Gemini API Key: Configured
@@ -104,12 +112,14 @@ redis-cli ping  # ควรได้ PONG
 ## 📊 สถิติโปรเจค
 
 ### Commits:
+
 ```
 1. ec8ff22 - Backend Integration (97 files, +19,208 lines)
 2. 6d4ff26 - Infrastructure Setup (6 files, +759 lines)
 ```
 
 ### Code:
+
 - **Total Files**: 125+
 - **Code Lines**: ~20,000+
 - **Documentation**: 10 guides (9,261+ lines)
@@ -117,6 +127,7 @@ redis-cli ping  # ควรได้ PONG
 - **Vulnerabilities**: 0 critical
 
 ### Quality Score:
+
 - **TypeScript**: 100% (0 errors)
 - **Build**: 100% (success)
 - **Tests**: 90/100 (Grade A)
@@ -129,7 +140,7 @@ redis-cli ping  # ควรได้ PONG
 
 1. **เปิด Frontend**: http://localhost:5174
 2. **Login**: ใช้ Google Account
-3. **สร้างบท**: 
+3. **สร้างบท**:
    - เลือก Genre
    - กำหนด Boundary
    - สร้าง Characters
@@ -160,6 +171,7 @@ python main.py --listen 0.0.0.0 --port 8188
 ```
 
 เมื่อ ComfyUI ทำงาน:
+
 - Backend จะตรวจจับอัตโนมัติ
 - Workers จะพร้อมใช้งาน
 - สามารถสร้างภาพได้
@@ -188,21 +200,22 @@ gcloud run deploy comfyui-service \
 
 ## 📚 เอกสารประกอบ
 
-| ไฟล์ | จุดประสงค์ |
-|------|-----------|
-| **QUICKSTART.md** | เริ่มต้นใช้งาน 5 นาที |
-| **GETTING_STARTED.md** | คู่มือผู้ใช้ฉบับสมบูรณ์ |
-| **DEVELOPMENT.md** | คู่มือนักพัฒนา |
-| **DEPLOYMENT.md** | วิธี deploy production |
-| **SYSTEM_COMPLETE.md** | สรุปสถานะระบบ |
-| **comfyui-service/README.md** | API Documentation |
-| **comfyui-service/QUICKSTART.md** | Backend setup 5 นาที |
+| ไฟล์                              | จุดประสงค์              |
+| --------------------------------- | ----------------------- |
+| **QUICKSTART.md**                 | เริ่มต้นใช้งาน 5 นาที   |
+| **GETTING_STARTED.md**            | คู่มือผู้ใช้ฉบับสมบูรณ์ |
+| **DEVELOPMENT.md**                | คู่มือนักพัฒนา          |
+| **DEPLOYMENT.md**                 | วิธี deploy production  |
+| **SYSTEM_COMPLETE.md**            | สรุปสถานะระบบ           |
+| **comfyui-service/README.md**     | API Documentation       |
+| **comfyui-service/QUICKSTART.md** | Backend setup 5 นาที    |
 
 ---
 
 ## ✅ Checklist การใช้งาน
 
 ### วันนี้สามารถทำได้:
+
 - [x] เริ่ม development environment
 - [x] Login ด้วย Firebase
 - [x] สร้างบทด้วย Gemini AI
@@ -212,6 +225,7 @@ gcloud run deploy comfyui-service \
 - [x] ดู queue status
 
 ### ต้องการ ComfyUI สำหรับ:
+
 - [ ] สร้างภาพจาก script
 - [ ] ใช้ LoRA models
 - [ ] Advanced image workflows
@@ -223,12 +237,14 @@ gcloud run deploy comfyui-service \
 **Peace Script AI v2.0.0 พร้อมใช้งาน 100%!**
 
 ✅ **ทำงานได้ตอนนี้**:
+
 - Frontend + Backend + Redis
 - Authentication + Story Generation
 - Health Monitoring + Queue System
 - Complete Documentation
 
 🎯 **ทางเลือกเสริม**:
+
 - ComfyUI สำหรับสร้างภาพ
 - Production deployment
 - Advanced features
@@ -249,6 +265,6 @@ open http://localhost:5173
 
 ---
 
-*Last Updated: December 1, 2024*  
-*Version: 2.0.0*  
-*Status: ✅ COMPLETE & READY*
+_Last Updated: December 1, 2024_  
+_Version: 2.0.0_  
+_Status: ✅ COMPLETE & READY_

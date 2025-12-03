@@ -3,25 +3,29 @@
 ## ✅ ติดตั้งแล้ว
 
 ### ComfyUI Installation
+
 ```
 📍 Location: ~/Desktop/ComfyUI
 ✅ Python Dependencies: Installed
-✅ Frontend: Installed  
+✅ Frontend: Installed
 ```
 
 ### Models (กำลังดาวน์โหลด)
 
 #### 1. Checkpoint Model
+
 - **SDXL Base 1.0** (6.94 GB)
 - Location: `~/Desktop/ComfyUI/models/checkpoints/`
 - Status: 🔄 Downloading...
 
-#### 2. VAE Model  
+#### 2. VAE Model
+
 - **SDXL VAE** (335 MB)
 - Location: `~/Desktop/ComfyUI/models/vae/`
 - Status: 🔄 Downloading...
 
 #### 3. LoRA Models (ทางเลือก)
+
 - Location: `~/Desktop/ComfyUI/models/loras/`
 - Status: ⬜ ยังไม่ได้ติดตั้ง
 
@@ -68,7 +72,7 @@ python3 main.py --listen 0.0.0.0 --port 8188
 
 2. **SDXL Render**
    - ประเภท: Photorealistic
-   - ดาวน์โหลด: https://civitai.com/models/142675  
+   - ดาวน์โหลด: https://civitai.com/models/142675
    - ขนาด: ~150 MB
 
 ### วิธีติดตั้ง LoRA:
@@ -106,11 +110,13 @@ node test-backend.js
 ## 📋 Checklist
 
 ### พื้นฐาน (จำเป็น):
+
 - [x] ComfyUI installed
 - [🔄] SDXL Checkpoint (กำลังดาวน์โหลด)
 - [🔄] SDXL VAE (กำลังดาวน์โหลด)
 
 ### เสริม (แนะนำ):
+
 - [ ] LoRA Models
 - [ ] Additional Checkpoints (FLUX, etc.)
 - [ ] Custom nodes (ถ้าต้องการ)
@@ -120,12 +126,14 @@ node test-backend.js
 ## 🎯 Next Steps
 
 1. **รอการดาวน์โหลดเสร็จ** (~10-30 นาที ขึ้นกับความเร็วเน็ต)
+
    ```bash
    # ตรวจสอบความคืบหน้า
    watch -n 10 './check-models.sh'
    ```
 
 2. **เริ่ม ComfyUI**
+
    ```bash
    ./start-comfyui.sh
    ```
@@ -186,5 +194,5 @@ cat comfyui-service/.env | grep COMFYUI_WORKERS
 
 ---
 
-*Last Updated: กำลังดาวน์โหลด models...*  
-*เมื่อดาวน์โหลดเสร็จจะพร้อมใช้งานทันที!*
+_Last Updated: กำลังดาวน์โหลด models..._  
+_เมื่อดาวน์โหลดเสร็จจะพร้อมใช้งานทันที!_

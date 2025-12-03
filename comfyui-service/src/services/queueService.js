@@ -75,7 +75,40 @@ export async function initializeQueue() {
   // Event listeners
   imageQueue.on('completed', async (job, result) => {
     console.log(`✅ Job ${job.id} completed in ${job.finishedOn - job.processedOn}ms`);
-    await updateJobStatus(job.id, 'completed', { result });
+    
+    // IMPORTANT: Save image to Firebase Storage (not Firestore)
+    // Firestore has 1MB document limit, Storage can handle large files
+    try {
+      const { saveImageToStorage } = await import('./firebaseService.js');
+      const userId = job.data.userId || 'anonymous';
+      
+      // Upload image to Firebase Storage and get URL
+      const imageUrl = await saveImageToStorage(result.imageData, userId, job.id);
+      console.log(`💾 Image uploaded to Storage: ${imageUrl}`);
+      
+      // Save only metadata + URL to Firestore (not base64 data)
+      const firestoreResult = {
+        imageUrl: imageUrl,
+        workerId: result.workerId,
+        processingTime: result.processingTime,
+        filename: result.filename
+      };
+      
+      await updateJobStatus(job.id, 'completed', { result: firestoreResult });
+    } catch (storageError) {
+      console.error(`❌ Failed to save to Storage:`, storageError);
+      
+      // Fallback: Keep base64 in job result (Bull Queue stores this in Redis)
+      // Frontend can still retrieve it from job status
+      await updateJobStatus(job.id, 'completed', { 
+        result: { 
+          imageData: result.imageData, // Keep in Redis for immediate access
+          workerId: result.workerId,
+          processingTime: result.processingTime,
+          storageError: storageError.message
+        } 
+      });
+    }
   });
 
   imageQueue.on('failed', async (job, err) => {
@@ -109,9 +142,19 @@ export async function addGenerationJob(jobData) {
     createdAt: Date.now()
   });
 
+  // Get position safely (may not be available in all queue types)
+  let position = 0;
+  try {
+    if (typeof job.getPosition === 'function') {
+      position = await job.getPosition();
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not get job position:', error.message);
+  }
+
   return {
     jobId: job.id,
-    position: await job.getPosition(),
+    position,
     status: 'queued'
   };
 }
@@ -120,7 +163,7 @@ export async function addGenerationJob(jobData) {
  * Process image generation
  */
 async function processImageGeneration(job) {
-  const { prompt, workflow, referenceImage, userId } = job.data;
+  const { prompt, workflow, referenceImage } = job.data;
   
   try {
     // Get available worker

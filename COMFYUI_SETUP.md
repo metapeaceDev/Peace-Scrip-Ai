@@ -1,9 +1,11 @@
 # ComfyUI + LoRA Setup Guide
 
 ## Overview
+
 Peace Script AI ใช้ระบบ ComfyUI สำหรับ **Image + Video Generation** ที่มีคุณภาพสูงสุด:
 
 ### ระบบ Image Generation
+
 ```
 1. Gemini 2.5 Flash Image → (quota หมด)
 2. Gemini 2.0 Flash Exp → (quota หมด)
@@ -12,6 +14,7 @@ Peace Script AI ใช้ระบบ ComfyUI สำหรับ **Image + Video
 ```
 
 ### ระบบ Video Generation
+
 ```
 1. Gemini Veo 3.1 → (best quality, limited quota)
 2. ComfyUI + SVD/AnimateDiff + LoRA → (ควบคุมเต็มที่) ⭐
@@ -20,12 +23,14 @@ Peace Script AI ใช้ระบบ ComfyUI สำหรับ **Image + Video
 ## 🎯 LoRA Models ที่รองรับ
 
 ### สำหรับ Images
+
 - **CHARACTER_CONSISTENCY**: รักษาลักษณะตัวละครให้เหมือนเดิมทุกภาพ
 - **CINEMATIC_STYLE**: สไตล์ภาพยนตร์คุณภาพสูง
 - **THAI_STYLE**: สไตล์ภาพยนตร์ไทย
 - **FLUX_LORA**: Character Sheet workflow (มีอยู่แล้วใน Desktop)
 
 ### สำหรับ Videos
+
 - **Stable Video Diffusion (SVD)**: Text-to-Video generation
 - **AnimateDiff**: Motion module สำหรับ animation
 - **LoRA Motion**: Custom motion styles
@@ -55,6 +60,7 @@ pip install torch torchvision torchaudio
 ### ขั้นตอนที่ 3: ดาวน์โหลด Models
 
 #### Base Models (Required)
+
 ```bash
 cd models/checkpoints
 
@@ -67,6 +73,7 @@ wget https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt-1-1/re
 ```
 
 #### LoRA Models (Optional)
+
 ```bash
 cd ../loras
 
@@ -140,7 +147,7 @@ wget https://huggingface.co/guoyww/animatediff/resolve/main/mm_sd_v15_v3.ckpt
 ### 1. อัพเดท .env.local
 
 ```bash
-cd ~/Desktop/peace-script-basic-v1\ 
+cd ~/Desktop/peace-script-basic-v1\
 
 # Edit .env.local
 VITE_COMFYUI_API_URL=http://localhost:8188
@@ -186,24 +193,27 @@ await generateStoryboardVideo(prompt, baseImage);
 ## 📊 Performance Comparison
 
 ### Images
-| Provider | Speed | Quality | LoRA | Cost |
-|----------|-------|---------|------|------|
-| Gemini 2.5 | ⚡⚡⚡ 3s | ⭐⭐⭐⭐⭐ | ❌ | Free (limited) |
-| Gemini 2.0 | ⚡⚡⚡ 3s | ⭐⭐⭐⭐ | ❌ | Free (better) |
-| SD XL (HF) | ⚡⚡ 8s | ⭐⭐⭐ | ❌ | Free (unlimited) |
-| **ComfyUI + LoRA** | ⚡ 15-30s | ⭐⭐⭐⭐⭐ | ✅ | Hardware |
+
+| Provider           | Speed     | Quality    | LoRA | Cost             |
+| ------------------ | --------- | ---------- | ---- | ---------------- |
+| Gemini 2.5         | ⚡⚡⚡ 3s | ⭐⭐⭐⭐⭐ | ❌   | Free (limited)   |
+| Gemini 2.0         | ⚡⚡⚡ 3s | ⭐⭐⭐⭐   | ❌   | Free (better)    |
+| SD XL (HF)         | ⚡⚡ 8s   | ⭐⭐⭐     | ❌   | Free (unlimited) |
+| **ComfyUI + LoRA** | ⚡ 15-30s | ⭐⭐⭐⭐⭐ | ✅   | Hardware         |
 
 ### Videos
-| Provider | Speed | Quality | LoRA | Cost |
-|----------|-------|---------|------|------|
-| Gemini Veo 3.1 | ⚡⚡⚡ 30s | ⭐⭐⭐⭐⭐ | ❌ | Free (limited) |
-| **ComfyUI + SVD** | ⚡ 60-120s | ⭐⭐⭐⭐ | ✅ | Hardware |
+
+| Provider          | Speed      | Quality    | LoRA | Cost           |
+| ----------------- | ---------- | ---------- | ---- | -------------- |
+| Gemini Veo 3.1    | ⚡⚡⚡ 30s | ⭐⭐⭐⭐⭐ | ❌   | Free (limited) |
+| **ComfyUI + SVD** | ⚡ 60-120s | ⭐⭐⭐⭐   | ✅   | Hardware       |
 
 ---
 
 ## 🔧 Troubleshooting
 
 ### ComfyUI ไม่ทำงาน
+
 ```bash
 # ตรวจสอบ server
 curl http://localhost:8188/queue
@@ -218,11 +228,13 @@ ls models/loras/*.safetensors
 ```
 
 ### LoRA ไม่ทำงาน
+
 1. ตรวจสอบว่าไฟล์ LoRA อยู่ใน `models/loras/`
 2. ตรวจสอบชื่อไฟล์ตรงกับ `LORA_MODELS` ใน `geminiService.ts`
 3. Restart ComfyUI server
 
 ### Video Generation ล้มเหลว
+
 1. ตรวจสอบว่าติดตั้ง VideoHelperSuite แล้ว
 2. ตรวจสอบว่ามี SVD model ใน `models/checkpoints/`
 3. ตรวจสอบว่ามี ffmpeg installed:
@@ -231,6 +243,7 @@ ls models/loras/*.safetensors
    ```
 
 ### Out of Memory (GPU)
+
 ```bash
 # ลด resolution หรือ frame count
 # หรือใช้ CPU mode (ช้ากว่า)
@@ -266,11 +279,13 @@ python main.py --cpu
 ## 💰 ค่าใช้จ่าย
 
 ### Local (แนะนำสำหรับ Development)
+
 - **Hardware**: Mac with M1/M2 (ใช้ได้แต่ช้า) หรือ PC with GPU
 - **Cost**: ฟรี (ใช้ไฟฟ้าเท่านั้น)
 - **Speed**: ช้ากว่า cloud แต่ cost-effective
 
 ### Cloud (แนะนำสำหรับ Production)
+
 - **RunPod**: $0.30-0.50/hr (RTX 3090/4090)
 - **Vast.ai**: $0.20-0.40/hr (varies)
 - **Replicate**: Pay per generation (~$0.01-0.05/image)
@@ -282,21 +297,25 @@ python main.py --cpu
 ### การใช้งานปัจจุบัน (Recommended)
 
 **Images:**
+
 1. Gemini quota หมด → ใช้ SD XL (HuggingFace) ✅
 2. ต้องการคุณภาพสูง → เปิด ComfyUI + LoRA
 
 **Videos:**
+
 1. Gemini Veo 3.1 (ทำงานได้ แต่มี quota) ✅
 2. ต้องการควบคุมเต็มที่ → เปิด ComfyUI + SVD + LoRA
 
 ### ขั้นตอนถัดไป (เลือก 1 หรือทั้งหมด)
 
 **Option 1: ใช้งานตามปัจจุบัน** ✅
+
 - ไม่ต้องติดตั้งอะไรเพิ่ม
 - Images: SD XL fallback (ช้าแต่ฟรี)
 - Videos: Gemini Veo (มี quota limit)
 
 **Option 2: Setup ComfyUI Local** 🖥️
+
 ```bash
 # 1. ติดตั้งตามขั้นตอนข้างบน
 cd ~/Desktop/ComfyUI
@@ -304,12 +323,13 @@ source venv/bin/activate
 python main.py --listen 0.0.0.0 --port 8188
 
 # 2. เปิดใช้งาน
-cd ~/Desktop/peace-script-basic-v1\ 
+cd ~/Desktop/peace-script-basic-v1\
 # Edit .env.local: VITE_COMFYUI_ENABLED=true
 npm run build && firebase deploy
 ```
 
 **Option 3: Use Cloud ComfyUI** ☁️
+
 - RunPod: https://runpod.io (แนะนำ)
 - Vast.ai: https://vast.ai
 - Cost: ~$0.30-0.50/hr
@@ -326,6 +346,6 @@ npm run build && firebase deploy
 
 ---
 
-**ระบบพร้อมใช้งานแล้ว!** 
+**ระบบพร้อมใช้งานแล้ว!**
 
 Images + Videos สามารถใช้ ComfyUI + LoRA สำหรับคุณภาพสูงสุด 🎬✨

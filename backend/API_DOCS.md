@@ -5,6 +5,7 @@ Peace Script AI - Backend API Server with Node.js, Express, and MongoDB.
 ## 🚀 Quick Start
 
 ### Development with Docker
+
 ```bash
 cd backend
 docker-compose up --build
@@ -13,6 +14,7 @@ docker-compose up --build
 The API will be available at `http://localhost:5000`
 
 ### Local Development
+
 ```bash
 npm install
 npm run dev
@@ -23,6 +25,7 @@ npm run dev
 ### Authentication Endpoints
 
 #### Register User
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -35,6 +38,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -50,6 +54,7 @@ Content-Type: application/json
 ```
 
 #### Login
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -61,6 +66,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -74,11 +80,13 @@ Content-Type: application/json
 ### Project Endpoints
 
 All project endpoints require authentication. Include the JWT token in the Authorization header:
+
 ```http
 Authorization: Bearer <your-jwt-token>
 ```
 
 #### Create Project
+
 ```http
 POST /api/projects
 Authorization: Bearer <token>
@@ -96,6 +104,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -113,12 +122,14 @@ Content-Type: application/json
 ```
 
 #### Get All Projects
+
 ```http
 GET /api/projects
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -138,12 +149,14 @@ Authorization: Bearer <token>
 ```
 
 #### Get Single Project
+
 ```http
 GET /api/projects/:id
 Authorization: Bearer <token>
 ```
 
 #### Update Project
+
 ```http
 PUT /api/projects/:id
 Authorization: Bearer <token>
@@ -157,12 +170,14 @@ Content-Type: application/json
 ```
 
 #### Delete Project
+
 ```http
 DELETE /api/projects/:id
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -171,11 +186,13 @@ Authorization: Bearer <token>
 ```
 
 ### Health Check
+
 ```http
 GET /api/health
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -187,11 +204,13 @@ GET /api/health
 ## 🧪 Testing
 
 Run all tests:
+
 ```bash
 npm test
 ```
 
 Run tests in watch mode:
+
 ```bash
 npm run test:watch
 ```
@@ -199,6 +218,7 @@ npm run test:watch
 ## 🔒 Environment Variables
 
 Create a `.env` file:
+
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/peacescript
@@ -210,6 +230,7 @@ NODE_ENV=development
 ## 📦 Dependencies
 
 **Production:**
+
 - express: Web framework
 - mongoose: MongoDB ODM
 - bcryptjs: Password hashing
@@ -220,6 +241,7 @@ NODE_ENV=development
 - express-rate-limit: Rate limiting
 
 **Development:**
+
 - nodemon: Auto-restart
 - jest: Testing framework
 - supertest: HTTP testing
@@ -228,16 +250,19 @@ NODE_ENV=development
 ## 🐳 Docker
 
 Build image:
+
 ```bash
 npm run docker:build
 ```
 
 Run container:
+
 ```bash
 npm run docker:run
 ```
 
 Using docker-compose:
+
 ```bash
 npm run docker:compose
 ```
@@ -245,6 +270,7 @@ npm run docker:compose
 ## 📊 Test Coverage
 
 Target coverage: 70%
+
 - Branches: 70%
 - Functions: 70%
 - Lines: 70%

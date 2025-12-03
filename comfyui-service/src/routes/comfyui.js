@@ -6,7 +6,7 @@ import express from 'express';
 import { addGenerationJob, getJobStatus } from '../services/queueService.js';
 import { getWorkerManager } from '../services/workerManager.js';
 import { verifyLoRAModels } from '../services/comfyuiClient.js';
-import { authenticateFirebase } from '../middleware/auth.js';
+import { authenticateOptional } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ const router = express.Router();
  * POST /api/comfyui/generate
  * Generate image with ComfyUI + LoRA
  */
-router.post('/generate', authenticateFirebase, async (req, res, next) => {
+router.post('/generate', authenticateOptional, async (req, res, next) => {
   try {
     const { prompt, workflow, referenceImage, priority, userId } = req.body;
 
@@ -32,8 +32,8 @@ router.post('/generate', authenticateFirebase, async (req, res, next) => {
       workflow,
       referenceImage,
       priority: priority || 5,
-      userId: userId || req.user.uid,
-      createdBy: req.user.email
+      userId: userId || req.user?.uid || 'anonymous',
+      createdBy: req.user?.email || 'anonymous'
     });
 
     res.status(202).json({
@@ -51,7 +51,7 @@ router.post('/generate', authenticateFirebase, async (req, res, next) => {
  * GET /api/comfyui/job/:jobId
  * Get job status
  */
-router.get('/job/:jobId', authenticateFirebase, async (req, res, next) => {
+router.get('/job/:jobId', authenticateOptional, async (req, res, next) => {
   try {
     const { jobId } = req.params;
     const status = await getJobStatus(jobId);
@@ -77,7 +77,7 @@ router.get('/job/:jobId', authenticateFirebase, async (req, res, next) => {
  * GET /api/comfyui/workers
  * Get worker stats
  */
-router.get('/workers', authenticateFirebase, async (req, res, next) => {
+router.get('/workers', authenticateOptional, async (req, res, next) => {
   try {
     const workerManager = getWorkerManager();
     const stats = workerManager.getStats();
@@ -123,7 +123,7 @@ router.post('/verify-lora', async (req, res, next) => {
  * POST /api/comfyui/generate/sync
  * Synchronous generation (for testing, limited to 2 min timeout)
  */
-router.post('/generate/sync', authenticateFirebase, async (req, res, next) => {
+router.post('/generate/sync', authenticateOptional, async (req, res, next) => {
   try {
     const { prompt, workflow, referenceImage } = req.body;
 
@@ -133,7 +133,7 @@ router.post('/generate/sync', authenticateFirebase, async (req, res, next) => {
       workflow,
       referenceImage,
       priority: 1,
-      userId: req.user.uid
+      userId: req.user?.uid || 'anonymous'
     });
 
     // Poll for result (max 2 minutes)

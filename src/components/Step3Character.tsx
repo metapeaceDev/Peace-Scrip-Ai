@@ -3,6 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ScriptData, Character, GeneratedScene } from '../../types';
 import { generateCharacterDetails, fillMissingCharacterDetails, generateCharacterImage, generateCostumeImage } from '../services/geminiService';
 import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../../constants';
+import { PsychologyTestPanel } from './PsychologyTestPanel';
+import { PsychologyDisplay } from './PsychologyDisplay';
+import { CharacterComparison } from './CharacterComparison';
+import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
 
 interface Step3CharacterProps {
   scriptData: ScriptData;
@@ -16,21 +20,26 @@ interface Step3CharacterProps {
   onReturnToOrigin?: () => void;
 }
 
-const InfoField: React.FC<{ label: string; value: string | number; onChange: (value: string) => void; type?: 'text' | 'textarea' | 'number'; onFocus?: () => void; compact?: boolean }> = ({ label, value, onChange, type = 'text', onFocus, compact = false }) => (
-    <div className={compact ? "mb-1" : "mb-3"}>
-        <label className="block text-[10px] font-bold text-gray-500 mb-0.5 uppercase tracking-wide truncate">{label}</label>
-        {type === 'textarea' ? (
-            <textarea value={value} onChange={e => onChange(e.target.value)} onFocus={onFocus} rows={compact ? 1 : 2} className={`w-full bg-gray-900 border border-gray-600 rounded-md py-1.5 px-2 text-white text-xs focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 ${compact ? 'leading-tight' : ''}`} />
-        ) : type === 'number' ? (
-             <div className="flex items-center gap-2 bg-gray-900/50 p-1.5 rounded border border-gray-700">
-                <input type="range" min="0" max="100" value={value} onChange={e => onChange(e.target.value)} onFocus={onFocus} className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
-                <span className="font-mono text-cyan-400 w-6 text-right font-bold text-xs">{value}</span>
-             </div>
-        ) : (
-            <input type="text" value={value} onChange={e => onChange(e.target.value)} onFocus={onFocus} className="w-full bg-gray-900 border border-gray-600 rounded-md py-1.5 px-2 text-white text-xs focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500" />
-        )}
-    </div>
-);
+const InfoField: React.FC<{ label: string; value: string | number; onChange: (value: string) => void; type?: 'text' | 'textarea' | 'number'; onFocus?: () => void; compact?: boolean }> = ({ label, value, onChange, type = 'text', onFocus, compact = false }) => {
+    // Ensure value is never null/undefined for controlled inputs
+    const safeValue = value ?? (type === 'number' ? 0 : '');
+    
+    return (
+        <div className={compact ? "mb-1" : "mb-3"}>
+            <label className="block text-[10px] font-bold text-gray-500 mb-0.5 uppercase tracking-wide truncate">{label}</label>
+            {type === 'textarea' ? (
+                <textarea value={safeValue} onChange={e => onChange(e.target.value)} onFocus={onFocus} rows={compact ? 1 : 2} className={`w-full bg-gray-900 border border-gray-600 rounded-md py-1.5 px-2 text-white text-xs focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 ${compact ? 'leading-tight' : ''}`} />
+            ) : type === 'number' ? (
+                 <div className="flex items-center gap-2 bg-gray-900/50 p-1.5 rounded border border-gray-700">
+                    <input type="range" min="0" max="100" value={safeValue} onChange={e => onChange(e.target.value)} onFocus={onFocus} className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+                    <span className="font-mono text-cyan-400 w-6 text-right font-bold text-xs">{safeValue}</span>
+                 </div>
+            ) : (
+                <input type="text" value={safeValue} onChange={e => onChange(e.target.value)} onFocus={onFocus} className="w-full bg-gray-900 border border-gray-600 rounded-md py-1.5 px-2 text-white text-xs focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500" />
+            )}
+        </div>
+    );
+};
 
 const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptData, nextStep, prevStep, onRegisterUndo, targetCharId, onResetTargetCharId, returnToStep, onReturnToOrigin }) => {
   const [activeCharIndex, setActiveCharIndex] = useState(0);
@@ -45,9 +54,15 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
   const [isLoading, setIsLoading] = useState(false);
   const [isImgLoading, setIsImgLoading] = useState(false);
   const [isCostumeLoading, setIsCostumeLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>('balanced'); // BALANCED recommended for Mac stability
   
   const [error, setError] = useState<string | null>(null);
   const [fillEmptyOnly, setFillEmptyOnly] = useState(false);
+  
+  // Psychology Test Panel State
+  const [showPsychologyTest, setShowPsychologyTest] = useState(false);
+  const [showCharacterComparison, setShowCharacterComparison] = useState(false);
   
   // New state for robust delete confirmation
   const [confirmDeleteCharId, setConfirmDeleteCharId] = useState<string | null>(null);
@@ -264,6 +279,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
     }
     if (onRegisterUndo) onRegisterUndo();
     setIsImgLoading(true);
+    setProgress(0);
     try {
         // Collect physical details for "Face Recognition" consistency (Fallback if no reference image)
         const facialFeatures = [
@@ -281,7 +297,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
             fullDescription, 
             activeCharacter.imageStyle || CHARACTER_IMAGE_STYLES[0],
             facialFeatures,
-            activeCharacter.faceReferenceImage // Pass master face reference
+            activeCharacter.faceReferenceImage, // Pass master face reference
+            (p) => setProgress(p), // Update progress state
+            generationMode, // Pass selected mode
+            activeCharacter.preferredModel // Pass preferred AI model
         );
         updateCharacterAtIndex(activeCharIndex, { image: base64Image });
     } catch (e) {
@@ -289,6 +308,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
         console.error(e);
     } finally {
         setIsImgLoading(false);
+        setProgress(0);
     }
   };
 
@@ -301,6 +321,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
     if (onRegisterUndo) onRegisterUndo();
 
     setIsCostumeLoading(true);
+    setProgress(0);
     try {
         const style = activeCharacter.imageStyle || CHARACTER_IMAGE_STYLES[0];
 
@@ -311,10 +332,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
         // Pass Costume Reference if available
         const costumeReference = activeCharacter.fashionReferenceImage;
         
-        // Merge external and physical info for comprehensive character data
-        const completePhysicalInfo = {
+        // ✅ COMPREHENSIVE DATA COLLECTION: Merge Information + Physical + Fashion
+        const completeCharacterData = {
+            // Information (external) - ข้อมูลพื้นฐาน
             ...activeCharacter.external,
-            ...activeCharacter.physical
+            // Physical - ลักษณะทางกายภาพ
+            ...activeCharacter.physical,
+            // Fashion - ข้อมูลเสื้อผ้าและแฟชั่น
+            ...activeCharacter.fashion
         };
 
         // Show detailed debug info
@@ -323,8 +348,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
             console.log("📸 Reference image source:", activeCharacter.faceReferenceImage ? "Face Reference" : "Profile Picture");
             console.log("🎨 Original style:", style);
             console.log("👤 Character:", activeCharacter.name);
-            console.log("📋 Physical Info:", completePhysicalInfo);
-            console.log("👔 Outfit:", mainOutfit);
+            console.log("📋 Information:", activeCharacter.external);
+            console.log("💪 Physical:", activeCharacter.physical);
+            console.log("👔 Fashion Data:", activeCharacter.fashion);
+            console.log("🎁 Complete Data:", completeCharacterData);
         } else {
             console.log("⚠️ No reference image available - generating without Face ID");
         }
@@ -333,9 +360,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
             activeCharacter.name,
             mainOutfit, 
             style,
-            completePhysicalInfo,
+            completeCharacterData, // ✅ ส่งข้อมูลครบทั้ง Information + Physical + Fashion
             referenceImage,
-            costumeReference
+            costumeReference,
+            (p) => setProgress(p), // Update progress state
+            generationMode, // Pass selected generation mode
+            activeCharacter.preferredModel // Pass preferred AI model
         );
 
         // Add to collection with ID
@@ -355,8 +385,25 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
         // Parse error message
         const errorMsg = e?.message || "Failed to generate costume image.";
         
+        // Check if it's a timeout error
+        if (errorMsg.includes("timeout") || errorMsg.includes("80 minutes")) {
+            const trySpeedMode = window.confirm(
+                "⏱️ Generation Timeout\n\n" +
+                `Current mode: ${generationMode.toUpperCase()}\n\n` +
+                "✅ Solutions:\n" +
+                "1. Try SPEED MODE (15 steps, 3-5 min) - Faster, more stable\n" +
+                "2. Try BALANCED MODE (20 steps, 4-6 min) - Recommended\n" +
+                "3. Wait and try again later\n\n" +
+                "Click OK to switch to SPEED MODE now, or Cancel to try later."
+            );
+            
+            if (trySpeedMode) {
+                setGenerationMode('speed');
+                alert("✅ Switched to SPEED MODE. Please click 'Generate Outfit' again.");
+            }
+        }
         // Check if it's Face ID limitation error
-        if (errorMsg.includes("Face ID matching requires")) {
+        else if (errorMsg.includes("Face ID matching requires")) {
             // Show user-friendly message with solutions
             const retryWithoutFaceID = window.confirm(
                 "⚠️ Cannot generate outfit with Face ID\n\n" +
@@ -364,7 +411,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                 "✅ Solutions:\n" +
                 "1. Wait 1 minute, then try again (Gemini quota resets)\n" +
                 "2. Enable ComfyUI in AI Settings (top-right)\n" +
-                "3. Generate without Face ID (won't match profile)\n\n" +
+                "3. Try SPEED MODE for faster results\n" +
+                "4. Generate without Face ID (won't match profile)\n\n" +
                 "Click OK to generate without Face ID now, or Cancel to wait."
             );
             
@@ -378,12 +426,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                     };
                     
                     console.log("🔄 Retrying without Face ID...");
+                    const completeCharacterData = {
+                        ...activeCharacter.external,
+                        ...activeCharacter.physical,
+                        ...activeCharacter.fashion
+                    };
                     const base64Image = await generateCostumeImage(
                         activeCharacter.name,
                         mainOutfit, 
                         style,
-                        completePhysicalInfo
-                        // No reference images passed
+                        completeCharacterData, // ✅ ส่งข้อมูลครบทั้ง Information + Physical + Fashion
+                        undefined, // No reference images passed
+                        undefined,
+                        (p) => setProgress(p),
+                        generationMode // Keep selected mode
                     );
 
                     const newOutfitId = `OTF-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
@@ -402,15 +458,23 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                     console.error("Retry error:", retryError);
                 } finally {
                     setIsCostumeLoading(false);
+                    setProgress(0);
                 }
             }
             // Don't show additional error message - user already saw the confirm dialog
         } else {
-            alert(`Failed to generate costume image.\n\n${errorMsg}`);
+            // Generic error with mode suggestion
+            const modeInfo = generationMode === 'quality' 
+                ? "\n\n💡 Tip: QUALITY MODE may crash on Mac. Try BALANCED or SPEED MODE."
+                : generationMode === 'balanced'
+                ? "\n\n💡 Tip: If issues persist, try SPEED MODE for faster results."
+                : "";
+            alert(`Failed to generate costume image.\n\n${errorMsg}${modeInfo}`);
             console.error("Costume generation error:", e);
         }
     } finally {
         setIsCostumeLoading(false);
+        setProgress(0);
     }
   };
 
@@ -570,10 +634,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
       )}
 
       <div className="flex justify-between items-start mb-2">
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold text-cyan-400">STEP 3: Character Creation</h2>
             <p className="text-gray-400 mb-6">Define the cast of your story. Add protagonists, antagonists, and supporting characters.</p>
           </div>
+          {/* Compare All Characters Button */}
+          {characters.length >= 2 && (
+            <button
+              onClick={() => setShowCharacterComparison(true)}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm"
+            >
+              <span className="text-lg">🔬</span>
+              <span>Compare {characters.length}</span>
+            </button>
+          )}
       </div>
 
       {/* Character List Tabs */}
@@ -662,8 +736,15 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                             </svg>
                         )}
                         {isImgLoading && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
-                                <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 p-4">
+                                <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                <div className="w-full bg-gray-700 rounded-full h-2 mb-1">
+                                    <div 
+                                        className="bg-cyan-500 h-2 rounded-full transition-all duration-300" 
+                                        style={{ width: `${progress}%` }}
+                                    ></div>
+                                </div>
+                                <span className="text-cyan-400 text-xs font-bold">{progress}%</span>
                             </div>
                         )}
                          {/* Hover Hint */}
@@ -690,6 +771,48 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                              >
                                 {CHARACTER_IMAGE_STYLES.map((style) => <option key={style} value={style}>{style}</option>)}
                              </select>
+                        </div>
+                        
+                        {/* AI Model Selector */}
+                        <div>
+                            <label className="block text-[10px] font-medium text-gray-400 mb-1">
+                                AI Model 
+                                <span className="text-[9px] text-gray-500 ml-1">(Free & Paid)</span>
+                            </label>
+                            <select 
+                                value={activeCharacter.preferredModel || 'auto'}
+                                onChange={(e) => {
+                                    if(onRegisterUndo) onRegisterUndo();
+                                    updateCharacterAtIndex(activeCharIndex, { preferredModel: e.target.value });
+                                }}
+                                className="w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="auto">🤖 AUTO - Smart Selection</option>
+                                <optgroup label="🎁 FREE MODELS">
+                                    <option value="pollinations">⚡⚡⚡ Pollinations (5-10s, Medium quality)</option>
+                                    <option value="comfyui-sdxl">⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)</option>
+                                    <option value="gemini-flash">⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)</option>
+                                </optgroup>
+                                <optgroup label="💵 PAID MODELS">
+                                    <option value="gemini-pro">🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)</option>
+                                    <option value="comfyui-flux">🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)</option>
+                                    <option value="openai-dalle">🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        {/* Generation Mode Selector */}
+                        <div>
+                            <label className="block text-[10px] font-medium text-gray-400 mb-1">Generation Mode</label>
+                            <select 
+                                value={generationMode}
+                                onChange={(e) => setGenerationMode(e.target.value as GenerationMode)}
+                                className="w-full text-xs bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="quality">🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac</option>
+                                <option value="balanced">⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended</option>
+                                <option value="speed">⚡ SPEED (15 steps, 3-5 min)</option>
+                            </select>
                         </div>
                         
                         {/* Primary Buttons */}
@@ -944,10 +1067,52 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                                 ))}
                              </div>
 
+                             {/* AI Model Selector for Outfit */}
+                             <div className="mt-3">
+                                <label className="block text-[10px] font-medium text-gray-400 mb-1">
+                                    AI Model 
+                                    <span className="text-[9px] text-gray-500 ml-1">(Free & Paid)</span>
+                                </label>
+                                <select 
+                                    value={activeCharacter.preferredModel || 'auto'}
+                                    onChange={(e) => {
+                                        if(onRegisterUndo) onRegisterUndo();
+                                        updateCharacterAtIndex(activeCharIndex, { preferredModel: e.target.value });
+                                    }}
+                                    className="w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                >
+                                    <option value="auto">🤖 AUTO - Smart Selection</option>
+                                    <optgroup label="🎁 FREE MODELS">
+                                        <option value="pollinations">⚡⚡⚡ Pollinations (5-10s, Medium quality)</option>
+                                        <option value="comfyui-sdxl">⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)</option>
+                                        <option value="gemini-flash">⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)</option>
+                                    </optgroup>
+                                    <optgroup label="💵 PAID MODELS">
+                                        <option value="gemini-pro">🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)</option>
+                                        <option value="comfyui-flux">🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)</option>
+                                        <option value="openai-dalle">🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)</option>
+                                    </optgroup>
+                                </select>
+                             </div>
+                             
+                             {/* Generation Mode Selector for Outfit */}
+                             <div className="mt-3">
+                                <label className="block text-[10px] font-medium text-gray-400 mb-1">Generation Mode</label>
+                                <select 
+                                    value={generationMode}
+                                    onChange={(e) => setGenerationMode(e.target.value as GenerationMode)}
+                                    className="w-full text-xs bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="quality">🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac</option>
+                                    <option value="balanced">⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended</option>
+                                    <option value="speed">⚡ SPEED (15 steps, 3-5 min)</option>
+                                </select>
+                             </div>
+
                              <button 
                                 onClick={handleGenerateCostume}
-                                disabled={isCostumeLoading || (typeof window !== 'undefined' && localStorage.getItem('peace_comfyui_skipped') === 'true' && Boolean(activeCharacter.faceReferenceImage || activeCharacter.image))}
-                                className={`w-full text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${activeCharacter.faceReferenceImage || activeCharacter.image ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20'}`}
+                                disabled={isCostumeLoading}
+                                className={`w-full text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${activeCharacter.faceReferenceImage || activeCharacter.image ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20'}`}
                             >
                                 {isCostumeLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>
@@ -1049,11 +1214,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                                 )}
                                 
                                 {isCostumeLoading && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 backdrop-blur-sm">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                                            <span className="text-cyan-400 font-bold animate-pulse">Designing New Look...</span>
+                                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 backdrop-blur-sm p-6">
+                                        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                        <span className="text-cyan-400 font-bold animate-pulse mb-2">Designing New Look...</span>
+                                        <div className="w-full max-w-[200px] bg-gray-700 rounded-full h-2 mb-1">
+                                            <div 
+                                                className="bg-cyan-500 h-2 rounded-full transition-all duration-300" 
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
                                         </div>
+                                        <span className="text-cyan-400 text-xs font-bold">{progress}%</span>
                                     </div>
                                 )}
                              </div>
@@ -1087,6 +1257,18 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
       {/* --- INTERNAL TAB CONTENT --- */}
       {activeTab === 'internal' && (
         <div className="animate-fade-in-scene min-h-[400px]">
+            {/* Psychology Display at Top */}
+            <div className="mb-6">
+                <PsychologyDisplay character={activeCharacter} />
+                <button
+                    onClick={() => setShowPsychologyTest(true)}
+                    className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3"
+                >
+                    <span className="text-2xl">🧪</span>
+                    <span className="uppercase tracking-wider">ทดสอบการตอบสนอง (Psychology Test Lab)</span>
+                </button>
+            </div>
+
             {/* Sub Tabs for Internal */}
             <div className="flex gap-1 bg-gray-900/50 p-1 rounded-lg inline-flex mb-6">
                  <button 
@@ -1155,14 +1337,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                 <img src={activeCharacter.image} alt="Profile Full" className="max-w-full max-h-[80vh] rounded-lg shadow-2xl border border-gray-700 mb-4" />
                 <div className="flex gap-4">
                      <button 
-                        onClick={handleDownloadProfileImage}
+                        onClick={(e) => { e.stopPropagation(); handleDownloadProfileImage(); }}
                         className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-cyan-900/30"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                         Download Image
                      </button>
                      <button 
-                        onClick={() => setIsProfileModalOpen(false)}
+                        onClick={(e) => { e.stopPropagation(); setIsProfileModalOpen(false); }}
                         className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"
                     >
                         Close
@@ -1170,6 +1352,22 @@ const Step3Character: React.FC<Step3CharacterProps> = ({ scriptData, setScriptDa
                 </div>
              </div>
         </div>
+      )}
+
+      {/* --- PSYCHOLOGY TEST PANEL --- */}
+      {showPsychologyTest && (
+        <PsychologyTestPanel 
+          character={activeCharacter} 
+          onClose={() => setShowPsychologyTest(false)} 
+        />
+      )}
+
+      {/* --- CHARACTER COMPARISON --- */}
+      {showCharacterComparison && (
+        <CharacterComparison 
+          characters={characters} 
+          onClose={() => setShowCharacterComparison(false)} 
+        />
       )}
 
       <div className="mt-8 flex justify-between">

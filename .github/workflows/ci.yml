@@ -2,48 +2,48 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [18.x, 20.x]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linter
         run: npm run lint --if-present || echo "No lint script found"
-      
+
       - name: Run type check
         run: npx tsc --noEmit || echo "Type check completed"
-      
+
       - name: Run tests
         run: npm test --if-present || echo "No tests configured"
         env:
           CI: true
-      
+
       - name: Build production
         run: npm run build
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -54,20 +54,20 @@ jobs:
   code-quality:
     name: Code Quality Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Check bundle size
         run: |
           npm run build
@@ -80,32 +80,32 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build
         run: npm run build
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-      
+
       - name: Deploy to Netlify (Preview)
         uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: './dist'
           production-deploy: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from PR #${{ github.event.number }}"
+          deploy-message: 'Deploy from PR #${{ github.event.number }}'
           enable-pull-request-comment: true
           enable-commit-comment: false
         env:
@@ -118,39 +118,39 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-test, code-quality]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build production
         run: npm run build
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-      
+
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: './dist'
           production-deploy: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Production deploy from commit ${{ github.sha }}"
+          deploy-message: 'Production deploy from commit ${{ github.sha }}'
           enable-pull-request-comment: false
           enable-commit-comment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         timeout-minutes: 5
-      
+
       - name: Notify deployment success
         run: |
           echo "🎉 Deployment successful!"

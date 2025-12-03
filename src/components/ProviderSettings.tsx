@@ -224,7 +224,7 @@ export function ProviderSettings() {
                       className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="auto">🤖 Auto (Smart Selection)</option>
-                      <option value="comfyui">⭐ ComfyUI + LoRA (Recommended for Face ID)</option>
+                      <option value="comfyui">⭐ ComfyUI IP-Adapter (Recommended for Face ID - 3 Modes Available)</option>
                       <option value="gemini-2.5">Gemini 2.5 Flash Image</option>
                       <option value="gemini-2.0">Gemini 2.0 Flash Exp</option>
                       <option value="stable-diffusion">Pollinations.ai (Fast, No Face ID)</option>
@@ -405,13 +405,35 @@ export function ProviderSettings() {
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">🎨</span>
                       <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-purple-300 mb-2">ComfyUI + IP-Adapter - 3 Generation Modes</h4>
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <div className="p-2 bg-yellow-900/20 border border-yellow-800/30 rounded text-xs">
+                            <div className="font-bold text-yellow-300 mb-1">🏆 QUALITY</div>
+                            <div className="text-gray-400">25 steps, 5-7 min</div>
+                            <div className="text-gray-500 text-[10px] mt-1">85-90% similarity</div>
+                            <div className="text-red-400 text-[10px] mt-1">⚠️ May crash on Mac</div>
+                          </div>
+                          <div className="p-2 bg-blue-900/20 border border-blue-800/30 rounded text-xs">
+                            <div className="font-bold text-blue-300 mb-1">⚖️ BALANCED</div>
+                            <div className="text-gray-400">20 steps, 4-6 min</div>
+                            <div className="text-gray-500 text-[10px] mt-1">75-85% similarity</div>
+                            <div className="text-green-400 text-[10px] mt-1">✅ Recommended</div>
+                          </div>
+                          <div className="p-2 bg-cyan-900/20 border border-cyan-800/30 rounded text-xs">
+                            <div className="font-bold text-cyan-300 mb-1">⚡ SPEED</div>
+                            <div className="text-gray-400">15 steps, 3-5 min</div>
+                            <div className="text-gray-500 text-[10px] mt-1">70-80% similarity</div>
+                            <div className="text-green-400 text-[10px] mt-1">✅ Stable</div>
+                          </div>
+                        </div>
                         <h4 className="text-sm font-semibold text-purple-300 mb-2">Why ComfyUI?</h4>
                         <ul className="text-xs text-gray-400 space-y-1 mb-3">
                           <li>✅ <strong>Unlimited Generation</strong> - No quota limits</li>
-                          <li>✅ <strong>Face ID Matching</strong> - Best consistency with reference images</li>
-                          <li>✅ <strong>LoRA Control</strong> - Fine-tuned models for Thai, Cinematic, Character styles</li>
+                          <li>✅ <strong>Face ID Matching</strong> - Best consistency with reference images (70-90%)</li>
+                          <li>✅ <strong>3 Speed/Quality Modes</strong> - Choose your balance</li>
+                          <li>✅ <strong>LoRA Control</strong> - Fine-tuned models for better detail</li>
                           <li>✅ <strong>Privacy</strong> - Runs 100% locally on your machine</li>
-                          <li>✅ <strong>Customizable</strong> - Full workflow control</li>
+                          <li>✅ <strong>80min Timeout</strong> - Enough time for complex generations</li>
                         </ul>
                         <a 
                           href="https://github.com/comfyanonymous/ComfyUI" 

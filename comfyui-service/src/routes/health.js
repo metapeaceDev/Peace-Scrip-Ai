@@ -3,22 +3,65 @@
  */
 
 import express from 'express';
+import os from 'os';
 import { getWorkerManager } from '../services/workerManager.js';
 import { getQueueStats } from '../services/queueService.js';
 
 const router = express.Router();
 
 /**
+ * Detect platform and GPU capabilities
+ */
+function detectPlatform() {
+  const platform = os.platform(); // 'darwin' (Mac), 'win32' (Windows), 'linux'
+  const arch = os.arch();
+  
+  // Check for NVIDIA GPU (simplified - in production, check actual GPU)
+  // For Mac: always assume no NVIDIA (use MPS/CPU)
+  // For Windows/Linux: assume NVIDIA available (can be enhanced with actual GPU detection)
+  const hasNvidiaGPU = platform !== 'darwin'; // Mac = false, Windows/Linux = true
+  
+  const supportsFaceID = hasNvidiaGPU; // Face ID works well only with NVIDIA GPU
+  
+  return {
+    os: platform,
+    arch: arch,
+    hasNvidiaGPU: hasNvidiaGPU,
+    supportsFaceID: supportsFaceID,
+    recommendedWorkflow: supportsFaceID ? 'face-id' : 'normal-sdxl',
+    reason: supportsFaceID 
+      ? 'NVIDIA GPU detected - Face ID will work efficiently'
+      : 'Mac/CPU detected - Normal SDXL recommended (Face ID too slow)'
+  };
+}
+
+/**
  * GET /health
- * Basic health check
+ * Basic health check with platform detection
  */
 router.get('/', async (req, res) => {
+  const platformInfo = detectPlatform();
+  
   res.json({
     success: true,
     service: 'comfyui-service',
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    platform: platformInfo
+  });
+});
+
+/**
+ * GET /health/platform
+ * Platform and GPU detection endpoint
+ */
+router.get('/platform', async (req, res) => {
+  const platformInfo = detectPlatform();
+  
+  res.json({
+    success: true,
+    platform: platformInfo
   });
 });
 

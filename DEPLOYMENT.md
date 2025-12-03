@@ -5,6 +5,7 @@
 ### Option 1: Netlify (Recommended)
 
 #### Via Netlify CLI
+
 ```bash
 # Install Netlify CLI
 npm install -g netlify-cli
@@ -17,6 +18,7 @@ netlify deploy --prod
 ```
 
 #### Via Netlify Dashboard
+
 1. Go to [netlify.com](https://netlify.com)
 2. Click "Add new site" → "Import an existing project"
 3. Connect your Git repository
@@ -30,6 +32,7 @@ netlify deploy --prod
 ### Option 2: Vercel
 
 #### Via Vercel CLI
+
 ```bash
 # Install Vercel CLI
 npm install -g vercel
@@ -42,6 +45,7 @@ vercel --prod
 ```
 
 #### Via Vercel Dashboard
+
 1. Go to [vercel.com](https://vercel.com)
 2. Click "Add New" → "Project"
 3. Import your Git repository
@@ -56,11 +60,13 @@ vercel --prod
 ### Option 3: Manual Static Hosting
 
 #### Build locally
+
 ```bash
 npm run build
 ```
 
 The `dist/` folder is ready to upload to any static hosting:
+
 - **GitHub Pages**: Use `gh-pages` branch
 - **Firebase Hosting**: `firebase deploy`
 - **AWS S3 + CloudFront**: Upload to S3 bucket
@@ -71,16 +77,19 @@ The `dist/` folder is ready to upload to any static hosting:
 ## 🔑 Environment Variables Setup
 
 ### Required Variable
+
 ```
 VITE_GEMINI_API_KEY=your_actual_gemini_api_key_here
 ```
 
 ### Optional Variables
+
 ```
 VITE_API_URL=https://your-backend-api.com/api
 ```
 
 ### How to Get Gemini API Key
+
 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Click "Get API Key"
 3. Create new API key or use existing
@@ -102,16 +111,20 @@ VITE_API_URL=https://your-backend-api.com/api
 ## 🔧 Post-Deployment Setup
 
 ### 1. Update CORS (if using backend)
+
 Add your deployed domain to backend CORS settings
 
 ### 2. Custom Domain (Optional)
+
 - **Netlify**: Settings → Domain management → Add custom domain
 - **Vercel**: Settings → Domains → Add domain
 
 ### 3. Environment Variables
+
 Always set `VITE_GEMINI_API_KEY` in hosting platform dashboard
 
 ### 4. Analytics (Optional)
+
 - Google Analytics
 - Plausible
 - Umami
@@ -121,6 +134,7 @@ Always set `VITE_GEMINI_API_KEY` in hosting platform dashboard
 ## 🧪 Testing Deployment
 
 After deployment, test these features:
+
 1. Authentication (Login/Offline mode)
 2. Create new project
 3. AI features (requires valid API key)
@@ -133,20 +147,24 @@ After deployment, test these features:
 ## 🐛 Troubleshooting
 
 ### Build fails
+
 - Check Node.js version (18+)
 - Run `npm install` first
 - Check for TypeScript errors
 
 ### API Key not working
+
 - Ensure variable name is exactly `VITE_GEMINI_API_KEY`
 - Verify API key is valid
 - Check API quotas in Google Cloud Console
 
 ### Routing issues (404 on refresh)
+
 - Ensure redirects are configured (netlify.toml/vercel.json)
 - For other hosts, configure SPA fallback to index.html
 
 ### Large bundle size warning
+
 - This is normal (530KB includes React + AI SDK)
 - Gzipped size is much smaller (127KB)
 - Consider code splitting for optimization
@@ -155,11 +173,11 @@ After deployment, test these features:
 
 ## 📊 Deployment Status
 
-| Platform | Status | URL |
-|----------|--------|-----|
-| Netlify  | ⚪ Not deployed | - |
-| Vercel   | ⚪ Not deployed | - |
-| Production | 🟢 Ready | - |
+| Platform   | Status          | URL |
+| ---------- | --------------- | --- |
+| Netlify    | ⚪ Not deployed | -   |
+| Vercel     | ⚪ Not deployed | -   |
+| Production | 🟢 Ready        | -   |
 
 ---
 
@@ -199,6 +217,7 @@ docker run -d -p 8000:8000 \
 #### Cloud Deployment Options
 
 ##### Option 1: Google Cloud Run (Recommended for API)
+
 ```bash
 # Build and push
 gcloud builds submit --tag gcr.io/YOUR_PROJECT/comfyui-service
@@ -214,6 +233,7 @@ gcloud run deploy comfyui-service \
 ```
 
 ##### Option 2: GKE with GPU
+
 ```bash
 # Create cluster with GPU nodes
 gcloud container clusters create comfyui-cluster \
@@ -225,6 +245,7 @@ kubectl apply -f k8s/
 ```
 
 ##### Option 3: Render.com
+
 1. Create account at [render.com](https://render.com)
 2. New Web Service → Connect repository
 3. Environment: Docker
@@ -232,6 +253,7 @@ kubectl apply -f k8s/
 5. Deploy
 
 #### Environment Variables (Backend)
+
 ```env
 PORT=8000
 REDIS_URL=redis://your-redis-host:6379
@@ -243,11 +265,13 @@ FIREBASE_SERVICE_ACCOUNT=/path/to/service-account.json
 #### Setup ComfyUI Workers
 
 **GPU Server Requirements:**
+
 - NVIDIA GPU (T4/A10/A100)
 - CUDA 11.8+
 - Docker with NVIDIA runtime
 
 **Install ComfyUI:**
+
 ```bash
 # Using Docker
 docker run -d --gpus all -p 8188:8188 \
@@ -262,6 +286,7 @@ python main.py --listen 0.0.0.0 --port 8188
 ```
 
 **Add LoRA Models:**
+
 ```bash
 cd ComfyUI/models/loras
 wget https://civitai.com/api/download/models/XXXXX -O character_consistency.safetensors
@@ -270,6 +295,7 @@ wget https://civitai.com/api/download/models/XXXXX -O character_consistency.safe
 #### Update Frontend URL
 
 After deploying backend, update frontend `.env`:
+
 ```env
 VITE_COMFYUI_SERVICE_URL=https://your-service.run.app
 VITE_USE_COMFYUI_BACKEND=true
@@ -293,6 +319,7 @@ VITE_USE_COMFYUI_BACKEND=true
 ```
 
 **Deployment Checklist:**
+
 - [ ] Frontend deployed to Firebase/Netlify/Vercel
 - [ ] Backend service deployed to Cloud Run/GKE
 - [ ] Redis instance running (Cloud Memorystore/Redis Cloud)
@@ -304,6 +331,7 @@ VITE_USE_COMFYUI_BACKEND=true
 - [ ] Monitoring/logging enabled
 
 ---
+
 4. Deploy!
 5. Share with team and users
 
