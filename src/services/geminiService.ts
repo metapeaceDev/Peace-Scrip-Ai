@@ -6,6 +6,8 @@ import { formatPsychologyForPrompt, calculatePsychologyProfile } from './psychol
 import type { GenerationMode } from './comfyuiWorkflowBuilder';
 import { MODE_PRESETS } from './comfyuiWorkflowBuilder';
 import { hasAccessToModel, deductCredits } from './userStore';
+import { checkQuota, recordUsage } from './subscriptionManager';
+import { auth } from '../config/firebase';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -1463,6 +1465,19 @@ export async function parseDocumentToScript(rawText: string): Promise<Partial<Sc
 }
 
 export async function generateCharacterDetails(name: string, role: string, description: string, language: string): Promise<Partial<Character>> {
+  // ✅ Quota validation
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'character',
+      details: { scriptType: 'character' }
+    });
+    
+    if (!quotaCheck.allowed) {
+      throw new Error(`❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `อัพเกรดเป็นแผน ${quotaCheck.upgradeRequired} เพื่อใช้งานต่อ` : 'กรุณาตรวจสอบแผนของคุณ'}`);
+    }
+  }
+
   try {
     const langInstruction = language === 'Thai' 
       ? "Ensure all value fields are written in Thai language (Natural, creative Thai writing)." 
@@ -1505,7 +1520,17 @@ export async function generateCharacterDetails(name: string, role: string, descr
     });
 
     const text = extractJsonFromResponse(response.text);
-    return JSON.parse(text);
+    const result = JSON.parse(text);
+    
+    // ✅ Record usage after successful generation
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'character',
+        credits: 2, // 2 credits per character
+      });
+    }
+    
+    return result;
   } catch (error) {
     console.error("Error generating character details:", error);
     throw new Error("Failed to generate character details from AI.");
@@ -1576,6 +1601,19 @@ export async function generateFullScriptOutline(title: string, mainGenre: string
 
 
 export async function generateScene(scriptData: ScriptData, plotPoint: PlotPoint, sceneIndex: number, totalScenesForPoint: number, sceneNumber: number): Promise<GeneratedScene> {
+  // ✅ Quota validation
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'scene',
+      details: { scriptType: 'scene' }
+    });
+    
+    if (!quotaCheck.allowed) {
+      throw new Error(`❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `อัพเกรดเป็นแผน ${quotaCheck.upgradeRequired} เพื่อใช้งานต่อ` : 'กรุณาตรวจสอบแผนของคุณ'}`);
+    }
+  }
+
   const charactersString = scriptData.characters.map(c => `${c.name} (${c.role} - Goal: ${c.goals.objective || 'Unknown'})`).join(', ');
   const languageInstruction = scriptData.language === 'Thai' 
     ? "Ensure all dialogue and descriptions are in Thai language."
@@ -1645,6 +1683,14 @@ IMPORTANT: Use these psychological profiles to:
         }
     };
     
+    // ✅ Record usage after successful generation
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'scene',
+        credits: 1, // 1 credit per scene
+      });
+    }
+    
     return processedScene;
   } catch (error) {
     console.error(`Error generating scene for ${plotPoint.title}:`, error);
@@ -1691,6 +1737,19 @@ export async function generateCharacterImage(
     generationMode: GenerationMode = 'balanced',
     preferredModel?: string // Model ID: 'pollinations', 'comfyui-sdxl', 'gemini-pro', etc.
 ): Promise<string> {
+    // ✅ Quota validation
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+        const quotaCheck = await checkQuota(userId, {
+            type: 'image',
+            details: { resolution: '1024x1024' } // Default resolution
+        });
+        
+        if (!quotaCheck.allowed) {
+            throw new Error(`❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `อัพเกรดเป็นแผน ${quotaCheck.upgradeRequired} เพื่อใช้งานต่อ` : 'กรุณาตรวจสอบแผนของคุณ'}`);
+        }
+    }
+
     try {
         console.log("🎨 generateCharacterImage called:");
         console.log("  - Description:", description);
@@ -2048,7 +2107,7 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
         
         // Use CHARACTER_CONSISTENCY LoRA for all styles
         
-        return await generateImageWithCascade(prompt, {
+        const imageUrl = await generateImageWithCascade(prompt, {
             useLora: true,
             loraType: 'CHARACTER_CONSISTENCY',
             negativePrompt: negativePrompt,
@@ -2058,6 +2117,17 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
             generationMode: generationMode, // Pass generation mode for quality/speed control
             preferredModel: preferredModel // Pass model preference
         });
+        
+        // ✅ Record usage after successful generation
+        const currentUserId = auth.currentUser?.uid;
+        if (currentUserId) {
+            await recordUsage(currentUserId, {
+                type: 'image',
+                credits: 2, // 2 credits per image
+            });
+        }
+        
+        return imageUrl;
     } catch (error: any) {
         console.error("Error generating costume image:", error);
         throw new Error(error.message || "Failed to generate costume image.");
