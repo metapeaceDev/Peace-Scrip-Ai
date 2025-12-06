@@ -194,16 +194,33 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
 
         {/* Skip Button */}
         {!status?.running && onSkip && (
-          <div className="mt-6 pt-6 border-t border-gray-700 text-center">
-            <p className="text-gray-400 text-sm mb-3">
+          <div className="mt-6 pt-6 border-t border-gray-700">
+            <p className="text-gray-400 text-sm mb-4 text-center">
               ⚠️ Want to use the app without Face ID features?
             </p>
-            <button
-              onClick={onSkip}
-              className="text-gray-400 hover:text-white text-sm underline transition-colors"
-            >
-              Skip Setup (Disable Face ID Generation)
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('peace_comfyui_disabled', 'true');
+                  onSkip();
+                }}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors text-sm"
+              >
+                ✓ Continue Without Face ID (Don&apos;t Ask Again)
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('peace_comfyui_skipped', 'true');
+                  onSkip();
+                }}
+                className="w-full text-gray-400 hover:text-white text-sm underline transition-colors py-2"
+              >
+                Skip for Now (Ask Next Time)
+              </button>
+            </div>
+            <p className="text-gray-500 text-xs mt-3 text-center">
+              Note: You can enable Face ID later in Settings
+            </p>
           </div>
         )}
       </div>

@@ -208,43 +208,47 @@ function App() {
           }
           setHasApiKey(keySelected);
 
-          // Check if user previously skipped ComfyUI setup
+          // Check if user explicitly disabled ComfyUI (permanent setting)
+          const comfyDisabled = localStorage.getItem('peace_comfyui_disabled');
           const skipFlag = localStorage.getItem('peace_comfyui_skipped');
-          if (skipFlag === 'true') {
-              console.log('ℹ️ ComfyUI setup was skipped - Face ID disabled');
+          
+          if (comfyDisabled === 'true' || skipFlag === 'true') {
+              console.log('ℹ️ ComfyUI disabled by user - Face ID features unavailable');
               setComfyUISkipped(true);
               setComfyUIReady(false);
               setLoraReady(false);
-              // Continue to auth without ComfyUI/LoRA checks
+              // Continue to auth without ComfyUI/LoRA checks - app works normally
           } else {
-              // Check ComfyUI status before anything else
-              console.log('🔍 Checking ComfyUI status...');
-              const comfyStatus = await checkComfyUIStatus();
-              
-              if (!comfyStatus.running) {
-                  console.log('⚠️ ComfyUI not running - showing setup screen');
-                  setShowComfyUISetup(true);
-                  setIsLoadingAuth(false);
-                  return; // Stop initialization until ComfyUI is ready
-              }
-              
-              console.log('✅ ComfyUI is running:', comfyStatus.url);
-              setComfyUIReady(true);
-
-              // Check LoRA models after ComfyUI is confirmed running
-              console.log('🔍 Checking LoRA models...');
-              const loraCheck = await checkAllRequiredModels();
-              
-              if (!loraCheck.allInstalled) {
-                  console.log('⚠️ Missing required LoRA models - showing setup screen');
-                  console.log('Missing models:', loraCheck.missing.map(m => m.displayName));
-                  setShowLoRASetup(true);
-                  setIsLoadingAuth(false);
-                  return; // Stop initialization until LoRAs are ready
-              }
-              
-              console.log('✅ All required LoRA models installed');
-              setLoraReady(true);
+              // Check ComfyUI in background (non-blocking)
+              console.log('🔍 Checking ComfyUI status in background...');
+              checkComfyUIStatus().then(comfyStatus => {
+                  if (comfyStatus.running) {
+                      console.log('✅ ComfyUI is running:', comfyStatus.url);
+                      setComfyUIReady(true);
+                      
+                      // Check LoRA models after ComfyUI is confirmed running
+                      console.log('🔍 Checking LoRA models...');
+                      checkAllRequiredModels().then(loraCheck => {
+                          if (loraCheck.allInstalled) {
+                              console.log('✅ All required LoRA models installed');
+                              setLoraReady(true);
+                          } else {
+                              console.log('⚠️ Missing LoRA models - Face ID limited');
+                              setLoraReady(false);
+                          }
+                      });
+                  } else {
+                      console.log('ℹ️ ComfyUI not running - Face ID features disabled');
+                      setComfyUIReady(false);
+                      setLoraReady(false);
+                      // Don't block app initialization - just disable Face ID features
+                  }
+              }).catch(() => {
+                  console.log('ℹ️ ComfyUI check failed - continuing without Face ID');
+                  setComfyUIReady(false);
+                  setLoraReady(false);
+              });
+              // Continue initialization immediately - don't wait for ComfyUI
           }
 
           // FORCE ONLINE MODE: Clear any old offline mode flag

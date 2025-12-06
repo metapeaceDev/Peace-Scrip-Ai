@@ -358,13 +358,20 @@ export function ProviderSettings() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-semibold text-gray-300">
-                        🎨 ComfyUI Integration
+                        🎨 ComfyUI & Face ID Generation
                       </label>
                       <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
                           checked={settings.comfyuiEnabled}
-                          onChange={(e) => handleSettingChange('comfyuiEnabled', e.target.checked)}
+                          onChange={(e) => {
+                            handleSettingChange('comfyuiEnabled', e.target.checked);
+                            // Clear disabled flag when user enables
+                            if (e.target.checked) {
+                              localStorage.removeItem('peace_comfyui_disabled');
+                              localStorage.removeItem('peace_comfyui_skipped');
+                            }
+                          }}
                           className="mr-2 w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500"
                         />
                         <span className="text-sm text-gray-400">Enable</span>
@@ -378,9 +385,13 @@ export function ProviderSettings() {
                       placeholder="http://localhost:8188"
                       className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-800 disabled:text-gray-600"
                     />
-                    {settings.comfyuiEnabled && (
+                    {settings.comfyuiEnabled ? (
                       <p className="mt-2 text-xs text-gray-400">
                         ℹ️ Make sure ComfyUI is running locally. See <code className="text-purple-400">COMFYUI_QUICKSTART.md</code> for setup.
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-amber-400">
+                        ⚠️ Face ID generation disabled. Enable to use advanced Face ID features with LoRA models.
                       </p>
                     )}
                   </div>
