@@ -111,6 +111,20 @@ export interface TeamMember {
   name: string;
   role: string;
   email?: string;
+  revenueShare?: number; // Revenue allocation in THB
+}
+
+export interface Payment {
+  id: string;
+  projectId: string;
+  memberId: string;
+  amount: number;
+  method: 'bank_transfer' | 'promptpay' | 'cash' | 'check' | 'other';
+  reference?: string;
+  notes?: string;
+  status: 'completed' | 'pending' | 'failed';
+  date: Date;
+  createdAt?: Date;
 }
 
 export interface ScriptData {

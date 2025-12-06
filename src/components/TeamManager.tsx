@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ScriptData, TeamMember } from '../../types';
 import { TEAM_ROLES } from '../../constants';
+import { RevenueManagementPage } from './RevenueManagementPage';
 
 interface TeamManagerProps {
   scriptData: ScriptData;
@@ -12,6 +13,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState(TEAM_ROLES[0]);
   const [newEmail, setNewEmail] = useState('');
+  const [showRevenueManagement, setShowRevenueManagement] = useState(false);
 
   const handleAddMember = () => {
     if (!newName.trim()) return;
@@ -41,19 +43,33 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-2xl border border-gray-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-             <span className="p-2 bg-cyan-900/50 rounded-lg text-cyan-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" /></svg>
-             </span>
-             Production Team / Crew
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
+    <>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-xl w-full max-w-2xl border border-gray-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+               <span className="p-2 bg-cyan-900/50 rounded-lg text-cyan-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" /></svg>
+               </span>
+               Production Team / Crew
+            </h2>
+            <div className="flex items-center gap-2">
+              {scriptData.team && scriptData.team.length > 0 && (
+                <button
+                  onClick={() => setShowRevenueManagement(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  จัดการรายได้
+                </button>
+              )}
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
 
         <div className="p-6 bg-gray-900/50 border-b border-gray-700">
            <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Add Crew Member</h3>
@@ -130,6 +146,18 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         </div>
       </div>
     </div>
+
+    {/* Revenue Management Modal */}
+    {showRevenueManagement && (
+      <RevenueManagementPage
+        isOpen={showRevenueManagement}
+        onClose={() => setShowRevenueManagement(false)}
+        members={scriptData.team || []}
+        projectId={scriptData.id || 'default'}
+        projectTitle={scriptData.title || 'Untitled Project'}
+      />
+    )}
+    </>
   );
 };
 
