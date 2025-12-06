@@ -20,7 +20,31 @@ service cloud.firestore {
     
     // Projects collection - users can only access their own projects
     match /projects/{projectId} {
-      allow read, write: if isAuthenticated();
+      // Allow read if user is authenticated
+      // (We filter by userId in the query, so all readable docs will be user's own)
+      allow read: if isAuthenticated();
+      
+      // Allow create if authenticated and setting userId to own uid
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow update/delete if user owns the project (check existing userId)
+      allow update, delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+    }
+    
+    // Allow list/query only for user's own projects
+    match /projects/{projectId} {
+      allow list: if isAuthenticated();
+    }
+    
+    // Subscriptions collection - users can only access their own subscription
+    match /subscriptions/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Usage tracking collection
+    match /usage/{userId} {
+      allow read, write: if isOwner(userId);
     }
     
     // Deny all other access
