@@ -1,6 +1,6 @@
 /**
  * Referral System Service
- * 
+ *
  * Manages referral codes, tracks referrals, and awards credits
  */
 
@@ -61,8 +61,10 @@ const referralHistory: Array<{
  */
 export function generateReferralCode(userId: string, customCode?: string): ReferralCode {
   // Generate code: USER_XXXXX or custom code
-  const code = customCode?.toUpperCase() || `${userId.substring(0, 4).toUpperCase()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-  
+  const code =
+    customCode?.toUpperCase() ||
+    `${userId.substring(0, 4).toUpperCase()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
   // Check if code already exists
   if (referralCodes.has(code)) {
     throw new Error('รหัส referral นี้ถูกใช้แล้ว กรุณาเลือกรหัสอื่น');
@@ -75,13 +77,13 @@ export function generateReferralCode(userId: string, customCode?: string): Refer
     totalReferrals: 0,
     successfulReferrals: 0,
     creditsEarned: 0,
-    isActive: true
+    isActive: true,
   };
 
   referralCodes.set(code, referralCode);
-  
+
   console.log(`🎁 Referral code created: ${code} for user ${userId}`);
-  
+
   return referralCode;
 }
 
@@ -95,7 +97,7 @@ export function getUserReferralCode(userId: string): ReferralCode {
       return data;
     }
   }
-  
+
   // Create new code if not found
   return generateReferralCode(userId);
 }
@@ -110,19 +112,19 @@ export function validateReferralCode(code: string): {
 } {
   const upperCode = code.toUpperCase();
   const referralCode = referralCodes.get(upperCode);
-  
+
   if (!referralCode) {
     return { valid: false, reason: 'รหัส referral ไม่ถูกต้อง' };
   }
-  
+
   if (!referralCode.isActive) {
     return { valid: false, reason: 'รหัส referral นี้ถูกปิดใช้งานแล้ว' };
   }
-  
+
   if (referralCode.expiresAt && referralCode.expiresAt < new Date()) {
     return { valid: false, reason: 'รหัส referral หมดอายุแล้ว' };
   }
-  
+
   return { valid: true, referralCode };
 }
 
@@ -138,41 +140,41 @@ export function applyReferralCode(
   error?: string;
 } {
   const validation = validateReferralCode(referralCode);
-  
+
   if (!validation.valid || !validation.referralCode) {
     return { success: false, error: validation.reason };
   }
-  
+
   const code = validation.referralCode;
-  
+
   // Prevent self-referral
   if (code.userId === newUserId) {
     return { success: false, error: 'ไม่สามารถใช้รหัส referral ของตัวเองได้' };
   }
-  
+
   // Check if user already used a referral code
   const existingReferral = referralHistory.find(r => r.refereeId === newUserId);
   if (existingReferral) {
     return { success: false, error: 'คุณใช้รหัส referral ไปแล้ว' };
   }
-  
+
   // Create rewards
   const rewards: ReferralReward = {
     referrer: {
       userId: code.userId,
-      credits: REFERRAL_REWARDS.referrerCredits
+      credits: REFERRAL_REWARDS.referrerCredits,
     },
     referee: {
       userId: newUserId,
-      credits: REFERRAL_REWARDS.refereeCredits
-    }
+      credits: REFERRAL_REWARDS.refereeCredits,
+    },
   };
-  
+
   // Update referral code stats
   code.totalReferrals++;
   code.successfulReferrals++;
   code.creditsEarned += REFERRAL_REWARDS.referrerCredits;
-  
+
   // Record in history
   referralHistory.push({
     code: code.code,
@@ -180,13 +182,15 @@ export function applyReferralCode(
     refereeId: newUserId,
     timestamp: new Date(),
     status: 'successful',
-    creditsAwarded: REFERRAL_REWARDS.referrerCredits + REFERRAL_REWARDS.refereeCredits
+    creditsAwarded: REFERRAL_REWARDS.referrerCredits + REFERRAL_REWARDS.refereeCredits,
   });
-  
-  console.log(`✅ Referral successful: ${code.code} - Referrer: +${rewards.referrer.credits}, Referee: +${rewards.referee.credits} credits`);
-  
+
+  console.log(
+    `✅ Referral successful: ${code.code} - Referrer: +${rewards.referrer.credits}, Referee: +${rewards.referee.credits} credits`
+  );
+
   // TODO: Actually award credits to both users via userStore or database
-  
+
   return { success: true, rewards };
 }
 
@@ -205,7 +209,7 @@ export function getUserReferralStats(userId: string): {
   }>;
 } {
   const userCode = getUserReferralCode(userId);
-  
+
   const recentReferrals = referralHistory
     .filter(r => r.referrerId === userId && r.status === 'successful')
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
@@ -213,15 +217,15 @@ export function getUserReferralStats(userId: string): {
     .map(r => ({
       userId: r.refereeId,
       timestamp: r.timestamp,
-      creditsAwarded: REFERRAL_REWARDS.referrerCredits
+      creditsAwarded: REFERRAL_REWARDS.referrerCredits,
     }));
-  
+
   return {
     code: userCode.code,
     totalReferrals: userCode.totalReferrals,
     successfulReferrals: userCode.successfulReferrals,
     creditsEarned: userCode.creditsEarned,
-    recentReferrals
+    recentReferrals,
   };
 }
 
@@ -233,10 +237,10 @@ export function getGlobalReferralStats(): ReferralStats {
   const successfulConversions = referralHistory.filter(r => r.status === 'successful').length;
   const pendingReferrals = referralHistory.filter(r => r.status === 'pending').length;
   const totalCreditsEarned = referralHistory.reduce((sum, r) => sum + r.creditsAwarded, 0);
-  
+
   // Calculate top referrers
   const referrerMap = new Map<string, { count: number; credits: number }>();
-  
+
   for (const record of referralHistory) {
     if (record.status === 'successful') {
       const current = referrerMap.get(record.referrerId) || { count: 0, credits: 0 };
@@ -245,22 +249,22 @@ export function getGlobalReferralStats(): ReferralStats {
       referrerMap.set(record.referrerId, current);
     }
   }
-  
+
   const topReferrers = Array.from(referrerMap.entries())
     .map(([userId, data]) => ({
       userId,
       referralCount: data.count,
-      creditsEarned: data.credits
+      creditsEarned: data.credits,
     }))
     .sort((a, b) => b.referralCount - a.referralCount)
     .slice(0, 10);
-  
+
   return {
     totalReferrals,
     successfulConversions,
     pendingReferrals,
     totalCreditsEarned,
-    topReferrers
+    topReferrers,
   };
 }
 
@@ -270,14 +274,14 @@ export function getGlobalReferralStats(): ReferralStats {
 export function deactivateReferralCode(code: string): boolean {
   const upperCode = code.toUpperCase();
   const referralCode = referralCodes.get(upperCode);
-  
+
   if (!referralCode) {
     return false;
   }
-  
+
   referralCode.isActive = false;
   console.log(`🚫 Referral code deactivated: ${code}`);
-  
+
   return true;
 }
 
@@ -295,18 +299,18 @@ export function createCustomReferralCode(
   try {
     // Validate custom code format (alphanumeric, 4-12 chars)
     if (!/^[A-Z0-9]{4,12}$/.test(customCode.toUpperCase())) {
-      return { 
-        success: false, 
-        error: 'รหัสต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลข 4-12 ตัว' 
+      return {
+        success: false,
+        error: 'รหัสต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลข 4-12 ตัว',
       };
     }
-    
+
     const code = generateReferralCode(userId, customCode);
     return { success: true, code };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'ไม่สามารถสร้างรหัสได้' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'ไม่สามารถสร้างรหัสได้',
     };
   }
 }
@@ -317,13 +321,15 @@ export function createCustomReferralCode(
 export function generateReferralLink(code: string, channel?: 'copy' | 'social' | 'email'): string {
   const baseUrl = 'https://peacescript.ai'; // TODO: Use actual domain
   const referralUrl = `${baseUrl}/signup?ref=${code.toUpperCase()}`;
-  
+
   switch (channel) {
     case 'social': {
-      const message = encodeURIComponent(`🎬 สร้างบทหนังด้วย AI ฟรี! ใช้รหัส ${code.toUpperCase()} รับ 50 credits ทันที → ${referralUrl}`);
+      const message = encodeURIComponent(
+        `🎬 สร้างบทหนังด้วย AI ฟรี! ใช้รหัส ${code.toUpperCase()} รับ 50 credits ทันที → ${referralUrl}`
+      );
       return `https://twitter.com/intent/tweet?text=${message}`;
     }
-    
+
     case 'email': {
       const subject = encodeURIComponent('มาลองสร้างบทหนังด้วย AI กัน!');
       const body = encodeURIComponent(
@@ -331,7 +337,7 @@ export function generateReferralLink(code: string, channel?: 'copy' | 'social' |
       );
       return `mailto:?subject=${subject}&body=${body}`;
     }
-    
+
     case 'copy':
     default:
       return referralUrl;
@@ -352,12 +358,12 @@ export function getReferralLeaderboard(limit: number = 10): Array<{
     .filter(c => c.isActive && c.successfulReferrals > 0)
     .sort((a, b) => b.successfulReferrals - a.successfulReferrals)
     .slice(0, limit);
-  
+
   return codes.map((code, index) => ({
     rank: index + 1,
     userId: code.userId,
     code: code.code,
     referralCount: code.successfulReferrals,
-    creditsEarned: code.creditsEarned
+    creditsEarned: code.creditsEarned,
   }));
 }

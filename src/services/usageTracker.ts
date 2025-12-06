@@ -1,6 +1,6 @@
 /**
  * Usage Tracking Service
- * 
+ *
  * Tracks user resource consumption (images, videos, storage, API calls)
  * Enforces tier-based limits and provides usage analytics
  */
@@ -63,7 +63,7 @@ let currentStats: UsageStats = {
   projects: { total: 0, active: 0 },
   characters: { total: 0 },
   scenes: { total: 0 },
-  apiCalls: { geminiText: 0, geminiImage: 0, geminiVideo: 0, otherProviders: 0 }
+  apiCalls: { geminiText: 0, geminiImage: 0, geminiVideo: 0, otherProviders: 0 },
 };
 
 /**
@@ -81,7 +81,7 @@ export function trackImageGeneration(
     credits,
     size: sizeBytes,
     provider,
-    success
+    success,
   };
 
   usageHistory.push(entry);
@@ -94,7 +94,7 @@ export function trackImageGeneration(
       currentStats.storage.used += sizeMB;
       currentStats.storage.images += sizeMB;
     }
-    
+
     // Track API calls
     if (provider.includes('gemini')) {
       currentStats.apiCalls.geminiImage++;
@@ -105,7 +105,9 @@ export function trackImageGeneration(
     currentStats.images.failed++;
   }
 
-  console.log(`📸 Image tracked: ${provider} (${success ? 'success' : 'failed'}) - ${credits} credits`);
+  console.log(
+    `📸 Image tracked: ${provider} (${success ? 'success' : 'failed'}) - ${credits} credits`
+  );
 }
 
 /**
@@ -125,7 +127,7 @@ export function trackVideoGeneration(
     size: sizeBytes,
     provider,
     success,
-    metadata: { duration }
+    metadata: { duration },
   };
 
   usageHistory.push(entry);
@@ -150,23 +152,21 @@ export function trackVideoGeneration(
     currentStats.videos.failed++;
   }
 
-  console.log(`🎬 Video tracked: ${provider} (${success ? 'success' : 'failed'}) - ${credits} credits, ${duration}s`);
+  console.log(
+    `🎬 Video tracked: ${provider} (${success ? 'success' : 'failed'}) - ${credits} credits, ${duration}s`
+  );
 }
 
 /**
  * Record text generation (for characters, scenes, etc.)
  */
-export function trackTextGeneration(
-  provider: string,
-  success: boolean,
-  tokens?: number
-): void {
+export function trackTextGeneration(provider: string, success: boolean, tokens?: number): void {
   const entry: UsageEntry = {
     timestamp: new Date(),
     type: 'text',
     provider,
     success,
-    metadata: { tokens }
+    metadata: { tokens },
   };
 
   usageHistory.push(entry);
@@ -175,7 +175,9 @@ export function trackTextGeneration(
     currentStats.apiCalls.geminiText++;
   }
 
-  console.log(`📝 Text tracked: ${provider} (${success ? 'success' : 'failed'})${tokens ? ` - ${tokens} tokens` : ''}`);
+  console.log(
+    `📝 Text tracked: ${provider} (${success ? 'success' : 'failed'})${tokens ? ` - ${tokens} tokens` : ''}`
+  );
 }
 
 /**
@@ -198,7 +200,9 @@ export function trackProject(action: 'create' | 'delete' | 'activate' | 'archive
       currentStats.projects.active++;
       break;
   }
-  console.log(`📁 Project ${action}: Total=${currentStats.projects.total}, Active=${currentStats.projects.active}`);
+  console.log(
+    `📁 Project ${action}: Total=${currentStats.projects.total}, Active=${currentStats.projects.active}`
+  );
 }
 
 /**
@@ -250,7 +254,7 @@ export function checkLimit(
         allowed: maxProjects === -1 || currentProjects + additionalAmount <= maxProjects,
         reason: maxProjects !== -1 ? `Project limit: ${currentProjects}/${maxProjects}` : undefined,
         current: currentProjects,
-        limit: maxProjects
+        limit: maxProjects,
       };
     }
 
@@ -259,9 +263,12 @@ export function checkLimit(
       const currentCharacters = currentStats.characters.total;
       return {
         allowed: maxCharacters === -1 || currentCharacters + additionalAmount <= maxCharacters,
-        reason: maxCharacters !== -1 ? `Character limit: ${currentCharacters}/${maxCharacters}` : undefined,
+        reason:
+          maxCharacters !== -1
+            ? `Character limit: ${currentCharacters}/${maxCharacters}`
+            : undefined,
         current: currentCharacters,
-        limit: maxCharacters
+        limit: maxCharacters,
       };
     }
 
@@ -272,7 +279,7 @@ export function checkLimit(
         allowed: maxScenes === -1 || currentScenes + additionalAmount <= maxScenes,
         reason: maxScenes !== -1 ? `Scene limit: ${currentScenes}/${maxScenes}` : undefined,
         current: currentScenes,
-        limit: maxScenes
+        limit: maxScenes,
       };
     }
 
@@ -283,7 +290,7 @@ export function checkLimit(
         allowed: currentStorage + additionalAmount <= maxStorage,
         reason: `Storage limit: ${currentStorage.toFixed(2)}MB/${maxStorage}MB`,
         current: parseFloat(currentStorage.toFixed(2)),
-        limit: maxStorage
+        limit: maxStorage,
       };
     }
 
@@ -297,7 +304,7 @@ export function checkLimit(
         allowed: subscription.credits >= additionalAmount,
         reason: `Credits: ${subscription.credits}/${subscription.maxCredits}`,
         current: subscription.credits,
-        limit: subscription.maxCredits
+        limit: subscription.maxCredits,
       };
 
     default:
@@ -338,11 +345,11 @@ export function calculateCostSavings(): {
   const freeProviders = ['pollinations', 'comfyui', 'sdxl'];
   const providerCosts = {
     'gemini-image': 0.04,
-    'gemini-video': 0.10,
+    'gemini-video': 0.1,
     'gemini-text': 0.0001,
-    'dalle': 0.08,
-    'runway': 0.50,
-    'luma': 0.10
+    dalle: 0.08,
+    runway: 0.5,
+    luma: 0.1,
   };
 
   const breakdown: { provider: string; timesSaved: number; estimatedCost: number }[] = [];
@@ -360,7 +367,8 @@ export function calculateCostSavings(): {
         if (entry.type === 'image') {
           estimatedCost = providerCosts['gemini-image'];
         } else if (entry.type === 'video') {
-          const duration = typeof entry.metadata?.duration === 'number' ? entry.metadata.duration : 3;
+          const duration =
+            typeof entry.metadata?.duration === 'number' ? entry.metadata.duration : 3;
           estimatedCost = providerCosts['gemini-video'] * duration;
         }
 
@@ -372,7 +380,7 @@ export function calculateCostSavings(): {
           breakdown.push({
             provider: entry.provider,
             timesSaved: 1,
-            estimatedCost
+            estimatedCost,
           });
         }
         totalSaved += estimatedCost;
@@ -393,7 +401,7 @@ export function resetUsageStats(): void {
     projects: { total: 0, active: 0 },
     characters: { total: 0 },
     scenes: { total: 0 },
-    apiCalls: { geminiText: 0, geminiImage: 0, geminiVideo: 0, otherProviders: 0 }
+    apiCalls: { geminiText: 0, geminiImage: 0, geminiVideo: 0, otherProviders: 0 },
   };
   usageHistory.length = 0;
   console.log('🔄 Usage stats reset');
@@ -417,6 +425,6 @@ export function exportUsageData(): {
     stats: { ...currentStats },
     history,
     period: { start, end },
-    tier: subscription.tier
+    tier: subscription.tier,
   };
 }

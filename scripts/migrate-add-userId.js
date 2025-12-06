@@ -1,6 +1,6 @@
 /**
  * Migration Script: Add userId to existing projects
- * 
+ *
  * Run this once to fix old projects that don't have userId field
  * This will allow Firestore security rules to work properly
  */
@@ -17,7 +17,7 @@ const firebaseConfig = {
   storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.VITE_FIREBASE_APP_ID,
-  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -27,17 +27,17 @@ const auth = getAuth(app);
 async function migrateProjects() {
   try {
     console.log('🔍 Finding projects without userId...');
-    
+
     const projectsRef = collection(db, 'projects');
     const snapshot = await getDocs(projectsRef);
-    
+
     let fixed = 0;
     let skipped = 0;
     let errors = 0;
-    
+
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
-      
+
       if (!data.userId) {
         console.log(`❌ Project ${docSnap.id} missing userId:`, data.title);
         console.log('   This project will be inaccessible until userId is set');
@@ -48,20 +48,19 @@ async function migrateProjects() {
         skipped++;
       }
     }
-    
+
     console.log('\n📊 Migration Summary:');
     console.log(`   ✅ Already valid: ${skipped}`);
     console.log(`   ❌ Missing userId: ${errors}`);
     console.log(`   💡 Fixed: ${fixed}`);
-    
+
     if (errors > 0) {
       console.log('\n⚠️ WARNING: Some projects are missing userId!');
       console.log('   These projects need to be fixed manually in Firebase Console:');
       console.log('   1. Go to Firestore in Firebase Console');
       console.log('   2. Find the projects collection');
-      console.log('   3. Add userId field matching the owner\'s auth UID');
+      console.log("   3. Add userId field matching the owner's auth UID");
     }
-    
   } catch (error) {
     console.error('❌ Migration failed:', error);
     throw error;

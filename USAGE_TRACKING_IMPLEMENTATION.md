@@ -19,6 +19,7 @@
 ระบบติดตามการใช้งานทรัพยากรและบังคับใช้ขีดจำกัดตาม subscription tier
 
 **Core Functions:**
+
 - ✅ `trackImageGeneration(provider, credits, success, sizeBytes)` - บันทึกการสร้างรูปภาพ
 - ✅ `trackVideoGeneration(provider, credits, duration, success, sizeBytes)` - บันทึกการสร้างวิดีโอ
 - ✅ `trackTextGeneration(provider, operation)` - บันทึก API calls สำหรับ text generation
@@ -31,6 +32,7 @@
 - ✅ `exportUsageData(startDate, endDate)` - Export ข้อมูลสำหรับ billing/analytics
 
 **Resource Tracking:**
+
 - Images: Generated count, failed count, credits used, storage
 - Videos: Generated count, total duration, credits used, storage
 - Text: API calls count
@@ -38,6 +40,7 @@
 - Projects/Characters/Scenes: Current count
 
 **Tier-Based Limits:**
+
 ```typescript
 {
   free: { maxProjects: 1, maxCharacters: 3, maxScenes: 10, credits: 10, storage: 100 },
@@ -54,6 +57,7 @@
 ระบบชำระเงินที่สมบูรณ์รองรับ Stripe, Omise, PromptPay
 
 **Pricing Configuration:**
+
 ```typescript
 SUBSCRIPTION_PRICES = {
   free: { monthly: ฿0, yearly: ฿0 },
@@ -64,6 +68,7 @@ SUBSCRIPTION_PRICES = {
 ```
 
 **Core Functions:**
+
 - ✅ `calculatePrice(tier, billingCycle, options)` - คำนวณราคารวมส่วนลด
   - Early Bird discount 50%
   - Promo code support
@@ -77,11 +82,13 @@ SUBSCRIPTION_PRICES = {
 - ✅ `validatePromoCode(code)` - ตรวจสอบรหัสโปรโมชั่น
 
 **Payment Providers:**
+
 - Stripe: Card payments (THB, USD, EUR)
 - Omise: Card + PromptPay (THB only)
 - PromptPay: QR code payments (THB only)
 
 **Prorated Billing:**
+
 - รองรับการคำนวณ prorated amount เมื่อเปลี่ยน tier กลางรอบบิล
 
 ---
@@ -91,6 +98,7 @@ SUBSCRIPTION_PRICES = {
 UI สำหรับกระบวนการชำระเงิน
 
 **Features:**
+
 - ✅ แสดงสรุปคำสั่งซื้อพร้อมรายละเอียด (ราคา, ส่วนลด, ยอดรวม)
 - ✅ ใส่และใช้รหัสโปรโมชั่น
 - ✅ เลือกวิธีการชำระเงิน (Stripe/Omise/PromptPay)
@@ -100,6 +108,7 @@ UI สำหรับกระบวนการชำระเงิน
 - ✅ Security notice (SSL encryption)
 
 **Example Pricing Display:**
+
 ```
 แพ็กเกจ PRO - รายปี
 ราคาต่อปี: ฿9,990
@@ -115,6 +124,7 @@ UI สำหรับกระบวนการชำระเงิน
 เพิ่ม usage tracking เข้าทุกฟังก์ชันสร้างคอนเทนต์ใน `geminiService.ts`
 
 **Integrated Functions:**
+
 - ✅ `generateStoryboardImage()` - Track images (1MB estimate, 1 credit)
 - ✅ `generateCharacterImage()` - Track images (2MB estimate, 2 credits)
 - ✅ `generateCostumeImage()` - Track images (2MB estimate, 2 credits)
@@ -123,6 +133,7 @@ UI สำหรับกระบวนการชำระเงิน
 - ✅ `generateScene()` - Track text API calls
 
 **Limit Enforcement:**
+
 ```typescript
 // Before generation
 const limitCheck = checkLimit('storage', estimatedSizeMB);
@@ -138,6 +149,7 @@ trackImageGeneration(provider, 0, false);
 ```
 
 **Storage Estimates:**
+
 - Storyboard image: ~1MB
 - Character portrait: ~2MB
 - Costume design: ~2MB
@@ -149,12 +161,14 @@ trackImageGeneration(provider, 0, false);
 ## 🎯 Benefits
 
 ### For Users:
+
 1. **Transparent Usage Tracking** - ดูการใช้งานแบบ real-time
 2. **Cost Savings Visibility** - รู้ว่าประหยัดเงินได้เท่าไหร่จาก free providers
 3. **Clear Limits** - รู้ว่าเหลือ credits/storage เท่าไร
 4. **Flexible Pricing** - เลือก monthly/yearly, ใช้โปรโมชั่น
 
 ### For Platform:
+
 1. **Revenue Tracking** - ติดตามรายได้แบบ real-time
 2. **Abuse Prevention** - จำกัดการใช้งานเกินตาม tier
 3. **Data for Analytics** - ข้อมูลสำหรับวิเคราะห์พฤติกรรมผู้ใช้
@@ -253,12 +267,14 @@ usageHistory = [
 ## 📊 Expected Impact
 
 ### Month 1-3 (Beta Launch):
+
 - **Target:** 50-100 users
 - **Conversion:** 10-15% to paid tiers (5-15 paid users)
 - **MRR:** ฿1,500-15,000 (฿299 Basic × 5 + ฿999 Pro × 5-10)
 - **Break-even:** Achieved with 7 paid users
 
 ### Month 4-12 (Growth):
+
 - **Target:** 500-1,000 users
 - **Conversion:** 15-20% to paid (75-200 paid users)
 - **MRR:** ฿30,000-100,000+
@@ -287,6 +303,7 @@ usageHistory = [
 ## 📝 Code Quality Notes
 
 **TypeScript Errors:**
+
 - Pre-existing errors ใน `geminiService.ts` (not caused by new code):
   - `candidate.content` possibly undefined
   - `response.text` possibly undefined
@@ -294,6 +311,7 @@ usageHistory = [
 - **Action:** ควรแก้ไขแยกต่างหาก (not blocking for current implementation)
 
 **Testing Status:**
+
 - ✅ TypeScript compilation: Success
 - ⏳ Unit tests: Pending (should add for usageTracker.ts)
 - ⏳ Integration tests: Pending (should test limit enforcement)
@@ -316,12 +334,13 @@ usageHistory = [
 ระบบ Usage Tracking และ Payment Integration พร้อมใช้งาน 90% ✅
 
 **Ready for:**
+
 - Beta launch กับ real users
 - Tier-based limit enforcement
 - Usage analytics และ cost tracking
 - Payment flow (เมื่อเชื่อม Stripe/Omise แล้ว)
 
-**Next Critical Step:** 
+**Next Critical Step:**
 🎯 **Analytics Dashboard** - สร้าง UI แสดงข้อมูลการใช้งานให้ user และ admin เห็นภาพชัดเจน
 
 ---

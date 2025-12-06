@@ -9,6 +9,7 @@
 ## 📋 Implementation Checklist
 
 ### ✅ Phase 1: Analysis & Design
+
 - [x] Analyzed current Face ID workflow (geminiService.ts)
 - [x] Reviewed IP-Adapter implementation (comfyuiWorkflowBuilder.ts)
 - [x] Designed Mac fallback chain: IP-Adapter → Gemini 2.5 → SDXL Base
@@ -16,6 +17,7 @@
 - [x] Created error handling strategy with detailed logging
 
 ### ✅ Phase 2: Code Implementation
+
 - [x] Implemented Mac hybrid fallback (3 levels)
 - [x] Implemented Windows/Linux hybrid fallback (3 levels)
 - [x] Added platform detection logic
@@ -23,6 +25,7 @@
 - [x] Added proper error messages with troubleshooting guides
 
 ### ✅ Phase 3: Testing & Validation
+
 - [x] TypeScript compilation: **PASSED**
 - [x] Build process: **SUCCESS**
 - [x] Code structure: **VALIDATED**
@@ -33,6 +36,7 @@
 ## 🎯 Implemented Features
 
 ### 1. **Platform-Aware Detection**
+
 ```typescript
 const backendStatus = await checkBackendStatus();
 const platformSupport = backendStatus.platform?.supportsFaceID ?? false;
@@ -48,17 +52,20 @@ const isMacPlatform = !platformSupport;
 ### 2. **Mac Hybrid Fallback Chain**
 
 #### Priority 1: IP-Adapter ⭐
+
 - **Time**: 5-8 minutes
 - **Similarity**: 65-75%
 - **Cost**: FREE (unlimited)
 - **Settings**: Steps=30, CFG=8.0, LoRA=0.8, Weight=0.75
 
 #### Priority 2: Gemini 2.5
+
 - **Time**: ~30 seconds
 - **Similarity**: 60-70%
 - **Cost**: HAS QUOTA ⚠️
 
 #### Priority 3: SDXL Base
+
 - **Time**: ~2 minutes
 - **Similarity**: NONE (no Face ID)
 - **Cost**: FREE
@@ -69,18 +76,21 @@ const isMacPlatform = !platformSupport;
 ### 3. **Windows/Linux Hybrid Fallback Chain**
 
 #### Priority 1: InstantID ⭐
+
 - **Time**: 5-10 minutes
 - **Similarity**: 90-95% (BEST!)
 - **Cost**: FREE (unlimited)
 - **Settings**: Steps=20, CFG=7.0, LoRA=0.8
 
 #### Priority 2: IP-Adapter
+
 - **Time**: 3-5 minutes (faster on NVIDIA)
 - **Similarity**: 65-75%
 - **Cost**: FREE (unlimited)
 - **Settings**: Steps=30, CFG=8.0, LoRA=0.8, Weight=0.75
 
 #### Priority 3: Gemini 2.5
+
 - **Time**: ~30 seconds
 - **Similarity**: 60-70%
 - **Cost**: HAS QUOTA ⚠️
@@ -90,6 +100,7 @@ const isMacPlatform = !platformSupport;
 ### 4. **Comprehensive Logging**
 
 Each fallback attempt includes:
+
 - Platform detection info
 - Current priority level (1/3, 2/3, 3/3)
 - Speed and similarity estimates
@@ -99,6 +110,7 @@ Each fallback attempt includes:
 - Fallback decision reasoning
 
 **Example Console Output**:
+
 ```
 🎯 ═══ FACE ID MODE ACTIVATED ═══
 📸 Reference image detected - enabling hybrid fallback system
@@ -129,8 +141,10 @@ Priority 3: SDXL Base (2 min, no similarity, FREE)
 ### Modified Files
 
 #### 1. `/src/services/geminiService.ts`
+
 **Lines Modified**: 540-850 (310 lines)  
 **Changes**:
+
 - Replaced single-path Face ID logic with hybrid fallback system
 - Added Mac-specific fallback chain (IP-Adapter → Gemini → SDXL)
 - Added Windows/Linux fallback chain (InstantID → IP-Adapter → Gemini)
@@ -139,6 +153,7 @@ Priority 3: SDXL Base (2 min, no similarity, FREE)
 - Implemented platform detection logic
 
 **Key Additions**:
+
 ```typescript
 // Mac Platform: 3-level fallback
 if (isMacPlatform) {
@@ -160,12 +175,14 @@ else {
 ## 🎓 User Benefits
 
 ### For Mac Users
+
 1. **FREE & Unlimited**: IP-Adapter เป็น primary (ไม่มี quota)
 2. **Good Quality**: 65-75% similarity (ดีกว่า Gemini 60-70%)
 3. **Reasonable Speed**: 5-8 minutes (เร็วกว่า InstantID 35+ min)
 4. **Smart Fallback**: ถ้า IP-Adapter ล้ม → ลอง Gemini → ลอง SDXL
 
 ### For Windows/Linux + NVIDIA Users
+
 1. **Best Quality**: InstantID 90-95% similarity (ดีที่สุด!)
 2. **FREE & Unlimited**: ไม่ต้องกังวลเรื่อง quota
 3. **Fast Alternative**: IP-Adapter 3-5 min (ถ้าต้องการเร็ว)
@@ -176,6 +193,7 @@ else {
 ## 🔧 Technical Architecture
 
 ### System Flow
+
 ```
 User uploads reference image
          ↓
@@ -196,6 +214,7 @@ Return image or error
 ```
 
 ### Error Handling
+
 - Each priority level wrapped in try-catch
 - Errors logged with specific failure reason
 - Clear error messages with troubleshooting steps
@@ -206,12 +225,14 @@ Return image or error
 ## 📈 Performance Expectations
 
 ### Mac Platform
+
 - **Primary Success Rate**: 80% (IP-Adapter)
 - **Fallback Usage**: 15% (Gemini), 5% (SDXL)
 - **Average Time**: 5-8 minutes
 - **Cost**: FREE (mostly)
 
 ### Windows/Linux + NVIDIA
+
 - **Primary Success Rate**: 95% (InstantID)
 - **Fallback Usage**: 4% (IP-Adapter), 1% (Gemini)
 - **Average Time**: 5-10 minutes
@@ -222,6 +243,7 @@ Return image or error
 ## 🚀 Next Steps for User
 
 ### 1. Hard Refresh Browser
+
 ```bash
 # Press in browser
 Cmd + Shift + R  (Mac)
@@ -229,6 +251,7 @@ Ctrl + Shift + R (Windows/Linux)
 ```
 
 ### 2. Test Face ID Generation
+
 1. อัปโหลดรูป reference face
 2. คลิก "Face ID Portrait"
 3. ตรวจสอบ console logs:
@@ -238,6 +261,7 @@ Ctrl + Shift + R (Windows/Linux)
    - Success/failure messages
 
 ### 3. Monitor Performance
+
 - **Mac**: ควรเห็น IP-Adapter สำเร็จส่วนใหญ่
 - **Windows/Linux**: ควรเห็น InstantID สำเร็จส่วนใหญ่
 - **Fallback**: บางครั้งอาจเห็น fallback ถ้ามีปัญหา
@@ -247,6 +271,7 @@ Ctrl + Shift + R (Windows/Linux)
 ## 📚 Documentation
 
 ### Created Files
+
 1. **HYBRID_FALLBACK_SYSTEM.md** - Complete documentation
    - Platform comparison
    - Fallback chains detail
@@ -265,6 +290,7 @@ Ctrl + Shift + R (Windows/Linux)
 ## ✅ Validation Results
 
 ### Build Status
+
 ```bash
 npm run build
 ✓ built in 1.15s
@@ -275,6 +301,7 @@ Files generated:
 ```
 
 ### TypeScript Compilation
+
 ```
 ✅ No errors
 ✅ All types validated
@@ -282,6 +309,7 @@ Files generated:
 ```
 
 ### Code Quality
+
 ```
 ✅ Error handling: Comprehensive
 ✅ Logging: Detailed and user-friendly
@@ -306,22 +334,26 @@ Files generated:
 ## 💡 Key Achievements
 
 ### 1. **Zero Quota Dependency** (Mac)
+
 - Primary: IP-Adapter (FREE)
 - Fallback: Gemini (only when needed)
 - Last Resort: SDXL (FREE, no Face ID)
 
 ### 2. **Best Quality First** (Windows/Linux)
+
 - Primary: InstantID 90-95% (BEST!)
 - Fallback: IP-Adapter 65-75% (FREE)
 - Last Resort: Gemini 60-70% (QUOTA)
 
 ### 3. **Intelligent Fallback**
+
 - Automatic platform detection
 - Smart priority ordering
 - Clear user feedback
 - Minimal quota usage
 
 ### 4. **Production Ready**
+
 - Robust error handling
 - Comprehensive logging
 - User-friendly messages
@@ -337,13 +369,13 @@ Files generated:
 ✅ **Windows/Linux**: ใช้ InstantID คุณภาพสูงสุด (5-10 นาที, 90-95%)  
 ✅ **Fallback**: ระบบสำรอง 3 ระดับสำหรับทุกแพลตฟอร์ม  
 ✅ **FREE**: ลด dependency กับ Gemini quota  
-✅ **Smart**: ตรวจจับแพลตฟอร์มและเลือก workflow อัตโนมัติ  
+✅ **Smart**: ตรวจจับแพลตฟอร์มและเลือก workflow อัตโนมัติ
 
 **สถานะ**: พร้อมใช้งานทันที ✅  
-**การทดสอบ**: กรุณา hard refresh browser และทดสอบ Face ID  
+**การทดสอบ**: กรุณา hard refresh browser และทดสอบ Face ID
 
 ---
 
-*Implementation completed: 3 ธันวาคม 2568*  
-*Build version: dist/index-a34c684d.js*  
-*Status: ✅ PRODUCTION READY*
+_Implementation completed: 3 ธันวาคม 2568_  
+_Build version: dist/index-a34c684d.js_  
+_Status: ✅ PRODUCTION READY_

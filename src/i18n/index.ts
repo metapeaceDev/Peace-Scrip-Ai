@@ -1,6 +1,6 @@
 /**
  * i18n (Internationalization) Service
- * 
+ *
  * Manages language translations and locale switching
  */
 
@@ -16,7 +16,7 @@ interface Translations {
 
 const translations: Record<Language, Translations> = {
   th: thTranslations,
-  en: enTranslations
+  en: enTranslations,
 };
 
 // Current language (default: Thai)
@@ -59,10 +59,10 @@ export function getCurrentLanguage(): Language {
 export function setLanguage(lang: Language): void {
   currentLanguage = lang;
   localStorage.setItem('peace-script-language', lang);
-  
+
   // Trigger re-render (if using React context)
   window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
-  
+
   console.log(`🌐 Language changed to: ${lang}`);
 }
 
@@ -145,7 +145,7 @@ export function formatCurrency(amount: number, currency: string = 'THB'): string
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
@@ -170,7 +170,7 @@ export function getLanguageName(lang: Language): string {
 export function getAvailableLanguages(): Array<{ code: Language; name: string }> {
   return [
     { code: 'th', name: 'ไทย' },
-    { code: 'en', name: 'English' }
+    { code: 'en', name: 'English' },
   ];
 }
 

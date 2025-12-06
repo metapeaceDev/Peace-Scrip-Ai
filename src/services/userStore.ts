@@ -15,8 +15,8 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: 1,
       maxCharacters: 3,
       maxScenes: 9,
-      exportFormats: ['pdf-watermark']
-    }
+      exportFormats: ['pdf-watermark'],
+    },
   },
   basic: {
     tier: 'basic',
@@ -31,8 +31,8 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: 5,
       maxCharacters: 10,
       maxScenes: -1, // Unlimited
-      exportFormats: ['pdf', 'fdx', 'fountain']
-    }
+      exportFormats: ['pdf', 'fdx', 'fountain'],
+    },
   },
   pro: {
     tier: 'pro',
@@ -40,15 +40,28 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
     maxCredits: 500,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['pollinations', 'comfyui-sdxl', 'gemini-flash', 'gemini-pro', 'comfyui-flux', 'openai-dalle'],
-      allowedVideoModels: ['comfyui-svd', 'pollinations-video', 'gemini-veo', 'luma-dream-machine', 'runway-gen3'],
+      allowedImageModels: [
+        'pollinations',
+        'comfyui-sdxl',
+        'gemini-flash',
+        'gemini-pro',
+        'comfyui-flux',
+        'openai-dalle',
+      ],
+      allowedVideoModels: [
+        'comfyui-svd',
+        'pollinations-video',
+        'gemini-veo',
+        'luma-dream-machine',
+        'runway-gen3',
+      ],
       videoDurationLimit: 10,
       storageLimit: 10, // 10 GB
       maxProjects: -1, // Unlimited
       maxCharacters: -1, // Unlimited
       maxScenes: -1, // Unlimited
-      exportFormats: ['pdf', 'fdx', 'fountain', 'production-package']
-    }
+      exportFormats: ['pdf', 'fdx', 'fountain', 'production-package'],
+    },
   },
   enterprise: {
     tier: 'enterprise',
@@ -56,16 +69,29 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
     maxCredits: 9999,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['pollinations', 'comfyui-sdxl', 'gemini-flash', 'gemini-pro', 'comfyui-flux', 'openai-dalle'],
-      allowedVideoModels: ['comfyui-svd', 'pollinations-video', 'gemini-veo', 'luma-dream-machine', 'runway-gen3'],
+      allowedImageModels: [
+        'pollinations',
+        'comfyui-sdxl',
+        'gemini-flash',
+        'gemini-pro',
+        'comfyui-flux',
+        'openai-dalle',
+      ],
+      allowedVideoModels: [
+        'comfyui-svd',
+        'pollinations-video',
+        'gemini-veo',
+        'luma-dream-machine',
+        'runway-gen3',
+      ],
       videoDurationLimit: 60,
       storageLimit: 100, // 100 GB
       maxProjects: -1, // Unlimited
       maxCharacters: -1, // Unlimited
       maxScenes: -1, // Unlimited
-      exportFormats: ['pdf', 'fdx', 'fountain', 'production-package', 'white-label']
-    }
-  }
+      exportFormats: ['pdf', 'fdx', 'fountain', 'production-package', 'white-label'],
+    },
+  },
 };
 
 // Current User State (Mock)
@@ -84,7 +110,7 @@ export const setUserTier = (tier: SubscriptionTier) => {
 
 export const deductCredits = (amount: number): boolean => {
   if (currentUser.tier === 'free') return true; // Free tier doesn't use credits
-  
+
   if (currentUser.credits >= amount) {
     currentUser.credits -= amount;
     return true;

@@ -1,8 +1,8 @@
-import type { 
-  ImageProvider, 
-  VideoProvider, 
+import type {
+  ImageProvider,
+  VideoProvider,
   AutoSelectionCriteria,
-  ProviderStatus 
+  ProviderStatus,
 } from '../../types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -21,13 +21,15 @@ interface ProviderConfig {
 // Provider configurations
 // NEW ORDER: ComfyUI is now Tier 1 (best for Face ID, LoRA, unlimited)
 const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = {
-  'comfyui': {
+  comfyui: {
     displayName: 'ComfyUI + LoRA (Recommended)',
     checkQuota: async () => undefined, // No quota for local
     checkAvailability: async () => {
       if (!COMFYUI_ENABLED) return false;
       try {
-        const response = await fetch(`${COMFYUI_API_URL}/system_stats`, { signal: AbortSignal.timeout(3000) });
+        const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
+          signal: AbortSignal.timeout(3000),
+        });
         return response.ok;
       } catch {
         return false;
@@ -35,7 +37,7 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     },
     speed: 'medium', // Updated from 'slow' - modern GPUs are fast
     quality: 'excellent',
-    estimatedTime: '15-30s' // Updated from 30-60s
+    estimatedTime: '15-30s', // Updated from 30-60s
   },
   'gemini-2.5': {
     displayName: 'Gemini 2.5 Flash Image',
@@ -53,7 +55,7 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => !!GEMINI_API_KEY,
     speed: 'fast',
     quality: 'excellent',
-    estimatedTime: '5-10s'
+    estimatedTime: '5-10s',
   },
   'gemini-2.0': {
     displayName: 'Gemini 2.0 Flash Exp',
@@ -70,7 +72,7 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => !!GEMINI_API_KEY,
     speed: 'fast',
     quality: 'excellent',
-    estimatedTime: '5-10s'
+    estimatedTime: '5-10s',
   },
   'stable-diffusion': {
     displayName: 'Stable Diffusion (Pollinations.ai)',
@@ -78,9 +80,12 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => {
       try {
         // Test with a simple request (ใช้ HEAD request)
-        const response = await fetch('https://image.pollinations.ai/prompt/test?width=64&height=64&nologo=true', {
-          method: 'HEAD'
-        });
+        const response = await fetch(
+          'https://image.pollinations.ai/prompt/test?width=64&height=64&nologo=true',
+          {
+            method: 'HEAD',
+          }
+        );
         return response.ok;
       } catch {
         return true; // Assume available if HEAD fails (CORS บล็อก HEAD แต่ GET ได้)
@@ -88,8 +93,8 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     },
     speed: 'fast',
     quality: 'excellent',
-    estimatedTime: '3-8s'
-  }
+    estimatedTime: '3-8s',
+  },
 };
 
 const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = {
@@ -102,7 +107,7 @@ const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => !!GEMINI_API_KEY,
     speed: 'medium',
     quality: 'excellent',
-    estimatedTime: '60-120s'
+    estimatedTime: '60-120s',
   },
   'comfyui-svd': {
     displayName: 'ComfyUI + SVD + LoRA (Local)',
@@ -118,8 +123,8 @@ const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = 
     },
     speed: 'slow',
     quality: 'excellent',
-    estimatedTime: '120-300s'
-  }
+    estimatedTime: '120-300s',
+  },
 };
 
 /**
@@ -134,27 +139,25 @@ export async function getProviderStatus(
       provider: 'auto',
       displayName: 'Auto Selection',
       available: true,
-      lastChecked: new Date()
+      lastChecked: new Date(),
     };
   }
 
-  const config = type === 'image' 
-    ? IMAGE_PROVIDERS[provider as Exclude<ImageProvider, 'auto'>]
-    : VIDEO_PROVIDERS[provider as Exclude<VideoProvider, 'auto'>];
+  const config =
+    type === 'image'
+      ? IMAGE_PROVIDERS[provider as Exclude<ImageProvider, 'auto'>]
+      : VIDEO_PROVIDERS[provider as Exclude<VideoProvider, 'auto'>];
 
   if (!config) {
     return {
       provider,
       displayName: provider,
       available: false,
-      lastChecked: new Date()
+      lastChecked: new Date(),
     };
   }
 
-  const [quota, available] = await Promise.all([
-    config.checkQuota(),
-    config.checkAvailability()
-  ]);
+  const [quota, available] = await Promise.all([config.checkQuota(), config.checkAvailability()]);
 
   return {
     provider,
@@ -164,7 +167,7 @@ export async function getProviderStatus(
     speed: config.speed,
     quality: config.quality,
     estimatedTime: config.estimatedTime,
-    lastChecked: new Date()
+    lastChecked: new Date(),
   };
 }
 
@@ -244,32 +247,31 @@ export async function selectProvider(
     const status = await getProviderStatus(userPreference, type);
     return {
       provider: userPreference,
-      displayName: status.displayName
+      displayName: status.displayName,
     };
   }
 
   // Auto-selection: get all statuses and recommend
   // NEW ORDER: ComfyUI first, then Gemini, then Pollinations
-  const providers = type === 'image'
-    ? (['comfyui', 'gemini-2.5', 'gemini-2.0', 'stable-diffusion'] as ImageProvider[])
-    : (['comfyui-svd', 'gemini-veo'] as VideoProvider[]);
+  const providers =
+    type === 'image'
+      ? (['comfyui', 'gemini-2.5', 'gemini-2.0', 'stable-diffusion'] as ImageProvider[])
+      : (['comfyui-svd', 'gemini-veo'] as VideoProvider[]);
 
-  const statuses = await Promise.all(
-    providers.map(p => getProviderStatus(p, type))
-  );
+  const statuses = await Promise.all(providers.map(p => getProviderStatus(p, type)));
 
   const recommended = getRecommendedProvider(statuses, criteria);
 
   if (recommended) {
     return {
       provider: recommended.provider,
-      displayName: recommended.displayName
+      displayName: recommended.displayName,
     };
   }
 
   // Fallback to first provider
   return {
     provider: providers[0],
-    displayName: statuses[0]?.displayName || providers[0]
+    displayName: statuses[0]?.displayName || providers[0],
   };
 }

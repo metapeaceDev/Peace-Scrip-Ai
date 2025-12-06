@@ -28,12 +28,12 @@ Peace Script is a professional AI-assisted screenwriting and pre-production tool
 
 Peace Script AI offers flexible pricing tiers for every creator:
 
-| Plan | Price | Best For | Key Features |
-|------|-------|----------|--------------|
-| **FREE** | ฿0/เดือน | Students, Hobbyists | 1 project, 3 characters, 9 scenes, 500MB storage |
-| **BASIC** | **฿299/เดือน** ⭐ | Indie Filmmakers | 5 projects, 100 credits, Premium AI models |
-| **PRO** | **฿999/เดือน** | Production Houses | Unlimited projects, 500 credits, All features |
-| **ENTERPRISE** | Custom | Studios, Organizations | Custom quotas, On-premise, White label |
+| Plan           | Price             | Best For               | Key Features                                     |
+| -------------- | ----------------- | ---------------------- | ------------------------------------------------ |
+| **FREE**       | ฿0/เดือน          | Students, Hobbyists    | 1 project, 3 characters, 9 scenes, 500MB storage |
+| **BASIC**      | **฿299/เดือน** ⭐ | Indie Filmmakers       | 5 projects, 100 credits, Premium AI models       |
+| **PRO**        | **฿999/เดือน**    | Production Houses      | Unlimited projects, 500 credits, All features    |
+| **ENTERPRISE** | Custom            | Studios, Organizations | Custom quotas, On-premise, White label           |
 
 **💡 Early Bird:** Get 50% OFF for the first year!
 
@@ -42,11 +42,13 @@ Peace Script AI offers flexible pricing tiers for every creator:
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - React 18, TypeScript, Vite, Tailwind CSS
 - Firebase (Hosting, Firestore, Storage, Auth)
 - IndexedDB for offline support
 
 ### Backend Services
+
 - **ComfyUI Microservice** (Node.js + Express + Bull + Redis)
   - Queue management with Bull
   - Worker pool management
@@ -55,6 +57,7 @@ Peace Script AI offers flexible pricing tiers for every creator:
   - Docker deployment ready
 
 ### AI Providers
+
 - Google Gemini 2.5 Flash (text generation)
 - Google Gemini 2.5/2.0 Flash Image (image generation)
 - Stable Diffusion XL via Pollinations.ai (fallback)
@@ -64,18 +67,22 @@ Peace Script AI offers flexible pricing tiers for every creator:
 ## 📦 Getting Started
 
 ### 1. Clone the repository
+
 ```bash
 git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
 cd Peace-Scrip-Ai
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Environment Setup
+
 Create `.env.local` file:
+
 ```env
 # Firebase Configuration
 VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -111,6 +118,7 @@ VITE_REPLICATE_URL=https://api.replicate.com
 5. เลือก "Google Colab Pro+" ใน DeviceSettings
 
 **ประโยชน์**:
+
 - ⚡ A100 GPU เร็วกว่าเครื่องตัวเอง 5-10 เท่า
 - 💰 คุ้มค่า ~$0.008/รูป (ถูกกว่า RunPod)
 - 🔋 ประหยัดไฟบ้าน ไม่กินทรัพยากรเครื่อง
@@ -121,6 +129,7 @@ VITE_REPLICATE_URL=https://api.replicate.com
 See [comfyui-service/QUICKSTART.md](./comfyui-service/QUICKSTART.md) for detailed backend setup.
 
 Quick setup:
+
 ```bash
 # One-command setup
 ./setup-dev.sh
@@ -146,11 +155,13 @@ Frontend: http://localhost:5173
 Backend API: http://localhost:8000
 
 ### 6. Build for Production
+
 ```bash
 npm run build
 ```
 
 ### 7. Deploy to Firebase
+
 ```bash
 firebase login
 firebase init hosting
@@ -174,6 +185,7 @@ The ComfyUI Backend Service provides scalable, server-side image generation with
 See [comfyui-service/README.md](./comfyui-service/README.md) for deployment instructions.
 
 **Benefits**:
+
 - No user-side installation required
 - Multi-worker GPU pool with load balancing
 - Queue system with auto-retry
@@ -183,6 +195,7 @@ See [comfyui-service/README.md](./comfyui-service/README.md) for deployment inst
 - Cinematic & Thai movie style transfer
 
 **Quick Start (Backend Service)**:
+
 ```bash
 cd comfyui-service
 npm install
@@ -193,6 +206,7 @@ npm run dev
 ## 🔧 Architecture
 
 ### System Overview
+
 ```
 ┌─────────────┐      ┌──────────────────┐      ┌─────────────┐
 │   React     │─────▶│  ComfyUI Service │─────▶│  ComfyUI    │
@@ -207,6 +221,7 @@ npm run dev
 ```
 
 ### Image Generation Flow (New Architecture)
+
 ```
 User Request
     ↓
@@ -236,21 +251,25 @@ Return base64 image to Frontend
 ```
 
 ### Legacy ComfyUI Flow (Deprecated)
+
 ```
 ⚠️ Local ComfyUI installation is deprecated
 ✅ Use VITE_USE_COMFYUI_BACKEND=true instead
 ```
+
     ↓ AUTO-CHECK every 10s
-  User installs ComfyUI
-    ↓ RUNNING
+
+User installs ComfyUI
+↓ RUNNING
 Check LoRA Models (/system_stats API)
-    ↓ MISSING REQUIRED
-  Show LoRASetup.tsx Modal
-    ↓ TRY AUTO-DOWNLOAD or MANUAL
-  User installs LoRA models
-    ↓ ALL INSTALLED
+↓ MISSING REQUIRED
+Show LoRASetup.tsx Modal
+↓ TRY AUTO-DOWNLOAD or MANUAL
+User installs LoRA models
+↓ ALL INSTALLED
 Proceed to AuthPage → App
-```
+
+````
 
 ### Storage Architecture
 - **Small Data** (<1MB): Firestore documents
@@ -279,9 +298,10 @@ npm run docker:redis
 
 # Check logs
 npm run dev:backend
-```
+````
 
 ### Frontend Can't Connect to Backend
+
 ```bash
 # Verify backend URL in .env.local
 cat .env.local | grep COMFYUI_SERVICE
@@ -291,17 +311,21 @@ curl http://localhost:8000/health
 ```
 
 ### Quota Exceeded Error
+
 The app handles this automatically via cascade fallback. If all tiers fail:
+
 1. Wait 24 hours for quota reset
 2. Enable ComfyUI backend for unlimited generation
 3. Upgrade Gemini API: https://ai.google.dev/pricing
 
 ### Images Not Loading
+
 - Check browser console for CORS errors
 - Verify Firebase Storage rules allow read access
 - Check if images are stored correctly in Storage
 
 ### Build Errors
+
 ```bash
 # Clear cache and rebuild
 rm -rf node_modules dist .vite
@@ -343,4 +367,3 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 - Repository: https://github.com/metapeaceDev/Peace-Scrip-Ai
 - Live Demo: https://peace-script-ai.web.app
-

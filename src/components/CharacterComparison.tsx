@@ -13,16 +13,19 @@ interface CharacterComparisonProps {
   onClose: () => void;
 }
 
-export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ characters, onClose }) => {
+export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
+  characters,
+  onClose,
+}) => {
   const testEvent = {
     description: 'มีคนดุด่าและดูถูกคุณต่อหน้าคนอื่น',
-    intensity: 7
+    intensity: 7,
   };
 
   const profiles = characters.map(char => ({
     character: char,
     profile: calculatePsychologyProfile(char),
-    reaction: calculateReaction(char, testEvent.description, testEvent.intensity)
+    reaction: calculateReaction(char, testEvent.description, testEvent.intensity),
   }));
 
   // Sort by Mental Balance
@@ -38,11 +41,23 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
   const getReactionBadge = (type: string) => {
     switch (type) {
       case 'wholesome':
-        return <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded border border-green-500/50">✨ WHOLESOME</span>;
+        return (
+          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded border border-green-500/50">
+            ✨ WHOLESOME
+          </span>
+        );
       case 'unwholesome':
-        return <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded border border-red-500/50">⚠️ UNWHOLESOME</span>;
+        return (
+          <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded border border-red-500/50">
+            ⚠️ UNWHOLESOME
+          </span>
+        );
       default:
-        return <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded border border-yellow-500/50">🤔 NEUTRAL</span>;
+        return (
+          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded border border-yellow-500/50">
+            🤔 NEUTRAL
+          </span>
+        );
     }
   };
 
@@ -72,7 +87,9 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
         {/* Test Event Info */}
         <div className="p-4 bg-purple-500/10 border-b border-purple-500/30">
           <div className="text-xs uppercase tracking-wider text-purple-400 mb-1">Test Event</div>
-          <div className="text-sm text-white">"{testEvent.description}" (Intensity: {testEvent.intensity}/10)</div>
+          <div className="text-sm text-white">
+            "{testEvent.description}" (Intensity: {testEvent.intensity}/10)
+          </div>
         </div>
 
         {/* Comparison Grid */}
@@ -85,31 +102,34 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
               >
                 {/* Rank Badge */}
                 <div className="absolute top-2 left-2 z-10">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
-                    index === 0 ? 'bg-yellow-500 text-black' :
-                    index === 1 ? 'bg-gray-300 text-black' :
-                    index === 2 ? 'bg-orange-600 text-white' :
-                    'bg-gray-600 text-white'
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                      index === 0
+                        ? 'bg-yellow-500 text-black'
+                        : index === 1
+                          ? 'bg-gray-300 text-black'
+                          : index === 2
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-600 text-white'
+                    }`}
+                  >
                     {index + 1}
                   </div>
                 </div>
 
                 {/* Character Header */}
-                <div className={`bg-gradient-to-r ${getBalanceColor(profile.mentalBalance)} p-4 relative`}>
-                  <div className="text-lg font-black text-white mb-1 pr-10">
-                    {character.name}
-                  </div>
-                  <div className="text-xs text-white/80">
-                    {character.role || 'Unknown Role'}
-                  </div>
+                <div
+                  className={`bg-gradient-to-r ${getBalanceColor(profile.mentalBalance)} p-4 relative`}
+                >
+                  <div className="text-lg font-black text-white mb-1 pr-10">{character.name}</div>
+                  <div className="text-xs text-white/80">{character.role || 'Unknown Role'}</div>
                 </div>
 
                 {/* Profile Image */}
                 {character.image && (
                   <div className="relative h-32 bg-gray-900 overflow-hidden">
-                    <img 
-                      src={character.image} 
+                    <img
+                      src={character.image}
                       alt={character.name}
                       className="w-full h-full object-cover"
                     />
@@ -128,10 +148,13 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
                           style={{ width: `${Math.abs(profile.mentalBalance)}%` }}
                         />
                       </div>
-                      <span className={`font-black text-sm w-12 text-right ${
-                        profile.mentalBalance > 0 ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {profile.mentalBalance > 0 ? '+' : ''}{profile.mentalBalance.toFixed(0)}
+                      <span
+                        className={`font-black text-sm w-12 text-right ${
+                          profile.mentalBalance > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}
+                      >
+                        {profile.mentalBalance > 0 ? '+' : ''}
+                        {profile.mentalBalance.toFixed(0)}
                       </span>
                     </div>
                   </div>
@@ -140,11 +163,15 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-cyan-500/10 rounded p-2 border border-cyan-500/30">
                       <div className="text-[10px] text-cyan-400 uppercase mb-1">Consciousness</div>
-                      <div className="text-lg font-black text-cyan-300">{profile.consciousnessScore.toFixed(0)}</div>
+                      <div className="text-lg font-black text-cyan-300">
+                        {profile.consciousnessScore.toFixed(0)}
+                      </div>
                     </div>
                     <div className="bg-red-500/10 rounded p-2 border border-red-500/30">
                       <div className="text-[10px] text-red-400 uppercase mb-1">Defilement</div>
-                      <div className="text-lg font-black text-red-300">{profile.defilementScore.toFixed(0)}</div>
+                      <div className="text-lg font-black text-red-300">
+                        {profile.defilementScore.toFixed(0)}
+                      </div>
                     </div>
                   </div>
 
@@ -156,10 +183,10 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
 
                   {/* Reaction */}
                   <div className="pt-2 border-t border-gray-700">
-                    <div className="text-[10px] text-gray-400 uppercase mb-2">Reaction to Test Event</div>
-                    <div className="mb-2">
-                      {getReactionBadge(reaction.reactionType)}
+                    <div className="text-[10px] text-gray-400 uppercase mb-2">
+                      Reaction to Test Event
                     </div>
+                    <div className="mb-2">{getReactionBadge(reaction.reactionType)}</div>
                     <div className="text-xs text-gray-300 leading-relaxed">
                       <span className="font-bold text-cyan-400">{reaction.emotionalTone}</span>
                     </div>
@@ -241,7 +268,9 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({ charac
 
           {/* Testing Insights */}
           <div className="mt-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
-            <div className="text-xs uppercase tracking-wider text-cyan-400 mb-2">💡 Testing Insights</div>
+            <div className="text-xs uppercase tracking-wider text-cyan-400 mb-2">
+              💡 Testing Insights
+            </div>
             <div className="text-sm text-gray-300 space-y-1">
               <p>• ตัวละครที่มี Mental Balance ต่างกัน 50+ คะแนน ควรแสดงพฤติกรรมแตกต่างชัดเจน</p>
               <p>• ตัวละคร Virtuous (สีเขียว) มักมี Wholesome Reactions</p>

@@ -20,7 +20,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
     totalRevenue: 0,
     totalPaid: 0,
     totalPending: 0,
-    memberAllocations: {}
+    memberAllocations: {},
   });
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
       const paymentsRef = collection(db, 'payments');
       const q = query(paymentsRef, where('projectId', '==', projectId));
       const snapshot = await getDocs(q);
-      
+
       const loadedPayments: Payment[] = [];
       snapshot.forEach(doc => {
         loadedPayments.push({ id: doc.id, ...doc.data() } as Payment);
@@ -70,7 +70,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
         totalRevenue,
         totalPaid,
         totalPending,
-        memberAllocations: allocations
+        memberAllocations: allocations,
       });
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -82,7 +82,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
-      currency: 'THB'
+      currency: 'THB',
     }).format(amount);
   };
 
@@ -113,13 +113,16 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
           <div className="text-sm opacity-90 mb-1">จ่ายแล้ว</div>
           <div className="text-3xl font-bold">{formatCurrency(summary.totalPaid)}</div>
           <div className="text-xs opacity-75 mt-2">
-            {summary.totalRevenue > 0 ? `${getPaymentProgress().toFixed(1)}%` : '0%'} ของรายได้ทั้งหมด
+            {summary.totalRevenue > 0 ? `${getPaymentProgress().toFixed(1)}%` : '0%'}{' '}
+            ของรายได้ทั้งหมด
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
           <div className="text-sm opacity-90 mb-1">ค้างจ่าย</div>
-          <div className="text-3xl font-bold">{formatCurrency(summary.totalRevenue - summary.totalPaid)}</div>
+          <div className="text-3xl font-bold">
+            {formatCurrency(summary.totalRevenue - summary.totalPaid)}
+          </div>
           <div className="text-xs opacity-75 mt-2">รอการจ่ายเงิน</div>
         </div>
       </div>
@@ -128,10 +131,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-medium text-gray-700">ความคืบหน้าการจ่ายเงิน</span>
-          <span className="text-sm font-bold text-blue-600">{getPaymentProgress().toFixed(1)}%</span>
+          <span className="text-sm font-bold text-blue-600">
+            {getPaymentProgress().toFixed(1)}%
+          </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
-          <div 
+          <div
             className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
             style={{ width: `${getPaymentProgress()}%` }}
           ></div>
@@ -147,12 +152,18 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
           <div className="space-y-4">
             {members.map(member => {
               const allocation = summary.memberAllocations[member.id] || 0;
-              const memberPayments = payments.filter(p => p.memberId === member.id && p.status === 'completed');
+              const memberPayments = payments.filter(
+                p => p.memberId === member.id && p.status === 'completed'
+              );
               const paidAmount = memberPayments.reduce((sum, p) => sum + p.amount, 0);
-              const percentage = summary.totalRevenue > 0 ? (allocation / summary.totalRevenue) * 100 : 0;
+              const percentage =
+                summary.totalRevenue > 0 ? (allocation / summary.totalRevenue) * 100 : 0;
 
               return (
-                <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                >
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
                       {member.name.charAt(0)}
@@ -172,9 +183,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
               );
             })}
             {members.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                ยังไม่มีสมาชิกในทีม
-              </div>
+              <div className="text-center py-8 text-gray-500">ยังไม่มีสมาชิกในทีม</div>
             )}
           </div>
         </div>
@@ -184,12 +193,22 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
       {members.length > 0 && summary.totalRevenue === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 text-yellow-600 mt-0.5 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
             </svg>
             <div>
               <h4 className="text-sm font-medium text-yellow-800 mb-1">ยังไม่มีการกำหนดรายได้</h4>
-              <p className="text-sm text-yellow-700">กรุณากำหนดส่วนแบ่งรายได้ให้กับสมาชิกในทีมเพื่อเริ่มติดตามรายได้</p>
+              <p className="text-sm text-yellow-700">
+                กรุณากำหนดส่วนแบ่งรายได้ให้กับสมาชิกในทีมเพื่อเริ่มติดตามรายได้
+              </p>
             </div>
           </div>
         </div>
@@ -206,13 +225,20 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
               {payments.slice(0, 5).map(payment => {
                 const member = members.find(m => m.id === payment.memberId);
                 return (
-                  <div key={payment.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                  >
                     <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${
-                        payment.status === 'completed' ? 'bg-green-500' : 
-                        payment.status === 'pending' ? 'bg-yellow-500' : 
-                        'bg-red-500'
-                      }`}></div>
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          payment.status === 'completed'
+                            ? 'bg-green-500'
+                            : payment.status === 'pending'
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                        }`}
+                      ></div>
                       <div>
                         <div className="font-medium text-gray-900">{member?.name || 'Unknown'}</div>
                         <div className="text-sm text-gray-500">
@@ -221,7 +247,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-gray-900">{formatCurrency(payment.amount)}</div>
+                      <div className="font-bold text-gray-900">
+                        {formatCurrency(payment.amount)}
+                      </div>
                       <div className="text-xs text-gray-500 capitalize">{payment.method}</div>
                     </div>
                   </div>
@@ -239,7 +267,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
           <div className="space-y-3">
             {members.map((member, index) => {
               const allocation = summary.memberAllocations[member.id] || 0;
-              const percentage = summary.totalRevenue > 0 ? (allocation / summary.totalRevenue) * 100 : 0;
+              const percentage =
+                summary.totalRevenue > 0 ? (allocation / summary.totalRevenue) * 100 : 0;
               const colors = [
                 'from-blue-400 to-blue-600',
                 'from-green-400 to-green-600',
@@ -257,7 +286,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
                     <span className="text-gray-600">{percentage.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className={`bg-gradient-to-r ${color} h-2 rounded-full transition-all duration-500`}
                       style={{ width: `${percentage}%` }}
                     ></div>

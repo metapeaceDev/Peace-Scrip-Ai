@@ -1,6 +1,6 @@
 /**
  * Checkout Page
- * 
+ *
  * Handles subscription payment flow
  */
 
@@ -12,7 +12,7 @@ import {
   confirmPayment,
   validatePromoCode,
   SUBSCRIPTION_PRICES,
-  PAYMENT_PROVIDERS
+  PAYMENT_PROVIDERS,
 } from '../services/paymentService';
 
 interface CheckoutPageProps {
@@ -26,7 +26,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   tier,
   billingCycle,
   onSuccess,
-  onCancel
+  onCancel,
 }) => {
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
@@ -37,14 +37,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const pricing = calculatePrice(tier, billingCycle, {
     applyEarlyBird: true,
-    promoCode: promoApplied ? promoCode : undefined
+    promoCode: promoApplied ? promoCode : undefined,
   });
 
   const handleApplyPromo = async () => {
     if (!promoCode) return;
-    
+
     const validation = await validatePromoCode(promoCode);
-    
+
     if (validation.valid && validation.discount) {
       setPromoApplied(true);
       setPromoDiscount(validation.discount);
@@ -61,21 +61,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     try {
       // Step 1: Create payment intent
-      const intent = await createPaymentIntent(
-        tier,
-        billingCycle,
-        paymentMethod,
-        {
-          userId: 'user123', // TODO: Get from auth context
-          email: 'user@example.com', // TODO: Get from auth context
-          promoCode: promoApplied ? promoCode : undefined
-        }
-      );
+      const intent = await createPaymentIntent(tier, billingCycle, paymentMethod, {
+        userId: 'user123', // TODO: Get from auth context
+        email: 'user@example.com', // TODO: Get from auth context
+        promoCode: promoApplied ? promoCode : undefined,
+      });
 
       // Step 2: Open payment provider UI (Stripe/Omise)
       // TODO: Integrate actual payment UI
       console.log('Opening payment UI for intent:', intent.id);
-      
+
       // Mock payment success after 2 seconds
       await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -102,41 +97,42 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">ชำระเงิน</h1>
         <p className="text-gray-600">
-          แพ็กเกจ {SUBSCRIPTION_PRICES[tier]?.tier.toUpperCase()} - {billingCycle === 'monthly' ? 'รายเดือน' : 'รายปี'}
+          แพ็กเกจ {SUBSCRIPTION_PRICES[tier]?.tier.toUpperCase()} -{' '}
+          {billingCycle === 'monthly' ? 'รายเดือน' : 'รายปี'}
         </p>
       </div>
 
       {/* Order Summary */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <h2 className="text-xl font-bold">สรุปคำสั่งซื้อ</h2>
-        
+
         <div className="space-y-2">
           <div className="flex justify-between">
             <span>ราคาต่อ{billingCycle === 'monthly' ? 'เดือน' : 'ปี'}</span>
             <span>฿{pricing.basePrice.toLocaleString()}</span>
           </div>
-          
+
           {pricing.discount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>ส่วนลด Early Bird 50%</span>
               <span>-฿{pricing.discount.toLocaleString()}</span>
             </div>
           )}
-          
+
           {promoApplied && promoDiscount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>ส่วนลดโปรโมชั่น ({promoCode})</span>
               <span>-฿{promoDiscount.toLocaleString()}</span>
             </div>
           )}
-          
+
           {billingCycle === 'yearly' && (
             <div className="flex justify-between text-blue-600">
               <span>ประหยัด (ฟรี 2 เดือน)</span>
               <span>฿{(SUBSCRIPTION_PRICES[tier].monthlyPrice * 2).toLocaleString()}</span>
             </div>
           )}
-          
+
           <div className="border-t pt-2 flex justify-between text-xl font-bold">
             <span>รวมทั้งหมด</span>
             <span className="text-purple-600">฿{pricing.totalPrice.toLocaleString()}</span>
@@ -147,17 +143,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       {/* Promo Code */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <h2 className="text-lg font-bold">รหัสโปรโมชั่น</h2>
-        
+
         <div className="flex gap-2">
           <input
             type="text"
             value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            onChange={e => setPromoCode(e.target.value.toUpperCase())}
             placeholder="ใส่รหัสโปรโมชั่น"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
             disabled={promoApplied}
           />
-          
+
           {!promoApplied ? (
             <button
               onClick={handleApplyPromo}
@@ -178,18 +174,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </button>
           )}
         </div>
-        
-        {promoApplied && (
-          <p className="text-green-600 text-sm">✓ ใช้รหัสโปรโมชั่นสำเร็จ!</p>
-        )}
+
+        {promoApplied && <p className="text-green-600 text-sm">✓ ใช้รหัสโปรโมชั่นสำเร็จ!</p>}
       </div>
 
       {/* Payment Method */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <h2 className="text-lg font-bold">วิธีการชำระเงิน</h2>
-        
+
         <div className="space-y-2">
-          {PAYMENT_PROVIDERS.map((provider) => (
+          {PAYMENT_PROVIDERS.map(provider => (
             <label
               key={provider.id}
               className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer ${
@@ -203,7 +197,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 name="payment-method"
                 value={provider.id}
                 checked={paymentMethod === provider.id}
-                onChange={(e) => setPaymentMethod(e.target.value as 'stripe' | 'omise')}
+                onChange={e => setPaymentMethod(e.target.value as 'stripe' | 'omise')}
                 disabled={!provider.available}
               />
               <div className="flex-1">
@@ -220,9 +214,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">{error}</div>
       )}
 
       {/* Action Buttons */}
@@ -234,7 +226,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         >
           ยกเลิก
         </button>
-        
+
         <button
           onClick={handlePayment}
           className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"

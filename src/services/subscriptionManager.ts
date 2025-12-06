@@ -1,6 +1,6 @@
 /**
  * Subscription Manager Service
- * 
+ *
  * จัดการระบบ subscription, usage tracking และ quota validation
  * ตรวจสอบการใช้งานตามแผนที่ผู้ใช้เลือก
  */
@@ -134,7 +134,7 @@ export async function getUserSubscription(userId: string): Promise<UsageRecord> 
 
     if (docSnap.exists()) {
       const data = docSnap.data() as UsageRecord;
-      
+
       // Check if monthly reset is needed
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
       if (data.monthlyUsage.month !== currentMonth) {
@@ -142,7 +142,7 @@ export async function getUserSubscription(userId: string): Promise<UsageRecord> 
         await resetMonthlyCredits(userId, data.subscription.tier);
         return getUserSubscription(userId); // Get updated data
       }
-      
+
       return data;
     } else {
       // Create new free subscription for new user
@@ -280,10 +280,7 @@ export async function checkQuota(
 
       case 'storage': {
         const newStorageTotal = usage.storageUsed + (action.details?.size || 0);
-        if (
-          features.storageLimit !== -1 &&
-          newStorageTotal > features.storageLimit * 1024
-        ) {
+        if (features.storageLimit !== -1 && newStorageTotal > features.storageLimit * 1024) {
           return {
             allowed: false,
             reason: `พื้นที่เก็บข้อมูลเต็ม (ใช้ ${(newStorageTotal / 1024).toFixed(2)}GB จาก ${features.storageLimit}GB)`,

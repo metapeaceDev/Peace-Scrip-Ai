@@ -15,7 +15,7 @@
     "error": "Error",
     "success": "Success"
   },
-  
+
   "auth": {
     "login": "Log In",
     "logout": "Log Out",

@@ -46,17 +46,14 @@ export const SubscriptionDashboard: React.FC = () => {
       const data = await getUserSubscription(currentUser.uid);
 
       const creditsUsed = data.monthlyUsage.creditsUsed;
-      const creditsTotal = data.subscription.maxCredits === -1 
-        ? Infinity 
-        : data.subscription.maxCredits;
-      
+      const creditsTotal =
+        data.subscription.maxCredits === -1 ? Infinity : data.subscription.maxCredits;
+
       setStats({
         tier: data.subscription.tier,
         creditsUsed,
         creditsTotal,
-        creditsPercentage: creditsTotal === Infinity 
-          ? 0 
-          : (creditsUsed / creditsTotal) * 100,
+        creditsPercentage: creditsTotal === Infinity ? 0 : (creditsUsed / creditsTotal) * 100,
         resetDate: data.monthlyUsage.resetAt,
         usage: {
           projects: data.usage.projectsCreated,
@@ -105,16 +102,11 @@ export const SubscriptionDashboard: React.FC = () => {
       {/* Current Plan Header */}
       <div className="current-plan-header">
         <div className="plan-badge">
-          <span className={`tier-label tier-${stats.tier}`}>
-            {stats.tier.toUpperCase()}
-          </span>
+          <span className={`tier-label tier-${stats.tier}`}>{stats.tier.toUpperCase()}</span>
         </div>
         <h2>แผนปัจจุบัน</h2>
         {stats.tier !== 'enterprise' && (
-          <button 
-            className="upgrade-btn-header"
-            onClick={() => setShowUpgradeModal(true)}
-          >
+          <button className="upgrade-btn-header" onClick={() => setShowUpgradeModal(true)}>
             ⬆️ อัพเกรดแผน
           </button>
         )}
@@ -129,7 +121,7 @@ export const SubscriptionDashboard: React.FC = () => {
           </span>
         </div>
         <div className="credits-bar-container">
-          <div 
+          <div
             className={`credits-bar ${stats.creditsPercentage > 80 ? 'warning' : ''}`}
             style={{ width: `${Math.min(stats.creditsPercentage, 100)}%` }}
           />
@@ -139,8 +131,8 @@ export const SubscriptionDashboard: React.FC = () => {
             <span>Unlimited Credits</span>
           ) : (
             <span>
-              ใช้ไป {stats.creditsUsed} / {stats.creditsTotal} credits 
-              ({stats.creditsPercentage.toFixed(0)}%)
+              ใช้ไป {stats.creditsUsed} / {stats.creditsTotal} credits (
+              {stats.creditsPercentage.toFixed(0)}%)
             </span>
           )}
         </div>
@@ -160,12 +152,7 @@ export const SubscriptionDashboard: React.FC = () => {
           current={stats.usage.characters}
           max={stats.usage.maxCharacters}
         />
-        <UsageCard
-          icon="🎬"
-          label="ซีน"
-          current={stats.usage.scenes}
-          max={stats.usage.maxScenes}
-        />
+        <UsageCard icon="🎬" label="ซีน" current={stats.usage.scenes} max={stats.usage.maxScenes} />
         <UsageCard
           icon="💾"
           label="พื้นที่"
@@ -179,17 +166,18 @@ export const SubscriptionDashboard: React.FC = () => {
       <div className="features-section">
         <h3>✨ คุณสมบัติของแผนปัจจุบัน</h3>
         <div className="features-list">
-          {SUBSCRIPTION_PLANS[stats.tier].features.allowedImageModels.map((model) => (
+          {SUBSCRIPTION_PLANS[stats.tier].features.allowedImageModels.map(model => (
             <div key={model} className="feature-item">
               ✓ {model} Image Generation
             </div>
           ))}
           {SUBSCRIPTION_PLANS[stats.tier].features.allowedVideoModels.length > 0 && (
             <div className="feature-item">
-              ✓ Video Generation (สูงสุด {SUBSCRIPTION_PLANS[stats.tier].features.videoDurationLimit}s)
+              ✓ Video Generation (สูงสุด{' '}
+              {SUBSCRIPTION_PLANS[stats.tier].features.videoDurationLimit}s)
             </div>
           )}
-          {SUBSCRIPTION_PLANS[stats.tier].features.exportFormats.map((format) => (
+          {SUBSCRIPTION_PLANS[stats.tier].features.exportFormats.map(format => (
             <div key={format} className="feature-item">
               ✓ Export {format.toUpperCase()}
             </div>
@@ -200,14 +188,14 @@ export const SubscriptionDashboard: React.FC = () => {
       {/* Upgrade Modal */}
       {showUpgradeModal && (
         <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>เลือกแผนที่เหมาะกับคุณ</h2>
               <button onClick={() => setShowUpgradeModal(false)}>✕</button>
             </div>
             <div className="plans-grid">
-              {plans.map((plan) => (
-                <div 
+              {plans.map(plan => (
+                <div
                   key={plan.tier}
                   className={`plan-card ${plan.recommended ? 'recommended' : ''} ${
                     plan.tier === stats.tier ? 'current' : ''
@@ -215,16 +203,16 @@ export const SubscriptionDashboard: React.FC = () => {
                 >
                   {plan.recommended && <div className="recommended-badge">แนะนำ</div>}
                   {plan.tier === stats.tier && <div className="current-badge">ปัจจุบัน</div>}
-                  
+
                   <h3>{plan.name}</h3>
                   <div className="plan-price">{plan.price}</div>
-                  
+
                   <ul className="plan-features">
                     {plan.features.map((feature, idx) => (
                       <li key={idx}>✓ {feature}</li>
                     ))}
                   </ul>
-                  
+
                   {plan.tier !== stats.tier && (
                     <button
                       className="select-plan-btn"
@@ -280,7 +268,7 @@ const UsageCard: React.FC<UsageCardProps> = ({ icon, label, current, max, unit =
       </div>
       {!isUnlimited && (
         <div className="usage-bar-mini">
-          <div 
+          <div
             className={`usage-bar-fill ${percentage > 80 ? 'warning' : ''}`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           />

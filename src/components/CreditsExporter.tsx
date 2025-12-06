@@ -17,16 +17,16 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
 
   const getCategorizedMembers = () => {
     if (category === 'all') return members;
-    
+
     const categoryKeywords: { [key in Exclude<CreditCategory, 'all'>]: string[] } = {
       production: ['producer', 'director', 'production', 'โปรดิวเซอร์', 'ผู้กำกับ'],
       creative: ['writer', 'designer', 'art', 'นักเขียน', 'ดีไซเนอร์', 'ศิลป์'],
-      technical: ['developer', 'engineer', 'technical', 'นักพัฒนา', 'วิศวกร', 'เทคนิค']
+      technical: ['developer', 'engineer', 'technical', 'นักพัฒนา', 'วิศวกร', 'เทคนิค'],
     };
 
     return members.filter(member => {
       const role = member.role.toLowerCase();
-      return categoryKeywords[category as Exclude<CreditCategory, 'all'>].some(keyword => 
+      return categoryKeywords[category as Exclude<CreditCategory, 'all'>].some(keyword =>
         role.includes(keyword.toLowerCase())
       );
     });
@@ -55,7 +55,7 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
 
   const generateHTMLCredits = () => {
     const filteredMembers = getCategorizedMembers();
-    
+
     return `<!DOCTYPE html>
 <html lang="th">
 <head>
@@ -168,15 +168,22 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
       <p>Film Credits</p>
     </div>
     <div class="credits">
-      ${filteredMembers.map(member => `
+      ${filteredMembers
+        .map(
+          member => `
         <div class="credit-item">
           <div class="role">${member.role}</div>
           <div class="name">${member.name}</div>
           ${member.email ? `<div class="contact">📧 ${member.email}</div>` : ''}
-          ${includeRevenue && member.revenueShare ? 
-            `<div class="revenue">💰 ฿${member.revenueShare.toLocaleString('th-TH')}</div>` : ''}
+          ${
+            includeRevenue && member.revenueShare
+              ? `<div class="revenue">💰 ฿${member.revenueShare.toLocaleString('th-TH')}</div>`
+              : ''
+          }
         </div>
-      `).join('')}
+      `
+        )
+        .join('')}
     </div>
     <div class="footer">
       <p>Total: ${filteredMembers.length} Credits</p>
@@ -231,17 +238,15 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
       {/* Export Settings */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">ตั้งค่าการส่งออก</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Project Title */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ชื่อโปรเจค
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อโปรเจค</label>
             <input
               type="text"
               value={customTitle}
-              onChange={(e) => setCustomTitle(e.target.value)}
+              onChange={e => setCustomTitle(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="ชื่อโปรเจค"
             />
@@ -249,12 +254,10 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
 
           {/* Category Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              หมวดหมู่
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">หมวดหมู่</label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value as CreditCategory)}
+              onChange={e => setCategory(e.target.value as CreditCategory)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">ทั้งหมด ({members.length})</option>
@@ -266,12 +269,10 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
 
           {/* Export Format */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              รูปแบบไฟล์
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">รูปแบบไฟล์</label>
             <select
               value={format}
-              onChange={(e) => setFormat(e.target.value as ExportFormat)}
+              onChange={e => setFormat(e.target.value as ExportFormat)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="pdf">PDF (Print)</option>
@@ -286,12 +287,10 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
               <input
                 type="checkbox"
                 checked={includeRevenue}
-                onChange={(e) => setIncludeRevenue(e.target.checked)}
+                onChange={e => setIncludeRevenue(e.target.checked)}
                 className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-sm font-medium text-gray-700">
-                รวมข้อมูลส่วนแบ่งรายได้
-              </span>
+              <span className="text-sm font-medium text-gray-700">รวมข้อมูลส่วนแบ่งรายได้</span>
             </label>
           </div>
         </div>
@@ -305,7 +304,12 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
           >
             <span className="flex items-center justify-center space-x-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               <span>
                 ส่งออก {format.toUpperCase()} ({filteredMembers.length} รายการ)
@@ -321,12 +325,22 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
           <h3 className="text-lg font-semibold text-gray-900">ตัวอย่าง</h3>
           <span className="text-sm text-gray-500">{filteredMembers.length} รายการ</span>
         </div>
-        
+
         <div className="p-6">
           {filteredMembers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-16 h-16 mx-auto mb-4 text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               <p>ไม่มีข้อมูลที่จะแสดง</p>
               <p className="text-sm mt-1">ลองเปลี่ยนหมวดหมู่หรือเพิ่มสมาชิกในทีม</p>
@@ -351,8 +365,16 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          <svg
+            className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
           </svg>
           <div>
             <h4 className="text-sm font-medium text-blue-800 mb-1">เคล็ดลับ</h4>

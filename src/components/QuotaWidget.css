@@ -1,5 +1,21 @@
 /* Quota Widget - Compact Display */
 
+/* Slide down animation for dropdown */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out forwards;
+}
+
 .quota-widget {
   background: white;
   border-radius: 12px;

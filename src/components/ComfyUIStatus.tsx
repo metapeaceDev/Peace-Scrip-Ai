@@ -26,7 +26,11 @@ interface QueueStats {
   delayed: number;
 }
 
-const ComfyUIStatus: React.FC = () => {
+interface ComfyUIStatusProps {
+  compact?: boolean;
+}
+
+const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
   const [isOnline, setIsOnline] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +76,14 @@ const ComfyUIStatus: React.FC = () => {
   };
 
   if (isLoading && !isOnline) {
+    if (compact) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-2 w-2 border border-gray-400 border-t-transparent"></div>
+          <span className="text-gray-500 text-xs">Checking...</span>
+        </div>
+      );
+    }
     return (
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-4">
         <div className="flex items-center gap-3">
@@ -82,6 +94,29 @@ const ComfyUIStatus: React.FC = () => {
     );
   }
 
+  // Compact mode (for header)
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <div className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+        <span className="text-gray-400">ComfyUI:</span>
+        {isOnline ? (
+          <>
+            <span className="text-green-400">Online</span>
+            {workerStats && (
+              <span className="text-gray-500">
+                ({workerStats.healthyWorkers}/{workerStats.totalWorkers})
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-red-400">Offline</span>
+        )}
+      </div>
+    );
+  }
+
+  // Full mode (original)
   return (
     <div className={`border rounded-lg p-4 mb-4 ${
       isOnline ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'

@@ -12,7 +12,7 @@ import {
   type SystemResources,
   type RenderSettings,
   type DeviceType,
-  type CloudProvider
+  type CloudProvider,
 } from '../services/deviceManager';
 import './DeviceSettings.css';
 
@@ -35,7 +35,7 @@ export const DeviceSettings: React.FC = () => {
       setHealth(healthCheck);
 
       // โหลดทรัพยากร
-      const systemRes = healthCheck.resources || await detectSystemResources();
+      const systemRes = healthCheck.resources || (await detectSystemResources());
       setResources(systemRes);
 
       // โหลดการตั้งค่าที่บันทึกไว้ หรือใช้ค่าแนะนำ
@@ -56,7 +56,7 @@ export const DeviceSettings: React.FC = () => {
 
   const handleDeviceChange = (device: DeviceType) => {
     if (!settings || !resources) return;
-    
+
     const newSettings = { ...settings, device };
     setSettings(newSettings);
     saveRenderSettings(newSettings);
@@ -64,7 +64,7 @@ export const DeviceSettings: React.FC = () => {
 
   const handleModeChange = (mode: 'local' | 'cloud' | 'hybrid') => {
     if (!settings) return;
-    
+
     const newSettings = { ...settings, executionMode: mode };
     setSettings(newSettings);
     saveRenderSettings(newSettings);
@@ -72,7 +72,7 @@ export const DeviceSettings: React.FC = () => {
 
   const handleLowVRAMToggle = () => {
     if (!settings) return;
-    
+
     const newSettings = { ...settings, useLowVRAM: !settings.useLowVRAM };
     setSettings(newSettings);
     saveRenderSettings(newSettings);
@@ -80,7 +80,7 @@ export const DeviceSettings: React.FC = () => {
 
   const handleCloudProviderChange = (provider: CloudProvider) => {
     if (!settings) return;
-    
+
     const newSettings = { ...settings, cloudProvider: provider };
     setSettings(newSettings);
     saveRenderSettings(newSettings);
@@ -96,7 +96,7 @@ export const DeviceSettings: React.FC = () => {
 
   return (
     <div className="device-settings-container">
-      <button 
+      <button
         className="device-settings-trigger"
         onClick={() => setIsOpen(!isOpen)}
         title="การตั้งค่าอุปกรณ์ Render"
@@ -106,10 +106,12 @@ export const DeviceSettings: React.FC = () => {
 
       {isOpen && (
         <div className="device-settings-modal-overlay" onClick={() => setIsOpen(false)}>
-          <div className="device-settings-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="device-settings-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>⚙️ การตั้งค่าอุปกรณ์ Render</h2>
-              <button onClick={() => setIsOpen(false)} className="close-btn">✕</button>
+              <button onClick={() => setIsOpen(false)} className="close-btn">
+                ✕
+              </button>
             </div>
 
             {/* ComfyUI Health Status */}
@@ -122,8 +124,8 @@ export const DeviceSettings: React.FC = () => {
               <div className="status-text">
                 <strong>{health?.message || 'ไม่ทราบสถานะ'}</strong>
                 <div className="status-details">
-                  Local: {health?.local ? '✓ พร้อมใช้งาน' : '✗ ไม่พร้อม'} | 
-                  Cloud: {health?.cloud ? '✓ พร้อมใช้งาน' : '✗ ไม่พร้อม'}
+                  Local: {health?.local ? '✓ พร้อมใช้งาน' : '✗ ไม่พร้อม'} | Cloud:{' '}
+                  {health?.cloud ? '✓ พร้อมใช้งาน' : '✗ ไม่พร้อม'}
                 </div>
               </div>
               <button onClick={loadSystemInfo} className="refresh-btn">
@@ -147,7 +149,8 @@ export const DeviceSettings: React.FC = () => {
                   <div className="resource-item">
                     <span className="label">RAM:</span>
                     <span className="value">
-                      {(resources.memory.available / 1024).toFixed(1)} GB / {(resources.memory.total / 1024).toFixed(1)} GB
+                      {(resources.memory.available / 1024).toFixed(1)} GB /{' '}
+                      {(resources.memory.total / 1024).toFixed(1)} GB
                     </span>
                   </div>
                 </div>
@@ -159,7 +162,7 @@ export const DeviceSettings: React.FC = () => {
               <div className="device-selection">
                 <h3>🎮 เลือกอุปกรณ์ Render</h3>
                 <div className="device-grid">
-                  {resources.devices.map((device) => (
+                  {resources.devices.map(device => (
                     <button
                       key={device.type}
                       className={`device-card ${settings.device === device.type ? 'selected' : ''} ${!device.available ? 'disabled' : ''}`}
@@ -183,7 +186,7 @@ export const DeviceSettings: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                
+
                 <div className="estimated-time">
                   ⏱️ เวลาโดยประมาณ: {estimateRenderTime(settings.device, 1)}
                 </div>
@@ -229,61 +232,78 @@ export const DeviceSettings: React.FC = () => {
             )}
 
             {/* Cloud Provider Selection */}
-            {settings && (settings.executionMode === 'cloud' || settings.executionMode === 'hybrid') && (
-              <div className="cloud-provider-selection">
-                <h3>☁️ เลือก Cloud Provider</h3>
-                <p className="hint-text">💡 คุณจ่าย Colab Pro+ แล้ว ใช้ให้คุ้มค่า!</p>
-                <div className="provider-grid">
-                  {getCloudProviders().map((provider) => (
-                    <button
-                      key={provider.id}
-                      className={`provider-card ${settings.cloudProvider === provider.id ? 'selected' : ''} ${!provider.available ? 'disabled' : ''}`}
-                      onClick={() => provider.available && handleCloudProviderChange(provider.id)}
-                      disabled={!provider.available}
-                    >
-                      <div className="provider-icon">
-                        {provider.id === 'colab' && '🎓'}
-                        {provider.id === 'firebase' && '🔥'}
-                        {provider.id === 'runpod' && '🚀'}
-                        {provider.id === 'replicate' && '🔄'}
-                      </div>
-                      <div className="provider-name">{provider.name}</div>
-                      <div className="provider-desc">{provider.description}</div>
-                      <div className="provider-specs">
-                        <div>{provider.speed}</div>
-                        <div>{provider.cost}</div>
-                        <div>GPU: {provider.gpu}</div>
-                      </div>
-                      {provider.id === 'colab' && provider.available && (
-                        <div className="recommended-badge">แนะนำ - คุ้มที่สุด!</div>
-                      )}
-                      {!provider.available && (
-                        <div className="setup-required-badge">
-                          ต้องตั้งค่า {provider.setupRequired ? '(ดูวิธี)' : ''}
+            {settings &&
+              (settings.executionMode === 'cloud' || settings.executionMode === 'hybrid') && (
+                <div className="cloud-provider-selection">
+                  <h3>☁️ เลือก Cloud Provider</h3>
+                  <p className="hint-text">💡 คุณจ่าย Colab Pro+ แล้ว ใช้ให้คุ้มค่า!</p>
+                  <div className="provider-grid">
+                    {getCloudProviders().map(provider => (
+                      <button
+                        key={provider.id}
+                        className={`provider-card ${settings.cloudProvider === provider.id ? 'selected' : ''} ${!provider.available ? 'disabled' : ''}`}
+                        onClick={() => provider.available && handleCloudProviderChange(provider.id)}
+                        disabled={!provider.available}
+                      >
+                        <div className="provider-icon">
+                          {provider.id === 'colab' && '🎓'}
+                          {provider.id === 'firebase' && '🔥'}
+                          {provider.id === 'runpod' && '🚀'}
+                          {provider.id === 'replicate' && '🔄'}
                         </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                
-                {settings.cloudProvider === 'colab' && (
-                  <div className="info-box colab-setup">
-                    <strong>🎓 วิธีตั้งค่า Google Colab Pro+:</strong>
-                    <ol>
-                      <li>เปิด <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer">Google Colab</a></li>
-                      <li>อัพโหลด notebook: <code>comfyui_server.ipynb</code></li>
-                      <li>เปิด GPU: Runtime → Change runtime type → A100 GPU</li>
-                      <li>รัน cell ติดตั้ง ComfyUI</li>
-                      <li>รัน ngrok/cloudflare tunnel</li>
-                      <li>คัดลอก URL มาใส่ใน settings → <code>VITE_COLAB_TUNNEL_URL</code></li>
-                    </ol>
-                    <button className="btn-secondary" onClick={() => window.open('/colab-setup-guide', '_blank')}>
-                      📖 ดูคู่มือเต็ม
-                    </button>
+                        <div className="provider-name">{provider.name}</div>
+                        <div className="provider-desc">{provider.description}</div>
+                        <div className="provider-specs">
+                          <div>{provider.speed}</div>
+                          <div>{provider.cost}</div>
+                          <div>GPU: {provider.gpu}</div>
+                        </div>
+                        {provider.id === 'colab' && provider.available && (
+                          <div className="recommended-badge">แนะนำ - คุ้มที่สุด!</div>
+                        )}
+                        {!provider.available && (
+                          <div className="setup-required-badge">
+                            ต้องตั้งค่า {provider.setupRequired ? '(ดูวิธี)' : ''}
+                          </div>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {settings.cloudProvider === 'colab' && (
+                    <div className="info-box colab-setup">
+                      <strong>🎓 วิธีตั้งค่า Google Colab Pro+:</strong>
+                      <ol>
+                        <li>
+                          เปิด{' '}
+                          <a
+                            href="https://colab.research.google.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Google Colab
+                          </a>
+                        </li>
+                        <li>
+                          อัพโหลด notebook: <code>comfyui_server.ipynb</code>
+                        </li>
+                        <li>เปิด GPU: Runtime → Change runtime type → A100 GPU</li>
+                        <li>รัน cell ติดตั้ง ComfyUI</li>
+                        <li>รัน ngrok/cloudflare tunnel</li>
+                        <li>
+                          คัดลอก URL มาใส่ใน settings → <code>VITE_COLAB_TUNNEL_URL</code>
+                        </li>
+                      </ol>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => window.open('/colab-setup-guide', '_blank')}
+                      >
+                        📖 ดูคู่มือเต็ม
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* Advanced Options */}
             {settings && (
@@ -300,14 +320,22 @@ export const DeviceSettings: React.FC = () => {
                     {settings.useLowVRAM && <span className="hint"> - เปิดใช้งาน</span>}
                   </span>
                 </label>
-                
+
                 <div className="info-box">
                   <strong>💡 คำแนะนำ:</strong>
                   <ul>
-                    <li><strong>NVIDIA GPU (CUDA):</strong> เร็วที่สุด เหมาะสำหรับการ render คุณภาพสูง</li>
-                    <li><strong>Apple Silicon (MPS):</strong> เร็วและประหยัดไฟ เหมาะสำหรับ Mac</li>
-                    <li><strong>CPU:</strong> ช้าที่สุด แต่ใช้ได้กับทุกเครื่อง</li>
-                    <li><strong>Cloud:</strong> ไม่กินทรัพยากรเครื่อง แต่ต้องมีอินเทอร์เน็ต</li>
+                    <li>
+                      <strong>NVIDIA GPU (CUDA):</strong> เร็วที่สุด เหมาะสำหรับการ render คุณภาพสูง
+                    </li>
+                    <li>
+                      <strong>Apple Silicon (MPS):</strong> เร็วและประหยัดไฟ เหมาะสำหรับ Mac
+                    </li>
+                    <li>
+                      <strong>CPU:</strong> ช้าที่สุด แต่ใช้ได้กับทุกเครื่อง
+                    </li>
+                    <li>
+                      <strong>Cloud:</strong> ไม่กินทรัพยากรเครื่อง แต่ต้องมีอินเทอร์เน็ต
+                    </li>
                   </ul>
                 </div>
               </div>

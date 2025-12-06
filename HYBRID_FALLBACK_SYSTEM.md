@@ -11,10 +11,12 @@
 ระบบจะตรวจสอบแพลตฟอร์มอัตโนมัติเมื่อเริ่มต้น Face ID Generation:
 
 ### Mac Platform (MPS/Integrated GPU)
+
 - **Detection**: ไม่มี NVIDIA GPU หรือ `supportsFaceID = false`
 - **Workflow**: IP-Adapter → Gemini 2.5 → SDXL Base
 
 ### Windows/Linux + NVIDIA GPU
+
 - **Detection**: มี NVIDIA GPU และ `supportsFaceID = true`
 - **Workflow**: InstantID → IP-Adapter → Gemini 2.5
 
@@ -23,6 +25,7 @@
 ## 🍎 Mac Platform - Hybrid Fallback Chain
 
 ### Priority 1: IP-Adapter ⭐ (Primary - FREE)
+
 ```
 ⚡ Speed:      5-8 minutes
 🎯 Similarity: 65-75%
@@ -41,6 +44,7 @@ Settings:
 ```
 
 **When it fails**: ตรวจสอบ
+
 - Backend service running?
 - ComfyUI running?
 - Models installed in `~/Desktop/ComfyUI/models/`
@@ -48,6 +52,7 @@ Settings:
 ---
 
 ### Priority 2: Gemini 2.5 Flash Image (Fallback - QUOTA)
+
 ```
 ⚡ Speed:      ~30 seconds
 🎯 Similarity: 60-70%
@@ -58,12 +63,14 @@ Settings:
 ```
 
 **When it fails**:
+
 - Quota exceeded → จะตรวจสอบเวลา reset
 - API error → ลอง Priority 3
 
 ---
 
 ### Priority 3: SDXL Base (Last Resort - FREE)
+
 ```
 ⚡ Speed:      ~2 minutes
 ⚠️  Similarity: NONE (no Face ID)
@@ -83,6 +90,7 @@ Settings:
 ## 🚀 Windows/Linux + NVIDIA - Hybrid Fallback Chain
 
 ### Priority 1: InstantID ⭐ (Primary - FREE)
+
 ```
 ⚡ Speed:      5-10 minutes
 🎯 Similarity: 90-95% (BEST!)
@@ -101,6 +109,7 @@ Settings:
 ```
 
 **When it fails**: ตรวจสอบ
+
 - CUDA available?
 - InsightFace running on GPU?
 - InstantID models installed?
@@ -108,6 +117,7 @@ Settings:
 ---
 
 ### Priority 2: IP-Adapter (Fallback - FREE)
+
 ```
 ⚡ Speed:      3-5 minutes (faster on NVIDIA)
 🎯 Similarity: 65-75%
@@ -128,6 +138,7 @@ Settings:
 ---
 
 ### Priority 3: Gemini 2.5 Flash Image (Last Resort - QUOTA)
+
 ```
 ⚡ Speed:      ~30 seconds
 🎯 Similarity: 60-70%
@@ -137,7 +148,8 @@ Settings:
    - Quota available
 ```
 
-**When it fails**: 
+**When it fails**:
+
 - Quota exceeded → ทุกวิธีล้มเหลว
 - ต้องรอ quota reset หรือแก้ไข ComfyUI Backend
 
@@ -145,13 +157,13 @@ Settings:
 
 ## 📈 Performance Comparison
 
-| Method | Platform | Time | Similarity | Cost | GPU |
-|--------|----------|------|------------|------|-----|
-| **InstantID** | Windows/Linux | 5-10 min | 90-95% ⭐⭐⭐⭐⭐ | FREE | NVIDIA |
-| **IP-Adapter** | Mac | 5-8 min | 65-75% ⭐⭐⭐ | FREE | MPS/Any |
-| **IP-Adapter** | Windows/Linux | 3-5 min | 65-75% ⭐⭐⭐ | FREE | NVIDIA |
-| **Gemini 2.5** | Any | 30 sec | 60-70% ⭐⭐ | QUOTA ⚠️ | Cloud |
-| **SDXL Base** | Mac | 2 min | 0% ❌ | FREE | MPS/Any |
+| Method         | Platform      | Time     | Similarity        | Cost     | GPU     |
+| -------------- | ------------- | -------- | ----------------- | -------- | ------- |
+| **InstantID**  | Windows/Linux | 5-10 min | 90-95% ⭐⭐⭐⭐⭐ | FREE     | NVIDIA  |
+| **IP-Adapter** | Mac           | 5-8 min  | 65-75% ⭐⭐⭐     | FREE     | MPS/Any |
+| **IP-Adapter** | Windows/Linux | 3-5 min  | 65-75% ⭐⭐⭐     | FREE     | NVIDIA  |
+| **Gemini 2.5** | Any           | 30 sec   | 60-70% ⭐⭐       | QUOTA ⚠️ | Cloud   |
+| **SDXL Base**  | Mac           | 2 min    | 0% ❌             | FREE     | MPS/Any |
 
 ---
 
@@ -209,24 +221,27 @@ Settings:
 ## 🛠️ Technical Implementation
 
 ### Code Location
+
 ```
 /src/services/geminiService.ts
 Lines: 520-850 (Face ID Hybrid Fallback System)
 ```
 
 ### Key Functions
+
 ```typescript
 async function generateImageWithCascade(
   prompt: string,
   options: {
-    referenceImage?: string;  // Triggers Face ID mode
-    useIPAdapter?: boolean;   // Platform-specific flag
+    referenceImage?: string; // Triggers Face ID mode
+    useIPAdapter?: boolean; // Platform-specific flag
     // ... other options
   }
-): Promise<string>
+): Promise<string>;
 ```
 
 ### Platform Detection Logic
+
 ```typescript
 const backendStatus = await checkBackendStatus();
 const platformSupport = backendStatus.platform?.supportsFaceID ?? false;
@@ -244,6 +259,7 @@ if (isMacPlatform) {
 ## 📝 Console Logs
 
 ### Mac Platform Example
+
 ```
 🎯 ═══ FACE ID MODE ACTIVATED ═══
 📸 Reference image detected - enabling hybrid fallback system
@@ -268,6 +284,7 @@ Priority 3: SDXL Base (2 min, no similarity, FREE)
 ```
 
 ### Windows/Linux Platform Example
+
 ```
 🎯 ═══ FACE ID MODE ACTIVATED ═══
 📸 Reference image detected - enabling hybrid fallback system
@@ -292,6 +309,7 @@ Priority 3: Gemini 2.5 (30 sec, 60-70%, QUOTA)
 ```
 
 ### Fallback Example
+
 ```
 ❌ [1/3] FAILED: IP-Adapter - Backend timeout
 ⏭️  Falling back to Priority 2: Gemini 2.5...
@@ -309,11 +327,13 @@ Priority 3: Gemini 2.5 (30 sec, 60-70%, QUOTA)
 ## ⚠️ Common Issues & Solutions
 
 ### Issue 1: IP-Adapter Failed on Mac
+
 ```
 ❌ [1/3] FAILED: IP-Adapter - Backend not running
 ```
 
 **Solution**:
+
 ```bash
 cd comfyui-service
 npm start
@@ -322,17 +342,20 @@ npm start
 ---
 
 ### Issue 2: Gemini Quota Exceeded
+
 ```
 ❌ [2/3] FAILED: Gemini 2.5 - Quota exceeded
 ```
 
 **Solution**:
+
 - รอให้ quota reset (ประมาณ 1 นาที)
 - หรือแก้ไข ComfyUI Backend ให้ทำงานได้
 
 ---
 
 ### Issue 3: All Methods Failed
+
 ```
 ❌ All Face ID methods failed on Mac
 
@@ -343,6 +366,7 @@ Tried:
 ```
 
 **Solution**:
+
 1. Start ComfyUI Backend: `cd comfyui-service && npm start`
 2. Start ComfyUI: `cd ~/Desktop/ComfyUI && python main.py --listen 0.0.0.0 --port 8188`
 3. Check models installed in `~/Desktop/ComfyUI/models/`
@@ -353,22 +377,26 @@ Tried:
 ## 🎯 Best Practices
 
 ### For Mac Users
+
 1. **Primary**: ใช้ IP-Adapter (5-8 min, 65-75%, FREE)
 2. **Emergency**: Gemini 2.5 (30 sec, 60-70%, ระวัง quota)
 3. **Last Resort**: SDXL Base (2 min, no face matching)
 
-**Recommendation**: 
+**Recommendation**:
+
 - ให้ ComfyUI Backend ทำงานตลอดเวลา
 - เช็ค Gemini quota ก่อนใช้งาน
 
 ---
 
 ### For Windows/Linux + NVIDIA Users
+
 1. **Primary**: ใช้ InstantID (5-10 min, 90-95%, BEST!)
 2. **Faster**: IP-Adapter (3-5 min, 65-75%, ถ้าต้องการความเร็ว)
 3. **Emergency**: Gemini 2.5 (30 sec, 60-70%, ระวัง quota)
 
 **Recommendation**:
+
 - ใช้ InstantID เป็นหลัก (similarity ดีที่สุด 90-95%)
 - IP-Adapter สำหรับงานที่ต้องการความเร็ว
 - Gemini 2.5 สำรองในกรณีฉุกเฉินเท่านั้น
@@ -378,11 +406,13 @@ Tried:
 ## 📊 System Status Check
 
 ### Check Backend Status
+
 ```bash
 curl http://localhost:8000/api/comfyui/status
 ```
 
 Expected response:
+
 ```json
 {
   "running": true,
@@ -396,6 +426,7 @@ Expected response:
 ```
 
 ### Check ComfyUI Status
+
 ```bash
 curl http://localhost:8188/system_stats
 ```
@@ -405,12 +436,14 @@ curl http://localhost:8188/system_stats
 ## 🔧 Configuration
 
 ### Enable/Disable Backend
+
 ```bash
 # .env
 VITE_USE_COMFYUI_BACKEND=true  # Enable hybrid system
 ```
 
 ### Gemini API Key
+
 ```bash
 # .env
 VITE_GEMINI_API_KEY=your_api_key_here
@@ -421,11 +454,13 @@ VITE_GEMINI_API_KEY=your_api_key_here
 ## 📈 Success Metrics
 
 ### Mac Platform
+
 - **Target**: 80% success rate with IP-Adapter
 - **Fallback**: 15% Gemini 2.5, 5% SDXL Base
 - **Average Time**: 5-8 minutes (IP-Adapter)
 
 ### Windows/Linux + NVIDIA
+
 - **Target**: 95% success rate with InstantID
 - **Fallback**: 4% IP-Adapter, 1% Gemini 2.5
 - **Average Time**: 5-10 minutes (InstantID)
@@ -435,11 +470,13 @@ VITE_GEMINI_API_KEY=your_api_key_here
 ## 🎓 Summary
 
 ### Mac: ฟรี, ไม่จำกัด, คุณภาพดี
+
 1. **IP-Adapter** (5-8 min, 65-75%) - PRIMARY ✅
 2. **Gemini 2.5** (30 sec, 60-70%) - FALLBACK ⚠️
 3. **SDXL Base** (2 min, no face) - LAST RESORT ❌
 
 ### Windows/Linux: คุณภาพสูงสุด, ฟรี, ไม่จำกัด
+
 1. **InstantID** (5-10 min, 90-95%) - PRIMARY ⭐
 2. **IP-Adapter** (3-5 min, 65-75%) - FASTER ✅
 3. **Gemini 2.5** (30 sec, 60-70%) - EMERGENCY ⚠️
@@ -452,5 +489,5 @@ VITE_GEMINI_API_KEY=your_api_key_here
 
 ---
 
-*Last Updated: 2024-12-03*
-*Version: 2.0 - Hybrid Fallback System*
+_Last Updated: 2024-12-03_
+_Version: 2.0 - Hybrid Fallback System_

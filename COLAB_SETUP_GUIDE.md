@@ -209,6 +209,7 @@ curl https://YOUR-NGROK-URL.ngrok-free.app/system_stats
 ## 🐛 แก้ปัญหา
 
 ### Colab หลุดบ่อย
+
 - **สาเหตุ**: Idle timeout (90 นาที)
 - **วิธีแก้**: เปิด tab Colab ค้างไว้ หรือรัน keep-alive script:
   ```python
@@ -219,6 +220,7 @@ curl https://YOUR-NGROK-URL.ngrok-free.app/system_stats
   ```
 
 ### ngrok ไม่ทำงาน
+
 - ตรวจสอบว่าใส่ authtoken ถูกต้อง
 - ลองใช้ Cloudflare Tunnel แทน:
   ```bash
@@ -226,11 +228,13 @@ curl https://YOUR-NGROK-URL.ngrok-free.app/system_stats
   ```
 
 ### รูปเจนช้า
+
 - ตรวจสอบว่าใช้ A100 จริง: `!nvidia-smi`
 - ลด resolution: 512x512 แทน 1024x1024
 - ลด steps: 20 แทน 30
 
 ### Out of Memory
+
 - เปิด **Low VRAM mode** ใน DeviceSettings
 - ลด batch size เหลือ 1
 - ใช้ SDXL แทน SD 1.5 (เบากว่า)
@@ -239,12 +243,12 @@ curl https://YOUR-NGROK-URL.ngrok-free.app/system_stats
 
 ## 📊 เปรียบเทียบ Performance
 
-| Device | Speed | Cost | Quality |
-|--------|-------|------|---------|
-| **Colab A100** | ⚡⚡⚡ 15-20s | 💰 $0.008/รูป* | 🌟🌟🌟🌟🌟 |
-| **Local RTX 4090** | ⚡⚡⚡ 10-15s | 💰 Free | 🌟🌟🌟🌟🌟 |
-| **Local Apple M2 Max** | ⚡⚡ 30-40s | 💰 Free | 🌟🌟🌟🌟 |
-| **Firebase Cloud** | ⚡⚡ 40-60s | 💰 Free (Pro+) | 🌟🌟🌟🌟 |
+| Device                 | Speed         | Cost            | Quality    |
+| ---------------------- | ------------- | --------------- | ---------- |
+| **Colab A100**         | ⚡⚡⚡ 15-20s | 💰 $0.008/รูป\* | 🌟🌟🌟🌟🌟 |
+| **Local RTX 4090**     | ⚡⚡⚡ 10-15s | 💰 Free         | 🌟🌟🌟🌟🌟 |
+| **Local Apple M2 Max** | ⚡⚡ 30-40s   | 💰 Free         | 🌟🌟🌟🌟   |
+| **Firebase Cloud**     | ⚡⚡ 40-60s   | 💰 Free (Pro+)  | 🌟🌟🌟🌟   |
 
 \* คำนวณจาก Colab Pro+ $49.99/เดือน ≈ 6,000 รูป
 
@@ -287,6 +291,7 @@ curl https://YOUR-NGROK-URL.ngrok-free.app/system_stats
 คุณจ่าย **Colab Pro+ $49.99/เดือน** แล้ว → ใช้ให้คุ้ม!
 
 เมื่อตั้งค่าเสร็จ คุณจะได้:
+
 - ✅ **A100 GPU** ที่เร็วที่สุด
 - ✅ **ไม่ต้องใช้เครื่องตัวเอง** (ประหยัดไฟ)
 - ✅ **เจนได้ทุกที่** (มีแค่อินเทอร์เน็ต)

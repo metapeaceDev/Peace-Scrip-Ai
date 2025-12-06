@@ -1,6 +1,6 @@
 /**
  * ComfyUI Device Manager
- * 
+ *
  * จัดการการตรวจจับและเลือกใช้ทรัพยากร CPU/GPU สำหรับการ render
  */
 
@@ -54,7 +54,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
   try {
     // ตรวจสอบ ComfyUI local
     const response = await fetch(`${COMFYUI_URL}/system_stats`, {
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(3000),
     });
 
     if (!response.ok) {
@@ -75,10 +75,12 @@ export async function detectSystemResources(): Promise<SystemResources> {
         type: 'cuda',
         name: deviceInfo.cuda?.name || 'NVIDIA GPU',
         available: true,
-        vram: deviceInfo.cuda?.vram_total ? Math.round(deviceInfo.cuda.vram_total / 1024 / 1024) : undefined,
+        vram: deviceInfo.cuda?.vram_total
+          ? Math.round(deviceInfo.cuda.vram_total / 1024 / 1024)
+          : undefined,
         utilization: deviceInfo.cuda?.gpu_utilization,
         temperature: deviceInfo.cuda?.temperature,
-        isRecommended: true // CUDA เป็นตัวเลือกแรกสำหรับ NVIDIA
+        isRecommended: true, // CUDA เป็นตัวเลือกแรกสำหรับ NVIDIA
       });
     }
 
@@ -89,7 +91,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
         type: 'mps',
         name: 'Apple Silicon GPU',
         available: isMac,
-        isRecommended: isMac // MPS เป็นตัวเลือกแรกสำหรับ Mac
+        isRecommended: isMac, // MPS เป็นตัวเลือกแรกสำหรับ Mac
       });
     }
 
@@ -99,7 +101,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
         type: 'directml',
         name: 'DirectML GPU',
         available: true,
-        isRecommended: !deviceInfo.cuda // ใช้ DirectML ถ้าไม่มี CUDA
+        isRecommended: !deviceInfo.cuda, // ใช้ DirectML ถ้าไม่มี CUDA
       });
     }
 
@@ -108,20 +110,20 @@ export async function detectSystemResources(): Promise<SystemResources> {
       type: 'cpu',
       name: 'CPU',
       available: true,
-      isRecommended: devices.length === 0 // ถ้าไม่มี GPU ให้แนะนำ CPU
+      isRecommended: devices.length === 0, // ถ้าไม่มี GPU ให้แนะนำ CPU
     });
 
     // ข้อมูล CPU
     const cpuInfo = {
       cores: system.cpu_count || navigator.hardwareConcurrency || 4,
-      usage: deviceInfo.cpu?.usage || 0
+      usage: deviceInfo.cpu?.usage || 0,
     };
 
     // ข้อมูล Memory
     const memoryInfo = {
       total: system.ram?.total ? Math.round(system.ram.total / 1024 / 1024) : 8192,
       available: system.ram?.free ? Math.round(system.ram.free / 1024 / 1024) : 4096,
-      used: system.ram?.used ? Math.round(system.ram.used / 1024 / 1024) : 4096
+      used: system.ram?.used ? Math.round(system.ram.used / 1024 / 1024) : 4096,
     };
 
     // ตรวจสอบ Platform
@@ -134,12 +136,11 @@ export async function detectSystemResources(): Promise<SystemResources> {
       devices,
       cpu: cpuInfo,
       memory: memoryInfo,
-      platform
+      platform,
     };
-
   } catch (error) {
     console.warn('⚠️ ไม่สามารถตรวจสอบทรัพยากรจาก ComfyUI:', error);
-    
+
     // Fallback: ให้ข้อมูลพื้นฐานจาก browser
     return getFallbackResources();
   }
@@ -151,7 +152,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
 function getFallbackResources(): SystemResources {
   const platform = navigator.platform.toLowerCase();
   let detectedPlatform: 'windows' | 'macos' | 'linux' | 'unknown' = 'unknown';
-  
+
   if (platform.includes('win')) detectedPlatform = 'windows';
   else if (platform.includes('mac')) detectedPlatform = 'macos';
   else if (platform.includes('linux')) detectedPlatform = 'linux';
@@ -161,8 +162,8 @@ function getFallbackResources(): SystemResources {
       type: 'cpu',
       name: 'CPU (Fallback)',
       available: true,
-      isRecommended: true
-    }
+      isRecommended: true,
+    },
   ];
 
   // เดาว่ามี GPU หรือไม่จากระบบปฏิบัติการ
@@ -171,7 +172,7 @@ function getFallbackResources(): SystemResources {
       type: 'mps',
       name: 'Apple Silicon GPU (Not Verified)',
       available: false,
-      isRecommended: false
+      isRecommended: false,
     });
   }
 
@@ -179,14 +180,14 @@ function getFallbackResources(): SystemResources {
     devices,
     cpu: {
       cores: navigator.hardwareConcurrency || 4,
-      usage: 0
+      usage: 0,
     },
     memory: {
       total: 8192, // Assume 8GB
       available: 4096,
-      used: 4096
+      used: 4096,
     },
-    platform: detectedPlatform
+    platform: detectedPlatform,
   };
 }
 
@@ -196,14 +197,14 @@ function getFallbackResources(): SystemResources {
 export function getRecommendedSettings(resources: SystemResources): RenderSettings {
   const recommendedDevice = resources.devices.find(d => d.isRecommended && d.available);
   const hasGPU = resources.devices.some(d => d.type !== 'cpu' && d.available);
-  
+
   return {
     device: recommendedDevice?.type || 'cpu',
     executionMode: hasGPU ? 'local' : 'cloud',
     cloudProvider: 'auto', // Default: auto-select best cloud
     useLowVRAM: resources.memory.available < 6144, // < 6GB RAM
     batchSize: hasGPU ? 1 : 1,
-    preview: hasGPU
+    preview: hasGPU,
   };
 }
 
@@ -224,9 +225,9 @@ export async function checkComfyUIHealth(): Promise<{
   // ตรวจสอบ Local ComfyUI
   try {
     const localResponse = await fetch(`${COMFYUI_URL}/system_stats`, {
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(3000),
     });
-    
+
     if (localResponse.ok) {
       localAvailable = true;
       resources = await detectSystemResources();
@@ -239,9 +240,9 @@ export async function checkComfyUIHealth(): Promise<{
   if (COMFYUI_CLOUD_URL) {
     try {
       const cloudResponse = await fetch(`${COMFYUI_CLOUD_URL}/system_stats`, {
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
-      
+
       if (cloudResponse.ok) {
         cloudAvailable = true;
       }
@@ -257,7 +258,7 @@ export async function checkComfyUIHealth(): Promise<{
       local: true,
       cloud: true,
       message: '✅ ComfyUI ทำงานปกติทั้ง Local และ Cloud',
-      resources
+      resources,
     };
   } else if (localAvailable) {
     return {
@@ -265,7 +266,7 @@ export async function checkComfyUIHealth(): Promise<{
       local: true,
       cloud: false,
       message: '✅ ComfyUI ทำงานปกติ (Local only)',
-      resources
+      resources,
     };
   } else if (cloudAvailable) {
     return {
@@ -273,7 +274,7 @@ export async function checkComfyUIHealth(): Promise<{
       local: false,
       cloud: true,
       message: '⚠️ ComfyUI Cloud เท่านั้น (Local ไม่พร้อมใช้งาน)',
-      resources: getFallbackResources()
+      resources: getFallbackResources(),
     };
   } else {
     return {
@@ -281,7 +282,7 @@ export async function checkComfyUIHealth(): Promise<{
       local: false,
       cloud: false,
       message: '❌ ComfyUI ไม่พร้อมใช้งาน',
-      resources: getFallbackResources()
+      resources: getFallbackResources(),
     };
   }
 }
@@ -313,11 +314,11 @@ export function loadRenderSettings(): RenderSettings | null {
  */
 export function getDeviceDisplayName(device: DeviceType): string {
   const names: Record<DeviceType, string> = {
-    'cpu': 'CPU',
-    'cuda': 'NVIDIA GPU (CUDA)',
-    'mps': 'Apple Silicon GPU (MPS)',
-    'directml': 'DirectML GPU',
-    'auto': 'อัตโนมัติ (แนะนำ)'
+    cpu: 'CPU',
+    cuda: 'NVIDIA GPU (CUDA)',
+    mps: 'Apple Silicon GPU (MPS)',
+    directml: 'DirectML GPU',
+    auto: 'อัตโนมัติ (แนะนำ)',
   };
   return names[device] || device;
 }
@@ -327,15 +328,15 @@ export function getDeviceDisplayName(device: DeviceType): string {
  */
 export function estimateRenderTime(device: DeviceType, imageCount: number = 1): string {
   const baseTime = {
-    'cuda': 15, // seconds per image
-    'mps': 30,
-    'directml': 45,
-    'cpu': 120,
-    'auto': 30
+    cuda: 15, // seconds per image
+    mps: 30,
+    directml: 45,
+    cpu: 120,
+    auto: 30,
   };
 
   const totalSeconds = (baseTime[device] || 60) * imageCount;
-  
+
   if (totalSeconds < 60) {
     return `~${totalSeconds} วินาที`;
   } else if (totalSeconds < 3600) {
@@ -372,7 +373,7 @@ export function getCloudProviders(): CloudProviderInfo[] {
       cost: '💰 ฟรีสำหรับผู้ใช้ Pro+',
       gpu: 'T4 GPU',
       setupRequired: false,
-      available: !!COMFYUI_CLOUD_URL
+      available: !!COMFYUI_CLOUD_URL,
     },
     {
       id: 'colab',
@@ -382,7 +383,7 @@ export function getCloudProviders(): CloudProviderInfo[] {
       cost: '💰 ฟรี (ใช้ subscription ของคุณ)',
       gpu: 'A100/V100 GPU',
       setupRequired: true,
-      available: !!COLAB_TUNNEL_URL
+      available: !!COLAB_TUNNEL_URL,
     },
     {
       id: 'runpod',
@@ -392,7 +393,7 @@ export function getCloudProviders(): CloudProviderInfo[] {
       cost: '💵 ~$0.0004/วินาที (~$0.01/รูป)',
       gpu: 'RTX 4090/A40',
       setupRequired: true,
-      available: !!RUNPOD_URL
+      available: !!RUNPOD_URL,
     },
     {
       id: 'replicate',
@@ -402,8 +403,8 @@ export function getCloudProviders(): CloudProviderInfo[] {
       cost: '💵 ~$0.023/รูป',
       gpu: 'T4 GPU',
       setupRequired: true,
-      available: !!REPLICATE_URL
-    }
+      available: !!REPLICATE_URL,
+    },
   ];
 }
 
@@ -416,10 +417,10 @@ export async function checkCloudProvider(provider: CloudProvider): Promise<{
   latency?: number; // milliseconds
 }> {
   const startTime = Date.now();
-  
+
   try {
     let url: string | undefined;
-    
+
     switch (provider) {
       case 'firebase':
         url = COMFYUI_CLOUD_URL;
@@ -442,38 +443,37 @@ export async function checkCloudProvider(provider: CloudProvider): Promise<{
         return { available: true, message: `พบ ${providers.length} provider(s)` };
       }
     }
-    
+
     if (!url) {
       return {
         available: false,
-        message: 'ยังไม่ได้ตั้งค่า URL (เพิ่มใน .env)'
+        message: 'ยังไม่ได้ตั้งค่า URL (เพิ่มใน .env)',
       };
     }
-    
+
     // Health check
     const response = await fetch(`${url}/health`, {
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(5000),
     });
-    
+
     const latency = Date.now() - startTime;
-    
+
     if (response.ok) {
       return {
         available: true,
         message: '✅ พร้อมใช้งาน',
-        latency
+        latency,
       };
     } else {
       return {
         available: false,
-        message: `❌ ตอบกลับ HTTP ${response.status}`
+        message: `❌ ตอบกลับ HTTP ${response.status}`,
       };
     }
-    
   } catch (error) {
     return {
       available: false,
-      message: '❌ ไม่สามารถเชื่อมต่อได้'
+      message: '❌ ไม่สามารถเชื่อมต่อได้',
     };
   }
 }
@@ -483,11 +483,11 @@ export async function checkCloudProvider(provider: CloudProvider): Promise<{
  */
 export async function getRecommendedCloudProvider(): Promise<CloudProvider> {
   const providers = getCloudProviders().filter(p => p.available);
-  
+
   if (providers.length === 0) {
     return 'auto';
   }
-  
+
   // ลำดับความสำคัญ: Colab Pro+ > Firebase > RunPod > Replicate
   // เพราะ Colab คุณจ่ายแล้ว ใช้ให้คุ้ม!
   for (const provider of ['colab', 'firebase', 'runpod', 'replicate'] as CloudProvider[]) {
@@ -500,7 +500,6 @@ export async function getRecommendedCloudProvider(): Promise<CloudProvider> {
       }
     }
   }
-  
+
   return 'auto';
 }
-

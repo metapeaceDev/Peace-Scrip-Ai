@@ -60,19 +60,21 @@
 
 ## 💰 ราคาที่กำหนด (Final Pricing)
 
-| Tier | ราคา | เป้าหมาย | Margin |
-|------|------|----------|--------|
-| **FREE** | ฟรี | Students, Hobbyists (70%) | - |
-| **BASIC** | **฿299/เดือน** | Indie Filmmakers (20%) | **83%** |
-| **PRO** | **฿999/เดือน** | Production Houses (9%) | **80%** |
+| Tier           | ราคา             | เป้าหมาย                    | Margin     |
+| -------------- | ---------------- | --------------------------- | ---------- |
+| **FREE**       | ฟรี              | Students, Hobbyists (70%)   | -          |
+| **BASIC**      | **฿299/เดือน**   | Indie Filmmakers (20%)      | **83%**    |
+| **PRO**        | **฿999/เดือน**   | Production Houses (9%)      | **80%**    |
 | **ENTERPRISE** | Custom (฿5,000+) | Studios, Organizations (1%) | **70-80%** |
 
 ### 🎯 Break-Even Point
+
 - **ต้องการเพียง:** 7 paid users (mix)
 - **เวลา:** 1-3 เดือน
 - **MRR Target:** ฿3,000+
 
 ### 📈 Projections (1 ปี)
+
 - **Users:** 2,000 Free + 135 Paid
 - **MRR:** ฿109,870/เดือน
 - **กำไร:** **฿93,870/เดือน** (฿1,126,440/ปี)
@@ -83,6 +85,7 @@
 ## 🎨 Features ตาม Tier
 
 ### 🆓 FREE
+
 - 1 โปรเจกต์
 - 3 ตัวละคร
 - 9 ฉาก
@@ -93,6 +96,7 @@
 - PDF export (watermark)
 
 ### ⭐ BASIC (฿299/เดือน)
+
 - 5 โปรเจกต์
 - 10 ตัวละคร
 - Unlimited ฉาก
@@ -105,6 +109,7 @@
 - Priority Queue (Standard)
 
 ### 🚀 PRO (฿999/เดือน)
+
 - Unlimited โปรเจกต์
 - Unlimited ตัวละคร
 - Unlimited ฉาก
@@ -120,6 +125,7 @@
 - Collaboration Tools
 
 ### 🏢 ENTERPRISE (Custom)
+
 - All PRO features
 - 9,999+ credits
 - 60 วินาที videos
@@ -136,11 +142,13 @@
 ## 📁 ไฟล์ที่สร้าง/แก้ไข
 
 ### ✨ ไฟล์ใหม่
+
 1. **`PRICING_STRATEGY.md`** - กลยุทธ์การกำหนดราคาฉบับเต็ม
 2. **`src/components/PricingPage.tsx`** - หน้า Pricing สวยงาม
 3. **`PRICING_IMPLEMENTATION_SUMMARY.md`** - เอกสารนี้
 
 ### 🔧 ไฟล์ที่แก้ไข
+
 1. **`types.ts`** - เพิ่ม properties ใน UserSubscription
 2. **`src/services/userStore.ts`** - อัพเดท MOCK_USERS ด้วย features ใหม่
 3. **`src/services/geminiService.ts`** - VIDEO_MODELS_CONFIG มี tier และ costPerGen
@@ -152,6 +160,7 @@
 ## 🚀 Next Steps (แนะนำ)
 
 ### Phase 1: Implementation (ทันที)
+
 1. ✅ **Integrate Payment Gateway**
    - Stripe / PromptPay / Omise
    - Subscription management
@@ -168,6 +177,7 @@
    - Pro-rated billing
 
 ### Phase 2: Marketing (เดือน 1-3)
+
 1. ✅ **Launch Beta**
    - Free tier ไม่จำกัดจำนวน users
    - Basic/Pro ให้ทดลอง 14 วันฟรี
@@ -184,6 +194,7 @@
    - Film festivals
 
 ### Phase 3: Growth (เดือน 4-12)
+
 1. ✅ **Referral Program**
    - แนะนำเพื่อน +50 credits
    - Affiliate Program (20% commission)
@@ -202,12 +213,14 @@
 ## 📊 Financial Metrics
 
 ### Cost Structure (per user/month)
+
 - Free: ฿0 (use free APIs only)
 - Basic: ~฿50 (API calls + storage)
 - Pro: ~฿200 (Premium APIs + bandwidth)
 - Enterprise: ~฿500-2,000 (custom infra)
 
 ### Revenue Streams
+
 1. **Subscription Revenue** (primary)
    - Basic: ฿299/mo
    - Pro: ฿999/mo
@@ -228,16 +241,19 @@
 ## 🎯 Success Metrics
 
 ### Month 1-3 (Launch)
+
 - **Target:** 500 Free users, 10 Paid users
 - **MRR:** ฿3,000-10,000
 - **Conversion Rate:** 2-5%
 
 ### Month 4-12 (Growth)
+
 - **Target:** 2,000 Free users, 100 Paid users
 - **MRR:** ฿50,000+
 - **Conversion Rate:** 5-7%
 
 ### Year 2-3 (Scale)
+
 - **Target:** 10,000 Free users, 500 Paid users
 - **MRR:** ฿400,000+
 - **Conversion Rate:** 7-10%
@@ -249,12 +265,14 @@
 **ระบบ Pricing ถูกออกแบบอย่างครบถ้วน พร้อมใช้งานจริง**
 
 ### ✅ เสร็จแล้ว
+
 - ✅ Pricing Strategy (วิเคราะห์ครบถ้วน)
 - ✅ Technical Implementation (Code พร้อม)
 - ✅ UI Components (สวยงาม ใช้งานง่าย)
 - ✅ Documentation (ครบถ้วน)
 
 ### 🔜 ขั้นตอนถัดไป
+
 - 🔜 Payment Integration (Stripe/Omise)
 - 🔜 Usage Tracking System
 - 🔜 Launch Marketing Campaign
@@ -262,6 +280,7 @@
 ---
 
 **ราคาที่กำหนด (฿299 Basic, ฿999 Pro) มีความสมดุลระหว่าง:**
+
 - ✅ คุ้มค่าสำหรับลูกค้า (ถูกกว่าคู่แข่ง 40%)
 - ✅ กำไรสูง (80%+ margin)
 - ✅ Scalable (สามารถเติบโตได้ยั่งยืน)

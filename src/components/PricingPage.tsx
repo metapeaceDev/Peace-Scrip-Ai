@@ -38,7 +38,7 @@ const PRICING_TIERS: PricingTier[] = [
       '✅ 500 MB Storage',
       '✅ Export PDF (Watermark)',
       '⚠️ Free AI Models เท่านั้น',
-      '❌ ไม่สามารถใช้เชิงพาณิชย์'
+      '❌ ไม่สามารถใช้เชิงพาณิชย์',
     ],
     limits: {
       projects: '1 โปรเจกต์',
@@ -46,8 +46,8 @@ const PRICING_TIERS: PricingTier[] = [
       scenes: '9 ฉาก',
       resolution: '1024×1024',
       storage: '500 MB',
-      credits: '-'
-    }
+      credits: '-',
+    },
   },
   {
     tier: 'basic',
@@ -67,7 +67,7 @@ const PRICING_TIERS: PricingTier[] = [
       '✅ Priority Queue (Standard)',
       '✅ Gemini Pro Image',
       '✅ Gemini Veo Video',
-      '⚠️ Personal Use (ระบุ Credit ถ้าใช้เชิงพาณิชย์)'
+      '⚠️ Personal Use (ระบุ Credit ถ้าใช้เชิงพาณิชย์)',
     ],
     limits: {
       projects: '5 โปรเจกต์',
@@ -75,8 +75,8 @@ const PRICING_TIERS: PricingTier[] = [
       scenes: 'Unlimited',
       resolution: '2048×2048',
       storage: '1 GB',
-      credits: '100 credits/เดือน'
-    }
+      credits: '100 credits/เดือน',
+    },
   },
   {
     tier: 'pro',
@@ -98,7 +98,7 @@ const PRICING_TIERS: PricingTier[] = [
       '✅ Commercial License (Full Rights)',
       '✅ API Access (Beta)',
       '✅ Collaboration Tools',
-      '✅ Version Control'
+      '✅ Version Control',
     ],
     limits: {
       projects: 'Unlimited',
@@ -106,8 +106,8 @@ const PRICING_TIERS: PricingTier[] = [
       scenes: 'Unlimited',
       resolution: '4096×4096',
       storage: '10 GB',
-      credits: '500 credits/เดือน'
-    }
+      credits: '500 credits/เดือน',
+    },
   },
   {
     tier: 'enterprise',
@@ -126,7 +126,7 @@ const PRICING_TIERS: PricingTier[] = [
       '✅ SLA Guarantee (99.9% uptime)',
       '✅ Training & Onboarding',
       '✅ White Label Option',
-      '✅ Custom Integrations'
+      '✅ Custom Integrations',
     ],
     limits: {
       projects: 'Unlimited',
@@ -134,9 +134,9 @@ const PRICING_TIERS: PricingTier[] = [
       scenes: 'Unlimited',
       resolution: '4096×4096',
       storage: '100 GB+',
-      credits: '9,999+ credits'
-    }
-  }
+      credits: '9,999+ credits',
+    },
+  },
 ];
 
 const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = 'free' }) => {
@@ -148,9 +148,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
             เลือกแพ็กเกจที่เหมาะกับคุณ
           </h1>
-          <p className="text-xl text-gray-400">
-            ราคาคุ้มค่า ทุกแพ็กเกจได้ AI ที่ดีที่สุด
-          </p>
+          <p className="text-xl text-gray-400">ราคาคุ้มค่า ทุกแพ็กเกจได้ AI ที่ดีที่สุด</p>
           <div className="mt-6 inline-block bg-green-900/30 border border-green-500/50 rounded-lg px-6 py-3">
             <p className="text-green-400 font-semibold">
               🎉 Early Bird Promotion: ลด 50% สำหรับผู้สมัครในปีแรก!
@@ -160,7 +158,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {PRICING_TIERS.map((tier) => (
+          {PRICING_TIERS.map(tier => (
             <div
               key={tier.tier}
               className={`relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 ${
@@ -215,17 +213,17 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
                     currentTier === tier.tier
                       ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                       : tier.popular
-                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg'
-                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg'
+                        : 'bg-gray-700 hover:bg-gray-600 text-white'
                   }`}
                 >
                   {currentTier === tier.tier
                     ? 'แพ็กเกจปัจจุบัน'
                     : tier.tier === 'enterprise'
-                    ? 'ติดต่อฝ่ายขาย'
-                    : tier.tier === 'free'
-                    ? 'ใช้งานฟรี'
-                    : 'เริ่มใช้งาน'}
+                      ? 'ติดต่อฝ่ายขาย'
+                      : tier.tier === 'free'
+                        ? 'ใช้งานฟรี'
+                        : 'เริ่มใช้งาน'}
                 </button>
               </div>
             </div>
@@ -240,7 +238,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
               <thead>
                 <tr className="border-b border-gray-700">
                   <th className="text-left py-3 px-4 text-gray-400">Feature</th>
-                  {PRICING_TIERS.map((tier) => (
+                  {PRICING_TIERS.map(tier => (
                     <th key={tier.tier} className="text-center py-3 px-4">
                       {tier.name}
                     </th>
@@ -248,7 +246,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
                 </tr>
               </thead>
               <tbody>
-                {Object.keys(PRICING_TIERS[0].limits).map((key) => (
+                {Object.keys(PRICING_TIERS[0].limits).map(key => (
                   <tr key={key} className="border-b border-gray-700/50">
                     <td className="py-3 px-4 text-gray-400 capitalize">
                       {key === 'projects' && 'โปรเจกต์'}
@@ -258,7 +256,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
                       {key === 'storage' && 'พื้นที่จัดเก็บ'}
                       {key === 'credits' && 'Credits'}
                     </td>
-                    {PRICING_TIERS.map((tier) => (
+                    {PRICING_TIERS.map(tier => (
                       <td key={tier.tier} className="text-center py-3 px-4">
                         {tier.limits[key as keyof typeof tier.limits]}
                       </td>
@@ -288,9 +286,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
             </div>
             <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
               <h3 className="font-bold mb-2">📈 อัพเกรดกลางเดือนได้ไหม?</h3>
-              <p className="text-gray-400 text-sm">
-                ได้! คิดเฉพาะส่วนต่างตามจำนวนวันที่เหลือ
-              </p>
+              <p className="text-gray-400 text-sm">ได้! คิดเฉพาะส่วนต่างตามจำนวนวันที่เหลือ</p>
             </div>
             <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
               <h3 className="font-bold mb-2">💰 Credits คืออะไร?</h3>

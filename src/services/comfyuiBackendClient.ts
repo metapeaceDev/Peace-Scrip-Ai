@@ -1,6 +1,6 @@
 /**
  * ComfyUI Backend Client
- * 
+ *
  * Client สำหรับเรียกใช้ ComfyUI Backend Service
  * แทนการเรียก localhost:8188 โดยตรง
  */
@@ -38,22 +38,22 @@ export async function generateImageWithBackend(
     // Submit job to queue with timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout for submission
-    
+
     const response = await fetch(`${COMFYUI_SERVICE_URL}/api/comfyui/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
+        Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify({
         prompt,
         workflow,
         referenceImage,
-        priority
+        priority,
       }),
-      signal: controller.signal
+      signal: controller.signal,
     });
-    
+
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -62,9 +62,9 @@ export async function generateImageWithBackend(
     }
 
     const result = await response.json();
-    
+
     console.log('📦 Backend response:', result);
-    
+
     // Handle different response formats
     const jobData = result.data || result;
     const jobId = jobData.jobId || jobData.id;
@@ -77,20 +77,23 @@ export async function generateImageWithBackend(
 
     // Poll for result
     return await pollJobStatus(jobId, idToken, 300000, onProgress);
-
   } catch (error: unknown) {
     console.error('❌ Backend generation failed:', error);
-    
+
     // Handle timeout error
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('ComfyUI Backend timeout - service may be down. Try again or check backend status.');
+      throw new Error(
+        'ComfyUI Backend timeout - service may be down. Try again or check backend status.'
+      );
     }
-    
+
     // Handle connection errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Cannot connect to ComfyUI Backend Service. Please check if the service is running.');
+      throw new Error(
+        'Cannot connect to ComfyUI Backend Service. Please check if the service is running.'
+      );
     }
-    
+
     throw error;
   }
 }
@@ -99,11 +102,12 @@ export async function generateImageWithBackend(
  * Poll job status until complete
  */
 async function pollJobStatus(
-  jobId: string, 
-  idToken: string, 
+  jobId: string,
+  idToken: string,
   maxWait: number = 4800000,
   onProgress?: (progress: number) => void
-): Promise<string> { // 80 minutes (Mac IP-Adapter needs more time)
+): Promise<string> {
+  // 80 minutes (Mac IP-Adapter needs more time)
   const startTime = Date.now();
   const pollInterval = 2000; // 2 seconds
 
@@ -111,14 +115,14 @@ async function pollJobStatus(
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout per poll
-      
+
       const response = await fetch(`${COMFYUI_SERVICE_URL}/api/comfyui/job/${jobId}`, {
         headers: {
-          'Authorization': `Bearer ${idToken}`
+          Authorization: `Bearer ${idToken}`,
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
 
       if (!response.ok) {
@@ -126,7 +130,7 @@ async function pollJobStatus(
       }
 
       const result = await response.json();
-      
+
       // Handle different response formats
       const jobData = result.data || result;
       const state = jobData.state || jobData.status;
@@ -135,7 +139,7 @@ async function pollJobStatus(
       const failedReason = jobData.failedReason || jobData.error || jobData.message;
 
       console.log(`📊 Job ${jobId}: ${state} (${progress}%)`);
-      
+
       // Update progress callback - ALWAYS call even if progress is 0
       if (onProgress) {
         const progressValue = typeof progress === 'number' ? Math.round(progress * 10) / 10 : 0; // Round to 1 decimal
@@ -145,25 +149,25 @@ async function pollJobStatus(
 
       if (state === 'completed' || state === 'success') {
         console.log(`✅ Job ${jobId} completed`);
-        
+
         // Set progress to 100% before returning
         if (onProgress) {
           console.log(`✅ Setting final progress: 100%`);
           onProgress(100);
         }
-        
+
         // Return image from various possible locations
         // Priority: imageUrl (Firebase Storage) > imageData (Base64 fallback)
         const imageUrl = jobResult.imageUrl;
         const imageData = jobResult.imageData || jobResult.image || jobResult;
-        
+
         if (imageUrl) {
           console.log(`🌐 Image available at Storage URL: ${imageUrl}`);
           // TODO: Download from Storage URL and convert to base64 for frontend
           // For now, return imageData if available
           return imageData || imageUrl;
         }
-        
+
         return imageData;
       }
 
@@ -173,7 +177,6 @@ async function pollJobStatus(
 
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, pollInterval));
-
     } catch (error: unknown) {
       // Handle timeout - retry
       if (error instanceof Error && error.name === 'AbortError') {
@@ -181,14 +184,14 @@ async function pollJobStatus(
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         continue;
       }
-      
+
       // Handle connection error - retry a few times
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.warn('⚠️ Connection error, retrying...');
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         continue;
       }
-      
+
       console.error('❌ Polling error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to poll job status: ${errorMsg}`);
@@ -205,12 +208,12 @@ export async function checkBackendStatus() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
       method: 'GET',
-      signal: controller.signal
+      signal: controller.signal,
     });
-    
+
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -218,21 +221,23 @@ export async function checkBackendStatus() {
     }
 
     const data = await response.json();
-    
+
     return {
       running: data.success,
       url: COMFYUI_SERVICE_URL,
       workers: data.workers?.totalWorkers || 0,
       healthyWorkers: data.workers?.healthyWorkers || 0,
-      queue: data.queue
+      queue: data.queue,
     };
-
   } catch (error: unknown) {
     return {
       running: false,
-      error: error instanceof Error && error.name === 'AbortError' 
-        ? 'Backend service timeout (not responding)' 
-        : (error instanceof Error ? error.message : 'Unknown error')
+      error:
+        error instanceof Error && error.name === 'AbortError'
+          ? 'Backend service timeout (not responding)'
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error',
     };
   }
 }
@@ -243,11 +248,11 @@ export async function checkBackendStatus() {
 export async function getWorkerStats() {
   try {
     const idToken = await getIdToken();
-    
+
     const response = await fetch(`${COMFYUI_SERVICE_URL}/api/comfyui/workers`, {
       headers: {
-        'Authorization': `Bearer ${idToken}`
-      }
+        Authorization: `Bearer ${idToken}`,
+      },
     });
 
     if (!response.ok) {
@@ -256,7 +261,6 @@ export async function getWorkerStats() {
 
     const result = await response.json();
     return result.data;
-
   } catch (error) {
     console.error('❌ Failed to get worker stats:', error);
     return null;
@@ -269,11 +273,11 @@ export async function getWorkerStats() {
 export async function getQueueStats() {
   try {
     const idToken = await getIdToken();
-    
+
     const response = await fetch(`${COMFYUI_SERVICE_URL}/api/queue/stats`, {
       headers: {
-        'Authorization': `Bearer ${idToken}`
-      }
+        Authorization: `Bearer ${idToken}`,
+      },
     });
 
     if (!response.ok) {
@@ -282,7 +286,6 @@ export async function getQueueStats() {
 
     const result = await response.json();
     return result.data;
-
   } catch (error) {
     console.error('❌ Failed to get queue stats:', error);
     return null;
@@ -300,20 +303,24 @@ export async function generateWithComfyUI(
   if (USE_BACKEND_SERVICE) {
     console.log('🌐 Using ComfyUI Backend Service');
     console.log('📋 Options:', options);
-    
+
     // เลือกใช้ FLUX หรือ SDXL workflow
     const useFlux = options.useFlux || false;
-    
+
     // Extract typed values from options
-    const optionsRefImage = typeof options.referenceImage === 'string' ? options.referenceImage : null;
-    const onProgressCallback = typeof options.onProgress === 'function' ? options.onProgress as (progress: number) => void : undefined;
-    
+    const optionsRefImage =
+      typeof options.referenceImage === 'string' ? options.referenceImage : null;
+    const onProgressCallback =
+      typeof options.onProgress === 'function'
+        ? (options.onProgress as (progress: number) => void)
+        : undefined;
+
     let workflow;
     if (useFlux) {
       console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
       workflow = buildFluxWorkflow(prompt, {
         ...options,
-        referenceImage: referenceImage || optionsRefImage
+        referenceImage: referenceImage || optionsRefImage,
       });
     } else {
       const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
@@ -321,15 +328,15 @@ export async function generateWithComfyUI(
       workflow = buildWorkflow(prompt, {
         ...options,
         ckpt_name: checkpointName, // Ensure checkpoint name is set
-        referenceImage: referenceImage || optionsRefImage
+        referenceImage: referenceImage || optionsRefImage,
       });
     }
-    
+
     console.log('🔧 Built workflow with nodes:', Object.keys(workflow).length);
-    
+
     return await generateImageWithBackend(
-      prompt, 
-      workflow, 
+      prompt,
+      workflow,
       referenceImage || optionsRefImage,
       5, // Default priority
       onProgressCallback // Pass progress callback
@@ -345,5 +352,5 @@ export default {
   generateWithComfyUI,
   checkBackendStatus,
   getWorkerStats,
-  getQueueStats
+  getQueueStats,
 };

@@ -19,38 +19,38 @@ const testEvents = [
     id: 'praise',
     description: 'คนชมว่าคุณทำได้ดีมาก',
     intensity: 3,
-    category: 'positive'
+    category: 'positive',
   },
   {
     id: 'insult',
     description: 'มีคนดุด่าและดูถูกคุณต่อหน้าคนอื่น',
     intensity: 7,
-    category: 'negative'
+    category: 'negative',
   },
   {
     id: 'temptation',
     description: 'มีคนเสนอเงินจำนวนมากให้ทำสิ่งผิด',
     intensity: 8,
-    category: 'temptation'
+    category: 'temptation',
   },
   {
     id: 'suffering',
     description: 'เห็นคนอื่นกำลังทุกข์ทรมานอย่างมาก',
     intensity: 6,
-    category: 'compassion'
+    category: 'compassion',
   },
   {
     id: 'loss',
     description: 'สูญเสียสิ่งที่รักและทำมาตลอดชีวิต',
     intensity: 9,
-    category: 'grief'
+    category: 'grief',
   },
   {
     id: 'success',
     description: 'ได้รับความสำเร็จที่ทุกคนปรารถนา',
     intensity: 5,
-    category: 'pride'
-  }
+    category: 'pride',
+  },
 ];
 
 export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ character, onClose }) => {
@@ -58,19 +58,20 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
   const [customEvent, setCustomEvent] = useState('');
   const [customIntensity, setCustomIntensity] = useState(5);
   const [useCustom, setUseCustom] = useState(false);
-  
+
   const profile = calculatePsychologyProfile(character);
-  
-  const currentEvent = useCustom && customEvent.trim() 
-    ? { description: customEvent, intensity: customIntensity }
-    : selectedEvent;
-  
+
+  const currentEvent =
+    useCustom && customEvent.trim()
+      ? { description: customEvent, intensity: customIntensity }
+      : selectedEvent;
+
   const reaction = calculateReaction(character, currentEvent.description, currentEvent.intensity);
-  
+
   // Generate AI-like response preview
   const generateDialoguePreview = () => {
     const { reactionType, emotionalTone } = reaction;
-    
+
     if (reactionType === 'wholesome') {
       const responses = [
         `"${currentEvent.description.includes('ชม') ? 'ขอบคุณครับ แต่นี่เป็นหน้าที่ที่ต้องทำ' : 'ผม/ฉันเข้าใจความรู้สึกของคุณ'}"`,
@@ -89,20 +90,26 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
       return `"${currentEvent.description.includes('สำเร็จ') ? 'ไม่รู้จะดีใจหรือกังวลดี...' : 'ผม/ฉันไม่แน่ใจว่าควรทำอย่างไร...'}"`;
     }
   };
-  
+
   const getReactionColor = (type: string) => {
     switch (type) {
-      case 'wholesome': return 'text-green-400 bg-green-500/20 border-green-500/50';
-      case 'unwholesome': return 'text-red-400 bg-red-500/20 border-red-500/50';
-      default: return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
+      case 'wholesome':
+        return 'text-green-400 bg-green-500/20 border-green-500/50';
+      case 'unwholesome':
+        return 'text-red-400 bg-red-500/20 border-red-500/50';
+      default:
+        return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
     }
   };
-  
+
   const getReactionIcon = (type: string) => {
     switch (type) {
-      case 'wholesome': return '✨';
-      case 'unwholesome': return '⚠️';
-      default: return '🤔';
+      case 'wholesome':
+        return '✨';
+      case 'unwholesome':
+        return '⚠️';
+      default:
+        return '🤔';
     }
   };
 
@@ -117,7 +124,8 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                 🧪 Psychology Test Lab
               </h2>
               <p className="text-sm text-gray-400 mt-1">
-                ทดสอบการตอบสนองของ <span className="text-white font-bold">{character.name}</span> ต่อสถานการณ์ต่างๆ
+                ทดสอบการตอบสนองของ <span className="text-white font-bold">{character.name}</span>{' '}
+                ต่อสถานการณ์ต่างๆ
               </p>
             </div>
             <button
@@ -133,17 +141,25 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
           {/* Left Column: Character Profile */}
           <div className="space-y-4">
             <PsychologyDisplay character={character} />
-            
+
             {/* Quick Stats */}
             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-              <div className="text-xs uppercase tracking-wider text-gray-400 mb-3">Quick Analysis</div>
+              <div className="text-xs uppercase tracking-wider text-gray-400 mb-3">
+                Quick Analysis
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Mental Type:</span>
-                  <span className={`font-bold ${profile.mentalBalance > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {profile.mentalBalance > 30 ? 'Highly Virtuous' : 
-                     profile.mentalBalance > 0 ? 'Slightly Virtuous' :
-                     profile.mentalBalance > -30 ? 'Slightly Troubled' : 'Highly Troubled'}
+                  <span
+                    className={`font-bold ${profile.mentalBalance > 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {profile.mentalBalance > 30
+                      ? 'Highly Virtuous'
+                      : profile.mentalBalance > 0
+                        ? 'Slightly Virtuous'
+                        : profile.mentalBalance > -30
+                          ? 'Slightly Troubled'
+                          : 'Highly Troubled'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -169,10 +185,10 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
               <h3 className="text-lg font-bold text-purple-400 mb-4 uppercase tracking-wide">
                 🎭 Select Test Event
               </h3>
-              
+
               {/* Preset Events */}
               <div className="space-y-2 mb-4">
-                {testEvents.map((event) => (
+                {testEvents.map(event => (
                   <button
                     key={event.id}
                     onClick={() => {
@@ -201,17 +217,17 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                   <input
                     type="checkbox"
                     checked={useCustom}
-                    onChange={(e) => setUseCustom(e.target.checked)}
+                    onChange={e => setUseCustom(e.target.checked)}
                     className="w-4 h-4 accent-purple-500"
                   />
                   <span className="text-sm text-gray-300 font-bold">Custom Event</span>
                 </label>
-                
+
                 {useCustom && (
                   <div className="space-y-2">
                     <textarea
                       value={customEvent}
-                      onChange={(e) => setCustomEvent(e.target.value)}
+                      onChange={e => setCustomEvent(e.target.value)}
                       placeholder="กรอกเหตุการณ์ของคุณเอง..."
                       className="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       rows={2}
@@ -223,7 +239,7 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                         min="1"
                         max="10"
                         value={customIntensity}
-                        onChange={(e) => setCustomIntensity(parseInt(e.target.value))}
+                        onChange={e => setCustomIntensity(parseInt(e.target.value))}
                         className="flex-1 accent-purple-500"
                       />
                       <span className="text-sm font-bold text-purple-400 w-12 text-right">
@@ -241,19 +257,21 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                 <div className="text-4xl">{getReactionIcon(reaction.reactionType)}</div>
                 <div>
                   <h3 className="text-xl font-black uppercase tracking-wide">
-                    {reaction.reactionType === 'wholesome' ? 'Wholesome Reaction' :
-                     reaction.reactionType === 'unwholesome' ? 'Unwholesome Reaction' :
-                     'Neutral Reaction'}
+                    {reaction.reactionType === 'wholesome'
+                      ? 'Wholesome Reaction'
+                      : reaction.reactionType === 'unwholesome'
+                        ? 'Unwholesome Reaction'
+                        : 'Neutral Reaction'}
                   </h3>
-                  <p className="text-sm opacity-80">
-                    {currentEvent.description}
-                  </p>
+                  <p className="text-sm opacity-80">{currentEvent.description}</p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="bg-black/20 rounded-lg p-3">
-                  <div className="text-xs uppercase tracking-wider opacity-70 mb-1">Emotional Tone</div>
+                  <div className="text-xs uppercase tracking-wider opacity-70 mb-1">
+                    Emotional Tone
+                  </div>
                   <div className="text-lg font-bold">{reaction.emotionalTone}</div>
                 </div>
 
@@ -273,7 +291,9 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                 </div>
 
                 <div className="bg-black/20 rounded-lg p-3">
-                  <div className="text-xs uppercase tracking-wider opacity-70 mb-1">Psychology Reasoning</div>
+                  <div className="text-xs uppercase tracking-wider opacity-70 mb-1">
+                    Psychology Reasoning
+                  </div>
                   <p className="text-sm leading-relaxed">{reaction.reasoning}</p>
                 </div>
 
@@ -281,9 +301,7 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
                   <div className="text-xs uppercase tracking-wider opacity-70 mb-2">
                     💬 Expected AI Dialogue/Action
                   </div>
-                  <p className="text-base italic leading-relaxed">
-                    {generateDialoguePreview()}
-                  </p>
+                  <p className="text-base italic leading-relaxed">{generateDialoguePreview()}</p>
                   <p className="text-xs opacity-60 mt-2">
                     * This is what AI would likely generate based on the psychology profile
                   </p>
@@ -293,9 +311,11 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
 
             {/* Comparison Hint */}
             <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
-              <div className="text-xs uppercase tracking-wider text-cyan-400 mb-2">💡 Testing Tip</div>
+              <div className="text-xs uppercase tracking-wider text-cyan-400 mb-2">
+                💡 Testing Tip
+              </div>
               <p className="text-sm text-gray-300 leading-relaxed">
-                ลองสร้างตัวละคร 2 แบบที่ตรงข้ามกัน (1 ตัวมีคุณธรรมสูง, 1 ตัวมีกิเลสสูง) 
+                ลองสร้างตัวละคร 2 แบบที่ตรงข้ามกัน (1 ตัวมีคุณธรรมสูง, 1 ตัวมีกิเลสสูง)
                 แล้วทดสอบกับเหตุการณ์เดียวกัน คุณจะเห็นความแตกต่างอย่างชัดเจน!
               </p>
             </div>

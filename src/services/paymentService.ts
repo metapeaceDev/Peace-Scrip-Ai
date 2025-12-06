@@ -1,6 +1,6 @@
 /**
  * Payment Service
- * 
+ *
  * Handles subscription payments via Stripe and Omise
  * Manages billing cycles, invoices, and payment webhooks
  */
@@ -68,28 +68,28 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
     tier: 'free',
     monthlyPrice: 0,
     yearlyPrice: 0,
-    currency: 'THB'
+    currency: 'THB',
   },
   basic: {
     tier: 'basic',
     monthlyPrice: 299,
     yearlyPrice: 2990, // 10 months price (2 months free)
     currency: 'THB',
-    earlyBirdDiscount: 50 // 50% OFF for early birds
+    earlyBirdDiscount: 50, // 50% OFF for early birds
   },
   pro: {
     tier: 'pro',
     monthlyPrice: 999,
     yearlyPrice: 9990, // 10 months price (2 months free)
     currency: 'THB',
-    earlyBirdDiscount: 50
+    earlyBirdDiscount: 50,
   },
   enterprise: {
     tier: 'enterprise',
     monthlyPrice: 8000, // Starting price
     yearlyPrice: 80000,
-    currency: 'THB'
-  }
+    currency: 'THB',
+  },
 };
 
 // Payment Providers Configuration
@@ -99,22 +99,22 @@ export const PAYMENT_PROVIDERS: PaymentProvider[] = [
     name: 'Stripe',
     available: false, // Will be true when integrated
     currencies: ['THB', 'USD', 'EUR'],
-    methods: ['card']
+    methods: ['card'],
   },
   {
     id: 'omise',
     name: 'Omise',
     available: false, // Will be true when integrated
     currencies: ['THB'],
-    methods: ['card', 'promptpay']
+    methods: ['card', 'promptpay'],
   },
   {
     id: 'promptpay',
     name: 'PromptPay',
     available: false,
     currencies: ['THB'],
-    methods: ['qr']
-  }
+    methods: ['qr'],
+  },
 ];
 
 /**
@@ -173,7 +173,7 @@ export function calculatePrice(
     discount,
     addOnsPrice,
     totalPrice,
-    savings
+    savings,
   };
 }
 
@@ -192,7 +192,7 @@ export async function createPaymentIntent(
 ): Promise<PaymentIntent> {
   const { totalPrice } = calculatePrice(tier, billingCycle, {
     applyEarlyBird: true,
-    promoCode: metadata.promoCode
+    promoCode: metadata.promoCode,
   });
 
   // TODO: Integrate with actual payment provider API
@@ -205,11 +205,13 @@ export async function createPaymentIntent(
     provider,
     status: 'pending',
     createdAt: new Date(),
-    metadata
+    metadata,
   };
 
-  console.log(`💳 Payment intent created: ${intent.id} - ฿${totalPrice} (${tier}, ${billingCycle})`);
-  
+  console.log(
+    `💳 Payment intent created: ${intent.id} - ฿${totalPrice} (${tier}, ${billingCycle})`
+  );
+
   // In production:
   // if (provider === 'stripe') {
   //   return await createStripePaymentIntent(totalPrice, metadata);
@@ -227,16 +229,16 @@ export async function confirmPayment(
   intentId: string
 ): Promise<{ success: boolean; subscription?: { tier: SubscriptionTier; expiresAt: Date } }> {
   // TODO: Verify payment with provider and update user subscription
-  
+
   console.log(`✅ Payment confirmed: ${intentId}`);
-  
+
   // Mock success response
   return {
     success: true,
     subscription: {
       tier: 'basic',
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-    }
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+    },
   };
 }
 
@@ -248,16 +250,16 @@ export async function cancelSubscription(
   immediate: boolean = false
 ): Promise<{ success: boolean; endsAt: Date }> {
   // TODO: Cancel subscription via payment provider
-  
-  const endsAt = immediate
-    ? new Date()
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // End of current billing period
 
-  console.log(`🚫 Subscription canceled for user ${userId} - ends at ${endsAt.toLocaleDateString()}`);
+  const endsAt = immediate ? new Date() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // End of current billing period
+
+  console.log(
+    `🚫 Subscription canceled for user ${userId} - ends at ${endsAt.toLocaleDateString()}`
+  );
 
   return {
     success: true,
-    endsAt
+    endsAt,
   };
 }
 
@@ -274,7 +276,7 @@ export async function changeSubscription(
   nextBillingDate: Date;
 }> {
   // TODO: Calculate prorated amount and update subscription
-  
+
   const { totalPrice } = calculatePrice(newTier, billingCycle, { applyEarlyBird: false });
   const prorated = totalPrice * 0.5; // Mock: assume user is halfway through current period
 
@@ -283,7 +285,7 @@ export async function changeSubscription(
   return {
     success: true,
     prorated,
-    nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   };
 }
 
@@ -297,7 +299,7 @@ export function generateInvoice(
   period: { start: Date; end: Date }
 ): Invoice {
   const { basePrice, discount, addOnsPrice, totalPrice } = calculatePrice(tier, billingCycle, {
-    applyEarlyBird: false
+    applyEarlyBird: false,
   });
 
   const items: InvoiceItem[] = [
@@ -305,8 +307,8 @@ export function generateInvoice(
       description: `${tier.toUpperCase()} Plan - ${billingCycle}`,
       quantity: 1,
       unitPrice: basePrice,
-      amount: basePrice
-    }
+      amount: basePrice,
+    },
   ];
 
   if (discount > 0) {
@@ -314,7 +316,7 @@ export function generateInvoice(
       description: 'Discount',
       quantity: 1,
       unitPrice: -discount,
-      amount: -discount
+      amount: -discount,
     });
   }
 
@@ -323,7 +325,7 @@ export function generateInvoice(
       description: 'Add-ons',
       quantity: 1,
       unitPrice: addOnsPrice,
-      amount: addOnsPrice
+      amount: addOnsPrice,
     });
   }
 
@@ -336,7 +338,7 @@ export function generateInvoice(
     period,
     status: 'open',
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-    items
+    items,
   };
 
   return invoice;
@@ -384,7 +386,7 @@ export function getAvailablePaymentMethods(country: string = 'TH'): PaymentProvi
   if (country === 'TH') {
     return PAYMENT_PROVIDERS;
   }
-  
+
   // International: Stripe only
   return PAYMENT_PROVIDERS.filter(p => p.id === 'stripe');
 }
@@ -392,23 +394,24 @@ export function getAvailablePaymentMethods(country: string = 'TH'): PaymentProvi
 /**
  * Validate promo code
  */
-export async function validatePromoCode(
-  code: string
-): Promise<{
+export async function validatePromoCode(code: string): Promise<{
   valid: boolean;
   discount?: number;
   type?: 'percentage' | 'fixed';
   expiresAt?: Date;
 }> {
   // TODO: Check promo code in database
-  
-  const mockPromoCodes: Record<string, { discount: number; type: 'percentage' | 'fixed'; expiresAt: Date }> = {
-    'EARLYBIRD50': { discount: 50, type: 'percentage', expiresAt: new Date('2025-12-31') },
-    'WELCOME100': { discount: 100, type: 'fixed', expiresAt: new Date('2025-12-31') }
+
+  const mockPromoCodes: Record<
+    string,
+    { discount: number; type: 'percentage' | 'fixed'; expiresAt: Date }
+  > = {
+    EARLYBIRD50: { discount: 50, type: 'percentage', expiresAt: new Date('2025-12-31') },
+    WELCOME100: { discount: 100, type: 'fixed', expiresAt: new Date('2025-12-31') },
   };
 
   const promo = mockPromoCodes[code.toUpperCase()];
-  
+
   if (!promo) {
     return { valid: false };
   }
@@ -421,6 +424,6 @@ export async function validatePromoCode(
     valid: true,
     discount: promo.discount,
     type: promo.type,
-    expiresAt: promo.expiresAt
+    expiresAt: promo.expiresAt,
   };
 }

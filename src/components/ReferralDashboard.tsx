@@ -1,11 +1,15 @@
 /**
  * Referral Dashboard Component
- * 
+ *
  * แสดงสถิติและจัดการ referral code
  */
 
 import React, { useState } from 'react';
-import { getUserReferralStats, generateReferralLink, createCustomReferralCode } from '../services/referralService';
+import {
+  getUserReferralStats,
+  generateReferralLink,
+  createCustomReferralCode,
+} from '../services/referralService';
 
 export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
   const stats = getUserReferralStats(userId);
@@ -15,7 +19,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
 
   const handleCopyLink = async () => {
     const link = generateReferralLink(stats.code, 'copy');
-    
+
     try {
       await navigator.clipboard.writeText(link);
       setCopiedLink(true);
@@ -42,7 +46,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
     }
 
     const result = createCustomReferralCode(userId, customCode);
-    
+
     if (result.success) {
       setMessage({ type: 'success', text: `สร้างรหัส ${result.code?.code} สำเร็จ!` });
       setCustomCode('');
@@ -87,7 +91,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
       {/* Referral Code Card */}
       <div className="bg-white border-2 border-purple-200 rounded-lg p-6 shadow-md">
         <h2 className="text-xl font-bold mb-4">รหัส Referral ของคุณ</h2>
-        
+
         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
           <div className="text-sm text-gray-600 mb-2">Your Referral Code</div>
           <div className="text-4xl font-mono font-bold text-purple-600 tracking-wider">
@@ -138,12 +142,12 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
         <p className="text-gray-700 mb-4 text-sm">
           สร้างรหัส referral แบบกำหนดเอง (4-12 ตัวอักษร, A-Z และ 0-9 เท่านั้น)
         </p>
-        
+
         <div className="flex gap-2">
           <input
             type="text"
             value={customCode}
-            onChange={(e) => setCustomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            onChange={e => setCustomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
             placeholder="เช่น PEACE2024"
             maxLength={12}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg uppercase"
@@ -172,7 +176,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
       {/* How It Works */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-bold mb-4">💡 วิธีการทำงาน</h3>
-        
+
         <div className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
@@ -216,7 +220,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
       {stats.recentReferrals.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-bold mb-4">📊 Referrals ล่าสุด</h3>
-          
+
           <div className="space-y-2">
             {stats.recentReferrals.map((referral, index) => (
               <div
@@ -233,12 +237,12 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                       {referral.timestamp.toLocaleDateString('th-TH', {
                         year: 'numeric',
                         month: 'short',
-                        day: 'numeric'
+                        day: 'numeric',
                       })}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="text-right">
                   <p className="font-bold text-green-600">+{referral.creditsAwarded} credits</p>
                   <p className="text-xs text-gray-500">Successful</p>
@@ -252,7 +256,7 @@ export const ReferralDashboard: React.FC<{ userId: string }> = ({ userId }) => {
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="text-lg font-bold mb-3">💎 เคล็ดลับเพื่อเพิ่ม Referrals</h3>
-        
+
         <ul className="space-y-2 text-gray-700">
           <li className="flex items-start gap-2">
             <span className="text-blue-600 font-bold">•</span>

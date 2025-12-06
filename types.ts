@@ -1,4 +1,3 @@
-
 export interface Character {
   id: string; // Mandatory for robust deletion and list management
   name: string;
@@ -59,7 +58,7 @@ export interface GeneratedScene {
     moodTone: string;
   };
   // New: Map of Character Name -> Outfit ID for this specific scene
-  characterOutfits?: Record<string, string>; 
+  characterOutfits?: Record<string, string>;
   shotList: {
     scene: string;
     shot: number;
@@ -96,7 +95,14 @@ export interface GeneratedScene {
   };
 }
 
-export type ProjectType = 'Movie' | 'Series' | 'Moral Drama' | 'Short Film' | 'Commercial' | 'MV' | 'Reels';
+export type ProjectType =
+  | 'Movie'
+  | 'Series'
+  | 'Moral Drama'
+  | 'Short Film'
+  | 'Commercial'
+  | 'MV'
+  | 'Reels';
 
 export interface ProjectMetadata {
   id: string;

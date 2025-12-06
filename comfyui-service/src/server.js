@@ -1,6 +1,6 @@
 /**
  * ComfyUI Service - Main Server
- * 
+ *
  * Purpose: Backend service for managing ComfyUI + LoRA image generation
  * Features:
  * - Queue-based job processing (Bull + Redis)
@@ -37,16 +37,18 @@ await startWorkerManager();
 
 // Security
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5000, // Increased limit for local development (was 100)
-  message: 'Too many requests from this IP'
+  message: 'Too many requests from this IP',
 });
 app.use('/api/', limiter);
 
@@ -64,9 +66,9 @@ app.use('/api/queue', queueRoutes);
 
 // Error handling
 app.use((req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: 'Route not found' 
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
   });
 });
 app.use(errorHandler);
