@@ -13,6 +13,8 @@ import AuthPage from './src/components/AuthPage';
 import ComfyUISetup from './src/components/ComfyUISetup';
 import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';
+import QuotaWidget from './src/components/QuotaWidget';
+import SubscriptionDashboard from './src/components/SubscriptionDashboard';
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
@@ -177,6 +179,7 @@ function App() {
   const [showLoRASetup, setShowLoRASetup] = useState(false);
   const [loraReady, setLoraReady] = useState(false);
   const [comfyUISkipped, setComfyUISkipped] = useState(false);
+  const [showSubscriptionDashboard, setShowSubscriptionDashboard] = useState(false);
 
   const [view, setView] = useState<'studio' | 'editor'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
@@ -794,6 +797,29 @@ function App() {
 
   if (isLoadingAuth) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">Loading Peace Script...</div>;
 
+  // Show Subscription Dashboard if user clicks upgrade/subscription
+  if (showSubscriptionDashboard) {
+      return (
+          <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+              <header className="bg-gradient-to-r from-gray-800 to-gray-900 shadow-lg border-b border-gray-700 sticky top-0 z-50">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                          <div className="text-2xl">💳</div>
+                          <h1 className="text-lg font-bold text-white tracking-wider">Subscription Management</h1>
+                      </div>
+                      <button
+                          onClick={() => setShowSubscriptionDashboard(false)}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                      >
+                          ← กลับสู่แอป
+                      </button>
+                  </div>
+              </header>
+              <SubscriptionDashboard />
+          </div>
+      );
+  }
+
   // Show ComfyUI Setup if not running
   if (showComfyUISetup) {
       return <ComfyUISetup 
@@ -906,6 +932,9 @@ function App() {
              </h1>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
+             
+             {/* Quota Widget */}
+             <QuotaWidget onUpgradeClick={() => setShowSubscriptionDashboard(true)} />
              
              {/* AI Provider Settings */}
              <ProviderSettings />
