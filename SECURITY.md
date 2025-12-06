@@ -1,5 +1,94 @@
 # Security Policy
 
+## 🔒 API Keys & Secrets Management
+
+### ❌ NEVER Commit These Files
+
+```bash
+.env
+.env.local
+.env.production
+.env.*.local
+```
+
+These files are in `.gitignore` and should **NEVER** be committed to Git.
+
+### ✅ Safe Files (Template Only)
+
+```bash
+.env.example      # ✅ Safe - contains placeholders only
+.env.template     # ✅ Safe - contains placeholders only
+```
+
+**IMPORTANT:** Template files should only contain example values:
+```bash
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+### 🛡️ Protection Measures
+
+1. **Git Hooks Enabled**
+   - Pre-commit hook scans for API keys
+   - Blocks commits with sensitive data
+   - Install: `git config core.hooksPath .githooks`
+
+2. **.gitignore Coverage**
+   - All `.env*` files (except examples) ignored
+   - Pattern: `*.local`, `.env`, `.env.production`
+
+3. **Automated Detection**
+   - Google API Keys: `AIza[0-9A-Za-z_-]{35}`
+   - Firebase configs in source code
+
+## 🚨 What To Do If You Leaked an API Key
+
+### Immediate Actions (Within 5 Minutes)
+
+1. **Revoke the Key**
+   - Google Gemini: https://aistudio.google.com/apikey
+   - Delete the leaked key immediately
+
+2. **Generate New Key**
+   ```bash
+   # Get new key from provider
+   # Update .env.local ONLY (not .env.template!)
+   ```
+
+3. **Clean Git History**
+   ```bash
+   # Install BFG Repo-Cleaner
+   brew install bfg
+   
+   # Remove leaked key
+   bfg --replace-text <(echo 'LEAKED_KEY==>REMOVED') .
+   
+   # Force push (⚠️ rewrites history)
+   git push --force
+   ```
+
+## ✅ Secure Setup Checklist
+
+- [ ] Copy `.env.template` to `.env.local`
+- [ ] Add real API keys to `.env.local` only
+- [ ] Verify `.env.local` not tracked: `git status`
+- [ ] Enable Git hooks: `git config core.hooksPath .githooks`
+- [ ] Test hook: `.githooks/pre-commit`
+
+## 📋 Before Every Commit
+
+```bash
+# Check for sensitive files
+git status | grep -E '\.env$|\.env\.local'
+
+# Review changes
+git diff --cached
+
+# Verify hook is active
+.githooks/pre-commit
+```
+
+---
+
 ## Supported Versions
 
 Currently supported versions:
