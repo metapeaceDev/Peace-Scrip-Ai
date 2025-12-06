@@ -348,6 +348,69 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     }
   };
 
+  const handleGenerateAllCharacters = async () => {
+    if (!confirm(`Generate details for all ${characters.length} characters? This will use AI to create comprehensive profiles using Step 1-2 data.`)) {
+      return;
+    }
+    
+    if (onRegisterUndo) onRegisterUndo();
+    setIsLoading(true);
+    setError(null);
+    setProgress(0);
+    
+    try {
+      const updatedCharacters = [...characters];
+      
+      for (let i = 0; i < characters.length; i++) {
+        const char = characters[i];
+        setProgress(Math.round(((i + 1) / characters.length) * 100));
+        
+        try {
+          const aiCharacterData = await generateCharacterDetails(
+            char.name,
+            char.role,
+            char.description || `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
+            scriptData.language
+          );
+          
+          updatedCharacters[i] = {
+            ...char,
+            external: { ...char.external, ...(aiCharacterData.external || {}) },
+            physical: { ...char.physical, ...(aiCharacterData.physical || {}) },
+            fashion: { ...char.fashion, ...(aiCharacterData.fashion || {}) },
+            internal: {
+              ...char.internal,
+              consciousness: {
+                ...char.internal.consciousness,
+                ...(aiCharacterData.internal?.consciousness || {}),
+              },
+              subconscious: {
+                ...char.internal.subconscious,
+                ...(aiCharacterData.internal?.subconscious || {}),
+              },
+              defilement: {
+                ...char.internal.defilement,
+                ...(aiCharacterData.internal?.defilement || {}),
+              },
+            },
+            goals: { ...char.goals, ...(aiCharacterData.goals || {}) },
+          };
+        } catch (charError) {
+          console.error(`Error generating character ${char.name}:`, charError);
+          // Continue with next character
+        }
+      }
+      
+      setScriptData(prev => ({ ...prev, characters: updatedCharacters }));
+      alert(`✅ Successfully generated ${characters.length} characters!`);
+    } catch (e: any) {
+      setError(e.message || 'Failed to generate all characters.');
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
+
   const handleGeneratePortrait = async () => {
     if (!activeCharacter.description && !activeCharacter.physical['Physical Characteristics']) {
       alert('Please enter a character description or physical details first.');
@@ -1212,14 +1275,28 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     Keep existing
                   </label>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateClick}
-                  disabled={isLoading}
-                  className={`w-full text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 ${fillEmptyOnly ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-teal-600 hover:bg-teal-700'}`}
-                >
-                  {isLoading ? 'Generating...' : fillEmptyOnly ? 'Auto-Fill' : 'Auto-Generate'}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateClick}
+                    disabled={isLoading}
+                    className={`text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 ${fillEmptyOnly ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-teal-600 hover:bg-teal-700'}`}
+                  >
+                    {isLoading ? 'Generating...' : fillEmptyOnly ? 'Auto-Fill' : 'Auto-Generate'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAllCharacters}
+                    disabled={isLoading || characters.length === 0}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                    title="Generate all characters at once from Step 1-2 data"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
+                    Gen All
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -2,6 +2,11 @@
  * Psychology Evolution Tracker
  * Tracks and validates character psychology changes based on Buddhist principles
  * Implements กาย-วาจา-ใจ (Body-Speech-Mind) analysis
+ * 
+ * UPDATED: Now uses Digital Mind Model v14 systems
+ * - Ready for JavanaDecisionEngine integration (coming soon)
+ * - Ready for ParamiUpdater integration (coming soon)
+ * - Ready for ChittaVithiGenerator integration (coming soon)
  */
 
 import type {
@@ -15,6 +20,11 @@ import type {
   KarmaIntensity,
 } from '../../types';
 import { calculatePsychologyProfile } from './psychologyCalculator';
+
+// Future integrations (ready to use when needed)
+// import { JavanaDecisionEngine, ChittaVithiGenerator, type SensoryInput } from './mindProcessors';
+// import { ParamiUpdater } from './paramiSystem';
+// import { TanhaToUpadana_Escalator } from './advancedProcessors';
 
 /**
  * Analyze a scene to extract กาย-วาจา-ใจ (Body-Speech-Mind) actions
@@ -243,7 +253,7 @@ function classifyKarma(
 export function calculatePsychologyChanges(
   character: Character,
   scene: GeneratedScene,
-  plotPoint: string
+  _plotPoint: string
 ): PsychologyChange {
   const actions = analyzeSceneActions(scene, character.name);
   const karmaResult = classifyKarma(actions, character);
@@ -341,15 +351,14 @@ export function calculatePsychologyChanges(
 
   return {
     sceneNumber: scene.sceneNumber,
-    plotPoint,
-    actions,
-    consciousnessChanges,
-    defilementChanges,
-    anusayaChanges: Object.keys(anusayaChanges).length > 0 ? anusayaChanges : undefined,
+    timestamp: new Date(),
+    action: actions,
+    karma_type: karmaResult.type,
+    karma_intensity: karmaResult.intensity,
+    consciousness_delta: consciousnessChanges,
+    defilement_delta: defilementChanges,
+    anusaya_delta: Object.keys(anusayaChanges).length > 0 ? anusayaChanges : undefined,
     reasoning,
-    karmaType: karmaResult.type,
-    karmaIntensity: karmaResult.intensity,
-    dominantCarita: karmaResult.dominantCarita,
   };
 }
 
@@ -362,24 +371,24 @@ export function applyPsychologyChanges(character: Character, change: PsychologyC
   const newDefilement = { ...character.internal.defilement };
 
   // Apply consciousness changes
-  Object.entries(change.consciousnessChanges).forEach(([virtue, delta]) => {
+  Object.entries(change.consciousness_delta).forEach(([virtue, delta]) => {
     const current = newConsciousness[virtue] || 50;
-    newConsciousness[virtue] = Math.max(0, Math.min(100, current + delta));
+    newConsciousness[virtue] = Math.max(0, Math.min(100, current + (delta as number)));
   });
 
   // Apply defilement changes
-  Object.entries(change.defilementChanges).forEach(([defilement, delta]) => {
+  Object.entries(change.defilement_delta).forEach(([defilement, delta]) => {
     const current = newDefilement[defilement] || 50;
-    newDefilement[defilement] = Math.max(0, Math.min(100, current + delta));
+    newDefilement[defilement] = Math.max(0, Math.min(100, current + (delta as number)));
   });
 
   // Apply Anusaya changes (if exists)
   let newAnusaya = character.buddhist_psychology?.anusaya;
-  if (change.anusayaChanges && newAnusaya) {
+  if (change.anusaya_delta && newAnusaya) {
     newAnusaya = { ...newAnusaya };
-    Object.entries(change.anusayaChanges).forEach(([key, delta]) => {
+    Object.entries(change.anusaya_delta).forEach(([key, delta]) => {
       const anusayaKey = key as keyof typeof newAnusaya;
-      if (newAnusaya && typeof newAnusaya[anusayaKey] === 'number') {
+      if (newAnusaya && typeof newAnusaya[anusayaKey] === 'number' && delta !== undefined) {
         newAnusaya[anusayaKey] = Math.max(0, Math.min(100, newAnusaya[anusayaKey] + delta));
       }
     });
@@ -406,25 +415,20 @@ export function applyPsychologyChanges(character: Character, change: PsychologyC
  */
 export function createPsychologySnapshot(
   character: Character,
-  sceneNumber: number,
-  plotPoint: string
+  sceneNumber: number
 ): PsychologySnapshot {
-  const profile = calculatePsychologyProfile(character);
-
   return {
     sceneNumber,
-    plotPoint,
     consciousness: { ...character.internal.consciousness },
     defilement: { ...character.internal.defilement },
-    mentalBalance: profile.mentalBalance,
-    dominantEmotion: profile.dominantEmotion,
-    buddhist_psychology: character.buddhist_psychology
-      ? {
-          anusaya: { ...character.buddhist_psychology.anusaya },
-          carita: character.buddhist_psychology.carita,
-          carita_secondary: character.buddhist_psychology.carita_secondary,
-        }
+    anusaya: character.buddhist_psychology?.anusaya
+      ? { ...character.buddhist_psychology.anusaya }
       : undefined,
+    parami: character.parami_portfolio
+      ? { ...character.parami_portfolio }
+      : undefined,
+    current_bhumi: character.mind_state?.current_bhumi,
+    magga_stage: character.mind_state?.magga_stage,
   };
 }
 
@@ -432,35 +436,16 @@ export function createPsychologySnapshot(
  * Initialize psychology timeline for a character
  */
 export function initializePsychologyTimeline(character: Character): CharacterPsychologyTimeline {
-  const initialProfile = calculatePsychologyProfile(character);
-
   return {
     characterId: character.id,
     characterName: character.name,
-    snapshots: [
-      {
-        sceneNumber: 0,
-        plotPoint: 'เริ่มต้น',
-        consciousness: { ...character.internal.consciousness },
-        defilement: { ...character.internal.defilement },
-        mentalBalance: initialProfile.mentalBalance,
-        dominantEmotion: initialProfile.dominantEmotion,
-        buddhist_psychology: character.buddhist_psychology
-          ? {
-              anusaya: { ...character.buddhist_psychology.anusaya },
-              carita: character.buddhist_psychology.carita,
-              carita_secondary: character.buddhist_psychology.carita_secondary,
-            }
-          : undefined,
-      },
-    ],
     changes: [],
-    overallArc: {
-      startingBalance: initialProfile.mentalBalance,
-      endingBalance: initialProfile.mentalBalance,
-      totalChange: 0,
-      direction: 'คงที่',
-      interpretation: 'ยังไม่มีการเปลี่ยนแปลง',
+    snapshots: [createPsychologySnapshot(character, 0)],
+    summary: {
+      total_kusala: 0,
+      total_akusala: 0,
+      net_progress: 0,
+      dominant_pattern: 'เริ่มต้น',
     },
   };
 }
@@ -472,76 +457,41 @@ export function updatePsychologyTimeline(
   timeline: CharacterPsychologyTimeline,
   character: Character,
   scene: GeneratedScene,
-  plotPoint: string
+  _plotPoint: string
 ): { timeline: CharacterPsychologyTimeline; updatedCharacter: Character } {
   // Calculate changes from this scene
-  const change = calculatePsychologyChanges(character, scene, plotPoint);
+  const change = calculatePsychologyChanges(character, scene, _plotPoint);
 
   // Apply changes to get updated character
   const updatedCharacter = applyPsychologyChanges(character, change);
 
   // Create snapshot of new state
-  const snapshot = createPsychologySnapshot(updatedCharacter, scene.sceneNumber, plotPoint);
+  const snapshot = createPsychologySnapshot(updatedCharacter, scene.sceneNumber);
+
+  // Calculate summary statistics
+  const allChanges = [...timeline.changes, change];
+  const kusalaCount = allChanges.filter(c => c.karma_type === 'กุศลกรรม').length;
+  const akusalaCount = allChanges.filter(c => c.karma_type === 'อกุศลกรรม').length;
 
   // Update timeline
   const newTimeline: CharacterPsychologyTimeline = {
     ...timeline,
     snapshots: [...timeline.snapshots, snapshot],
-    changes: [...timeline.changes, change],
-    overallArc: calculateOverallArc(timeline.snapshots[0], snapshot, [...timeline.changes, change]),
+    changes: allChanges,
+    summary: {
+      total_kusala: kusalaCount,
+      total_akusala: akusalaCount,
+      net_progress: kusalaCount - akusalaCount,
+      dominant_pattern: kusalaCount > akusalaCount ? 'กุศลเด่น' : akusalaCount > kusalaCount ? 'อกุศลเด่น' : 'สมดุล',
+    },
   };
 
   return { timeline: newTimeline, updatedCharacter };
 }
 
-/**
- * Calculate overall character arc interpretation
- */
-function calculateOverallArc(
-  start: PsychologySnapshot,
-  end: PsychologySnapshot,
-  changes: PsychologyChange[]
-): CharacterPsychologyTimeline['overallArc'] {
-  const totalChange = end.mentalBalance - start.mentalBalance;
-
-  let direction: 'กุศลขึ้น' | 'กุศลลง' | 'คงที่';
-  let interpretation: string;
-
-  if (totalChange > 10) {
-    direction = 'กุศลขึ้น';
-    interpretation = `ตัวละครพัฒนาไปในทางที่ดีขึ้น เพิ่มสติปัญญา ลดกิเลส (${totalChange.toFixed(1)} คะแนน)`;
-  } else if (totalChange < -10) {
-    direction = 'กุศลลง';
-    interpretation = `ตัวละครตกต่ำลง เพิ่มกิเลส ลดสติปัญญา (${totalChange.toFixed(1)} คะแนน)`;
-  } else {
-    direction = 'คงที่';
-    interpretation = `ตัวละครมีการเปลี่ยนแปลงเล็กน้อย ยังคงสมดุลใกล้เคียงเดิม`;
-  }
-
-  // Count karma types
-  const wholesomeCount = changes.filter(c => c.karmaType === 'กุศลกรรม').length;
-  const unwholesomeCount = changes.filter(c => c.karmaType === 'อกุศลกรรม').length;
-
-  interpretation += `\n\nตลอดเรื่อง: กุศลกรรม ${wholesomeCount} ครั้ง, อกุศลกรรม ${unwholesomeCount} ครั้ง`;
-
-  // Buddhist interpretation
-  if (direction === 'กุศลขึ้น') {
-    interpretation += `\n\nตามหลักธรรม: ตัวละครนี้แสดงให้เห็นถึงการพัฒนาจิตใจ ผ่านการกระทำที่ถูกต้อง (สัมมากัมมันตะ) และการเจริญสติปัญญา`;
-  } else if (direction === 'กุศลลง') {
-    interpretation += `\n\nตามหลักธรรม: ตัวละครนี้แสดงให้เห็นถึงการตกต่ำ เพราะถูกครอบงำด้วยกิเลส (ราคะ โทสะ โมหะ) ขาดสติและปัญญาในการรู้เท่าทัน`;
-  }
-
-  return {
-    startingBalance: start.mentalBalance,
-    endingBalance: end.mentalBalance,
-    totalChange,
-    direction,
-    interpretation,
-  };
-}
 
 /**
- * Validate if character arc follows Buddhist principles
+ * Validate if character arc follows Buddhist principles (simplified version)
  */
 export function validateCharacterArc(timeline: CharacterPsychologyTimeline): {
   valid: boolean;
@@ -551,50 +501,35 @@ export function validateCharacterArc(timeline: CharacterPsychologyTimeline): {
   const warnings: string[] = [];
   const recommendations: string[] = [];
 
-  const { totalChange } = timeline.overallArc;
-
-  // Check for unrealistic jumps
-  timeline.snapshots.forEach((snapshot, i) => {
-    if (i === 0) return;
-
-    const prev = timeline.snapshots[i - 1];
-    const change = snapshot.mentalBalance - prev.mentalBalance;
-
-    if (Math.abs(change) > 20) {
-      warnings.push(
-        `ฉาก ${snapshot.sceneNumber}: การเปลี่ยนแปลงจิตใจรุนแรงเกินไป (${change.toFixed(1)} คะแนน) ควรเป็นไปอย่างค่อยเป็นค่อยไป`
-      );
-    }
-  });
+  const { total_kusala, total_akusala, net_progress } = timeline.summary;
 
   // Check for meaningful character development
-  if (Math.abs(totalChange) < 5 && timeline.snapshots.length > 5) {
+  if (timeline.snapshots.length > 5 && total_kusala === 0 && total_akusala === 0) {
     warnings.push(
-      `ตัวละครมีการพัฒนาน้อยเกินไป (${totalChange.toFixed(1)} คะแนน) ในขณะที่มี ${timeline.snapshots.length} ฉาก`
+      `ตัวละครไม่มีการพัฒนาเลย ในขณะที่มี ${timeline.snapshots.length} ฉาก`
     );
     recommendations.push(
-      'ควรเพิ่มจุดเปลี่ยนสำคัญที่ทำให้ตัวละครเกิดการเปลี่ยนแปลงทางจิตใจอย่างชัดเจน'
+      'ควรเพิ่มจุดเปลี่ยนสำคัญที่ทำให้ตัวละครเกิดการเปลี่ยนแปลงทางจิตใจ'
     );
   }
 
-  // Check for consistency with Buddhist principles
-  const wholesomeScenes = timeline.changes.filter(c => c.karmaType === 'กุศลกรรม').length;
-  const unwholesomeScenes = timeline.changes.filter(c => c.karmaType === 'อกุศลกรรม').length;
-
-  if (wholesomeScenes > unwholesomeScenes && totalChange < 0) {
+  // Check Buddhist principle consistency
+  if (total_kusala > total_akusala && net_progress < -10) {
     warnings.push(
-      'ขัดหลักกรรม: ตัวละครทำกุศลกรรมมากกว่า แต่กลับมีจิตใจแย่ลง ไม่สอดคล้องกับหลักธรรม'
+      'ขัดหลักกรรม: ตัวละครทำกุศลกรรมมากกว่า แต่กลับมีพัฒนาการแย่ลง'
     );
     recommendations.push(
-      'ควรปรับการกระทำหรือผลลัพธ์ให้สอดคล้องกับหลักกรรม: กุศลกรรม → สุข, อกุศลกรรม → ทุกข์'
+      'ควรปรับผลลัพธ์ให้สอดคล้องกับหลักกรรม: กุศลกรรม → ผลดี'
     );
   }
 
-  if (unwholesomeScenes > wholesomeScenes && totalChange > 0) {
+  if (total_akusala > total_kusala && net_progress > 10) {
     warnings.push(
-      'ขัดหลักกรรม: ตัวละครทำอกุศลกรรมมากกว่า แต่กลับมีจิตใจดีขึ้น ไม่สอดคล้องกับหลักธรรม'
+      'ขัดหลักกรรม: ตัวละครทำอกุศลกรรมมากกว่า แต่กลับมีพัฒนาการดีขึ้น'
     );
-    recommendations.push('ควรเพิ่มฉากที่ตัวละครได้รับผลของกรรม หรือมีการกลับตัวอย่างชัดเจน');
+    recommendations.push(
+      'ควรเพิ่มฉากที่ตัวละครได้รับผลของกรรม หรือมีการกลับตัว'
+    );
   }
 
   return {

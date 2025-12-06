@@ -31,7 +31,82 @@ export interface Character {
     conflict: string;
     backstory: string;
   };
+  // NEW: Buddhist Psychology (Digital Mind Model v14)
+  buddhist_psychology?: {
+    anusaya: AnusayaProfile; // 7 latent tendencies
+    carita: CaritaType; // Primary temperament
+    carita_secondary?: CaritaType; // Secondary temperament
+  };
+  // NEW: Parami Portfolio (10 Perfections)
+  parami_portfolio?: ParamiPortfolio;
+  // NEW: Mind State (for Citta tracking)
+  mind_state?: {
+    current_bhumi: number; // 1-31 (Bhumi ID)
+    active_upadanas: ActiveUpadana[]; // Active clinging instances
+    recent_citta_history: CittaType[]; // Last 20 citta moments
+    samyojana?: Samyojana; // 10 Fetters status
+    magga_stage?: MaggaStage; // Current Ariya stage
+  };
+  // NEW: Psychology Timeline
+  psychology_timeline?: CharacterPsychologyTimeline;
 }
+
+// Buddhist Psychology Types (re-exported from digitalMind.ts for convenience)
+export type AnusayaProfile = {
+  kama_raga: number; // 0-100
+  patigha: number;
+  mana: number;
+  ditthi: number;
+  vicikiccha: number;
+  bhava_raga: number;
+  avijja: number;
+};
+
+export type CaritaType =
+  | 'ราคจริต'
+  | 'โทสจริต'
+  | 'โมหจริต'
+  | 'สัทธาจริต'
+  | 'พุทธิจริต'
+  | 'วิตกจริต';
+
+export type ParamiPortfolio = {
+  dana: { level: number; exp: number };
+  sila: { level: number; exp: number };
+  nekkhamma: { level: number; exp: number };
+  viriya: { level: number; exp: number };
+  khanti: { level: number; exp: number };
+  sacca: { level: number; exp: number };
+  adhitthana: { level: number; exp: number };
+  metta: { level: number; exp: number };
+  upekkha: { level: number; exp: number };
+  panna: { level: number; exp: number };
+};
+
+export type ActiveUpadana = {
+  type: 'kamupadana' | 'ditthupadana' | 'silabbatupadana' | 'attavadupadana';
+  intensity: number;
+  target: string;
+  created_at: number;
+  tanha_history: number[];
+};
+
+export type CittaType = string; // Full type definition in cittaTypes.ts
+
+export type Samyojana = {
+  sakkaya_ditthi: boolean;
+  vicikiccha: boolean;
+  silabbata_paramasa: boolean;
+  kama_raga: boolean;
+  patigha: boolean;
+  rupa_raga: boolean;
+  arupa_raga: boolean;
+  mana: boolean;
+  uddhacca: boolean;
+  avijja: boolean;
+};
+
+export type MaggaStage = 'sotapatti' | 'sakadagami' | 'anagami' | 'arahatta';
 
 export interface PlotPoint {
   title: string;
@@ -158,6 +233,8 @@ export interface ScriptData {
   scenesPerPoint: Record<string, number>;
   generatedScenes: Record<string, GeneratedScene[]>;
   team: TeamMember[];
+  // NEW: Psychology Timelines for all characters
+  psychologyTimelines?: Record<string, CharacterPsychologyTimeline>; // Key: character ID
 }
 
 // AI Provider Types for Multi-Provider Selection
@@ -202,3 +279,62 @@ export interface UserSubscription {
     exportFormats: string[]; // ['pdf', 'fdx', 'fountain', 'production-package', 'white-label']
   };
 }
+
+// ========================================================================
+// PSYCHOLOGY SYSTEM TYPES (Digital Mind Model v14)
+// ========================================================================
+
+export type KarmaIntensity = 'mild' | 'moderate' | 'severe' | 'extreme';
+
+export interface ActionAnalysis {
+  กาย: string[]; // Physical actions
+  วาจา: string[]; // Speech patterns
+  ใจ: string[]; // Mental states
+}
+
+export interface PsychologyChange {
+  sceneNumber: number;
+  timestamp: Date;
+  action: ActionAnalysis;
+  karma_type: 'กุศลกรรม' | 'อกุศลกรรม' | 'เฉยๆ';
+  karma_intensity: KarmaIntensity;
+  consciousness_delta: Record<string, number>; // Changes to consciousness scores
+  defilement_delta: Record<string, number>; // Changes to defilement scores
+  anusaya_delta?: Partial<AnusayaProfile>; // Changes to latent tendencies
+  parami_delta?: Partial<Record<keyof ParamiPortfolio, number>>; // Changes to Parami EXP
+  citta_generated?: CittaType; // What type of Citta arose
+  kamma_created?: {
+    type: 'kusala' | 'akusala';
+    intensity: number;
+    potential_vipaka: string;
+  };
+  reasoning: string; // Why these changes occurred
+}
+
+export interface PsychologySnapshot {
+  sceneNumber: number;
+  consciousness: Record<string, number>;
+  defilement: Record<string, number>;
+  anusaya?: AnusayaProfile;
+  parami?: ParamiPortfolio;
+  current_bhumi?: number;
+  magga_stage?: MaggaStage;
+  total_kusala_kamma?: number;
+  total_akusala_kamma?: number;
+}
+
+export interface CharacterPsychologyTimeline {
+  characterId: string;
+  characterName: string;
+  changes: PsychologyChange[];
+  snapshots: PsychologySnapshot[];
+  summary: {
+    total_kusala: number;
+    total_akusala: number;
+    net_progress: number;
+    dominant_pattern: string;
+    carita_evolution?: CaritaType[];
+    magga_progress?: number; // 0-100% towards next stage
+  };
+}
+

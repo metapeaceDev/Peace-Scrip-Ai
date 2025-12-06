@@ -64,9 +64,6 @@ export function updatePsychologyAfterScene(
     updatedTimelines[character.id] = newTimeline;
 
     console.log(`📊 Psychology updated for ${character.name} in Scene ${scene.sceneNumber}`);
-    console.log(
-      `   Balance: ${newTimeline.snapshots[newTimeline.snapshots.length - 1].mentalBalance.toFixed(1)}`
-    );
     console.log(`   Change: ${newTimeline.changes[newTimeline.changes.length - 1].reasoning}`);
   });
 

@@ -2518,3 +2518,92 @@ function getTypeGuidelines(type: string): string {
   
   return guidelines[type] || 'Follow standard storytelling conventions for your chosen format.';
 }
+
+// ============================================================================
+// STEP 4: STRUCTURE GENERATION
+// ============================================================================
+
+/**
+ * Generate story structure from Step 1-3 data
+ * Creates: Plot Points with descriptions based on genre, characters, and boundary
+ */
+export async function generateStructure(scriptData: ScriptData): Promise<Partial<ScriptData>> {
+  try {
+    const charactersInfo = scriptData.characters
+      .map(c => `- ${c.name} (${c.role}): ${c.description || c.goals?.objective || 'Character in the story'}`)
+      .join('\n');
+
+    const prompt = `You are an expert Hollywood story structure consultant. Based on the following story elements, create detailed Plot Point descriptions following the Hollywood 7-point structure.
+
+**Story Elements:**
+- Genre: ${scriptData.mainGenre}
+- Type: ${scriptData.projectType}
+- Title: ${scriptData.title || 'Untitled'}
+- Log Line: ${scriptData.logLine || 'Not provided'}
+- Big Idea: ${scriptData.bigIdea || 'Not provided'}
+- Premise: ${scriptData.premise || 'Not provided'}
+- Theme: ${scriptData.theme || 'Not provided'}
+
+**Characters:**
+${charactersInfo || 'No characters defined yet'}
+
+**Timeline Context:**
+- Timing: ${scriptData.timeline?.movieTiming || 'Not specified'}
+- Season: ${scriptData.timeline?.seasons || 'Not specified'}
+- Era: ${scriptData.timeline?.date || 'Not specified'}
+
+**Your Task:**
+Create compelling descriptions for each of the 7 Hollywood Plot Points:
+
+1. **Opening (Setup)**: Introduce the protagonist's ordinary world, their life before the adventure begins
+2. **Inciting Incident**: The event that disrupts the ordinary world and starts the story
+3. **First Act Turn**: The moment the protagonist commits to the journey/goal
+4. **Midpoint**: A major revelation or reversal that changes everything
+5. **Second Act Turn**: All seems lost, the darkest moment before the climax
+6. **Climax**: The final confrontation, the protagonist's biggest challenge
+7. **Resolution**: The new normal, how the protagonist and world have changed
+
+**Genre-Specific Guidelines:**
+${getGenreGuidelines(scriptData.mainGenre)}
+
+**Format Guidelines:**
+${getTypeGuidelines(scriptData.projectType)}
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "structure": [
+    {"title": "Opening", "description": "..."},
+    {"title": "Inciting Incident", "description": "..."},
+    {"title": "First Act Turn", "description": "..."},
+    {"title": "Midpoint", "description": "..."},
+    {"title": "Second Act Turn", "description": "..."},
+    {"title": "Climax", "description": "..."},
+    {"title": "Resolution", "description": "..."}
+  ]
+}
+
+IMPORTANT:
+- Each description should be 2-4 sentences
+- Be specific to THIS story's genre, characters, and theme
+- Show clear cause-and-effect progression
+- Build tension and stakes appropriately`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.9,
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text);
+    const result = JSON.parse(text);
+    
+    console.log('✅ Generated structure:', result);
+    return result;
+  } catch (error) {
+    console.error("Error generating structure:", error);
+    throw new Error("Failed to generate structure from AI.");
+  }
+}
