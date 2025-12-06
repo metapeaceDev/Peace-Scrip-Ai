@@ -20,6 +20,16 @@ dist-ssr
 .env.local
 .env.production
 
+# Firebase service accounts (CRITICAL - Contains private keys!)
+**/service-account.json
+**/serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Debug and utility scripts with API keys
+debug-sync.html
+disable-comfyui.sh
+enable-comfyui.sh
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
