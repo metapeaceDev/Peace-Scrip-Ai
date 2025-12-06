@@ -89,12 +89,34 @@ VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 # Gemini AI
 VITE_GEMINI_API_KEY=your_gemini_api_key
 
-# ComfyUI Backend Service
+# ComfyUI Local/Cloud Configuration
 VITE_COMFYUI_SERVICE_URL=http://localhost:8000
 VITE_USE_COMFYUI_BACKEND=true
+
+# Cloud Rendering Options (Optional)
+VITE_COMFYUI_CLOUD_URL=https://your-cloud-function.cloudfunctions.net/comfyui
+VITE_COLAB_TUNNEL_URL=https://xxxx.ngrok-free.app  # Google Colab Pro+ (แนะนำ!)
+VITE_RUNPOD_URL=https://api.runpod.ai/v2/YOUR_ENDPOINT_ID
+VITE_REPLICATE_URL=https://api.replicate.com
 ```
 
-### 4. Setup Backend Service (Optional but Recommended)
+### 4. Setup Cloud Rendering (Optional - แต่คุ้มมาก!)
+
+**🎓 Google Colab Pro+ Users** (ถ้าคุณจ่ายแล้ว ใช้ให้คุ้ม!):
+
+1. อ่านคู่มือ: [COLAB_SETUP_GUIDE.md](./COLAB_SETUP_GUIDE.md)
+2. ติดตั้ง ComfyUI ใน Colab (~10 นาที)
+3. เปิด ngrok tunnel
+4. คัดลอก URL มาใส่ใน `.env.local`
+5. เลือก "Google Colab Pro+" ใน DeviceSettings
+
+**ประโยชน์**:
+- ⚡ A100 GPU เร็วกว่าเครื่องตัวเอง 5-10 เท่า
+- 💰 คุ้มค่า ~$0.008/รูป (ถูกกว่า RunPod)
+- 🔋 ประหยัดไฟบ้าน ไม่กินทรัพยากรเครื่อง
+- 📱 เจนได้ทุกที่ มีแต่อินเทอร์เน็ต
+
+### 5. Setup Backend Service (Local - Optional)
 
 See [comfyui-service/QUICKSTART.md](./comfyui-service/QUICKSTART.md) for detailed backend setup.
 

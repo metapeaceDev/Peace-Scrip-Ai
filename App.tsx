@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ScriptData, Character, GeneratedScene, ProjectMetadata, ProjectType, DialogueLine } from './types';
 import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './constants';
 import StepIndicator from './src/components/StepIndicator';
@@ -15,6 +15,7 @@ import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';
 import QuotaWidget from './src/components/QuotaWidget';
 import SubscriptionDashboard from './src/components/SubscriptionDashboard';
+import DeviceSettings from './src/components/DeviceSettings';
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
@@ -358,8 +359,12 @@ function App() {
       }
   };
 
-  const loadCloudProjects = async () => {
+  const loadCloudProjects = useCallback(async () => {
       try {
+          console.log('🔄 loadCloudProjects called - Mode:', isOfflineMode ? 'OFFLINE' : 'ONLINE');
+          console.log('🔄 Current User:', currentUser?.uid);
+          console.log('🔄 Is Authenticated:', isAuthenticated);
+          
           if (isOfflineMode) {
               // Offline mode: use IndexedDB
               console.log('📦 Loading projects from IndexedDB (Offline Mode)');
@@ -372,6 +377,8 @@ function App() {
               console.log('👤 User ID:', currentUser.uid);
               const response = await firestoreService.getUserProjects(currentUser.uid);
               console.log(`📊 Found ${response.projects.length} projects in Firestore`);
+              console.log('📊 Projects:', response.projects.map(p => ({ id: p.id, title: p.title })));
+              
               // Convert ScriptProject[] to ProjectMetadata[]
               const projectMetadata = response.projects.map(p => ({
                   id: p.id,
@@ -381,7 +388,7 @@ function App() {
                   posterImage: undefined as string | undefined
               }));
               setProjects(projectMetadata);
-              console.log('✅ Projects loaded successfully');
+              console.log('✅ Projects loaded successfully - Count:', projectMetadata.length);
           } else {
               // No user yet, don't load anything
               console.log('⚠️ No user logged in, skipping project load');
@@ -391,7 +398,7 @@ function App() {
           console.error("❌ Failed to load projects", e);
           setProjects([]);
       }
-  };
+  }, [isOfflineMode, currentUser, isAuthenticated]);
 
   const handleLoginSuccess = async (user: SimpleUser) => {
       console.log('🔐 Login Success:', user.email);
@@ -935,6 +942,9 @@ function App() {
              
              {/* Quota Widget */}
              <QuotaWidget onUpgradeClick={() => setShowSubscriptionDashboard(true)} />
+             
+             {/* Device Settings */}
+             <DeviceSettings />
              
              {/* AI Provider Settings */}
              <ProviderSettings />

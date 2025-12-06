@@ -8,6 +8,7 @@ import { MODE_PRESETS } from './comfyuiWorkflowBuilder';
 import { hasAccessToModel, deductCredits } from './userStore';
 import { checkQuota, recordUsage } from './subscriptionManager';
 import { auth } from '../config/firebase';
+import { loadRenderSettings } from './deviceManager';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -688,6 +689,14 @@ async function generateImageWithCascade(
 ): Promise<string> {
   const errors: string[] = [];
   
+  // 🖥️ Load user's device settings
+  const renderSettings = loadRenderSettings();
+  console.log('🖥️ Device Settings:', {
+    device: renderSettings?.device || 'auto',
+    mode: renderSettings?.executionMode || 'hybrid',
+    lowVRAM: renderSettings?.useLowVRAM || false
+  });
+  
   // Map model ID to provider logic
   const modelId = options.preferredModel || 'auto';
   console.log(`🎯 User selected model: ${modelId}`);
@@ -802,7 +811,15 @@ async function generateImageWithCascade(
       console.log(`✨ v2: ไม่ใช้ InsightFace - ไม่มี CPU bottleneck แล้ว!`);
       
       // ─── PRIORITY 1: IP-Adapter Unified (NO INSIGHTFACE) ────────────────────
-      if (USE_COMFYUI_BACKEND) {
+      // Respect user's execution mode preference
+      const shouldTryLocal = !renderSettings || 
+                             renderSettings.executionMode === 'local' || 
+                             renderSettings.executionMode === 'hybrid';
+      const shouldTryCloud = !renderSettings || 
+                             renderSettings.executionMode === 'cloud' || 
+                             renderSettings.executionMode === 'hybrid';
+      
+      if (USE_COMFYUI_BACKEND && shouldTryLocal) {
         try {
           console.log(`\n🔄 [1/3] Trying IP-Adapter Unified (No InsightFace)...`);
           console.log(`   ⚡ Speed: 3-5 minutes (ไม่มี face detection บน CPU)`);
