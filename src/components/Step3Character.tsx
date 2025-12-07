@@ -88,6 +88,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   returnToStep,
   onReturnToOrigin,
 }) => {
+  // i18n helper
+  const t = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
+
   const [activeCharIndex, setActiveCharIndex] = useState(0);
 
   // Main Tabs
@@ -855,9 +858,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-cyan-400">STEP 3: Character Creation</h2>
+          <h2 className="text-2xl font-bold text-cyan-400">{t('ขั้นที่ 3: สร้างตัวละคร', 'STEP 3: Character Creation')}</h2>
           <p className="text-gray-400 mb-6">
-            Define the cast of your story. Add protagonists, antagonists, and supporting characters.
+            {t('กำหนดตัวละครในเรื่องของคุณ เพิ่มตัวเอก ตัวร้าย และตัวละครสมทบ', 'Define the cast of your story. Add protagonists, antagonists, and supporting characters.')}
           </p>
         </div>
         {/* Compare All Characters Button - มุมขวาบนอย่างเดียว */}
@@ -865,10 +868,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           onClick={() => setShowCharacterComparison(true)}
           disabled={characters.length < 2}
           className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
-          title={characters.length < 2 ? "Need at least 2 characters to compare" : `Compare ${characters.length} characters psychology`}
+          title={characters.length < 2 ? t('ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ', 'Need at least 2 characters to compare') : t(`เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`, `Compare ${characters.length} characters psychology`)}
         >
           <span className="text-lg">🔬</span>
-          <span>Compare {characters.length >= 2 ? characters.length : '—'}</span>
+          <span>{t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}</span>
         </button>
       </div>
 
@@ -967,7 +970,21 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          Add
+          {t('เพิ่ม', 'Add')}
+        </button>
+
+        {/* Gen All Characters Button - Create characters from story */}
+        <button
+          type="button"
+          onClick={handleGenerateAllCharacters}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 mb-0.5 rounded-md font-medium text-xs bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all disabled:opacity-50 border border-purple-500 shadow-lg shadow-purple-900/30"
+          title={t('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสม (หรือเติมข้อมูลให้ตัวที่มีอยู่)', 'AI will analyze your story and create appropriate characters (or fill existing ones)')}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+          </svg>
+          {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('สร้างทั้งหมด', 'Gen All')}
         </button>
       </div>
 
@@ -1287,7 +1304,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               {/* Name Input */}
               <div className="md:col-span-5">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Character Name
+                  {t('ชื่อตัวละคร', 'Character Name')}
                 </label>
                 <input
                   type="text"
@@ -1301,7 +1318,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
               {/* Role Selection */}
               <div className="md:col-span-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Role / Type</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">{t('บทบาท / ประเภท', 'Role / Type')}</label>
                 <select
                   value={activeCharacter.role || CHARACTER_ROLES[0]}
                   onChange={e => {
@@ -1318,53 +1335,39 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 </select>
               </div>
 
-              {/* Gen Character Button */}
+              {/* Gen Character Button with Checkbox */}
               <div className="md:col-span-3">
                 <label className="block text-sm font-medium text-gray-300 mb-2 opacity-0">Gen</label>
-                <button
-                  type="button"
-                  onClick={handleGenerateClick}
-                  disabled={isLoading}
-                  className={`w-full text-white font-bold py-2.5 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 shadow-lg ${
-                    fillEmptyOnly 
-                      ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-900/30' 
-                      : 'bg-teal-600 hover:bg-teal-700 shadow-teal-900/30'
-                  }`}
-                  title={fillEmptyOnly ? 'Fill missing character details only' : 'Generate full character profile from AI'}
-                >
-                  <span className="text-lg">✨</span>
-                  <span>{isLoading ? 'Generating...' : fillEmptyOnly ? 'Auto-Fill' : 'Gen'}</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateClick}
+                    disabled={isLoading}
+                    className={`w-full text-white font-bold py-2.5 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 shadow-lg ${
+                      fillEmptyOnly 
+                        ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-900/30' 
+                        : 'bg-teal-600 hover:bg-teal-700 shadow-teal-900/30'
+                    }`}
+                    title={fillEmptyOnly ? t('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only') : t('สร้างโปรไฟล์ตัวละครเต็มรูปแบบจาก AI', 'Generate full character profile from AI')}
+                  >
+                    <span className="text-lg">✨</span>
+                    <span>{isLoading ? t('กำลังสร้าง...', 'Generating...') : fillEmptyOnly ? t('เติมอัตโนมัติ', 'Auto-Fill') : t('สร้าง', 'Gen')}</span>
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      id="fillEmptyOnly"
+                      checked={fillEmptyOnly}
+                      onChange={e => setFillEmptyOnly(e.target.checked)}
+                      className="w-3 h-3 text-cyan-600 bg-gray-700 border-gray-600 rounded"
+                    />
+                    <label htmlFor="fillEmptyOnly" className="text-[10px] text-gray-400 cursor-pointer leading-tight">
+                      {t('เติมเฉพาะที่ว่าง', 'Fill empty only')}
+                    </label>
+                  </div>
+                </div>
               </div>
             </div> {/* Close grid */}
-
-            {/* Keep existing checkbox + Gen All Characters Button */}
-            <div className="mt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="checkbox"
-                  id="fillEmptyOnly"
-                  checked={fillEmptyOnly}
-                  onChange={e => setFillEmptyOnly(e.target.checked)}
-                  className="w-4 h-4 text-cyan-600 bg-gray-700 border-gray-600 rounded"
-                />
-                <label htmlFor="fillEmptyOnly" className="text-xs text-gray-300 cursor-pointer">
-                  Keep existing values (Fill empty only)
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={handleGenerateAllCharacters}
-                disabled={isLoading || characters.length === 0}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                title="Generate all characters at once from Step 1-2 data"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                </svg>
-                Gen All Characters
-              </button>
-            </div>
 
             {/* Character Description & Role */}
             <label className="block text-sm font-medium text-gray-300 mt-4 mb-2">
