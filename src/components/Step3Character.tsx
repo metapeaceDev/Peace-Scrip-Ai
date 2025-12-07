@@ -5,6 +5,7 @@ import {
   fillMissingCharacterDetails,
   generateCharacterImage,
   generateCostumeImage,
+  generateAllCharactersFromStory,
 } from '../services/geminiService';
 import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../../constants';
 import { PsychologyTestPanel } from './PsychologyTestPanel';
@@ -349,65 +350,121 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   };
 
   const handleGenerateAllCharacters = async () => {
-    if (!confirm(`Generate details for all ${characters.length} characters? This will use AI to create comprehensive profiles using Step 1-2 data.`)) {
-      return;
-    }
-    
-    if (onRegisterUndo) onRegisterUndo();
-    setIsLoading(true);
-    setError(null);
-    setProgress(0);
-    
-    try {
-      const updatedCharacters = [...characters];
-      
-      for (let i = 0; i < characters.length; i++) {
-        const char = characters[i];
-        setProgress(Math.round(((i + 1) / characters.length) * 100));
+    // Check if we have meaningful characters or just empty defaults
+    const hasRealCharacters = characters.some(
+      char => char.name && char.name !== `New Character ${characters.indexOf(char) + 1}` && char.name !== 'Character Name'
+    );
+
+    if (!hasRealCharacters) {
+      // MODE 1: Create new characters from story
+      if (!confirm(
+        `🎭 Generate characters from your story?\n\n` +
+        `AI will analyze your story (${scriptData.title || 'Untitled'}) and create ` +
+        `appropriate characters based on:\n` +
+        `• Genre: ${scriptData.mainGenre}\n` +
+        `• Premise: ${scriptData.premise || scriptData.bigIdea || 'Your story concept'}\n\n` +
+        `This will replace existing character slots.`
+      )) {
+        return;
+      }
+
+      if (onRegisterUndo) onRegisterUndo();
+      setIsLoading(true);
+      setError(null);
+      setProgress(0);
+
+      try {
+        setProgress(20);
+        console.log('🎭 Generating characters from story data...');
         
-        try {
-          const aiCharacterData = await generateCharacterDetails(
-            char.name,
-            char.role,
-            char.description || `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
-            scriptData.language
-          );
-          
-          updatedCharacters[i] = {
-            ...char,
-            external: { ...char.external, ...(aiCharacterData.external || {}) },
-            physical: { ...char.physical, ...(aiCharacterData.physical || {}) },
-            fashion: { ...char.fashion, ...(aiCharacterData.fashion || {}) },
-            internal: {
-              ...char.internal,
-              consciousness: {
-                ...char.internal.consciousness,
-                ...(aiCharacterData.internal?.consciousness || {}),
-              },
-              subconscious: {
-                ...char.internal.subconscious,
-                ...(aiCharacterData.internal?.subconscious || {}),
-              },
-              defilement: {
-                ...char.internal.defilement,
-                ...(aiCharacterData.internal?.defilement || {}),
-              },
-            },
-            goals: { ...char.goals, ...(aiCharacterData.goals || {}) },
-          };
-        } catch (charError) {
-          console.error(`Error generating character ${char.name}:`, charError);
-          // Continue with next character
-        }
+        const newCharacters = await generateAllCharactersFromStory(scriptData);
+        
+        setProgress(80);
+        console.log(`✅ Generated ${newCharacters.length} characters`);
+
+        setScriptData(prev => ({ ...prev, characters: newCharacters }));
+        setActiveCharIndex(0);
+        setProgress(100);
+        
+        alert(
+          `✅ Successfully created ${newCharacters.length} characters!\n\n` +
+          `Characters: ${newCharacters.map(c => c.name).join(', ')}`
+        );
+      } catch (e: unknown) {
+        const error = e as Error;
+        setError(error.message || 'Failed to generate characters from story.');
+        console.error('Error generating characters:', e);
+      } finally {
+        setIsLoading(false);
+        setProgress(0);
+      }
+    } else {
+      // MODE 2: Fill details for existing characters
+      if (!confirm(
+        `📝 Fill details for all ${characters.length} characters?\n\n` +
+        `This will use AI to create comprehensive profiles using Step 1-2 data.\n` +
+        `Existing values will be preserved (fill empty fields only).`
+      )) {
+        return;
       }
       
-      setScriptData(prev => ({ ...prev, characters: updatedCharacters }));
-      alert(`✅ Successfully generated ${characters.length} characters!`);
-    } catch (e: any) {
-      setError(e.message || 'Failed to generate all characters.');
-    } finally {
-      setIsLoading(false);
+      if (onRegisterUndo) onRegisterUndo();
+      setIsLoading(true);
+      setError(null);
       setProgress(0);
+      
+      try {
+        const updatedCharacters = [...characters];
+        
+        for (let i = 0; i < characters.length; i++) {
+          const char = characters[i];
+          setProgress(Math.round(((i + 1) / characters.length) * 100));
+          
+          try {
+            const aiCharacterData = await generateCharacterDetails(
+              char.name,
+              char.role,
+              char.description || `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
+              scriptData.language
+            );
+            
+            updatedCharacters[i] = {
+              ...char,
+              external: { ...char.external, ...(aiCharacterData.external || {}) },
+              physical: { ...char.physical, ...(aiCharacterData.physical || {}) },
+              fashion: { ...char.fashion, ...(aiCharacterData.fashion || {}) },
+              internal: {
+                ...char.internal,
+                consciousness: {
+                  ...char.internal.consciousness,
+                  ...(aiCharacterData.internal?.consciousness || {}),
+                },
+                subconscious: {
+                  ...char.internal.subconscious,
+                  ...(aiCharacterData.internal?.subconscious || {}),
+                },
+                defilement: {
+                  ...char.internal.defilement,
+                  ...(aiCharacterData.internal?.defilement || {}),
+                },
+              },
+              goals: { ...char.goals, ...(aiCharacterData.goals || {}) },
+            };
+          } catch (charError) {
+            console.error(`Error generating character ${char.name}:`, charError);
+            // Continue with next character
+          }
+        }
+        
+        setScriptData(prev => ({ ...prev, characters: updatedCharacters }));
+        alert(`✅ Successfully generated details for ${characters.length} characters!`);
+      } catch (e: unknown) {
+        const error = e as Error;
+        setError(error.message || 'Failed to generate all characters.');
+      } finally {
+        setIsLoading(false);
+        setProgress(0);
+      }
     }
   };
 

@@ -1598,6 +1598,201 @@ export async function generateCharacterDetails(
   }
 }
 
+/**
+ * Generate all characters from story data (Step 1-2)
+ * Analyzes the story and creates appropriate characters with full profiles
+ */
+export async function generateAllCharactersFromStory(
+  scriptData: ScriptData
+): Promise<Character[]> {
+  // ✅ Quota validation
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'character',
+      details: { scriptType: 'character' },
+    });
+
+    if (!quotaCheck.allowed) {
+      throw new Error(
+        `❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `Upgrade to ${quotaCheck.upgradeRequired} plan to continue` : 'Please check your plan'}`
+      );
+    }
+  }
+
+  try {
+    const langInstruction =
+      scriptData.language === 'Thai'
+        ? 'Ensure all value fields are written in Thai language (Natural, creative Thai writing).'
+        : 'Ensure all value fields are written in English.';
+
+    const prompt = `You are an expert Hollywood scriptwriter and casting director. Based on the following story elements, create a complete cast of characters that are essential for this story.
+
+**Story Elements:**
+- Genre: ${scriptData.mainGenre}
+- Type: ${scriptData.projectType}
+- Title: ${scriptData.title || 'Untitled'}
+- Big Idea: ${scriptData.bigIdea || 'Not provided'}
+- Premise: ${scriptData.premise || 'Not provided'}
+- Theme: ${scriptData.theme || 'Not provided'}
+- Log Line: ${scriptData.logLine || 'Not provided'}
+
+**Your Task:**
+Analyze this story and create ALL necessary characters with these guidelines:
+
+1. **Character Count**: 
+   - Feature Film: 3-8 main characters (protagonist, antagonist, supporting characters)
+   - Short Film: 2-4 characters
+   - Series: 4-10 recurring characters per season
+
+2. **Character Roles**: Include appropriate mix of:
+   - Protagonist (hero/main character)
+   - Antagonist (villain/opposing force) 
+   - Love Interest (if relevant to genre)
+   - Mentor/Guide
+   - Supporting Characters (friends, family, allies)
+   - Minor Characters (if needed for plot)
+
+3. **Genre-Appropriate Characters**:
+   - Action: Include hero, villain, team members
+   - Romance: Include romantic leads, rivals, friends
+   - Horror: Include victims, survivors, threat
+   - Comedy: Include comic relief, straight man
+   - Drama: Include complex emotional characters
+
+**IMPORTANT INSTRUCTIONS:**
+1. ${langInstruction}
+2. Keep JSON keys in English (as shown in example)
+3. Create realistic, diverse, well-developed characters
+4. Each character should have clear goals and conflicts
+5. Characters should complement each other and the story
+6. Include full profiles with external, physical, fashion, internal (psychology), and goals
+
+**Response Format:**
+Return ONLY a valid JSON array of characters:
+
+[
+  {
+    "name": "Character Full Name",
+    "role": "Protagonist|Antagonist|Supporting|etc",
+    "description": "Brief character description",
+    "external": {
+      "Last Name": "...", "Nickname": "...", "Alias": "...", 
+      "Date of Birth Age": "...", "Address": "...", 
+      "Relationship": "...", "Ethnicity": "...", 
+      "Nationality": "...", "Religion": "...", 
+      "Blood Type": "...", "Health": "...", 
+      "Education": "...", "Financial Status": "...", 
+      "Occupation": "..."
+    },
+    "physical": {
+      "Physical Characteristics": "...", 
+      "Voice characteristics": "...", 
+      "Eye characteristics": "...", 
+      "Facial characteristics": "...", 
+      "Gender": "...", 
+      "Height, Weight": "...", 
+      "Skin color": "...", 
+      "Hair style": "..."
+    },
+    "fashion": {
+      "Style Concept": "...", 
+      "Main Outfit": "...", 
+      "Accessories": "...", 
+      "Color Palette": "...", 
+      "Condition/Texture": "..."
+    },
+    "internal": {
+      "consciousness": {
+        "Mindfulness (remembrance)": 80, 
+        "Wisdom (right view)": 75, 
+        "Faith (Belief in the right)": 85, 
+        "Hiri (Shame of sin)": 80, 
+        "Karuna (Compassion, knowing suffering)": 90, 
+        "Mudita (Joy in happiness)": 70
+      },
+      "subconscious": {
+        "Attachment": "...", 
+        "Taanha": "..."
+      },
+      "defilement": {
+        "Lobha (Greed)": 30, 
+        "Anger (Anger)": 40, 
+        "Moha (delusion)": 50, 
+        "Mana (arrogance)": 50, 
+        "Titthi (obsession)": 55, 
+        "Vicikiccha (doubt)": 30, 
+        "Thina (depression)": 25, 
+        "Uthachcha (distraction)": 30, 
+        "Ahirika (shamelessness)": 15, 
+        "Amodtappa (fearlessness of sin)": 15
+      }
+    },
+    "goals": {
+      "objective": "What they want to achieve",
+      "need": "What they actually need (internal)",
+      "action": "What they're actively doing",
+      "conflict": "What stands in their way",
+      "backstory": "Their relevant history"
+    }
+  }
+]`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.9,
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text);
+    const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
+
+    // Transform to full Character objects with IDs
+    const characters: Character[] = charactersArray.map((char, index: number) => ({
+      ...EMPTY_CHARACTER,
+      id: `char-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+      name: char.name || `Character ${index + 1}`,
+      role: char.role || 'Supporting',
+      description: char.description || '',
+      external: { ...EMPTY_CHARACTER.external, ...(char.external || {}) },
+      physical: { ...EMPTY_CHARACTER.physical, ...(char.physical || {}) },
+      fashion: { ...EMPTY_CHARACTER.fashion, ...(char.fashion || {}) },
+      internal: {
+        consciousness: {
+          ...EMPTY_CHARACTER.internal.consciousness,
+          ...(char.internal?.consciousness || {}),
+        },
+        subconscious: {
+          ...EMPTY_CHARACTER.internal.subconscious,
+          ...(char.internal?.subconscious || {}),
+        },
+        defilement: {
+          ...EMPTY_CHARACTER.internal.defilement,
+          ...(char.internal?.defilement || {}),
+        },
+      },
+      goals: { ...EMPTY_CHARACTER.goals, ...(char.goals || {}) },
+    }));
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'character',
+        credits: characters.length * 2, // 2 credits per character
+      });
+    }
+
+    console.log(`✅ Generated ${characters.length} characters from story`);
+    return characters;
+  } catch (error) {
+    console.error('Error generating characters from story:', error);
+    throw new Error('Failed to generate characters from story: ' + (error as Error).message);
+  }
+}
+
 export async function fillMissingCharacterDetails(
   character: Character,
   language: string
