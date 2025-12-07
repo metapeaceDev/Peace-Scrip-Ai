@@ -115,7 +115,7 @@ class FirestoreService {
         status: 'draft',
         storagePath,
         fileSize,
-        posterImage: posterImageURL, // Store poster URL (not base64)
+        ...(posterImageURL && { posterImage: posterImageURL }), // Only include if defined
         characters: [],
         scenes: [],
         createdAt: new Date(),
@@ -332,12 +332,18 @@ class FirestoreService {
         }
 
         // Update metadata in Firestore (include posterImage URL if it changed)
-        await updateDoc(docRef, {
+        const metadataUpdates: Record<string, unknown> = {
           title: updates.title || metadata.title,
-          posterImage: posterImageURL,
           fileSize,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        // Only include posterImage if it's defined
+        if (posterImageURL !== undefined) {
+          metadataUpdates.posterImage = posterImageURL;
+        }
+
+        await updateDoc(docRef, metadataUpdates);
 
         console.log('✅ Project updated');
       }
