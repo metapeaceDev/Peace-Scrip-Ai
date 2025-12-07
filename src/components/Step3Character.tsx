@@ -804,15 +804,15 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           </p>
         </div>
         {/* Compare All Characters Button - มุมขวาบนอย่างเดียว */}
-        {characters.length >= 2 && (
-          <button
-            onClick={() => setShowCharacterComparison(true)}
-            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm"
-          >
-            <span className="text-lg">🔬</span>
-            <span>Compare {characters.length}</span>
-          </button>
-        )}
+        <button
+          onClick={() => setShowCharacterComparison(true)}
+          disabled={characters.length < 2}
+          className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
+          title={characters.length < 2 ? "Need at least 2 characters to compare" : `Compare ${characters.length} characters psychology`}
+        >
+          <span className="text-lg">🔬</span>
+          <span>Compare {characters.length >= 2 ? characters.length : '—'}</span>
+        </button>
       </div>
 
       {/* Character List Tabs */}
