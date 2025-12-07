@@ -803,16 +803,34 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             Define the cast of your story. Add protagonists, antagonists, and supporting characters.
           </p>
         </div>
-        {/* Compare All Characters Button */}
-        {characters.length >= 2 && (
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {/* Gen Character Button */}
           <button
-            onClick={() => setShowCharacterComparison(true)}
-            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm"
+            type="button"
+            onClick={handleGenerateClick}
+            disabled={isLoading}
+            className={`text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center gap-2 shadow-lg ${
+              fillEmptyOnly 
+                ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-900/30' 
+                : 'bg-teal-600 hover:bg-teal-700 shadow-teal-900/30'
+            }`}
+            title={fillEmptyOnly ? 'Fill missing character details only' : 'Generate full character profile from AI'}
           >
-            <span className="text-lg">🔬</span>
-            <span>Compare {characters.length}</span>
+            <span className="text-lg">✨</span>
+            <span>{isLoading ? 'Generating...' : fillEmptyOnly ? 'Auto-Fill' : 'Gen Character'}</span>
           </button>
-        )}
+          {/* Compare All Characters Button */}
+          {characters.length >= 2 && (
+            <button
+              onClick={() => setShowCharacterComparison(true)}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm"
+            >
+              <span className="text-lg">🔬</span>
+              <span>Compare {characters.length}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Character List Tabs */}
@@ -1261,7 +1279,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 </select>
               </div>
 
-              {/* Generate Button */}
+              {/* Generate All Characters Button */}
               <div className="md:col-span-3">
                 <div className="flex items-center gap-2 mb-2 pt-1">
                   <input
@@ -1272,31 +1290,21 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="w-4 h-4 text-cyan-600 bg-gray-700 border-gray-600 rounded"
                   />
                   <label htmlFor="fillEmptyOnly" className="text-xs text-gray-300 cursor-pointer">
-                    Keep existing
+                    Keep existing values (Fill empty only)
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={handleGenerateClick}
-                    disabled={isLoading}
-                    className={`text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 ${fillEmptyOnly ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-teal-600 hover:bg-teal-700'}`}
-                  >
-                    {isLoading ? 'Generating...' : fillEmptyOnly ? 'Auto-Fill' : 'Auto-Generate'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAllCharacters}
-                    disabled={isLoading || characters.length === 0}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                    title="Generate all characters at once from Step 1-2 data"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
-                    Gen All
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateAllCharacters}
+                  disabled={isLoading || characters.length === 0}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                  title="Generate all characters at once from Step 1-2 data"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                  </svg>
+                  Gen All Characters
+                </button>
               </div>
             </div>
 
