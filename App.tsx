@@ -29,6 +29,7 @@ import { firebaseAuth } from './src/services/firebaseAuth';
 import { firestoreService } from './src/services/firestoreService';
 import { checkComfyUIStatus } from './src/services/comfyuiInstaller';
 import { checkAllRequiredModels } from './src/services/loraInstaller';
+import { getCurrentLanguage } from './src/i18n';
 
 interface SimpleUser {
   uid: string;
@@ -236,6 +237,29 @@ function App() {
     pointTitle: string;
     sceneIndex: number;
   } | null>(null);
+
+  // Sync scriptData.language with UI language
+  useEffect(() => {
+    const syncLanguage = () => {
+      const currentLang = getCurrentLanguage();
+      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
+      
+      setScriptData(prev => {
+        if (prev.language === mappedLang) return prev;
+        console.log(`🌐 Syncing Script Language: ${prev.language} -> ${mappedLang}`);
+        return { ...prev, language: mappedLang };
+      });
+    };
+
+    // Sync on mount
+    syncLanguage();
+
+    // Sync on change
+    const handleLanguageChange = () => syncLanguage();
+    window.addEventListener('languageChanged', handleLanguageChange);
+    
+    return () => window.removeEventListener('languageChanged', handleLanguageChange);
+  }, []);
 
   useEffect(() => {
     const initApp = async () => {

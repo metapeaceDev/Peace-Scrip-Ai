@@ -1623,7 +1623,7 @@ export async function generateAllCharactersFromStory(
   try {
     const langInstruction =
       scriptData.language === 'Thai'
-        ? 'Ensure all value fields are written in Thai language (Natural, creative Thai writing).'
+        ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All character names (unless foreign), descriptions, roles, and details MUST be in Thai. Do not use English for content values, only for JSON keys.'
         : 'Ensure all value fields are written in English.';
 
     const prompt = `You are an expert Hollywood scriptwriter and casting director. Based on the following story elements, create a complete cast of characters that are essential for this story.
@@ -1832,8 +1832,13 @@ export async function generateFullScriptOutline(
   secondaryGenres: string[],
   language: 'Thai' | 'English'
 ): Promise<Partial<ScriptData>> {
+  const langInstruction = language === 'Thai' 
+    ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All content (Big Idea, Premise, Theme, Logline, Timeline, Structure descriptions) MUST be in Thai. Do not use English for content.' 
+    : 'Output in English.';
+
   const prompt = `
-    Generate a complete story outline. Language: ${language}.
+    Generate a complete story outline.
+    ${langInstruction}
     Title: "${title}"
     Genre: ${mainGenre}, ${secondaryGenres.join(', ')}
 
@@ -1890,7 +1895,7 @@ export async function generateScene(
     .join(', ');
   const languageInstruction =
     scriptData.language === 'Thai'
-      ? 'Ensure all dialogue and descriptions are in Thai language.'
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All dialogue, descriptions, narrative text, and character thoughts MUST be in Thai. Do not use English for content, only for JSON keys.'
       : 'Ensure all dialogue and descriptions are in English.';
 
   const previousScenesInfo = (scriptData.generatedScenes[plotPoint.title] || [])
