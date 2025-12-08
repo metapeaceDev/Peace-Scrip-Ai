@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine } from '../../types';
+import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine, PsychologySnapshot, PsychologyChange } from '../../types';
 import {
   generateScene,
   generateStoryboardImage,
   generateStoryboardVideo,
   VIDEO_MODELS_CONFIG,
 } from '../services/geminiService';
+import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../../constants';
 import { hasAccessToModel } from '../services/userStore';
 
@@ -1048,7 +1049,7 @@ const SceneDisplay: React.FC<{
                             updateTableItem(section, i, h as string, e.target.value, subSection)
                           }
                           rows={2}
-                          className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:border-cyan-500 outline-none resize-y"
+                          className="w-full bg-gray-900 border border-gray-600 rounded px-2 py
                         />
                       )
                     ) : (
@@ -2207,12 +2208,42 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           sceneNumber
         );
 
+        // --- PSYCHOLOGY UPDATE START ---
+        let updatedTimelines = { ...(scriptData.psychologyTimelines || {}) };
+        let updatedCharacters = [...scriptData.characters];
+
+        // Find characters present in this scene
+        const presentCharNames = scene.sceneDesign.characters;
+        
+        presentCharNames.forEach(charName => {
+          const charIndex = updatedCharacters.findIndex(c => c.name === charName);
+          if (charIndex === -1) return;
+
+          const character = updatedCharacters[charIndex];
+          const timeline = updatedTimelines[character.id] || {
+            characterId: character.id,
+            characterName: character.name,
+            snapshots: [] as PsychologySnapshot[],
+            changes: [] as PsychologyChange[],
+            summary: { total_kusala: 0, total_akusala: 0, net_progress: 0, dominant_pattern: 'สมดุล' },
+            overallArc: { startingBalance: 0, endingBalance: 0, totalChange: 0, direction: 'คงที่', interpretation: 'เริ่มเก็บข้อมูล' }
+          };
+
+          const result = updatePsychologyTimeline(timeline, character, scene, plotPoint.title);
+          
+          updatedTimelines[character.id] = result.timeline;
+          updatedCharacters[charIndex] = result.updatedCharacter;
+        });
+        // --- PSYCHOLOGY UPDATE END ---
+
         setScriptData(prev => {
           const newScenesForPoint = [...(prev.generatedScenes[plotPoint.title] || [])];
           newScenesForPoint[sceneIndex] = scene;
           return {
             ...prev,
             generatedScenes: { ...prev.generatedScenes, [plotPoint.title]: newScenesForPoint },
+            psychologyTimelines: updatedTimelines,
+            characters: updatedCharacters
           };
         });
         setGenerationStatus(prev => ({

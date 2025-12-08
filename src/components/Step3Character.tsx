@@ -11,6 +11,8 @@ import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../../
 import { PsychologyTestPanel } from './PsychologyTestPanel';
 import { PsychologyDisplay } from './PsychologyDisplay';
 import { CharacterComparison } from './CharacterComparison';
+import { PsychologyTimeline } from './PsychologyTimeline';
+import { HybridTTSService } from '../services/hybridTTSService';
 import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
 
 interface Step3CharacterProps {
@@ -92,6 +94,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const t = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
 
   const [activeCharIndex, setActiveCharIndex] = useState(0);
+  const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
 
   // Main Tabs
   const [activeTab, setActiveTab] = useState<'external' | 'internal' | 'goals'>('external');
@@ -826,6 +830,33 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     if (onRegisterUndo) onRegisterUndo();
   };
 
+  const handlePlayVoice = async () => {
+    if (isPlayingVoice) return;
+    setIsPlayingVoice(true);
+    try {
+      const ttsService = new HybridTTSService();
+      const text = activeCharacter.description || `Hello, I am ${activeCharacter.name}.`;
+      // Simple mapping of role/traits to voice tone (Carita)
+      // 'tanha' | 'dosa' | 'moha' | 'saddha' | 'buddhi' | 'vitakka'
+      let carita: 'tanha' | 'dosa' | 'moha' | 'saddha' | 'buddhi' | 'vitakka' = 'vitakka';
+      
+      if (activeCharacter.role === 'Protagonist') carita = 'saddha';
+      if (activeCharacter.role === 'Antagonist') carita = 'dosa';
+      if (activeCharacter.role === 'Mentor') carita = 'buddhi';
+      
+      await ttsService.synthesizeAndPlay({
+        text: text.substring(0, 100), // Limit length for sample
+        carita: carita,
+        fallbackEnabled: true
+      });
+    } catch (error) {
+      console.error("TTS Error:", error);
+      // alert("Failed to generate voice."); // Optional: show error
+    } finally {
+      setIsPlayingVoice(false);
+    }
+  };
+
   return (
     <div className="relative">
       {/* --- RETURN NAVIGATION BAR (CONDITIONAL) --- */}
@@ -982,7 +1013,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           title={t('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสม (หรือเติมข้อมูลให้ตัวที่มีอยู่)', 'AI will analyze your story and create appropriate characters (or fill existing ones)')}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
           </svg>
           {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('สร้างทั้งหมด', 'Gen All')}
         </button>
@@ -1460,8 +1491,19 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           {/* Physical Content */}
           {externalSubTab === 'physical' && (
             <div className="p-6 bg-gray-800/50 rounded-lg border border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-200 mb-4 border-b border-gray-600 pb-2">
-                Physical Characteristics
+              <h3 className="text-xl font-semibold text-gray-200 mb-4 border-b border-gray-600 pb-2 flex justify-between items-center">
+                <span>Physical Characteristics</span>
+                <button
+                  onClick={handlePlayVoice}
+                  disabled={isPlayingVoice}
+                  className={`text-xs px-3 py-1.5 rounded-full flex items-center gap-2 transition-all ${
+                    isPlayingVoice 
+                      ? 'bg-green-500/20 text-green-400 animate-pulse' 
+                      : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
+                  }`}
+                >
+                  {isPlayingVoice ? '🔊 Playing...' : '🔊 Voice Sample'}
+                </button>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 {Object.entries(activeCharacter.physical).map(([key, value]) => (
@@ -1883,6 +1925,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 ทดสอบการตอบสนอง (Psychology Test Lab)
               </span>
             </button>
+            
+            <button
+              onClick={() => setShowPsychologyTimeline(true)}
+              className="mt-3 w-full bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-500/30 font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-3"
+            >
+              <span className="text-2xl">📈</span>
+              <span className="uppercase tracking-wider">
+                View Psychology Timeline
+              </span>
+            </button>
           </div>
 
           {/* Sub Tabs for Internal */}
@@ -2056,6 +2108,28 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         <CharacterComparison
           characters={characters}
           onClose={() => setShowCharacterComparison(false)}
+        />
+      )}
+
+      {/* --- PSYCHOLOGY TIMELINE --- */}
+      {showPsychologyTimeline && (
+        <PsychologyTimeline
+          timeline={
+            scriptData.psychologyTimelines?.[activeCharacter.id] || {
+              characterId: activeCharacter.id,
+              characterName: activeCharacter.name,
+              snapshots: [],
+              changes: [],
+              overallArc: {
+                startingBalance: 0,
+                endingBalance: 0,
+                totalChange: 0,
+                direction: 'คงที่',
+                interpretation: 'ยังไม่มีข้อมูลเพียงพอสำหรับการวิเคราะห์'
+              }
+            }
+          }
+          onClose={() => setShowPsychologyTimeline(false)}
         />
       )}
 
