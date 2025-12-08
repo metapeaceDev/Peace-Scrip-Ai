@@ -359,19 +359,24 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const handleGenerateAllCharacters = async () => {
     // Check if we have meaningful characters or just empty defaults
     const hasRealCharacters = characters.some(
-      char => char.name && char.name !== `New Character ${characters.indexOf(char) + 1}` && char.name !== 'Character Name'
+      char =>
+        char.name &&
+        char.name !== `New Character ${characters.indexOf(char) + 1}` &&
+        char.name !== 'Character Name'
     );
 
     if (!hasRealCharacters) {
       // MODE 1: Create new characters from story
-      if (!confirm(
-        `🎭 Generate characters from your story?\n\n` +
-        `AI will analyze your story (${scriptData.title || 'Untitled'}) and create ` +
-        `appropriate characters based on:\n` +
-        `• Genre: ${scriptData.mainGenre}\n` +
-        `• Premise: ${scriptData.premise || scriptData.bigIdea || 'Your story concept'}\n\n` +
-        `This will replace existing character slots.`
-      )) {
+      if (
+        !confirm(
+          `🎭 Generate characters from your story?\n\n` +
+            `AI will analyze your story (${scriptData.title || 'Untitled'}) and create ` +
+            `appropriate characters based on:\n` +
+            `• Genre: ${scriptData.mainGenre}\n` +
+            `• Premise: ${scriptData.premise || scriptData.bigIdea || 'Your story concept'}\n\n` +
+            `This will replace existing character slots.`
+        )
+      ) {
         return;
       }
 
@@ -383,19 +388,19 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       try {
         setProgress(20);
         console.log('🎭 Generating characters from story data...');
-        
+
         const newCharacters = await generateAllCharactersFromStory(scriptData);
-        
+
         setProgress(80);
         console.log(`✅ Generated ${newCharacters.length} characters`);
 
         setScriptData(prev => ({ ...prev, characters: newCharacters }));
         setActiveCharIndex(0);
         setProgress(100);
-        
+
         alert(
           `✅ Successfully created ${newCharacters.length} characters!\n\n` +
-          `Characters: ${newCharacters.map(c => c.name).join(', ')}`
+            `Characters: ${newCharacters.map(c => c.name).join(', ')}`
         );
       } catch (e: unknown) {
         const error = e as Error;
@@ -407,34 +412,37 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       }
     } else {
       // MODE 2: Fill details for existing characters
-      if (!confirm(
-        `📝 Fill details for all ${characters.length} characters?\n\n` +
-        `This will use AI to create comprehensive profiles using Step 1-2 data.\n` +
-        `Existing values will be preserved (fill empty fields only).`
-      )) {
+      if (
+        !confirm(
+          `📝 Fill details for all ${characters.length} characters?\n\n` +
+            `This will use AI to create comprehensive profiles using Step 1-2 data.\n` +
+            `Existing values will be preserved (fill empty fields only).`
+        )
+      ) {
         return;
       }
-      
+
       if (onRegisterUndo) onRegisterUndo();
       setIsLoading(true);
       setError(null);
       setProgress(0);
-      
+
       try {
         const updatedCharacters = [...characters];
-        
+
         for (let i = 0; i < characters.length; i++) {
           const char = characters[i];
           setProgress(Math.round(((i + 1) / characters.length) * 100));
-          
+
           try {
             const aiCharacterData = await generateCharacterDetails(
               char.name,
               char.role,
-              char.description || `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
+              char.description ||
+                `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
               scriptData.language
             );
-            
+
             updatedCharacters[i] = {
               ...char,
               external: { ...char.external, ...(aiCharacterData.external || {}) },
@@ -462,7 +470,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             // Continue with next character
           }
         }
-        
+
         setScriptData(prev => ({ ...prev, characters: updatedCharacters }));
         alert(`✅ Successfully generated details for ${characters.length} characters!`);
       } catch (e: unknown) {
@@ -839,18 +847,18 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       // Simple mapping of role/traits to voice tone (Carita)
       // 'tanha' | 'dosa' | 'moha' | 'saddha' | 'buddhi' | 'vitakka'
       let carita: 'tanha' | 'dosa' | 'moha' | 'saddha' | 'buddhi' | 'vitakka' = 'vitakka';
-      
+
       if (activeCharacter.role === 'Protagonist') carita = 'saddha';
       if (activeCharacter.role === 'Antagonist') carita = 'dosa';
       if (activeCharacter.role === 'Mentor') carita = 'buddhi';
-      
+
       await ttsService.synthesizeAndPlay({
         text: text.substring(0, 100), // Limit length for sample
         carita: carita,
-        fallbackEnabled: true
+        fallbackEnabled: true,
       });
     } catch (error) {
-      console.error("TTS Error:", error);
+      console.error('TTS Error:', error);
       // alert("Failed to generate voice."); // Optional: show error
     } finally {
       setIsPlayingVoice(false);
@@ -889,9 +897,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-cyan-400">{t('ขั้นที่ 3: สร้างตัวละคร', 'STEP 3: Character Creation')}</h2>
+          <h2 className="text-2xl font-bold text-cyan-400">
+            {t('ขั้นที่ 3: สร้างตัวละคร', 'STEP 3: Character Creation')}
+          </h2>
           <p className="text-gray-400 mb-6">
-            {t('กำหนดตัวละครในเรื่องของคุณ เพิ่มตัวเอก ตัวร้าย และตัวละครสมทบ', 'Define the cast of your story. Add protagonists, antagonists, and supporting characters.')}
+            {t(
+              'กำหนดตัวละครในเรื่องของคุณ เพิ่มตัวเอก ตัวร้าย และตัวละครสมทบ',
+              'Define the cast of your story. Add protagonists, antagonists, and supporting characters.'
+            )}
           </p>
         </div>
         {/* Compare All Characters Button - มุมขวาบนอย่างเดียว */}
@@ -899,10 +912,22 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           onClick={() => setShowCharacterComparison(true)}
           disabled={characters.length < 2}
           className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
-          title={characters.length < 2 ? t('ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ', 'Need at least 2 characters to compare') : t(`เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`, `Compare ${characters.length} characters psychology`)}
+          title={
+            characters.length < 2
+              ? t(
+                  'ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ',
+                  'Need at least 2 characters to compare'
+                )
+              : t(
+                  `เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`,
+                  `Compare ${characters.length} characters psychology`
+                )
+          }
         >
           <span className="text-lg">🔬</span>
-          <span>{t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}</span>
+          <span>
+            {t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
+          </span>
         </button>
       </div>
 
@@ -1010,9 +1035,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           onClick={handleGenerateAllCharacters}
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 mb-0.5 rounded-md font-medium text-xs bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all disabled:opacity-50 border border-purple-500 shadow-lg shadow-purple-900/30"
-          title={t('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสม (หรือเติมข้อมูลให้ตัวที่มีอยู่)', 'AI will analyze your story and create appropriate characters (or fill existing ones)')}
+          title={t(
+            'AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสม (หรือเติมข้อมูลให้ตัวที่มีอยู่)',
+            'AI will analyze your story and create appropriate characters (or fill existing ones)'
+          )}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
           </svg>
           {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('สร้างทั้งหมด', 'Gen All')}
@@ -1349,7 +1382,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
               {/* Role Selection */}
               <div className="md:col-span-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">{t('บทบาท / ประเภท', 'Role / Type')}</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('บทบาท / ประเภท', 'Role / Type')}
+                </label>
                 <select
                   value={activeCharacter.role || CHARACTER_ROLES[0]}
                   onChange={e => {
@@ -1368,21 +1403,36 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
               {/* Gen Character Button with Checkbox */}
               <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-300 mb-2 opacity-0">Gen</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 opacity-0">
+                  Gen
+                </label>
                 <div className="space-y-2">
                   <button
                     type="button"
                     onClick={handleGenerateClick}
                     disabled={isLoading}
                     className={`w-full text-white font-bold py-2.5 px-4 rounded-lg transition duration-300 disabled:opacity-50 text-sm flex items-center justify-center gap-2 shadow-lg ${
-                      fillEmptyOnly 
-                        ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-900/30' 
+                      fillEmptyOnly
+                        ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-900/30'
                         : 'bg-teal-600 hover:bg-teal-700 shadow-teal-900/30'
                     }`}
-                    title={fillEmptyOnly ? t('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only') : t('สร้างโปรไฟล์ตัวละครเต็มรูปแบบจาก AI', 'Generate full character profile from AI')}
+                    title={
+                      fillEmptyOnly
+                        ? t('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only')
+                        : t(
+                            'สร้างโปรไฟล์ตัวละครเต็มรูปแบบจาก AI',
+                            'Generate full character profile from AI'
+                          )
+                    }
                   >
                     <span className="text-lg">✨</span>
-                    <span>{isLoading ? t('กำลังสร้าง...', 'Generating...') : fillEmptyOnly ? t('เติมอัตโนมัติ', 'Auto-Fill') : t('สร้าง', 'Gen')}</span>
+                    <span>
+                      {isLoading
+                        ? t('กำลังสร้าง...', 'Generating...')
+                        : fillEmptyOnly
+                          ? t('เติมอัตโนมัติ', 'Auto-Fill')
+                          : t('สร้าง', 'Gen')}
+                    </span>
                   </button>
                   <div className="flex items-center gap-1.5">
                     <input
@@ -1392,14 +1442,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       onChange={e => setFillEmptyOnly(e.target.checked)}
                       className="w-3 h-3 text-cyan-600 bg-gray-700 border-gray-600 rounded"
                     />
-                    <label htmlFor="fillEmptyOnly" className="text-[10px] text-gray-400 cursor-pointer leading-tight">
+                    <label
+                      htmlFor="fillEmptyOnly"
+                      className="text-[10px] text-gray-400 cursor-pointer leading-tight"
+                    >
                       {t('เติมเฉพาะที่ว่าง', 'Fill empty only')}
                     </label>
                   </div>
                 </div>
               </div>
-            </div> {/* Close grid */}
-
+            </div>{' '}
+            {/* Close grid */}
             {/* Character Description & Role */}
             <label className="block text-sm font-medium text-gray-300 mt-4 mb-2">
               Character Description & Role
@@ -1497,8 +1550,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   onClick={handlePlayVoice}
                   disabled={isPlayingVoice}
                   className={`text-xs px-3 py-1.5 rounded-full flex items-center gap-2 transition-all ${
-                    isPlayingVoice 
-                      ? 'bg-green-500/20 text-green-400 animate-pulse' 
+                    isPlayingVoice
+                      ? 'bg-green-500/20 text-green-400 animate-pulse'
                       : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
                   }`}
                 >
@@ -1925,15 +1978,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 ทดสอบการตอบสนอง (Psychology Test Lab)
               </span>
             </button>
-            
+
             <button
               onClick={() => setShowPsychologyTimeline(true)}
               className="mt-3 w-full bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-500/30 font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-3"
             >
               <span className="text-2xl">📈</span>
-              <span className="uppercase tracking-wider">
-                View Psychology Timeline
-              </span>
+              <span className="uppercase tracking-wider">View Psychology Timeline</span>
             </button>
           </div>
 
@@ -2125,8 +2176,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 endingBalance: 0,
                 totalChange: 0,
                 direction: 'คงที่',
-                interpretation: 'ยังไม่มีข้อมูลเพียงพอสำหรับการวิเคราะห์'
-              }
+                interpretation: 'ยังไม่มีข้อมูลเพียงพอสำหรับการวิเคราะห์',
+              },
             }
           }
           onClose={() => setShowPsychologyTimeline(false)}

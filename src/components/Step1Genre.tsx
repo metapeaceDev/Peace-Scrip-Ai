@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ScriptData } from '../../types';
 import { GENRES } from '../../constants';
 import { generateFullScriptOutline, generateMoviePoster } from '../services/geminiService';
+import { getCurrentLanguage } from '../i18n';
 
 interface Step1GenreProps {
   scriptData: ScriptData;
@@ -55,6 +56,15 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
     setIsGenerating(true);
     setError(null);
     try {
+      // Force-sync UI language to scriptData before generation
+      const currentLang = getCurrentLanguage();
+      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
+      
+      if (scriptData.language !== mappedLang) {
+        console.log(`🌐 [Step1] Syncing language: ${scriptData.language} -> ${mappedLang}`);
+        scriptData.language = mappedLang;
+      }
+      
       const generatedData = await generateFullScriptOutline(
         scriptData.title,
         scriptData.mainGenre,
