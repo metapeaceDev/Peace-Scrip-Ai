@@ -2605,12 +2605,18 @@ export async function generateMoviePoster(
  * Creates: title, bigIdea, premise, theme, logLine, timeline
  */
 export async function generateBoundary(scriptData: ScriptData): Promise<Partial<ScriptData>> {
+  console.log(`🧠 Generating Boundary. Language: ${scriptData.language}`);
   try {
-    const langInstruction = scriptData.language === 'Thai' 
-      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All content values (Title, Big Idea, Premise, Theme, Log Line, Timeline details) MUST be in Thai. Do not use English for content, only for JSON keys.' 
+    const isThai = scriptData.language === 'Thai';
+    const langInstruction = isThai
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.' 
       : 'Output in English.';
 
     const prompt = `You are an expert Hollywood scriptwriter and story consultant. Based on the following story foundation, create a comprehensive boundary (framework) for the story.
+
+**Language Requirement:**
+${langInstruction}
+${isThai ? '⚠️ IMPORTANT: The user wants the result in THAI. Ignore the language of the input context and generate the output in THAI.' : ''}
 
 **Story Foundation from Step 1:**
 - Genre: ${scriptData.mainGenre}
@@ -2639,7 +2645,7 @@ ${getGenreGuidelines(scriptData.mainGenre)}
 **Story Type Considerations:**
 ${getTypeGuidelines(scriptData.projectType)}
 
-**Language Instruction:**
+**Language Instruction (REPEAT):**
 ${langInstruction}
 
 Return ONLY a valid JSON object with this exact structure:

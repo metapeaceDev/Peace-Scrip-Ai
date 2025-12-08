@@ -621,6 +621,15 @@ function App() {
       }
 
       const sanitized = sanitizeScriptData(data);
+      
+      // Force sync language to current UI language when opening project
+      const currentLang = getCurrentLanguage();
+      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
+      if (sanitized.language !== mappedLang) {
+        console.log(`🌐 Force-syncing project language on open: ${sanitized.language} -> ${mappedLang}`);
+        sanitized.language = mappedLang;
+      }
+
       setScriptData(sanitized);
       setCurrentProjectId(id);
       setHistory([]);
