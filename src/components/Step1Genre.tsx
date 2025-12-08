@@ -62,7 +62,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
       
       if (scriptData.language !== mappedLang) {
         console.log(`🌐 [Step1] Syncing language: ${scriptData.language} -> ${mappedLang}`);
-        scriptData.language = mappedLang;
+        updateScriptData({ language: mappedLang });
       }
       
       const generatedData = await generateFullScriptOutline(

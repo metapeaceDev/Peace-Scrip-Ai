@@ -60,7 +60,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
       
       if (scriptData.language !== mappedLang) {
         console.log(`🌐 [Step4] Syncing language: ${scriptData.language} -> ${mappedLang}`);
-        scriptData.language = mappedLang;
+        updateScriptData({ language: mappedLang });
       }
       
       const result = await generateStructure(scriptData);
