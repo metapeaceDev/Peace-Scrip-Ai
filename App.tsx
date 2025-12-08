@@ -29,7 +29,7 @@ import { firebaseAuth } from './src/services/firebaseAuth';
 import { firestoreService } from './src/services/firestoreService';
 import { checkComfyUIStatus } from './src/services/comfyuiInstaller';
 import { checkAllRequiredModels } from './src/services/loraInstaller';
-import { getCurrentLanguage } from './src/i18n';
+import { getCurrentLanguage, type Language } from './src/i18n';
 
 interface SimpleUser {
   uid: string;
@@ -223,6 +223,22 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusText, setUploadStatusText] = useState('Processing...');
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  // Sync scriptData.language with UI language
+  useEffect(() => {
+    const handleLanguageChange = (event: Event) => {
+      const customEvent = event as CustomEvent<Language>;
+      const newLang = customEvent.detail === 'th' ? 'Thai' : 'English';
+      
+      if (scriptData.language !== newLang) {
+        console.log(`🌐 Syncing scriptData language to UI: ${newLang}`);
+        setScriptData(prev => ({ ...prev, language: newLang }));
+      }
+    };
+
+    window.addEventListener('languageChanged', handleLanguageChange);
+    return () => window.removeEventListener('languageChanged', handleLanguageChange);
+  }, [scriptData.language]);
+
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const lastSavedDataRef = useRef<string | null>(null);
@@ -243,7 +259,7 @@ function App() {
     const syncLanguage = () => {
       const currentLang = getCurrentLanguage();
       const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
-      
+
       setScriptData(prev => {
         if (prev.language === mappedLang) return prev;
         console.log(`🌐 Syncing Script Language: ${prev.language} -> ${mappedLang}`);
@@ -257,7 +273,7 @@ function App() {
     // Sync on change
     const handleLanguageChange = () => syncLanguage();
     window.addEventListener('languageChanged', handleLanguageChange);
-    
+
     return () => window.removeEventListener('languageChanged', handleLanguageChange);
   }, []);
 
@@ -621,12 +637,14 @@ function App() {
       }
 
       const sanitized = sanitizeScriptData(data);
-      
+
       // Force sync language to current UI language when opening project
       const currentLang = getCurrentLanguage();
       const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
       if (sanitized.language !== mappedLang) {
-        console.log(`🌐 Force-syncing project language on open: ${sanitized.language} -> ${mappedLang}`);
+        console.log(
+          `🌐 Force-syncing project language on open: ${sanitized.language} -> ${mappedLang}`
+        );
         sanitized.language = mappedLang;
       }
 
@@ -802,13 +820,13 @@ function App() {
         console.error('❌ Background save failed:', err);
       }
     }
-    
+
     // Switch view and clear project state
     setView('studio');
     setCurrentProjectId(null);
     setIsDirty(false);
     lastSavedDataRef.current = null;
-    
+
     // Reload projects to show updated title/data
     console.log('🔄 Reloading projects to show latest changes...');
     await loadCloudProjects();
