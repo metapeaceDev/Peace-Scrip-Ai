@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
+import { getCurrentLanguage } from '../i18n';
 
 interface Step2BoundaryProps {
   scriptData: ScriptData;
@@ -49,6 +50,17 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
     setError(null);
 
     try {
+      // Force-sync UI language to scriptData before generation
+      const currentLang = getCurrentLanguage();
+      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
+      
+      if (scriptData.language !== mappedLang) {
+        console.log(`🌐 [Step2] Syncing language before generation: ${scriptData.language} -> ${mappedLang}`);
+        scriptData.language = mappedLang;
+      }
+      
+      console.log(`🧠 Generating Boundary with language: ${scriptData.language}`);
+      
       const result = await generateBoundary(scriptData);
       
       updateScriptData({
