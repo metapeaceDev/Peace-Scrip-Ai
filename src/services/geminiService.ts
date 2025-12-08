@@ -1541,13 +1541,14 @@ export async function generateCharacterDetails(
   try {
     const langInstruction =
       language === 'Thai'
-        ? 'Ensure all value fields are written in Thai language (Natural, creative Thai writing).'
+        ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All character details (External, Physical, Fashion, Internal, Goals) MUST be in Thai. Do not use English for content values, only for JSON keys.'
         : 'Ensure all value fields are written in English.';
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `You are a scriptwriter's assistant. Create a detailed character profile for a character named "${name}" who is a "${role}". The character is described as: "${description}".
       
+      ${langInstruction}
       IMPORTANT INSTRUCTIONS:
       1. ${langInstruction}
       2. Keep the JSON keys exactly as shown in the example (in English).
@@ -2736,6 +2737,10 @@ function getTypeGuidelines(type: string): string {
  */
 export async function generateStructure(scriptData: ScriptData): Promise<Partial<ScriptData>> {
   try {
+    const langInstruction = scriptData.language === 'Thai' 
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All descriptions MUST be in Thai. Do not use English for content, only for JSON keys.' 
+      : 'Output in English.';
+
     const charactersInfo = scriptData.characters
       .map(c => `- ${c.name} (${c.role}): ${c.description || c.goals?.objective || 'Character in the story'}`)
       .join('\n');
@@ -2775,6 +2780,9 @@ ${getGenreGuidelines(scriptData.mainGenre)}
 
 **Format Guidelines:**
 ${getTypeGuidelines(scriptData.projectType)}
+
+**Language Instruction:**
+${langInstruction}
 
 Return ONLY a valid JSON object with this exact structure:
 {
