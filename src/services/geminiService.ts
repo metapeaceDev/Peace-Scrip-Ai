@@ -1896,7 +1896,7 @@ export async function generateScene(
     .join(', ');
   const languageInstruction =
     scriptData.language === 'Thai'
-      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All dialogue, descriptions, narrative text, and character thoughts MUST be in Thai. Do not use English for content, only for JSON keys.'
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.'
       : 'Ensure all dialogue and descriptions are in English.';
 
   const previousScenesInfo = (scriptData.generatedScenes[plotPoint.title] || [])
