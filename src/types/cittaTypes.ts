@@ -1,10 +1,10 @@
 /**
  * Citta (จิต) Type System - Complete 89 Cittas
  * Based on Abhidhamma Classification
- * 
+ *
  * จิต 89 ประเภท แบ่งเป็น 4 กลุ่มหลัก:
  * 1. กุศลจิต (Kusala Citta) - 21 types
- * 2. อกุศลจิต (Akusala Citta) - 12 types  
+ * 2. อกุศลจิต (Akusala Citta) - 12 types
  * 3. วิบากจิต (Vipāka Citta) - 36 types
  * 4. กิริยาจิต (Kiriyā Citta) - 20 types
  */

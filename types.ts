@@ -62,13 +62,7 @@ export type AnusayaProfile = {
   avijja: number;
 };
 
-export type CaritaType =
-  | 'ราคจริต'
-  | 'โทสจริต'
-  | 'โมหจริต'
-  | 'สัทธาจริต'
-  | 'พุทธิจริต'
-  | 'วิตกจริต';
+export type CaritaType = 'ราคจริต' | 'โทสจริต' | 'โมหจริต' | 'สัทธาจริต' | 'พุทธิจริต' | 'วิตกจริต';
 
 export type ParamiPortfolio = {
   dana: { level: number; exp: number };
@@ -111,6 +105,7 @@ export type MaggaStage = 'sotapatti' | 'sakadagami' | 'anagami' | 'arahatta';
 export interface PlotPoint {
   title: string;
   description: string;
+  act?: number; // Act number (1, 2, or 3) for 3-act structure grouping
 }
 
 export interface DialogueLine {
@@ -315,6 +310,7 @@ export interface PsychologySnapshot {
   sceneNumber: number;
   consciousness: Record<string, number>;
   defilement: Record<string, number>;
+  mentalBalance: number; // -100 to +100 (consciousness avg - defilement avg)
   anusaya?: AnusayaProfile;
   parami?: ParamiPortfolio;
   current_bhumi?: number;
@@ -336,5 +332,11 @@ export interface CharacterPsychologyTimeline {
     carita_evolution?: CaritaType[];
     magga_progress?: number; // 0-100% towards next stage
   };
+  overallArc: {
+    startingBalance: number;
+    endingBalance: number;
+    totalChange: number;
+    direction: 'กุศลขึ้น' | 'กุศลลง' | 'คงที่';
+    interpretation: string;
+  };
 }
-

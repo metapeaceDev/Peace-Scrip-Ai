@@ -175,7 +175,7 @@ export const PARAMI_LEVEL_REQUIREMENTS: Record<ParamiLevel, ParamiLevelRequireme
   paramatthaparami: {
     level: 'paramatthaparami',
     sacrifice_type: 'life',
-    description: 'Supreme level - Sacrificing one\'s life to uphold the perfection',
+    description: "Supreme level - Sacrificing one's life to uphold the perfection",
     exp_multiplier: 20.0,
   },
 };
@@ -186,7 +186,7 @@ export const PARAMI_LEVEL_REQUIREMENTS: Record<ParamiLevel, ParamiLevelRequireme
 
 /**
  * Parami_Updater - Updates experience points and levels of Paramis
- * 
+ *
  * Logic:
  * 1. Receives wholesome action with intensity
  * 2. Determines which Parami(s) apply
@@ -214,14 +214,14 @@ export class ParamiUpdater {
     const sati = consciousness['สติ (Mindfulness)'] || 0;
 
     // Requirement 1: Must have Adhitthana (clear intention)
-    const hasAdhitthana = lowerAction.includes('ตั้งใจ') || 
-                          lowerAction.includes('resolve') ||
-                          lowerAction.includes('determined');
+    const hasAdhitthana =
+      lowerAction.includes('ตั้งใจ') ||
+      lowerAction.includes('resolve') ||
+      lowerAction.includes('determined');
 
     // Requirement 2: Must have Panna (understanding of purpose)
-    const hasPanna = panna > 30 || 
-                     lowerAction.includes('เพื่อ') || 
-                     lowerAction.includes('for the sake of');
+    const hasPanna =
+      panna > 30 || lowerAction.includes('เพื่อ') || lowerAction.includes('for the sake of');
 
     if (!hasAdhitthana || !hasPanna) {
       return {
@@ -236,7 +236,11 @@ export class ParamiUpdater {
     let sacrifice_level: ParamiLevel = 'parami';
 
     // Dana (Generosity)
-    if (lowerAction.includes('ให้') || lowerAction.includes('บริจาค') || lowerAction.includes('give')) {
+    if (
+      lowerAction.includes('ให้') ||
+      lowerAction.includes('บริจาค') ||
+      lowerAction.includes('give')
+    ) {
       parami_type = 'dana';
       if (lowerAction.includes('ทุกอย่าง') || lowerAction.includes('everything')) {
         sacrifice_level = 'upaparami';
@@ -247,7 +251,11 @@ export class ParamiUpdater {
     }
 
     // Sila (Morality)
-    if (lowerAction.includes('ศีล') || lowerAction.includes('precept') || lowerAction.includes('ไม่')) {
+    if (
+      lowerAction.includes('ศีล') ||
+      lowerAction.includes('precept') ||
+      lowerAction.includes('ไม่')
+    ) {
       parami_type = 'sila';
       if (lowerAction.includes('ยอมตาย') || lowerAction.includes('rather die')) {
         sacrifice_level = 'paramatthaparami';
@@ -255,7 +263,11 @@ export class ParamiUpdater {
     }
 
     // Khanti (Patience)
-    if (lowerAction.includes('อดทน') || lowerAction.includes('อดกลั้น') || lowerAction.includes('endure')) {
+    if (
+      lowerAction.includes('อดทน') ||
+      lowerAction.includes('อดกลั้น') ||
+      lowerAction.includes('endure')
+    ) {
       parami_type = 'khanti';
       if (lowerAction.includes('ทรมาน') || lowerAction.includes('torture')) {
         sacrifice_level = 'upaparami';
@@ -266,7 +278,11 @@ export class ParamiUpdater {
     }
 
     // Sacca (Truthfulness)
-    if (lowerAction.includes('ความจริง') || lowerAction.includes('truth') || lowerAction.includes('ไม่โกหก')) {
+    if (
+      lowerAction.includes('ความจริง') ||
+      lowerAction.includes('truth') ||
+      lowerAction.includes('ไม่โกหก')
+    ) {
       parami_type = 'sacca';
       if (lowerAction.includes('ยอมตาย') || lowerAction.includes('die for truth')) {
         sacrifice_level = 'paramatthaparami';
@@ -274,7 +290,11 @@ export class ParamiUpdater {
     }
 
     // Metta (Loving-kindness)
-    if (lowerAction.includes('เมตตา') || lowerAction.includes('รัก') || lowerAction.includes('loving')) {
+    if (
+      lowerAction.includes('เมตตา') ||
+      lowerAction.includes('รัก') ||
+      lowerAction.includes('loving')
+    ) {
       parami_type = 'metta';
       if (lowerAction.includes('ศัตรู') || lowerAction.includes('enemy')) {
         sacrifice_level = 'upaparami';
@@ -282,7 +302,11 @@ export class ParamiUpdater {
     }
 
     // Panna (Wisdom)
-    if (lowerAction.includes('ปัญญา') || lowerAction.includes('wisdom') || lowerAction.includes('เห็นแจ้ง')) {
+    if (
+      lowerAction.includes('ปัญญา') ||
+      lowerAction.includes('wisdom') ||
+      lowerAction.includes('เห็นแจ้ง')
+    ) {
       parami_type = 'panna';
       if (sati > 70 && panna > 70) {
         sacrifice_level = 'upaparami';
@@ -379,10 +403,7 @@ export class ParamiUpdater {
   /**
    * Calculate resistance bonus for JavanaDecisionEngine
    */
-  static getResistanceBonus(
-    parami_type: keyof ParamiPortfolio,
-    parami_level: number
-  ): number {
+  static getResistanceBonus(parami_type: keyof ParamiPortfolio, parami_level: number): number {
     // Each Parami level provides 10 points of resistance
     // This is used in JavanaDecisionEngine to counter kilesa
     return parami_level * 10;
@@ -443,7 +464,129 @@ export function formatParamiDisplay(parami: ParamiPortfolio): Array<{
       level: p.level,
       exp: p.exp,
       progress: Math.round(progress),
-      target_kilesa: ('target_kilesa' in p ? p.target_kilesa : undefined) || PARAMI_KILESA_COUNTER_MAP[key]?.primary_kilesa || '',
+      target_kilesa:
+        ('target_kilesa' in p ? p.target_kilesa : undefined) ||
+        PARAMI_KILESA_COUNTER_MAP[key]?.primary_kilesa ||
+        '',
     };
   });
 }
+
+/**
+ * Calculate Parami Synergy Bonus
+ * Returns the synergy bonus for a specific parami based on its supporting paramis
+ */
+export function calculateParamiSynergy(
+  parami_name: keyof ParamiPortfolio,
+  portfolio: ParamiPortfolio
+): number {
+  const config = PARAMI_SYNERGY_MATRIX[parami_name];
+  if (!config) return 0;
+
+  // Get supporting paramis levels
+  const supportingLevels = config.supporting_paramis.map(
+    p => portfolio[p]?.level || 0
+  );
+
+  // Parse boost formula (simplified implementation)
+  // Example formula: '0.1 * (khanti.level + adhitthana.level + metta.level)'
+  const multiplierMatch = config.boost_formula.match(/^([\d.]+)\s*\*/);
+  const multiplier = multiplierMatch ? parseFloat(multiplierMatch[1]) : 0.1;
+
+  // Calculate sum of supporting levels
+  const sum = supportingLevels.reduce((total, level) => total + level, 0);
+
+  return multiplier * sum;
+}
+
+/**
+ * Update Parami from character actions
+ * Analyzes actions and increases relevant paramis
+ */
+export function updateParamiFromAction(
+  portfolio: ParamiPortfolio,
+  action: { กาย: string[]; วาจา: string[]; ใจ: string[] },
+  karmaType: 'กุศลกรรม' | 'อกุศลกรรม' | 'เฉยๆ'
+): ParamiPortfolio {
+  // Only wholesome actions increase paramis
+  if (karmaType !== 'กุศลกรรม') {
+    return portfolio;
+  }
+
+  const updated = { ...portfolio };
+  const allActions = [...action.กาย, ...action.วาจา, ...action.ใจ].join(' ').toLowerCase();
+
+  // Dana (Generosity)
+  if (allActions.includes('ช่วย') || allActions.includes('ให้') || allActions.includes('แบ่งปัน') ||
+      allActions.includes('help') || allActions.includes('give') || allActions.includes('share')) {
+    updated.dana = { ...updated.dana, exp: updated.dana.exp + 10 };
+  }
+
+  // Sila (Morality)
+  if (allActions.includes('ซื่อสัตย์') || allActions.includes('ถูกต้อง') ||
+      allActions.includes('honest') || allActions.includes('right')) {
+    updated.sila = { ...updated.sila, exp: updated.sila.exp + 10 };
+  }
+
+  // Nekkhamma (Renunciation)
+  if (allActions.includes('ปล่อยวาง') || allActions.includes('ไม่ยึดติด') ||
+      allActions.includes('let go') || allActions.includes('renounce')) {
+    updated.nekkhamma = { ...updated.nekkhamma, exp: updated.nekkhamma.exp + 10 };
+  }
+
+  // Viriya (Energy)
+  if (allActions.includes('พยายาม') || allActions.includes('เพียร') ||
+      allActions.includes('try') || allActions.includes('effort')) {
+    updated.viriya = { ...updated.viriya, exp: updated.viriya.exp + 10 };
+  }
+
+  // Khanti (Patience)
+  if (allActions.includes('อดทน') || allActions.includes('อดกลั้น') || allActions.includes('ใจเย็น') ||
+      allActions.includes('patient') || allActions.includes('endure')) {
+    updated.khanti = { ...updated.khanti, exp: updated.khanti.exp + 10 };
+  }
+
+  // Sacca (Truthfulness)
+  if (allActions.includes('จริงใจ') || allActions.includes('ความจริง') ||
+      allActions.includes('truthful') || allActions.includes('sincere')) {
+    updated.sacca = { ...updated.sacca, exp: updated.sacca.exp + 10 };
+  }
+
+  // Adhitthana (Determination)
+  if (allActions.includes('มุ่งมั่น') || allActions.includes('ตั้งใจ') ||
+      allActions.includes('determined') || allActions.includes('resolved')) {
+    updated.adhitthana = { ...updated.adhitthana, exp: updated.adhitthana.exp + 10 };
+  }
+
+  // Metta (Loving-kindness)
+  if (allActions.includes('เมตตา') || allActions.includes('รัก') || allActions.includes('ใจดี') ||
+      allActions.includes('kind') || allActions.includes('love') || allActions.includes('care')) {
+    updated.metta = { ...updated.metta, exp: updated.metta.exp + 10 };
+  }
+
+  // Upekkha (Equanimity)
+  if (allActions.includes('สงบ') || allActions.includes('วางเฉย') ||
+      allActions.includes('calm') || allActions.includes('equanimity')) {
+    updated.upekkha = { ...updated.upekkha, exp: updated.upekkha.exp + 10 };
+  }
+
+  // Panna (Wisdom)
+  if (allActions.includes('ปัญญา') || allActions.includes('เข้าใจ') || allActions.includes('รู้เท่าทัน') ||
+      allActions.includes('wisdom') || allActions.includes('understand') || allActions.includes('insight')) {
+    updated.panna = { ...updated.panna, exp: updated.panna.exp + 10 };
+  }
+
+  // Handle level ups
+  Object.keys(updated).forEach((key) => {
+    const paramiKey = key as keyof ParamiPortfolio;
+    while (updated[paramiKey].exp >= 100) {
+      updated[paramiKey] = {
+        level: updated[paramiKey].level + 1,
+        exp: updated[paramiKey].exp - 100,
+      };
+    }
+  });
+
+  return updated;
+}
+

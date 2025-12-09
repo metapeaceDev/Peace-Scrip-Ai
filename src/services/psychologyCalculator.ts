@@ -5,6 +5,12 @@
  */
 
 import type { Character } from '../../types';
+import { 
+  calculateParamiSynergy, 
+  getTotalParamiStrength, 
+  getStrongestParami,
+  PARAMI_SYNERGY_MATRIX 
+} from './paramiSystem';
 
 export interface PsychologyProfile {
   // Core Scores (0-100)
@@ -171,7 +177,7 @@ function generatePersonalityDescription(
   defilementScore: number,
   strongestVirtue: string,
   strongestDefilement: string,
-  dominantEmotion: string
+  _dominantEmotion: string
 ): string {
   const parts: string[] = [];
   
@@ -264,6 +270,75 @@ PSYCHOLOGICAL PROFILE for ${character.name}:
 
 IMPORTANT: Portray this character's behavior, dialogue, and reactions consistent with this psychological profile.
 `.trim();
+}
+
+/**
+ * Analyze Parami Portfolio with Synergy Calculations
+ * Shows which paramis are strong, weak, and synergy bonuses
+ * 
+ * @param character - Character with parami_portfolio
+ * @returns Detailed parami analysis with synergy information
+ */
+export function analyzeParamiPortfolio(character: Character): {
+  totalParamiStrength: number;
+  strongestParami: { name: string; level: number; exp: number };
+  weakestParami: { name: string; level: number; exp: number };
+  synergyAnalysis: Array<{
+    parami: string;
+    baseLevel: number;
+    synergyBonus: number;
+    effectiveLevel: number;
+    supportingParamis: string[];
+  }>;
+  overallSynergyBonus: number;
+} | null {
+  const portfolio = character.parami_portfolio;
+  
+  if (!portfolio) {
+    return null;
+  }
+
+  // Calculate total strength
+  const totalParamiStrength = getTotalParamiStrength(portfolio);
+
+  // Find strongest and weakest
+  const strongest = getStrongestParami(portfolio);
+  const paramiEntries = Object.entries(portfolio) as Array<[keyof typeof portfolio, { level: number; exp: number }]>;
+  const weakest = paramiEntries.reduce((min, [name, data]) => 
+    data.level < min.level ? { name, ...data } : min,
+    { name: paramiEntries[0][0], ...paramiEntries[0][1] }
+  );
+
+  // Get exp for strongest
+  const strongestExp = portfolio[strongest.name].exp;
+
+  // Calculate synergy for each parami
+  const synergyAnalysis = paramiEntries.map(([name, data]) => {
+    const synergyBonus = calculateParamiSynergy(name, portfolio);
+    const effectiveLevel = data.level + synergyBonus;
+
+    // Get supporting paramis from PARAMI_SYNERGY_MATRIX
+    const supportingParamis = PARAMI_SYNERGY_MATRIX[name]?.supporting_paramis || [];
+
+    return {
+      parami: name,
+      baseLevel: data.level,
+      synergyBonus: Math.round(synergyBonus * 10) / 10, // Round to 1 decimal
+      effectiveLevel: Math.round(effectiveLevel * 10) / 10,
+      supportingParamis,
+    };
+  });
+
+  // Calculate overall synergy bonus
+  const overallSynergyBonus = synergyAnalysis.reduce((sum, item) => sum + item.synergyBonus, 0);
+
+  return {
+    totalParamiStrength,
+    strongestParami: { name: strongest.name, level: strongest.level, exp: strongestExp },
+    weakestParami: { name: weakest.name, level: weakest.level, exp: weakest.exp },
+    synergyAnalysis: synergyAnalysis.sort((a, b) => b.effectiveLevel - a.effectiveLevel),
+    overallSynergyBonus: Math.round(overallSynergyBonus * 10) / 10,
+  };
 }
 
 /**

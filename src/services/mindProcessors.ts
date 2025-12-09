@@ -1,7 +1,7 @@
 /**
  * Mind Processing System - The Core Engine of Buddhist Psychology
  * Simulates the Abhidhamma mind-door process (Manodvāra Vīthi)
- * 
+ *
  * Key Processors:
  * - JavanaDecisionEngine: Decides kusala vs akusala citta
  * - ChittaVithi_Generator: Simulates the 17-moment mind process
@@ -49,7 +49,7 @@ export interface VithiProcess {
 
 /**
  * JavanaDecisionEngine determines whether kusala or akusala citta arises
- * 
+ *
  * Decision Logic:
  * 1. Check for Sati (mindfulness) intervention from Panna level
  * 2. If no Sati, evaluate Anusaya (latent tendencies) strength
@@ -62,10 +62,7 @@ export class JavanaDecisionEngine {
   /**
    * Main decision function
    */
-  static decide(
-    input: SensoryInput,
-    character: Character
-  ): JavanaResult {
+  static decide(input: SensoryInput, character: Character): JavanaResult {
     const { internal, buddhist_psychology } = character;
     const anusaya = buddhist_psychology?.anusaya;
     const parami = character.parami_portfolio;
@@ -150,7 +147,7 @@ export class JavanaDecisionEngine {
         // Neutral input triggers Avijjā (ignorance) or Vicikicchā (doubt)
         const avijjaStrength = anusaya.avijja || 50;
         const vicikicchaStrength = anusaya.vicikiccha || 30;
-        
+
         if (avijjaStrength > vicikicchaStrength) {
           return { triggered_anusaya: 'avijja', kilesa_strength: avijjaStrength };
         } else {
@@ -178,10 +175,13 @@ export class JavanaDecisionEngine {
     }
 
     // Map anusaya to counter-parami
-    const paramiCounters: Record<keyof AnusayaProfile, {
-      primary: keyof ParamiPortfolio;
-      supporting: Array<keyof ParamiPortfolio>;
-    }> = {
+    const paramiCounters: Record<
+      keyof AnusayaProfile,
+      {
+        primary: keyof ParamiPortfolio;
+        supporting: Array<keyof ParamiPortfolio>;
+      }
+    > = {
       kama_raga: {
         primary: 'nekkhamma',
         supporting: ['dana', 'sila', 'upekkha'],
@@ -220,7 +220,7 @@ export class JavanaDecisionEngine {
     // Calculate resistance
     const primaryLevel = parami[counter.primary]?.level || 0;
     const supportingLevels = counter.supporting
-      .map((p) => parami[p]?.level || 0)
+      .map(p => parami[p]?.level || 0)
       .reduce((sum, level) => sum + level, 0);
 
     const totalResistance = primaryLevel * 10 + supportingLevels * 3;
@@ -256,7 +256,7 @@ export class JavanaDecisionEngine {
     const vedana: VedanaType = input.type === 'pleasant' ? 'โสมนัส' : 'อุเบกขา';
 
     let cittaType: CittaType;
-    
+
     if (vedana === 'โสมนัส') {
       if (hasKnowledge && !isPrompted) {
         cittaType = 'มหากุศลจิต โสมนัสสสหคตัง ญาณสัมปยุตตัง อสังขาริกัง';
@@ -379,7 +379,7 @@ export class JavanaDecisionEngine {
 
 /**
  * ChittaVithi_Generator simulates the complete mind-door process
- * 
+ *
  * Process:
  * 1. Manodvārāvajjana (Mind-door adverting) - 1 moment
  * 2. Javana (Impulsion) - 7 moments (this is where kusala/akusala arises)
@@ -424,9 +424,10 @@ export class ChittaVithiGenerator {
     // Step 3: Tadārammaṇa (registration/retention) - 2 moments
     const tadarammanaCittas: CittaMoment[] = [
       {
-        type: javanaDecision.quality === 'kusala' 
-          ? 'มหาวิบากจิต อุเบกขาสหคตัง ญาณสัมปยุตตัง อสังขาริกัง'
-          : 'จักขุวิญญาณ อกุศลวิบาก',
+        type:
+          javanaDecision.quality === 'kusala'
+            ? 'มหาวิบากจิต อุเบกขาสหคตัง ญาณสัมปยุตตัง อสังขาริกัง'
+            : 'จักขุวิญญาณ อกุศลวิบาก',
         vedana: 'อุเบกขา',
         cetasika: {
           phassa: true,
@@ -442,9 +443,10 @@ export class ChittaVithiGenerator {
         timestamp: new Date().toISOString(),
       },
       {
-        type: javanaDecision.quality === 'kusala'
-          ? 'มหาวิบากจิต อุเบกขาสหคตัง ญาณสัมปยุตตัง อสังขาริกัง'
-          : 'จักขุวิญญาณ อกุศลวิบาก',
+        type:
+          javanaDecision.quality === 'kusala'
+            ? 'มหาวิบากจิต อุเบกขาสหคตัง ญาณสัมปยุตตัง อสังขาริกัง'
+            : 'จักขุวิญญาณ อกุศลวิบาก',
         vedana: 'อุเบกขา',
         cetasika: {
           phassa: true,
@@ -483,7 +485,9 @@ export class ChittaVithiGenerator {
   /**
    * Get appropriate Cetasika set for citta type
    */
-  private static getCetasikaForCitta(javana: JavanaResult): Partial<import('../types/cittaTypes').CetasikaSet> {
+  private static getCetasikaForCitta(
+    javana: JavanaResult
+  ): Partial<import('../types/cittaTypes').CetasikaSet> {
     const base = {
       phassa: true,
       vedana: true,
@@ -557,10 +561,10 @@ export function processSceneAction(
     quality: vithiProcess.javana_cittas[0].type.includes('กุศล')
       ? ('kusala' as const)
       : vithiProcess.javana_cittas[0].type.includes('อกุศล')
-      ? ('akusala' as const)
-      : vithiProcess.javana_cittas[0].type.includes('วิบาก')
-      ? ('vipaka' as const)
-      : ('kiriya' as const),
+        ? ('akusala' as const)
+        : vithiProcess.javana_cittas[0].type.includes('วิบาก')
+          ? ('vipaka' as const)
+          : ('kiriya' as const),
     hetu: vithiProcess.javana_cittas[0].hetu || [],
     vedana: vithiProcess.javana_cittas[0].vedana,
     cetana_strength: vithiProcess.javana_cittas[0].intensity,
