@@ -2274,6 +2274,181 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               <span className="text-2xl">📈</span>
               <span className="uppercase tracking-wider">View Psychology Timeline</span>
             </button>
+
+            {/* 🗣️ Speech Pattern & Dialect Configuration */}
+            <div className="mt-6 p-6 bg-gradient-to-br from-purple-900/30 to-pink-900/20 rounded-lg border border-purple-500/30">
+              <h3 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🗣️</span>
+                Speech Pattern & Dialect
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Dialect Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    ภาษาท้องถิ่น (Dialect)
+                  </label>
+                  <select
+                    value={activeCharacter.speechPattern?.dialect || 'standard'}
+                    onChange={(e) => {
+                      const updated = { ...activeCharacter };
+                      if (!updated.speechPattern) {
+                        updated.speechPattern = {
+                          dialect: 'standard',
+                          accent: 'none',
+                          formalityLevel: 'informal',
+                          personality: 'polite',
+                        };
+                      }
+                      updated.speechPattern.dialect = e.target.value as 'standard' | 'isaan' | 'northern' | 'southern' | 'central' | 'custom';
+                      updateCharacterAtIndex(activeCharIndex, updated);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="standard">ภาษากลาง (Standard)</option>
+                    <option value="isaan">ภาษาอีสาน (Isaan)</option>
+                    <option value="northern">ภาษาเหนือ (Northern/Lanna)</option>
+                    <option value="southern">ภาษาใต้ (Southern)</option>
+                    <option value="central">ภาษากลาง (ชัดเจน)</option>
+                  </select>
+                </div>
+
+                {/* Accent Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    สำเนียง (Accent)
+                  </label>
+                  <select
+                    value={activeCharacter.speechPattern?.accent || 'none'}
+                    onChange={(e) => {
+                      const updated = { ...activeCharacter };
+                      if (!updated.speechPattern) {
+                        updated.speechPattern = {
+                          dialect: 'standard',
+                          accent: 'none',
+                          formalityLevel: 'informal',
+                          personality: 'polite',
+                        };
+                      }
+                      updated.speechPattern.accent = e.target.value as 'none' | 'isaan' | 'northern' | 'southern' | 'chinese' | 'western' | 'custom';
+                      updateCharacterAtIndex(activeCharIndex, updated);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="none">ไม่มีสำเนียง</option>
+                    <option value="isaan">สำเนียงอีสาน</option>
+                    <option value="northern">สำเนียงเหนือ</option>
+                    <option value="southern">สำเนียงใต้</option>
+                    <option value="chinese">สำเนียงจีน</option>
+                    <option value="western">สำเนียงฝรั่ง</option>
+                  </select>
+                </div>
+
+                {/* Formality Level */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    ระดับความเป็นทางการ (Formality)
+                  </label>
+                  <select
+                    value={activeCharacter.speechPattern?.formalityLevel || 'informal'}
+                    onChange={(e) => {
+                      const updated = { ...activeCharacter };
+                      if (!updated.speechPattern) {
+                        updated.speechPattern = {
+                          dialect: 'standard',
+                          accent: 'none',
+                          formalityLevel: 'informal',
+                          personality: 'polite',
+                        };
+                      }
+                      updated.speechPattern.formalityLevel = e.target.value as 'formal' | 'informal' | 'casual' | 'slang';
+                      updateCharacterAtIndex(activeCharIndex, updated);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="formal">ทางการ (ครับ/ค่ะ)</option>
+                    <option value="informal">ไม่เป็นทางการ (นะ/จ้า)</option>
+                    <option value="casual">สบายๆ (เว้ย)</option>
+                    <option value="slang">สแลง</option>
+                  </select>
+                </div>
+
+                {/* Speech Personality */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    บุคลิกภาษา (Personality)
+                  </label>
+                  <select
+                    value={activeCharacter.speechPattern?.personality || 'polite'}
+                    onChange={(e) => {
+                      const updated = { ...activeCharacter };
+                      if (!updated.speechPattern) {
+                        updated.speechPattern = {
+                          dialect: 'standard',
+                          accent: 'none',
+                          formalityLevel: 'informal',
+                          personality: 'polite',
+                        };
+                      }
+                      updated.speechPattern.personality = e.target.value as 'polite' | 'rude' | 'humorous' | 'serious' | 'childlike' | 'elderly' | 'intellectual';
+                      updateCharacterAtIndex(activeCharIndex, updated);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="polite">สุภาพ (Polite)</option>
+                    <option value="rude">หยาบคาย (Rude)</option>
+                    <option value="humorous">ตลก (Humorous)</option>
+                    <option value="serious">จริงจัง (Serious)</option>
+                    <option value="childlike">เด็ก (Childlike)</option>
+                    <option value="elderly">ผู้สูงอายุ (Elderly)</option>
+                    <option value="intellectual">ปัญญาชน (Intellectual)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Speech Tics */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  ท่าทางการพูด / คำเสริม (Speech Tics)
+                  <span className="text-xs text-gray-500 ml-2">(คั่นด้วยเครื่องหมายจุลภาค)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="เช่น: เด้อ, บ่, แม่น, จ้า"
+                  value={activeCharacter.speechPattern?.speechTics?.join(', ') || ''}
+                  onChange={(e) => {
+                    const updated = { ...activeCharacter };
+                    if (!updated.speechPattern) {
+                      updated.speechPattern = {
+                        dialect: 'standard',
+                        accent: 'none',
+                        formalityLevel: 'informal',
+                        personality: 'polite',
+                      };
+                    }
+                    updated.speechPattern.speechTics = e.target.value
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    updateCharacterAtIndex(activeCharIndex, updated);
+                  }}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Preview Example */}
+              {activeCharacter.speechPattern && activeCharacter.speechPattern.dialect !== 'standard' && (
+                <div className="mt-4 p-3 bg-gray-900/50 rounded border border-purple-500/20">
+                  <div className="text-xs text-gray-400 mb-1">ตัวอย่าง:</div>
+                  <div className="text-purple-300 font-thai">
+                    {activeCharacter.speechPattern.dialect === 'isaan' && '"บ่รู้เด้อว่าจะไปใสดี"'}
+                    {activeCharacter.speechPattern.dialect === 'northern' && '"ไปใสจ๊า กินข้าวแล้วบ่"'}
+                    {activeCharacter.speechPattern.dialect === 'southern' && '"ปะไรวะ ดีจ๋าเหา"'}
+                    {activeCharacter.speechPattern.dialect === 'central' && '"สวัสดีครับ ขอบคุณมากค่ะ"'}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sub Tabs for Internal */}
