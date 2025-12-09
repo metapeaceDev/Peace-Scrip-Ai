@@ -3636,15 +3636,51 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             </button>
 
             {isExportMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700">
-                  Export as PDF
+              <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                <button 
+                  onClick={() => {
+                    alert('PDF Export is coming soon! For now, use "Export as Text" and convert to PDF using Google Docs or Word.');
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                >
+                  📄 Export as PDF (Coming Soon)
                 </button>
-                <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700">
-                  Export as Final Draft (.fdx)
+                <button 
+                  onClick={() => {
+                    alert('Final Draft Export is coming soon! For now, use "Export as Text" and import to Final Draft manually.');
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                >
+                  🎬 Export as Final Draft (.fdx)
                 </button>
-                <button className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm">
-                  Export as Text
+                <button 
+                  onClick={() => {
+                    downloadScreenplay();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                >
+                  📝 Export as Text (.txt)
+                </button>
+                <button 
+                  onClick={() => {
+                    downloadShotList();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                >
+                  📊 Export Shot List (.csv)
+                </button>
+                <button 
+                  onClick={() => {
+                    downloadStoryboard();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm"
+                >
+                  🎨 Export Storyboard (.html)
                 </button>
               </div>
             )}
@@ -3942,6 +3978,79 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           Back to Structure
         </button>
       </div>
+
+      {/* Live Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-5xl mx-auto">
+              <div className="flex justify-between items-center mb-6 bg-gray-800/80 p-6 rounded-lg border border-cyan-500/30">
+                <div>
+                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
+                    📜 Screenplay Preview
+                  </h2>
+                  <p className="text-gray-400 mt-2">
+                    {scriptData.title} - Live Preview
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-2xl overflow-hidden">
+                <div className="p-12 font-mono text-black" style={{ fontFamily: 'Courier, monospace' }}>
+                  <div className="text-center mb-24">
+                    <div className="h-32"></div>
+                    <h1 className="text-4xl font-bold mb-6">{scriptData.title.toUpperCase()}</h1>
+                    <p className="text-lg mb-4">by</p>
+                    <p className="text-lg mb-8">Peace Script AI</p>
+                    <div className="text-sm space-y-2 max-w-md mx-auto text-left">
+                      <p><strong>Genre:</strong> {scriptData.mainGenre}</p>
+                      <p><strong>Logline:</strong> {scriptData.logLine}</p>
+                    </div>
+                  </div>
+
+                  {scriptData.structure.map((point, pointIndex) => {
+                    const scenes = scriptData.generatedScenes[point.title] || [];
+                    return scenes.map((scene, sceneIdx) => (
+                      <div key={`${pointIndex}-${sceneIdx}`} className="mb-12">
+                        <div className="font-bold mb-4 text-base">
+                          {(scene.sceneDesign.location || 'INT. UNKNOWN - DAY').toUpperCase()}
+                        </div>
+
+                        {scene.sceneDesign.situations.map((sit, sitIdx) => (
+                          <div key={sitIdx} className="mb-6">
+                            <p className="mb-4 text-sm leading-relaxed whitespace-pre-wrap">
+                              {sit.description}
+                            </p>
+
+                            {sit.dialogue.map((d, dIdx) => (
+                              <div key={dIdx} className="mb-4">
+                                <div className="text-center mb-1 font-bold text-sm">
+                                  {d.character.toUpperCase()}
+                                </div>
+                                <div className="mx-auto max-w-lg text-sm leading-relaxed">
+                                  {d.dialogue}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Psychology Timeline Modal */}
       {showPsychologyTimeline && (
