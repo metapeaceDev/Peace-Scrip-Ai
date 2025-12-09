@@ -101,6 +101,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [activeCharIndex, setActiveCharIndex] = useState(0);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [showCharactersPreview, setShowCharactersPreview] = useState(false);
 
   // Main Tabs
   const [activeTab, setActiveTab] = useState<'external' | 'internal' | 'goals'>('external');
@@ -963,6 +964,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             <span>
               {t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
             </span>
+          </button>
+
+          {/* Show Characters Preview Button */}
+          <button
+            onClick={() => setShowCharactersPreview(true)}
+            disabled={characters.length === 0}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-green-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title={t(
+              'ดูตัวอย่างตัวละครทั้งหมดพร้อมดาวน์โหลด',
+              'Preview all characters with download'
+            )}
+          >
+            <span className="text-lg">👥</span>
+            <span>{t('ดูตัวอย่าง', 'Preview')}</span>
           </button>
         </div>
       </div>
@@ -2691,6 +2706,154 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         />
       )}
 
+      {/* Characters Preview Modal */}
+      {showCharactersPreview && (
+        <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 bg-gray-800/80 p-6 rounded-lg border border-green-500/30">
+                <div>
+                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+                    👥 {t('ตัวละครทั้งหมด', 'All Characters')}
+                  </h2>
+                  <p className="text-gray-400 mt-2">
+                    {t(
+                      `${characters.length} ตัวละครใน "${scriptData.title}"`,
+                      `${characters.length} characters in "${scriptData.title}"`
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      const htmlContent = generateCharactersHTML(characters, scriptData.title);
+                      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `${scriptData.title.replace(/\s+/g, '_')}_Characters.html`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-lg transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>{t('ดาวน์โหลด HTML', 'Download HTML')}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCharactersPreview(false)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Characters Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {characters.map((char, idx) => (
+                  <div
+                    key={char.id || idx}
+                    className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl hover:shadow-green-500/20 transition-all"
+                  >
+                    {/* Character Image */}
+                    {char.image && (
+                      <div className="aspect-[3/4] bg-gray-800 overflow-hidden">
+                        <img
+                          src={char.image}
+                          alt={char.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Character Info */}
+                    <div className="p-6">
+                      <h3 className="text-2xl font-bold text-green-400 mb-2">{char.name}</h3>
+                      <p className="text-cyan-300 text-sm mb-4">{char.role}</p>
+
+                      {char.description && (
+                        <div className="mb-4">
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">{t('คำอธิบาย', 'Description')}</h4>
+                          <p className="text-gray-300 text-sm">{char.description}</p>
+                        </div>
+                      )}
+
+                      {/* Physical Info */}
+                      {(char.physical?.age || char.physical?.height || char.physical?.build) && (
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {char.physical?.age && (
+                            <div className="bg-gray-800/50 p-2 rounded text-center">
+                              <div className="text-[10px] text-gray-500">{t('อายุ', 'Age')}</div>
+                              <div className="text-sm font-bold text-white">{char.physical.age}</div>
+                            </div>
+                          )}
+                          {char.physical?.height && (
+                            <div className="bg-gray-800/50 p-2 rounded text-center">
+                              <div className="text-[10px] text-gray-500">{t('ส่วนสูง', 'Height')}</div>
+                              <div className="text-sm font-bold text-white">{char.physical.height}</div>
+                            </div>
+                          )}
+                          {char.physical?.build && (
+                            <div className="bg-gray-800/50 p-2 rounded text-center">
+                              <div className="text-[10px] text-gray-500">{t('รูปร่าง', 'Build')}</div>
+                              <div className="text-sm font-bold text-white">{char.physical.build}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Goals */}
+                      {char.goals?.objective && (
+                        <div className="mb-3">
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">🎯 {t('เป้าหมายภายนอก', 'Objective')}</h4>
+                          <p className="text-gray-300 text-sm">{char.goals.objective}</p>
+                        </div>
+                      )}
+
+                      {char.goals?.need && (
+                        <div className="mb-3">
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">💭 {t('ความต้องการ', 'Need')}</h4>
+                          <p className="text-gray-300 text-sm">{char.goals.need}</p>
+                        </div>
+                      )}
+
+                      {/* Psychology Summary */}
+                      {char.buddhist_psychology && (
+                        <div className="mt-4 pt-4 border-t border-gray-700">
+                          <h4 className="text-xs font-bold text-purple-400 mb-2">🧠 {t('จิตวิทยา', 'Psychology')}</h4>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {char.buddhist_psychology.carita && (
+                              <div className="bg-purple-900/20 p-2 rounded">
+                                <div className="text-gray-500 text-[10px]">{t('จริต', 'Carita')}</div>
+                                <div className="text-purple-300 font-bold">{char.buddhist_psychology.carita}</div>
+                              </div>
+                            )}
+                            {char.mind_state?.magga_stage && (
+                              <div className="bg-blue-900/20 p-2 rounded">
+                                <div className="text-gray-500 text-[10px]">{t('ภูมิธรรม', 'Magga')}</div>
+                                <div className="text-blue-300 font-bold">{char.mind_state.magga_stage}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 flex justify-between">
         <button
           onClick={prevStep}
@@ -2709,4 +2872,239 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   );
 };
 
+// Helper function to generate HTML for characters
+const generateCharactersHTML = (characters: Character[], title: string): string => {
+  return `
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Characters - ${title}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { 
+            text-align: center; 
+            font-size: 3em; 
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 50px;
+            font-size: 1.2em;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        .card {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.3s, box-shadow 0.3s;
+            page-break-inside: avoid;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.3);
+        }
+        .card-image {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            background: #374151;
+        }
+        .card-content {
+            padding: 24px;
+        }
+        .char-name {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 8px;
+        }
+        .char-role {
+            color: #06b6d4;
+            font-size: 1em;
+            margin-bottom: 16px;
+        }
+        .section {
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: #9ca3af;
+            font-weight: bold;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .section-content {
+            color: #d1d5db;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-box {
+            background: rgba(55, 65, 81, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.7em;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 0.95em;
+            font-weight: bold;
+            color: #fff;
+        }
+        .psychology {
+            background: rgba(147, 51, 234, 0.1);
+            border: 1px solid rgba(147, 51, 234, 0.3);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        .psych-title {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #a78bfa;
+            margin-bottom: 12px;
+        }
+        .psych-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .psych-box {
+            background: rgba(79, 70, 229, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .psych-label {
+            font-size: 0.7em;
+            color: #9ca3af;
+            margin-bottom: 2px;
+        }
+        .psych-value {
+            color: #c4b5fd;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        @media print {
+            body { background: white; color: black; }
+            .card { box-shadow: none; border: 1px solid #ddd; }
+            .card:hover { transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Characters</h1>
+        <div class="subtitle">${title} - ${characters.length} Characters</div>
+        
+        <div class="grid">
+${characters.map(char => `
+            <div class="card">
+                ${char.image ? `<img src="${char.image}" alt="${char.name}" class="card-image">` : ''}
+                <div class="card-content">
+                    <div class="char-name">${char.name}</div>
+                    <div class="char-role">${char.role || 'Character'}</div>
+                    
+                    ${char.description ? `
+                    <div class="section">
+                        <div class="section-title">คำอธิบาย / Description</div>
+                        <div class="section-content">${char.description}</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${char.physical?.age || char.physical?.height || char.physical?.build ? `
+                    <div class="stats-grid">
+                        ${char.physical?.age ? `
+                        <div class="stat-box">
+                            <div class="stat-label">อายุ / Age</div>
+                            <div class="stat-value">${char.physical.age}</div>
+                        </div>
+                        ` : ''}
+                        ${char.physical?.height ? `
+                        <div class="stat-box">
+                            <div class="stat-label">ส่วนสูง / Height</div>
+                            <div class="stat-value">${char.physical.height}</div>
+                        </div>
+                        ` : ''}
+                        ${char.physical?.build ? `
+                        <div class="stat-box">
+                            <div class="stat-label">รูปร่าง / Build</div>
+                            <div class="stat-value">${char.physical.build}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                    
+                    ${char.goals?.objective ? `
+                    <div class="section">
+                        <div class="section-title">🎯 เป้าหมาย / Objective</div>
+                        <div class="section-content">${char.goals.objective}</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${char.goals?.need ? `
+                    <div class="section">
+                        <div class="section-title">💭 ความต้องการ / Need</div>
+                        <div class="section-content">${char.goals.need}</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${char.buddhist_psychology ? `
+                    <div class="psychology">
+                        <div class="psych-title">🧠 จิตวิทยา / Psychology</div>
+                        <div class="psych-grid">
+                            ${char.buddhist_psychology.carita ? `
+                            <div class="psych-box">
+                                <div class="psych-label">จริต / Carita</div>
+                                <div class="psych-value">${char.buddhist_psychology.carita}</div>
+                            </div>
+                            ` : ''}
+                            ${char.mind_state?.magga_stage ? `
+                            <div class="psych-box">
+                                <div class="psych-label">ภูมิธรรม / Magga</div>
+                                <div class="psych-value">${char.mind_state.magga_stage}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+`).join('')}
+        </div>
+    </div>
+</body>
+</html>
+  `.trim();
+};
+
 export default Step3Character;
+
