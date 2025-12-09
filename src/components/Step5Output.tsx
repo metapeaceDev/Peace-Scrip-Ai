@@ -949,6 +949,268 @@ const SceneDisplay: React.FC<{
     return context;
   };
 
+  // --- Video-Specific Context Builders ---
+  const buildMotionContext = (shotData: any, currentScene: GeneratedScene, character?: Character): string => {
+    if (!character) return '';
+    
+    let context = '\nCHARACTER MOTION:';
+    
+    // A. Extract action from description
+    const action = shotData.description || 'stands still';
+    context += `\n- Action: ${action}`;
+    
+    // B. Infer motion speed from emotional state
+    const emotionState = character.emotionalState;
+    let motionSpeed = 'natural, realistic';
+    
+    if (emotionState) {
+      if (emotionState.energyLevel > 70) {
+        motionSpeed = 'brisk, energetic, animated';
+      } else if (emotionState.energyLevel < 30) {
+        motionSpeed = 'slow, lethargic, tired';
+      }
+      
+      // Mood affects speed
+      if (emotionState.currentMood === 'fearful') {
+        motionSpeed = 'quick, nervous, hesitant';
+      } else if (emotionState.currentMood === 'peaceful') {
+        motionSpeed = 'smooth, relaxed, unhurried';
+      } else if (emotionState.currentMood === 'angry') {
+        motionSpeed = 'sharp, aggressive, forceful';
+      } else if (emotionState.currentMood === 'joyful') {
+        motionSpeed = 'light, bouncy, cheerful';
+      }
+    }
+    
+    context += `\n- Motion Speed: ${motionSpeed}`;
+    context += `\n- Motion Quality: natural, realistic`;
+    
+    // C. Body language from psychology
+    if (emotionState?.currentMood) {
+      const bodyLanguageMap: Record<string, string> = {
+        'peaceful': 'relaxed shoulders, open gestures, smooth movements',
+        'joyful': 'light step, animated gestures, upright posture',
+        'angry': 'tense muscles, sharp movements, aggressive stance',
+        'confused': 'hesitant steps, looking around, uncertain gestures',
+        'fearful': 'tense body, quick glances, defensive posture',
+        'neutral': 'calm, balanced, natural movements'
+      };
+      
+      const bodyLang = bodyLanguageMap[emotionState.currentMood];
+      if (bodyLang) {
+        context += `\n- Body Language: ${bodyLang}`;
+      }
+    }
+    
+    // D. Defilement affects motion style
+    const defilements = character.internal?.defilement;
+    if (defilements) {
+      const entries = Object.entries(defilements);
+      if (entries.length > 0) {
+        const dominant = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+        
+        if (dominant[1] > 60) {
+          const motionStyleMap: Record<string, string> = {
+            'Lobha (Greed)': 'grasping gestures, reaching movements, acquisitive body language',
+            'Anger (Anger)': 'aggressive movements, clenched fists, confrontational stance',
+            'Moha (delusion)': 'confused movements, uncertain gestures, wandering attention',
+            'Mana (arrogance)': 'proud posture, dismissive gestures, superior bearing',
+          };
+          
+          const motionStyle = motionStyleMap[dominant[0]];
+          if (motionStyle) {
+            context += `\n- Motion Style: ${motionStyle}`;
+          }
+        }
+      }
+    }
+    
+    // E. Carita affects mannerisms
+    const carita = character.buddhist_psychology?.carita;
+    if (carita) {
+      const mannerismMap: Record<string, string> = {
+        'ราคจริต': 'sensual movements, indulgent gestures',
+        'โทสจริต': 'passionate movements, intense energy',
+        'โมหจริต': 'confused movements, uncertain gestures',
+        'สัทธาจริต': 'faithful movements, devotional gestures',
+        'พุทธิจริต': 'calculated movements, thoughtful gestures',
+        'วิตกจริต': 'contemplative movements, meditative stillness'
+      };
+      
+      const mannerism = mannerismMap[carita];
+      if (mannerism) {
+        context += `\n- Mannerisms: ${mannerism}`;
+      }
+    }
+    
+    return context;
+  };
+
+  const buildCameraMovementContext = (shotData: any): string => {
+    if (!shotData.movement || shotData.movement === 'Static') {
+      return '\nCAMERA: Static shot, locked position, no movement.';
+    }
+    
+    let context = '\nCAMERA MOVEMENT:';
+    
+    // Map movement types to detailed descriptions
+    const movementMap: Record<string, string> = {
+      'Pan Left': 'Smooth pan from right to left, horizontal axis only',
+      'Pan Right': 'Smooth pan from left to right, horizontal axis only',
+      'Tilt Up': 'Smooth tilt upward, vertical axis only',
+      'Tilt Down': 'Smooth tilt downward, vertical axis only',
+      'Dolly In': 'Smooth dolly-in movement, camera moving closer to subject',
+      'Dolly Out': 'Smooth dolly-out movement, camera moving away from subject',
+      'Track Left': 'Smooth tracking shot moving left, parallel to subject',
+      'Track Right': 'Smooth tracking shot moving right, parallel to subject',
+      'Crane Up': 'Smooth crane movement upward, elevated perspective',
+      'Crane Down': 'Smooth crane movement downward, descending perspective',
+      'Zoom In': 'Optical zoom-in, narrowing field of view',
+      'Zoom Out': 'Optical zoom-out, widening field of view',
+      'Follow': 'Smooth following shot, tracking subject movement',
+      'Arc': 'Smooth arc movement around subject, circular path',
+      'Handheld': 'Handheld camera, natural shake, dynamic feel',
+    };
+    
+    const movementDesc = movementMap[shotData.movement] || shotData.movement;
+    context += `\n- Type: ${movementDesc}`;
+    
+    // Equipment affects smoothness
+    if (shotData.equipment) {
+      const smoothnessMap: Record<string, string> = {
+        'Steadicam': 'very smooth, stabilized',
+        'Dolly': 'smooth, controlled',
+        'Crane': 'smooth, elevated',
+        'Handheld': 'natural shake, organic',
+        'Gimbal': 'stabilized, fluid',
+        'Tripod': 'locked, static',
+      };
+      
+      const smoothness = smoothnessMap[shotData.equipment] || 'smooth';
+      context += `\n- Smoothness: ${smoothness} (using ${shotData.equipment})`;
+    } else {
+      context += `\n- Smoothness: smooth, professional`;
+    }
+    
+    // Speed varies by shot type
+    if (shotData.shotSize === 'ECU' || shotData.shotSize === 'CU') {
+      context += `\n- Speed: slow, deliberate (close-up requires subtle movement)`;
+    } else if (shotData.shotSize === 'EWS' || shotData.shotSize === 'WS') {
+      context += `\n- Speed: moderate, sweeping (wide shot allows broader movement)`;
+    } else {
+      context += `\n- Speed: normal, steady`;
+    }
+    
+    return context;
+  };
+
+  const buildTimingContext = (shotData: any): string => {
+    const duration = shotData.durationSec || 3;
+    
+    let context = `\nTIMING & PACING:`;
+    context += `\n- Duration: ${duration} seconds total`;
+    
+    // Pacing varies by duration
+    if (duration <= 2) {
+      context += `\n- Pacing: fast, quick tempo, energetic`;
+      context += `\n- Action Speed: accelerated, dynamic`;
+    } else if (duration <= 5) {
+      context += `\n- Pacing: normal, standard tempo`;
+      context += `\n- Action Speed: natural, realistic`;
+    } else if (duration <= 10) {
+      context += `\n- Pacing: slow, contemplative`;
+      context += `\n- Action Speed: leisurely, detailed`;
+    } else {
+      context += `\n- Pacing: very slow, dramatic`;
+      context += `\n- Action Speed: slow-motion feel, cinematic`;
+    }
+    
+    // Suggest keyframes
+    const midPoint = duration / 2;
+    context += `\n- Key Moments:`;
+    context += `\n  * Start (0s): Establish shot`;
+    context += `\n  * Mid (${midPoint.toFixed(1)}s): Main action/movement`;
+    context += `\n  * End (${duration}s): Complete action`;
+    
+    return context;
+  };
+
+  const buildEnvironmentalMotionContext = (currentScene: GeneratedScene): string => {
+    const location = currentScene.sceneDesign.location || '';
+    const mood = currentScene.sceneDesign.moodTone || '';
+    
+    let context = '\nENVIRONMENTAL MOTION:';
+    
+    // Infer environmental motion from location
+    const locationMotions: Record<string, string[]> = {
+      'market': ['background crowd walking naturally', 'vendors gesturing', 'fabric banners swaying'],
+      'street': ['cars passing in background', 'pedestrians walking', 'leaves blowing'],
+      'forest': ['trees swaying in wind', 'leaves falling occasionally', 'natural light filtering'],
+      'beach': ['waves rolling gently', 'palm trees swaying', 'sand particles blowing'],
+      'office': ['papers rustling slightly', 'computer screens glowing', 'subtle air movement'],
+      'home': ['curtains moving gently', 'subtle shadows shifting', 'natural ambient movement'],
+    };
+    
+    // Find matching location type
+    let motions: string[] = [];
+    for (const [key, value] of Object.entries(locationMotions)) {
+      if (location.toLowerCase().includes(key)) {
+        motions = value;
+        break;
+      }
+    }
+    
+    if (motions.length === 0) {
+      motions = ['natural ambient movement', 'subtle background activity'];
+    }
+    
+    context += `\n- Background: ${motions.join(', ')}`;
+    
+    // Add atmosphere from mood
+    if (mood.toLowerCase().includes('tense') || mood.toLowerCase().includes('suspense')) {
+      context += `\n- Atmosphere: slight camera shake, ominous shadows moving`;
+    } else if (mood.toLowerCase().includes('peaceful') || mood.toLowerCase().includes('calm')) {
+      context += `\n- Atmosphere: gentle movements, soft swaying, tranquil`;
+    } else if (mood.toLowerCase().includes('chaotic') || mood.toLowerCase().includes('busy')) {
+      context += `\n- Atmosphere: fast movements, multiple elements in motion`;
+    }
+    
+    return context;
+  };
+
+  // --- Video-Specific Enhanced Prompt Builder ---
+  const buildVideoPrompt = (shotData: any, currentScene: GeneratedScene): string => {
+    // 1. Get base prompt (includes psychology)
+    const basePrompt = buildPrompt(shotData, currentScene, true);
+    
+    // 2. Find character for motion context
+    const character = shotData.cast 
+      ? allCharacters.find(c => c.name === shotData.cast || c.name.includes(shotData.cast))
+      : undefined;
+    
+    // 3. Add video-specific contexts
+    const motionContext = buildMotionContext(shotData, currentScene, character);
+    const cameraContext = buildCameraMovementContext(shotData);
+    const timingContext = buildTimingContext(shotData);
+    const environmentContext = buildEnvironmentalMotionContext(currentScene);
+    
+    // 4. Combine all contexts
+    const duration = shotData.durationSec || 3;
+    return `${basePrompt}
+
+${motionContext}
+${cameraContext}
+${timingContext}
+${environmentContext}
+
+IMPORTANT FOR VIDEO:
+- Ensure smooth, natural motion throughout the ${duration} second duration
+- Maintain character consistency across all frames
+- Camera movement should be cinematic and purposeful
+- Background elements should move naturalistically
+- Timing and pacing must match the specified duration exactly`;
+  };
+
   // --- Enhanced Storyboard Prompt Builder ---
   const buildPrompt = (shotData: any, currentScene: GeneratedScene, isVideo: boolean = false) => {
     // 1. Context: Location
@@ -1104,8 +1366,8 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     setGeneratingVideoShotId(shotIndex);
     setProgress(0);
     try {
-      // Pass true for isVideo to force realistic style for text-to-video prompt
-      const prompt = buildPrompt(shotData, editedScene, true);
+      // ✨ NEW: Use enhanced video prompt builder with motion, camera movement, and timing
+      const prompt = buildVideoPrompt(shotData, editedScene);
 
       // Use existing image as base ONLY if useImage is true and image exists
       const existingImage = useImage
