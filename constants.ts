@@ -405,3 +405,4 @@ export const PERSONALITY_LABELS = {
   elderly: 'ผู้สูงอายุ (Elderly)',
   intellectual: 'ปัญญาชน (Intellectual)',
 };
+
