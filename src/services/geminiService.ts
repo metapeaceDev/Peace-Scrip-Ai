@@ -534,55 +534,69 @@ async function generateVideoWithComfyUI(
       workflow['4']['inputs']['clip'] = ['8', 1];
     }
 
-    // Queue prompt to ComfyUI
-    const queueResponse = await fetch(`${COMFYUI_API_URL}/prompt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: workflow }),
-    });
+    // Queue prompt to ComfyUI with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for queue
+    
+    try {
+      const queueResponse = await fetch(`${COMFYUI_API_URL}/prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: workflow }),
+        signal: controller.signal,
+      });
 
-    if (!queueResponse.ok) {
-      throw new Error(`ComfyUI queue error: ${queueResponse.status}`);
-    }
+      clearTimeout(timeoutId);
 
-    const { prompt_id } = await queueResponse.json();
-
-    // Poll for completion (max 120 seconds for video)
-    for (let i = 0; i < 120; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update progress (simulated for now, or could fetch from /queue)
-      if (options.onProgress) {
-        // SVD takes about 30-60s usually.
-        // We map i (seconds) to percentage roughly.
-        const progress = Math.min((i / 60) * 100, 95);
-        options.onProgress(progress);
+      if (!queueResponse.ok) {
+        throw new Error(`ComfyUI queue error: ${queueResponse.status}`);
       }
 
-      const historyResponse = await fetch(`${COMFYUI_API_URL}/history/${prompt_id}`);
-      const history = await historyResponse.json();
+      const { prompt_id } = await queueResponse.json();
 
-      if (history[prompt_id]?.outputs) {
-        const videos = history[prompt_id].outputs['7']?.gifs;
-        if (videos && videos.length > 0) {
-          // Get video from ComfyUI
-          const videoUrl = `${COMFYUI_API_URL}/view?filename=${videos[0].filename}&type=output`;
-          const videoResponse = await fetch(videoUrl);
-          const blob = await videoResponse.blob();
+      // Poll for completion (max 120 seconds for video)
+      for (let i = 0; i < 120; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-          if (options.onProgress) options.onProgress(100);
+        // Update progress (simulated for now, or could fetch from /queue)
+        if (options.onProgress) {
+          // SVD takes about 30-60s usually.
+          // We map i (seconds) to percentage roughly.
+          const progress = Math.min((i / 60) * 100, 95);
+          options.onProgress(progress);
+        }
 
-          return new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
+        const historyResponse = await fetch(`${COMFYUI_API_URL}/history/${prompt_id}`);
+        const history = await historyResponse.json();
+
+        if (history[prompt_id]?.outputs) {
+          const videos = history[prompt_id].outputs['7']?.gifs;
+          if (videos && videos.length > 0) {
+            // Get video from ComfyUI
+            const videoUrl = `${COMFYUI_API_URL}/view?filename=${videos[0].filename}&type=output`;
+            const videoResponse = await fetch(videoUrl);
+            const blob = await videoResponse.blob();
+
+            if (options.onProgress) options.onProgress(100);
+
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          }
         }
       }
-    }
 
-    throw new Error('ComfyUI timeout: Video generation took too long');
+      throw new Error('ComfyUI timeout: Video generation took too long');
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('ComfyUI connection timeout. Please check if ComfyUI server is running and accessible.');
+      }
+      throw error;
+    }
   } catch (error) {
     console.error('Error with ComfyUI video generation:', error);
     throw error;

@@ -3756,9 +3756,14 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                   return null;
                                 }
                                 
-                                const character = scriptData.characters.find(c => c.name === charName);
+                                // Enhanced character matching: exact match or fuzzy match
+                                const character = scriptData.characters.find(c => 
+                                  c.name === charName || 
+                                  c.name.includes(charName) || 
+                                  charName.includes(c.name)
+                                );
                                 if (!character) {
-                                  console.warn('[Psychology] Character not found:', charName);
+                                  console.warn('[Psychology] Character not found:', charName, 'Available:', scriptData.characters.map(c => c.name));
                                   return null;
                                 }
 
