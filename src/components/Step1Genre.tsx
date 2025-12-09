@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ScriptData } from '../../types';
 import { GENRES } from '../../constants';
-import { generateFullScriptOutline, generateMoviePoster } from '../services/geminiService';
-import { getCurrentLanguage } from '../i18n';
+import { generateFullScriptOutline, generateMoviePoster, generateTitle } from '../services/geminiService';
 
 interface Step1GenreProps {
   scriptData: ScriptData;
@@ -23,6 +22,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +34,35 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
   // Auto-update prompt when title or genre changes
   useEffect(() => {
     if (scriptData.title) {
-      const defaultPrompt = `Movie Poster for "${scriptData.title}". Genre: ${scriptData.mainGenre}. Style: Cinematic, High Contrast, 4K Resolution. A dramatic visual representing the theme of the story.`;
-      setPosterPrompt(defaultPrompt);
+      const parts = [
+        `Movie Poster for "${scriptData.title}".`,
+        `Genre: ${scriptData.mainGenre}.`,
+      ];
+
+      // Add secondary genres
+      const secondaryGenres = scriptData.secondaryGenres?.filter(g => g && g !== scriptData.mainGenre);
+      if (secondaryGenres && secondaryGenres.length > 0) {
+        parts.push(`${secondaryGenres.join(', ')}.`);
+      }
+
+      // Add story elements if available
+      if (scriptData.premise) {
+        parts.push(`Story: ${scriptData.premise.substring(0, 100)}.`);
+      } else if (scriptData.logLine) {
+        parts.push(`${scriptData.logLine}.`);
+      }
+
+      // Add main character if available
+      const mainCharacter = scriptData.characters?.find(c => c.role === 'Protagonist');
+      if (mainCharacter?.name) {
+        parts.push(`Featuring ${mainCharacter.name}.`);
+      }
+
+      parts.push('Style: Cinematic, High Contrast, Dramatic, 4K Resolution.');
+
+      setPosterPrompt(parts.join(' '));
     }
-  }, [scriptData.title, scriptData.mainGenre]);
+  }, [scriptData.title, scriptData.mainGenre, scriptData.secondaryGenres, scriptData.premise, scriptData.logLine, scriptData.characters]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (onRegisterUndo) onRegisterUndo();
@@ -56,14 +81,6 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
     setIsGenerating(true);
     setError(null);
     try {
-      // Force-sync UI language to scriptData before generation
-      const currentLang = getCurrentLanguage();
-      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
-      
-      if (scriptData.language !== mappedLang) {
-        console.log(`🌐 [Step1] Syncing language: ${scriptData.language} -> ${mappedLang}`);
-        updateScriptData({ language: mappedLang });
-      }
       
       const generatedData = await generateFullScriptOutline(
         scriptData.title,
@@ -111,6 +128,21 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
     } finally {
       setIsGeneratingPoster(false);
       setProgress(0);
+    }
+  };
+
+  const handleGenerateTitle = async () => {
+    if (onRegisterUndo) onRegisterUndo();
+    setIsGeneratingTitle(true);
+    setError(null);
+    try {
+      const newTitle = await generateTitle(scriptData);
+      updateScriptData({ title: newTitle });
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+      setError('❌ Failed to generate title. Please try again.');
+    } finally {
+      setIsGeneratingTitle(false);
     }
   };
 
@@ -329,17 +361,60 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
           <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
             Title
           </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={scriptData.title}
-            onChange={e => updateScriptData({ title: e.target.value })}
-            onFocus={() => onRegisterUndo?.()} // Snapshot text state
-            className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
-            placeholder="Enter your movie title"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={scriptData.title}
+              onChange={e => updateScriptData({ title: e.target.value })}
+              onFocus={() => onRegisterUndo?.()} // Snapshot text state
+              className="flex-1 bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+              placeholder="Enter your movie title"
+            />
+            <button
+              onClick={handleGenerateTitle}
+              disabled={isGeneratingTitle}
+              className={`px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                isGeneratingTitle
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
+              }`}
+              title="Generate creative title from genres"
+            >
+              {isGeneratingTitle ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>✨ Generate Title</>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* PROJECT LANGUAGE SELECTOR - MOVED HERE (REMOVED FROM PREVIOUS POSITION) */}
+
         <div>
           <label htmlFor="mainGenre" className="block text-sm font-medium text-gray-300 mb-2">
             1.1 Main story line
@@ -402,6 +477,24 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
               ))}
             </select>
           </div>
+        </div>
+
+        {/* PROJECT LANGUAGE SELECTOR - MOVED TO END */}
+        <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500/50 rounded-xl p-4">
+          <label htmlFor="projectLanguage" className="block text-sm font-medium text-purple-300 mb-2">
+            🌐 Project Content Language
+          </label>
+          <select
+            id="projectLanguage"
+            name="language"
+            value={scriptData.language}
+            onChange={handleSelectChange}
+            disabled={isGenerating}
+            className="w-full bg-gray-700 border-2 border-purple-500/50 rounded-md py-2 px-3 text-white focus:ring-purple-500 focus:border-purple-500"
+          >
+            <option value="Thai">🇹🇭 ภาษาไทย</option>
+            <option value="English">🇬🇧 English</option>
+          </select>
         </div>
       </div>
       <div className="mt-8 border-t border-gray-700 pt-6">

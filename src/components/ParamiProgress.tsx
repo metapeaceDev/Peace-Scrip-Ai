@@ -169,9 +169,7 @@ export const ParamiProgress: React.FC<ParamiProgressProps> = ({
                     <div className="font-semibold text-gray-800">
                       {info.thai} ({info.pali})
                     </div>
-                    <div className="text-xs text-gray-500">
-                      ต่อต้าน: {info.targetKilesa}
-                    </div>
+                    <div className="text-xs text-gray-500">ต่อต้าน: {info.targetKilesa}</div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -217,7 +215,9 @@ export const ParamiProgress: React.FC<ParamiProgressProps> = ({
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-green-600">
-            {Object.values(parami).reduce((sum, p) => sum + p.exp, 0).toLocaleString()}
+            {Object.values(parami)
+              .reduce((sum, p) => sum + p.exp, 0)
+              .toLocaleString()}
           </div>
           <div className="text-xs text-gray-600">Total EXP</div>
         </div>
@@ -229,11 +229,9 @@ export const ParamiProgress: React.FC<ParamiProgressProps> = ({
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-orange-600">
-            {
-              (Object.keys(parami) as Array<keyof ParamiPortfolio>).find(
-                k => parami[k].level === Math.max(...Object.values(parami).map(p => p.level))
-              )
-            }
+            {(Object.keys(parami) as Array<keyof ParamiPortfolio>).find(
+              k => parami[k].level === Math.max(...Object.values(parami).map(p => p.level))
+            )}
           </div>
           <div className="text-xs text-gray-600">Strongest Parami</div>
         </div>

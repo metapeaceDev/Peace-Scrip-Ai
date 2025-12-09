@@ -19,8 +19,12 @@ export const CittaDisplay: React.FC<CittaDisplayProps> = ({
   compact = false,
 }) => {
   const mindState = character.mind_state;
-  
-  if (!mindState || !mindState.recent_citta_history || mindState.recent_citta_history.length === 0) {
+
+  if (
+    !mindState ||
+    !mindState.recent_citta_history ||
+    mindState.recent_citta_history.length === 0
+  ) {
     return (
       <div className="p-4 bg-gray-50 rounded-lg">
         <p className="text-sm text-gray-500">ไม่มีข้อมูล Citta</p>
@@ -104,9 +108,7 @@ export const CittaDisplay: React.FC<CittaDisplayProps> = ({
                 title={citta}
               >
                 <div className="text-xs font-medium">#{index + 1}</div>
-                <div className="text-xs mt-1 truncate">
-                  {citta.split('_')[0]}
-                </div>
+                <div className="text-xs mt-1 truncate">{citta.split('_')[0]}</div>
               </div>
             ))}
           </div>

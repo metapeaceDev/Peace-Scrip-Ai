@@ -62,10 +62,10 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gray-900 border-2 border-cyan-500/50 rounded-2xl max-w-7xl w-full my-8 shadow-2xl">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-gray-900 border-2 border-cyan-500/50 rounded-2xl max-w-7xl w-full my-8 shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border-b border-cyan-500/30 p-6">
+        <div className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border-b border-cyan-500/30 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-black text-cyan-400 uppercase tracking-wide">
@@ -85,15 +85,15 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
         </div>
 
         {/* Test Event Info */}
-        <div className="p-4 bg-purple-500/10 border-b border-purple-500/30">
+        <div className="p-4 bg-purple-500/10 border-b border-purple-500/30 flex-shrink-0">
           <div className="text-xs uppercase tracking-wider text-purple-400 mb-1">Test Event</div>
           <div className="text-sm text-white">
             "{testEvent.description}" (Intensity: {testEvent.intensity}/10)
           </div>
         </div>
 
-        {/* Comparison Grid */}
-        <div className="p-6">
+        {/* Comparison Grid - Scrollable */}
+        <div className="p-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {profiles.map(({ character, profile, reaction }, index) => (
               <div
@@ -127,7 +127,7 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
 
                 {/* Profile Image */}
                 {character.image && (
-                  <div className="relative h-32 bg-gray-900 overflow-hidden">
+                  <div className="relative h-48 bg-gray-900 overflow-hidden">
                     <img
                       src={character.image}
                       alt={character.name}

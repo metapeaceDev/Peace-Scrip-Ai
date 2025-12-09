@@ -5,7 +5,8 @@
 
 import React from 'react';
 import type { Character } from '../../types';
-import { calculatePsychologyProfile } from '../services/psychologyCalculator';
+import { calculatePsychologyProfile, analyzeParamiPortfolio } from '../services/psychologyCalculator';
+import { isFeatureEnabled } from '../config/featureFlags';
 
 interface PsychologyDisplayProps {
   character: Character;
@@ -14,6 +15,9 @@ interface PsychologyDisplayProps {
 
 export const PsychologyDisplay: React.FC<PsychologyDisplayProps> = ({ character, compact = false }) => {
   const profile = calculatePsychologyProfile(character);
+  const paramiAnalysis = isFeatureEnabled('PARAMI_SYNERGY_MATRIX') 
+    ? analyzeParamiPortfolio(character) 
+    : null;
   
   // Color coding for mental balance
   const getBalanceColor = (balance: number) => {
@@ -151,7 +155,7 @@ export const PsychologyDisplay: React.FC<PsychologyDisplayProps> = ({ character,
           </div>
         </div>
         <div className="text-sm text-gray-300 mt-2 italic">
-          "{profile.emotionalTendency}"
+          &ldquo;{profile.emotionalTendency}&rdquo;
         </div>
       </div>
       
@@ -164,6 +168,60 @@ export const PsychologyDisplay: React.FC<PsychologyDisplayProps> = ({ character,
           {profile.personalityDescription}
         </p>
       </div>
+
+      {/* Parami Portfolio (if enabled and available) */}
+      {paramiAnalysis && (
+        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-xs uppercase tracking-wider text-purple-400/70">
+              🌟 10 Paramis (Perfections)
+            </div>
+            <div className="text-lg font-bold text-purple-300">
+              {paramiAnalysis.totalParamiStrength}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-purple-500/10 rounded p-2">
+              <div className="text-purple-400/70">Strongest</div>
+              <div className="font-bold text-purple-300 capitalize">
+                {paramiAnalysis.strongestParami.name}
+              </div>
+              <div className="text-gray-400">Lv {paramiAnalysis.strongestParami.level}</div>
+            </div>
+            <div className="bg-pink-500/10 rounded p-2">
+              <div className="text-pink-400/70">Synergy Bonus</div>
+              <div className="font-bold text-pink-300">
+                +{paramiAnalysis.overallSynergyBonus}
+              </div>
+              <div className="text-gray-400">Total boost</div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            {paramiAnalysis.synergyAnalysis.slice(0, 5).map((item) => (
+              <div key={item.parami} className="flex items-center justify-between text-xs bg-gray-800/30 rounded px-2 py-1">
+                <span className="text-gray-300 capitalize">{item.parami}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Lv {item.baseLevel}</span>
+                  {item.synergyBonus > 0 && (
+                    <span className="text-green-400">+{item.synergyBonus.toFixed(1)}</span>
+                  )}
+                  <span className="text-purple-300 font-bold">
+                    = {item.effectiveLevel.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {paramiAnalysis.synergyAnalysis.length > 5 && (
+            <div className="text-center text-xs text-gray-500">
+              ... and {paramiAnalysis.synergyAnalysis.length - 5} more
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

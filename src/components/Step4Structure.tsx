@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
 import { generateStructure } from '../services/geminiService';
-import { getCurrentLanguage } from '../i18n';
 
 interface Step4StructureProps {
   scriptData: ScriptData;
@@ -54,21 +53,14 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
     setError(null);
 
     try {
-      // Force-sync UI language to scriptData before generation
-      const currentLang = getCurrentLanguage();
-      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
-      
-      if (scriptData.language !== mappedLang) {
-        console.log(`🌐 [Step4] Syncing language: ${scriptData.language} -> ${mappedLang}`);
-        updateScriptData({ language: mappedLang });
-      }
-      
+      console.log(`🌐 [Step4] Generating Structure with project language: ${scriptData.language}`);
       const result = await generateStructure(scriptData);
 
       if (result.structure) {
         setScriptData(prev => ({
           ...prev,
           structure: result.structure || prev.structure,
+          scenesPerPoint: result.scenesPerPoint || prev.scenesPerPoint,
         }));
       }
 
@@ -79,6 +71,28 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Group points by Act
+  const actGroups = {
+    1: scriptData.structure.filter(p => p.act === 1),
+    2: scriptData.structure.filter(p => p.act === 2),
+    3: scriptData.structure.filter(p => p.act === 3),
+  };
+
+  const actLabels = {
+    1: { title: 'Act 1 - Setup & Change', color: 'cyan' },
+    2: { title: 'Act 2 - Conflict & Crisis', color: 'purple' },
+    3: { title: 'Act 3 - Confrontation & Resolution', color: 'pink' },
+  };
+
+  const getActColor = (actNum: number) => {
+    const colors = {
+      1: 'from-cyan-600 to-blue-600',
+      2: 'from-purple-600 to-violet-600',
+      3: 'from-pink-600 to-rose-600',
+    };
+    return colors[actNum as keyof typeof colors] || 'from-gray-600 to-gray-700';
   };
 
   return (
@@ -178,46 +192,84 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
               <p className="font-bold mb-1">🎬 AI กำลังสร้างโครงสร้างเรื่อง...</p>
               <p className="text-xs text-indigo-400">
                 • วิเคราะห์ Genre และ Characters จาก Step 1-3
-                <br />• สร้าง Plot Points แบบ Hollywood Structure
+                <br />• สร้าง 9 Plot Points แบบ 3-Act Structure
               </p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="space-y-6">
-        {scriptData.structure.map((point, index) => (
-          <div key={point.title} className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-200">
-                {index + 1}. {point.title}
-              </h3>
-              <div className="flex items-center gap-2">
-                <label htmlFor={`scene-count-${index}`} className="text-sm text-gray-400">
-                  Scenes:
-                </label>
-                <select
-                  id={`scene-count-${index}`}
-                  value={scriptData.scenesPerPoint[point.title] || 1}
-                  onChange={e => handleSceneCountChange(point.title, parseInt(e.target.value))}
-                  className="bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                </select>
+      <div className="space-y-8">
+        {/* Render each Act */}
+        {([1, 2, 3] as const).map(actNum => {
+          const points = actGroups[actNum];
+          if (!points || points.length === 0) return null;
+
+          const actInfo = actLabels[actNum];
+          const startIndex = scriptData.structure.findIndex(p => p.act === actNum);
+
+          return (
+            <div key={actNum} className="space-y-4">
+              {/* Act Header */}
+              <div className={`bg-gradient-to-r ${getActColor(actNum)} p-4 rounded-lg shadow-lg`}>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <span className="text-2xl">📖</span>
+                  {actInfo.title}
+                </h3>
+              </div>
+
+              {/* Plot Points in this Act */}
+              <div className="space-y-4 pl-4 border-l-4 border-gray-700">
+                {points.map((point, indexInAct) => {
+                  const globalIndex = startIndex + indexInAct;
+                  return (
+                    <div
+                      key={point.title}
+                      className="p-4 bg-gray-900/50 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                          <span className="text-cyan-400">{globalIndex + 1}.</span>
+                          {point.title}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <label
+                            htmlFor={`scene-count-${globalIndex}`}
+                            className="text-sm text-gray-400"
+                          >
+                            Scenes:
+                          </label>
+                          <select
+                            id={`scene-count-${globalIndex}`}
+                            value={scriptData.scenesPerPoint[point.title] || 1}
+                            onChange={e =>
+                              handleSceneCountChange(point.title, parseInt(e.target.value))
+                            }
+                            className="bg-gray-700 border border-gray-600 rounded-md py-1 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                              <option key={num} value={num}>
+                                {num}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <textarea
+                        value={point.description}
+                        onChange={e => handleDescriptionChange(globalIndex, e.target.value)}
+                        onFocus={handleFocus}
+                        rows={3}
+                        className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500 text-sm"
+                        placeholder={`Describe the ${point.title} of your story...`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <textarea
-              value={point.description}
-              onChange={e => handleDescriptionChange(index, e.target.value)}
-              onFocus={handleFocus}
-              rows={3}
-              className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
-              placeholder={`Describe the ${point.title} of your story...`}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-8 flex justify-between">
         <button

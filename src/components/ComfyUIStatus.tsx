@@ -1,12 +1,16 @@
 /**
  * ComfyUI Backend Status Component
- * 
+ *
  * แสดงสถานะของ ComfyUI Backend Service
  * เช็ค health, workers, queue stats
  */
 
 import React, { useState, useEffect } from 'react';
-import { checkBackendStatus, getWorkerStats, getQueueStats } from '../services/comfyuiBackendClient';
+import {
+  checkBackendStatus,
+  getWorkerStats,
+  getQueueStats,
+} from '../services/comfyuiBackendClient';
 
 interface WorkerStats {
   totalWorkers: number;
@@ -50,17 +54,15 @@ const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
     setError(null);
 
     try {
-      const status = await checkBackendStatus();
-      
+      // Silent mode for background polling - don't spam console
+      const status = await checkBackendStatus(true);
+
       if (status.running) {
         setIsOnline(true);
-        
+
         // Get detailed stats
-        const [workers, queue] = await Promise.all([
-          getWorkerStats(),
-          getQueueStats()
-        ]);
-        
+        const [workers, queue] = await Promise.all([getWorkerStats(), getQueueStats()]);
+
         setWorkerStats(workers);
         setQueueStats(queue);
       } else {
@@ -118,13 +120,17 @@ const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
 
   // Full mode (original)
   return (
-    <div className={`border rounded-lg p-4 mb-4 ${
-      isOnline ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'
-    }`}>
+    <div
+      className={`border rounded-lg p-4 mb-4 ${
+        isOnline ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className={`h-3 w-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+          <div
+            className={`h-3 w-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
+          ></div>
           <span className="font-semibold text-white">ComfyUI Backend Service</span>
           {isOnline && (
             <span className="text-xs px-2 py-1 bg-green-700 text-green-100 rounded-full">
@@ -132,7 +138,7 @@ const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
             </span>
           )}
         </div>
-        
+
         {isOnline && (
           <button
             onClick={() => setShowDetails(!showDetails)}
@@ -186,14 +192,18 @@ const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
           {/* Worker Stats */}
           {workerStats && (
             <div className="bg-gray-800 rounded p-3">
-              <h4 className="text-sm font-semibold text-white mb-2">Workers ({workerStats.totalWorkers})</h4>
+              <h4 className="text-sm font-semibold text-white mb-2">
+                Workers ({workerStats.totalWorkers})
+              </h4>
               <div className="space-y-2">
                 {workerStats.workers.map((worker, idx) => (
                   <div key={idx} className="flex items-center justify-between text-xs">
                     <span className="text-gray-300 font-mono">{worker.url}</span>
-                    <span className={`px-2 py-1 rounded-full ${
-                      worker.healthy ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full ${
+                        worker.healthy ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'
+                      }`}
+                    >
                       {worker.healthy ? '✓ Healthy' : '✗ Offline'}
                     </span>
                   </div>

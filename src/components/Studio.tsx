@@ -155,11 +155,11 @@ const Studio: React.FC<StudioProps> = ({
                   {/* Poster Background */}
                   <div className="absolute inset-0 bg-gray-900 z-0">
                     {project.posterImage ? (
-                      <img 
-                        src={project.posterImage} 
+                      <img
+                        src={project.posterImage}
                         alt={project.title}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
+                        onError={e => {
                           console.error('❌ Failed to load poster:', project.posterImage);
                           e.currentTarget.style.display = 'none';
                         }}
