@@ -280,10 +280,10 @@ const LoRASetup: React.FC<LoRASetupProps> = ({ onComplete, onSkip }) => {
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
           <h4 className="text-sm font-semibold text-blue-400 mb-2">💡 Need Help?</h4>
           <ul className="text-xs text-gray-400 space-y-1">
-            <li>• LoRA files must be placed in ComfyUI's <code className="bg-gray-900 px-1 rounded">models/loras/</code> folder</li>
+            <li>• LoRA files must be placed in ComfyUI&apos;s <code className="bg-gray-900 px-1 rounded">models/loras/</code> folder</li>
             <li>• Restart ComfyUI after adding new LoRA models</li>
             <li>• Character Consistency LoRA is required for Face ID to work properly</li>
-            <li>• Optional LoRAs enhance specific art styles but aren't mandatory</li>
+            <li>• Optional LoRAs enhance specific art styles but aren&apos;t mandatory</li>
           </ul>
         </div>
       </div>

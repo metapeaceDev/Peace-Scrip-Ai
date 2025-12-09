@@ -188,7 +188,7 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
 
             {/* Cloud Option */}
             <div className="mb-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-              <h4 className="text-white font-semibold mb-2">☁️ Don't want to install locally?</h4>
+              <h4 className="text-white font-semibold mb-2">☁️ Don&apos;t want to install locally?</h4>
               <p className="text-gray-400 text-sm mb-3">
                 Use cloud ComfyUI on RunPod or Vast.ai (starts at $0.20/hour)
               </p>

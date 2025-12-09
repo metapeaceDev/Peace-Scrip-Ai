@@ -756,7 +756,7 @@ export function ProviderSettings() {
                       </button>
                     </div>
                     <p className="mt-3 text-xs text-gray-400">
-                      When "Auto" is selected, the system will choose the best provider based on
+                      When &quot;Auto&quot; is selected, the system will choose the best provider based on
                       this priority.
                     </p>
                   </div>

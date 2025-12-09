@@ -292,7 +292,7 @@ export const PaymentTracker: React.FC<PaymentTrackerProps> = ({ members, project
                 />
               </svg>
               <p>ยังไม่มีการบันทึกการจ่ายเงิน</p>
-              <p className="text-sm mt-1">คลิก "บันทึกการจ่ายเงิน" เพื่อเริ่มต้น</p>
+              <p className="text-sm mt-1">คลิก &quot;บันทึกการจ่ายเงิน&quot; เพื่อเริ่มต้น</p>
             </div>
           ) : (
             <div className="space-y-4">

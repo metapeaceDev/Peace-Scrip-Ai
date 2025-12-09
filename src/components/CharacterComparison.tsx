@@ -88,7 +88,7 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
         <div className="p-4 bg-purple-500/10 border-b border-purple-500/30 flex-shrink-0">
           <div className="text-xs uppercase tracking-wider text-purple-400 mb-1">Test Event</div>
           <div className="text-sm text-white">
-            "{testEvent.description}" (Intensity: {testEvent.intensity}/10)
+            &quot;{testEvent.description}&quot; (Intensity: {testEvent.intensity}/10)
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
                       <span className="font-bold text-cyan-400">{reaction.emotionalTone}</span>
                     </div>
                     <div className="text-xs text-gray-400 mt-1 italic">
-                      "{reaction.reasoning.slice(0, 80)}..."
+                      &quot;{reaction.reasoning.slice(0, 80)}...&quot;
                     </div>
                   </div>
 

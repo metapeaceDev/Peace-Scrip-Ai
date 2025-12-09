@@ -380,7 +380,7 @@ export class Kilesa_Eradication_Processor {
     const anusaya = character.buddhist_psychology?.anusaya;
 
     switch (magga_stage) {
-      case 'sotapatti':
+      case 'sotapatti': {
         // Stream-Entry requirements:
         // 1. Sacca (Truthfulness) >= 70
         // 2. Panna (Wisdom) >= 60
@@ -420,6 +420,7 @@ export class Kilesa_Eradication_Processor {
           requirements_missing.push(`Total Kilesa too high (${total_kilesa}/200)`);
         }
         break;
+      }
 
       case 'sakadagami':
         // Once-Returner: Must be Sotapanna first + further reduce Kilesa
@@ -469,7 +470,7 @@ export class Kilesa_Eradication_Processor {
         }
         break;
 
-      case 'arahatta':
+      case 'arahatta': {
         // Arahantship: Perfect purity
         if (parami.panna.level >= 150) {
           requirements_met.push('Paññā perfected');
@@ -492,6 +493,7 @@ export class Kilesa_Eradication_Processor {
           requirements_missing.push('All Kilesa must be eradicated first');
         }
         break;
+      }
     }
 
     return {

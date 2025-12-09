@@ -176,6 +176,7 @@ export async function downloadLoRAModel(
     let receivedLength = 0;
     const chunks: BlobPart[] = [];
     
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const { done, value } = await reader.read();
       

@@ -1805,7 +1805,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="w-full bg-gray-900 text-white border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 resize-none"
                   />
                   <div className="mt-2 text-xs text-gray-500">
-                    คำพูดที่ตัวละครชอบใช้บ่อยๆ หรือพูดติดปาก เช่น "เหรอคะ" "อะไรนะ" "แหมเนี่ย"
+                    คำพูดที่ตัวละครชอบใช้บ่อยๆ หรือพูดติดปาก เช่น &quot;เหรอคะ&quot; &quot;อะไรนะ&quot; &quot;แหมเนี่ย&quot;
                   </div>
                 </div>
 
@@ -1835,7 +1835,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="w-full bg-gray-900 text-white border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 resize-none"
                   />
                   <div className="mt-2 text-xs text-gray-500">
-                    วลีหรือประโยคที่ตัวละครชอบพูด เช่น "ไปทางนั้นก็ได้นะจ๊ะ" "เอาล่ะๆ ไม่เป็นไรจ้า"
+                    วลีหรือประโยคที่ตัวละครชอบพูด เช่น &quot;ไปทางนั้นก็ได้นะจ๊ะ&quot; &quot;เอาล่ะๆ ไม่เป็นไรจ้า&quot;
                   </div>
                 </div>
               </div>
@@ -1849,7 +1849,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <div className="text-gray-500 text-xs mb-1">Standard:</div>
-                      <div className="text-gray-300">"สวัสดีครับ ไม่รู้ว่าคุณกินข้าวหรือยัง"</div>
+                      <div className="text-gray-300">&quot;สวัสดีครับ ไม่รู้ว่าคุณกินข้าวหรือยัง&quot;</div>
                     </div>
                     <div>
                       <div className="text-cyan-400 text-xs mb-1">With Dialect:</div>

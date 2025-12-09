@@ -209,13 +209,14 @@ export async function checkQuota(
       case 'image':
         creditsNeeded = CREDIT_COSTS.imageGeneration[action.details?.resolution || '1024x1024'];
         break;
-      case 'video':
+      case 'video': {
         const duration = action.details?.duration || 0;
         creditsNeeded = Math.max(
           CREDIT_COSTS.videoGeneration.minimum,
           duration * CREDIT_COSTS.videoGeneration.perSecond
         );
         break;
+      }
       case 'storage':
         creditsNeeded = (action.details?.size || 0) * CREDIT_COSTS.storage.perMB;
         break;

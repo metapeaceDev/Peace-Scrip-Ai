@@ -143,7 +143,7 @@ export class JavanaDecisionEngine {
           kilesa_strength: anusaya.patigha * (input.intensity / 100),
         };
 
-      case 'neutral':
+      case 'neutral': {
         // Neutral input triggers Avijjā (ignorance) or Vicikicchā (doubt)
         const avijjaStrength = anusaya.avijja || 50;
         const vicikicchaStrength = anusaya.vicikiccha || 30;
@@ -153,6 +153,7 @@ export class JavanaDecisionEngine {
         } else {
           return { triggered_anusaya: 'vicikiccha', kilesa_strength: vicikicchaStrength };
         }
+      }
 
       default:
         return { triggered_anusaya: 'avijja', kilesa_strength: 50 };
@@ -306,7 +307,7 @@ export class JavanaDecisionEngine {
 
     switch (anusaya) {
       case 'kama_raga':
-      case 'bhava_raga':
+      case 'bhava_raga': {
         // Lobha-mūla citta
         const hasDitthi = Math.random() > 0.6;
         const isPrompted = Math.random() > 0.7;
@@ -335,8 +336,9 @@ export class JavanaDecisionEngine {
         }
         hetu = hasDitthi ? ['โลภะ', 'โมหะ'] : ['โลภะ', 'โมหะ'];
         break;
+      }
 
-      case 'patigha':
+      case 'patigha': {
         // Dosa-mūla citta
         const dosaPrompted = Math.random() > 0.7;
         cittaType = dosaPrompted
@@ -345,6 +347,7 @@ export class JavanaDecisionEngine {
         hetu = ['โทสะ', 'โมหะ'];
         vedana = 'โทมนัส';
         break;
+      }
 
       case 'vicikiccha':
         // Moha-mūla citta (doubt)

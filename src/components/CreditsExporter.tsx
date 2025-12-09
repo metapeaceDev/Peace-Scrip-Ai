@@ -379,7 +379,7 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
           <div>
             <h4 className="text-sm font-medium text-blue-800 mb-1">เคล็ดลับ</h4>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• PDF: เปิดหน้าต่างพิมพ์ใหม่ เลือก "Save as PDF" จากเครื่องพิมพ์</li>
+              <li>• PDF: เปิดหน้าต่างพิมพ์ใหม่ เลือก &quot;Save as PDF&quot; จากเครื่องพิมพ์</li>
               <li>• HTML: สามารถเปิดในเบราว์เซอร์และแก้ไขเพิ่มเติมได้</li>
               <li>• Text: เหมาะสำหรับนำไปใช้งานต่อในโปรแกรมอื่น</li>
             </ul>
