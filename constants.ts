@@ -73,26 +73,95 @@ export const CHARACTER_IMAGE_STYLES = [
 ];
 
 export const TEAM_ROLES = [
-  'Director',
-  'Producer',
-  'Screenwriter',
-  'Cast',
-  'Cinematographer (DOP)',
-  'Editor',
-  'Sound Designer',
-  'Production Designer',
-  'Art Director',
-  'Costume Designer',
-  'Makeup Artist',
-  'Gaffer',
-  'Key Grip',
-  'Boom Operator',
-  'Script Supervisor',
-  'Colorist',
-  'VFX Supervisor',
-  'Composer',
-  'Stunt Coordinator',
-  'Location Manager',
+  // Core Management
+  'Director (ผู้กำกับ)',
+  'Assistant Director (ผู้ช่วยผู้กำกับ)',
+  'Producer (โปรดิวเซอร์)',
+  'Executive Producer (โปรดิวเซอร์บริหาร)',
+  'Line Producer (โปรดิวเซอร์สายงาน)',
+  'Production Manager (ผู้จัดการสร้าง)',
+  
+  // Creative Team
+  'Screenwriter (นักเขียนบท)',
+  'Script Supervisor (ผู้ควบคุมบท)',
+  'Story Editor (บรรณาธิการเนื้อเรื่อง)',
+  
+  // Cast
+  'Lead Actor/Actress (นักแสดงนำ)',
+  'Supporting Actor/Actress (นักแสดงสมทบ)',
+  'Cast (นักแสดง)',
+  'Extras (นักแสดงประกอบ)',
+  
+  // Camera Department
+  'Cinematographer / DOP (ผู้กำกับภาพ)',
+  'Camera Operator (ช่างกล้อง)',
+  'Focus Puller / 1st AC (ผู้ช่วยกล้องคนที่ 1)',
+  'Clapper Loader / 2nd AC (ผู้ช่วยกล้องคนที่ 2)',
+  'Steadicam Operator (ช่างกล้องสเตดิแคม)',
+  'Drone Operator (ช่างกล้องโดรน)',
+  
+  // Lighting & Grip
+  'Gaffer (หัวหน้าไฟ)',
+  'Best Boy Electric (ผู้ช่วยหัวหน้าไฟ)',
+  'Electrician (ช่างไฟ)',
+  'Key Grip (หัวหน้ากริป)',
+  'Best Boy Grip (ผู้ช่วยหัวหน้กริป)',
+  'Grip (ช่างกริป)',
+  
+  // Sound Department
+  'Sound Designer (นักออกแบบเสียง)',
+  'Sound Mixer (ช่างผสมเสียง)',
+  'Boom Operator (ช่างบูม)',
+  'Sound Assistant (ผู้ช่วยงานเสียง)',
+  'Foley Artist (ช่างเสียงประกอบ)',
+  
+  // Art Department
+  'Production Designer (นักออกแบบฉาก)',
+  'Art Director (ผู้กำกับศิลป์)',
+  'Set Designer (นักออกแบบเซ็ต)',
+  'Set Decorator (ช่างตกแต่งฉาก)',
+  'Props Master (หัวหน้าอุปกรณ์ประกอบฉาก)',
+  'Construction Coordinator (ผู้ประสานงานก่อสร้าง)',
+  
+  // Costume & Makeup
+  'Costume Designer (นักออกแบบเครื่องแต่งกาย)',
+  'Wardrobe Supervisor (หัวหน้าเครื่องแต่งกาย)',
+  'Makeup Artist (ช่างแต่งหน้า)',
+  'Hair Stylist (ช่างทำผม)',
+  'SFX Makeup Artist (ช่างแต่งหน้าพิเศษ)',
+  
+  // Post-Production
+  'Editor (ตัดต่อ)',
+  'Assistant Editor (ผู้ช่วยตัดต่อ)',
+  'Colorist (ช่างสี)',
+  'VFX Supervisor (หัวหน้าเอฟเฟกต์)',
+  'VFX Artist (ช่างเอฟเฟกต์)',
+  'Motion Graphics Designer (นักออกแบบกราฟิกเคลื่อนไหว)',
+  
+  // Music
+  'Composer (นักแต่งเพลง)',
+  'Music Supervisor (หัวหน้าดนตรี)',
+  'Music Editor (ตัดต่อดนตรี)',
+  
+  // Special Units
+  'Stunt Coordinator (ผู้ประสานงานสตั๊นท์)',
+  'Stunt Performer (นักแสดงสตั๊นท์)',
+  'Choreographer (นักออกแบบท่าเต้น)',
+  'Fight Choreographer (ออกแบบฉากต่อสู้)',
+  
+  // Location & Logistics
+  'Location Manager (ผู้จัดการสถานที่)',
+  'Location Scout (ผู้สำรวจสถานที่)',
+  'Transportation Coordinator (ผู้ประสานงานขนส่ง)',
+  
+  // Additional Crew
+  'Still Photographer (ช่างภาพนิ่ง)',
+  'BTS Videographer (ช่างภาพเบื้องหลัง)',
+  'Casting Director (ผู้กำกับการคัดเลือกนักแสดง)',
+  'Dialect Coach (ครูฝึกสำเนียง)',
+  'Intimacy Coordinator (ผู้ประสานงานฉากสนิท)',
+  'Unit Publicist (ประชาสัมพันธ์)',
+  'Production Assistant (ผู้ช่วยงานสร้าง)',
 ];
 
 // 3-Act Structure with 9 Plot Points
