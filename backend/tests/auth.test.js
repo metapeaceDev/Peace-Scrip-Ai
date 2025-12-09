@@ -1,15 +1,22 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../src/server');
+const { app, server } = require('../src/server');
+const User = require('../src/models/User');
 
 describe('Auth API', () => {
   beforeAll(async () => {
     // Connect to test database
     await mongoose.connect(process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/peacescript-test');
+    // Clear users before tests
+    await User.deleteMany({});
   });
 
   afterAll(async () => {
     await mongoose.connection.close();
+    // Close server to free port
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
   describe('POST /api/auth/register', () => {

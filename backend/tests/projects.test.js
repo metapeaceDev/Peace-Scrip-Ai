@@ -1,6 +1,6 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../src/server');
+const { app, server } = require('../src/server');
 
 describe('Projects API', () => {
   let authToken;
@@ -22,6 +22,10 @@ describe('Projects API', () => {
 
   afterAll(async () => {
     await mongoose.connection.close();
+    // Close server to free port
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
   describe('POST /api/projects', () => {
