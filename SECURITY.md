@@ -21,6 +21,7 @@ These files are in `.gitignore` and should **NEVER** be committed to Git.
 ```
 
 **IMPORTANT:** Template files should only contain example values:
+
 ```bash
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
@@ -49,19 +50,21 @@ VITE_GEMINI_API_KEY=your_gemini_api_key_here
    - Delete the leaked key immediately
 
 2. **Generate New Key**
+
    ```bash
    # Get new key from provider
    # Update .env.local ONLY (not .env.template!)
    ```
 
 3. **Clean Git History**
+
    ```bash
    # Install BFG Repo-Cleaner
    brew install bfg
-   
+
    # Remove leaked key
    bfg --replace-text <(echo 'LEAKED_KEY==>REMOVED') .
-   
+
    # Force push (⚠️ rewrites history)
    git push --force
    ```
