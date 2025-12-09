@@ -36,6 +36,7 @@ export const SubscriptionDashboard: React.FC = () => {
 
   useEffect(() => {
     loadSubscriptionData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   const loadSubscriptionData = async () => {

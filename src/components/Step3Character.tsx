@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { ScriptData, Character, GeneratedScene, DialectType, AccentType, FormalityLevel, SpeechPersonality } from '../../types';
 import {
   generateCharacterDetails,
@@ -148,14 +148,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
 
   // Ensure characters array is never empty for rendering
-  const characters =
+  const characters = useMemo(() =>
     scriptData.characters.length > 0
       ? scriptData.characters
-      : [{ ...EMPTY_CHARACTER, id: 'init-char' }];
+      : [{ ...EMPTY_CHARACTER, id: 'init-char' }]
+  , [scriptData.characters]);
 
   // Safe access to active character with fallback
-  const activeCharacter = characters[activeCharIndex] ||
-    characters[0] || { ...EMPTY_CHARACTER, id: 'fallback-char' };
+  const activeCharacter = useMemo(() =>
+    characters[activeCharIndex] ||
+    characters[0] || { ...EMPTY_CHARACTER, id: 'fallback-char' }
+  , [characters, activeCharIndex]);
 
   // --- NAVIGATION HANDLER ---
   // If targetCharId is passed (from Step 5), switch to that character immediately
@@ -195,7 +198,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     } else {
       setSelectedOutfitIndex(null);
     }
-  }, [characters.length, activeCharIndex]);
+  }, [characters, activeCharIndex]);
 
   // Auto-open Psychology Timeline when navigated from Step 5 Modal
   useEffect(() => {

@@ -41,6 +41,7 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
     // Check every 10 seconds (reduced frequency to avoid spam)
     const interval = setInterval(checkStatus, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDownload = () => {

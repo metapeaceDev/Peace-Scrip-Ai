@@ -501,6 +501,7 @@ function App() {
       }
     };
     initApp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelectApiKey = async () => {
@@ -569,6 +570,7 @@ function App() {
       console.error('❌ Failed to load projects', e);
       setProjects([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOfflineMode, currentUser]); // isAuthenticated ไม่จำเป็นเพราะเช็คผ่าน currentUser แล้ว
 
   const handleLoginSuccess = async (user: SimpleUser) => {
@@ -1393,7 +1395,7 @@ function App() {
                 setScriptData={setScriptData}
                 prevStep={prevStep}
                 onRegisterUndo={registerUndo}
-                goToStep={goToStep}
+                _goToStep={goToStep}
                 onNavigateToCharacter={handleNavigateToCharacter}
                 returnToScene={returnToScene}
                 onResetReturnToScene={() => setReturnToScene(null)}

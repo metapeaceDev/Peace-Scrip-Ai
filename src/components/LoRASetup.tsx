@@ -46,6 +46,7 @@ const LoRASetup: React.FC<LoRASetupProps> = ({ onComplete, onSkip }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCheckEnabled]);
 
   const requiredModels = REQUIRED_LORA_MODELS.filter(m => m.required);
