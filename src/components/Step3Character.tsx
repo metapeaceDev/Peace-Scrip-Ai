@@ -10,6 +10,7 @@ import {
 import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES } from '../../constants';
 import { PsychologyTestPanel } from './PsychologyTestPanel';
 import { PsychologyDisplay } from './PsychologyDisplay';
+import { PsychologyDashboard } from './PsychologyDashboard';
 import { CharacterComparison } from './CharacterComparison';
 import { PsychologyTimeline } from './PsychologyTimeline';
 import { HybridTTSService } from '../services/hybridTTSService';
@@ -25,6 +26,8 @@ interface Step3CharacterProps {
   onResetTargetCharId?: () => void;
   returnToStep?: number | null;
   onReturnToOrigin?: () => void;
+  autoOpenPsychology?: boolean;
+  onResetAutoOpenPsychology?: () => void;
 }
 
 const InfoField: React.FC<{
@@ -89,6 +92,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   onResetTargetCharId,
   returnToStep,
   onReturnToOrigin,
+  autoOpenPsychology,
+  onResetAutoOpenPsychology,
 }) => {
   // i18n helper
   const t = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
@@ -114,10 +119,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   const [error, setError] = useState<string | null>(null);
   const [fillEmptyOnly, setFillEmptyOnly] = useState(false);
+  const [keepExistingCharacters, setKeepExistingCharacters] = useState(false);
 
   // Psychology Test Panel State
   const [showPsychologyTest, setShowPsychologyTest] = useState(false);
   const [showCharacterComparison, setShowCharacterComparison] = useState(false);
+  const [showPsychologyDashboard, setShowPsychologyDashboard] = useState(false);
 
   // New state for robust delete confirmation
   const [confirmDeleteCharId, setConfirmDeleteCharId] = useState<string | null>(null);
@@ -188,6 +195,18 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       setSelectedOutfitIndex(null);
     }
   }, [characters.length, activeCharIndex]);
+
+  // Auto-open Psychology Timeline when navigated from Step 5 Modal
+  useEffect(() => {
+    if (autoOpenPsychology && activeCharacter && scriptData.psychologyTimelines?.[activeCharacter.id]) {
+      setShowPsychologyTimeline(true);
+      setActiveTab('internal');
+      setInternalSubTab('consciousness');
+      if (onResetAutoOpenPsychology) {
+        onResetAutoOpenPsychology();
+      }
+    }
+  }, [autoOpenPsychology, activeCharacter, scriptData.psychologyTimelines, onResetAutoOpenPsychology]);
 
   const updateCharacterAtIndex = (index: number, updatedFields: Partial<Character>) => {
     setScriptData(prev => {
@@ -356,130 +375,103 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     }
   };
 
+  // Generate ALL characters from Story (Step 1-2)
   const handleGenerateAllCharacters = async () => {
-    // Check if we have meaningful characters or just empty defaults
-    const hasRealCharacters = characters.some(
-      char =>
-        char.name &&
-        char.name !== `New Character ${characters.indexOf(char) + 1}` &&
-        char.name !== 'Character Name'
+    const hasExistingCharacters = characters.length > 0 && characters.some(
+      char => char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
     );
 
-    if (!hasRealCharacters) {
-      // MODE 1: Create new characters from story
-      if (
-        !confirm(
-          `🎭 Generate characters from your story?\n\n` +
-            `AI will analyze your story (${scriptData.title || 'Untitled'}) and create ` +
-            `appropriate characters based on:\n` +
-            `• Genre: ${scriptData.mainGenre}\n` +
-            `• Premise: ${scriptData.premise || scriptData.bigIdea || 'Your story concept'}\n\n` +
-            `This will replace existing character slots.`
-        )
-      ) {
-        return;
+    // Determine mode based on checkbox
+    const mode: 'replace' | 'add' = keepExistingCharacters ? 'add' : 'replace';
+
+    // Confirmation dialogs
+    if (keepExistingCharacters && hasExistingCharacters) {
+      // ADD MODE: Keep existing + analyze to create compatible new characters
+      const confirmAdd = confirm(
+        `🎭 ${t('สร้างตัวละครเพิ่มเติม', 'Generate Additional Characters')}\n\n` +
+          `${t('AI จะวิเคราะห์:', 'AI will analyze:')}\n` +
+          `• ${t('ตัวละครเดิม', 'Existing characters')}: ${characters.length} ${t('ตัว', 'characters')}\n` +
+          `• ${t('ข้อมูลจาก Step 1-3', 'Data from Step 1-3')}\n\n` +
+          `${t('เพื่อสร้างตัวละครใหม่ที่สอดคล้องกับเรื่องและตัวเดิม', 'To create new characters that complement the story and existing cast')}\n\n` +
+          `${t('ดำเนินการต่อ?', 'Continue?')}`
+      );
+      if (!confirmAdd) return;
+    } else if (!keepExistingCharacters && hasExistingCharacters) {
+      // REPLACE MODE: Delete all and create new
+      const confirmReplace = confirm(
+        `⚠️ ${t('สร้างใหม่ทั้งหมด', 'Replace All Characters')}\n\n` +
+          `${t('ตัวละครเดิมทั้งหมด', 'All existing characters')} (${characters.length} ${t('ตัว', 'characters')}) ${t('จะถูกลบ', 'will be deleted')}\n` +
+          `${t('และสร้างชุดใหม่ทั้งหมดจาก Step 1-2', 'and a new cast will be created from Step 1-2')}\n\n` +
+          `${t('แน่ใจหรือไม่?', 'Are you sure?')}`
+      );
+      if (!confirmReplace) return;
+    } else {
+      // No existing characters, create new
+      const confirmCreate = confirm(
+        `🎭 ${t('สร้างตัวละครทั้งหมดจากเรื่องของคุณ?', 'Generate all characters from your story?')}\n\n` +
+          `${t('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสมอัตโนมัติ:', 'AI will analyze your story and automatically create appropriate characters:')}\n` +
+          `• ${t('ชื่อเรื่อง', 'Title')}: ${scriptData.title || 'Untitled'}\n` +
+          `• ${t('แนว', 'Genre')}: ${scriptData.mainGenre}\n` +
+          `• ${t('เนื้อเรื่อง', 'Story')}: ${(scriptData.premise || scriptData.bigIdea || '').substring(0, 80)}...`
+      );
+      if (!confirmCreate) return;
+    }
+
+    if (onRegisterUndo) onRegisterUndo();
+    setIsLoading(true);
+    setError(null);
+    setProgress(0);
+
+    try {
+      setProgress(20);
+      console.log(`🎭 Generating characters from story data (Mode: ${mode})...`);
+
+      let newCharacters: Character[];
+
+      if (mode === 'add' && hasExistingCharacters) {
+        // Import the new function for intelligent character generation
+        const { generateCompatibleCharacters } = await import('../services/geminiService');
+        newCharacters = await generateCompatibleCharacters(scriptData, characters);
+        console.log(`🧠 Generated ${newCharacters.length} compatible characters based on existing cast`);
+      } else {
+        newCharacters = await generateAllCharactersFromStory(scriptData);
+        console.log(`✅ Generated ${newCharacters.length} new characters`);
       }
 
-      if (onRegisterUndo) onRegisterUndo();
-      setIsLoading(true);
-      setError(null);
-      setProgress(0);
+      setProgress(80);
 
-      try {
-        setProgress(20);
-        console.log('🎭 Generating characters from story data...');
-
-        const newCharacters = await generateAllCharactersFromStory(scriptData);
-
-        setProgress(80);
-        console.log(`✅ Generated ${newCharacters.length} characters`);
-
-        setScriptData(prev => ({ ...prev, characters: newCharacters }));
-        setActiveCharIndex(0);
-        setProgress(100);
+      if (mode === 'add') {
+        // ADD MODE: Keep existing + add new
+        const combinedCharacters = [...characters, ...newCharacters];
+        setScriptData(prev => ({ ...prev, characters: combinedCharacters }));
+        setActiveCharIndex(characters.length); // Jump to first new character
 
         alert(
-          `✅ Successfully created ${newCharacters.length} characters!\n\n` +
-            `Characters: ${newCharacters.map(c => c.name).join(', ')}`
+          `✅ ${t('เพิ่มตัวละครสำเร็จ', 'Successfully added characters')}!\n\n` +
+            `${t('เดิม', 'Existing')}: ${characters.length} ${t('ตัว', 'characters')}\n` +
+            `${t('ใหม่', 'New')}: ${newCharacters.length} ${t('ตัว', 'characters')}\n` +
+            `${t('รวม', 'Total')}: ${combinedCharacters.length} ${t('ตัว', 'characters')}\n\n` +
+            `${t('ตัวละครใหม่', 'New characters')}: ${newCharacters.map(c => c.name).join(', ')}`
         );
-      } catch (e: unknown) {
-        const error = e as Error;
-        setError(error.message || 'Failed to generate characters from story.');
-        console.error('Error generating characters:', e);
-      } finally {
-        setIsLoading(false);
-        setProgress(0);
-      }
-    } else {
-      // MODE 2: Fill details for existing characters
-      if (
-        !confirm(
-          `📝 Fill details for all ${characters.length} characters?\n\n` +
-            `This will use AI to create comprehensive profiles using Step 1-2 data.\n` +
-            `Existing values will be preserved (fill empty fields only).`
-        )
-      ) {
-        return;
+      } else {
+        // REPLACE MODE: Replace all
+        setScriptData(prev => ({ ...prev, characters: newCharacters }));
+        setActiveCharIndex(0);
+
+        alert(
+          `✅ ${t('สร้างตัวละครสำเร็จ', 'Successfully created characters')} ${newCharacters.length} ${t('ตัว', 'characters')}!\n\n` +
+            `${t('ตัวละคร', 'Characters')}: ${newCharacters.map(c => c.name).join(', ')}`
+        );
       }
 
-      if (onRegisterUndo) onRegisterUndo();
-      setIsLoading(true);
-      setError(null);
+      setProgress(100);
+    } catch (e: unknown) {
+      const error = e as Error;
+      setError(error.message || t('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters'));
+      console.error('Error generating characters:', e);
+    } finally {
+      setIsLoading(false);
       setProgress(0);
-
-      try {
-        const updatedCharacters = [...characters];
-
-        for (let i = 0; i < characters.length; i++) {
-          const char = characters[i];
-          setProgress(Math.round(((i + 1) / characters.length) * 100));
-
-          try {
-            const aiCharacterData = await generateCharacterDetails(
-              char.name,
-              char.role,
-              char.description ||
-                `${char.role} in ${scriptData.mainGenre} story: ${scriptData.premise || scriptData.bigIdea || scriptData.logLine || ''}`,
-              scriptData.language
-            );
-
-            updatedCharacters[i] = {
-              ...char,
-              external: { ...char.external, ...(aiCharacterData.external || {}) },
-              physical: { ...char.physical, ...(aiCharacterData.physical || {}) },
-              fashion: { ...char.fashion, ...(aiCharacterData.fashion || {}) },
-              internal: {
-                ...char.internal,
-                consciousness: {
-                  ...char.internal.consciousness,
-                  ...(aiCharacterData.internal?.consciousness || {}),
-                },
-                subconscious: {
-                  ...char.internal.subconscious,
-                  ...(aiCharacterData.internal?.subconscious || {}),
-                },
-                defilement: {
-                  ...char.internal.defilement,
-                  ...(aiCharacterData.internal?.defilement || {}),
-                },
-              },
-              goals: { ...char.goals, ...(aiCharacterData.goals || {}) },
-            };
-          } catch (charError) {
-            console.error(`Error generating character ${char.name}:`, charError);
-            // Continue with next character
-          }
-        }
-
-        setScriptData(prev => ({ ...prev, characters: updatedCharacters }));
-        alert(`✅ Successfully generated details for ${characters.length} characters!`);
-      } catch (e: unknown) {
-        const error = e as Error;
-        setError(error.message || 'Failed to generate all characters.');
-      } finally {
-        setIsLoading(false);
-        setProgress(0);
-      }
     }
   };
 
@@ -907,28 +899,72 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             )}
           </p>
         </div>
-        {/* Compare All Characters Button - มุมขวาบนอย่างเดียว */}
-        <button
-          onClick={() => setShowCharacterComparison(true)}
-          disabled={characters.length < 2}
-          className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
-          title={
-            characters.length < 2
-              ? t(
-                  'ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ',
-                  'Need at least 2 characters to compare'
-                )
-              : t(
-                  `เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`,
-                  `Compare ${characters.length} characters psychology`
-                )
-          }
-        >
-          <span className="text-lg">🔬</span>
-          <span>
-            {t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
-          </span>
-        </button>
+        
+        {/* Right Side: Gen All Characters + Compare Button */}
+        <div className="flex items-start gap-3">
+          {/* Gen All Characters Section with Checkbox */}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={handleGenerateAllCharacters}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all disabled:opacity-50 border border-purple-500 shadow-lg shadow-purple-900/30"
+              title={t(
+                keepExistingCharacters
+                  ? 'วิเคราะห์ตัวละครเดิม + Step 1-3 เพื่อสร้างตัวใหม่ที่สอดคล้อง'
+                  : 'สร้างตัวละครใหม่ทั้งหมดจาก Step 1-2',
+                keepExistingCharacters
+                  ? 'Analyze existing cast + Step 1-3 to create compatible new characters'
+                  : 'Create all new characters from Step 1-2'
+              )}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+              {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('🎭 สร้างทั้งหมด', '🎭 Gen All')}
+            </button>
+            
+            <label className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 cursor-pointer pl-1">
+              <input
+                type="checkbox"
+                checked={keepExistingCharacters}
+                onChange={e => setKeepExistingCharacters(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <span className="select-none">
+                {t('เก็บตัวละครเดิมไว้', 'Keep existing')}
+              </span>
+            </label>
+          </div>
+
+          {/* Compare All Characters Button */}
+          <button
+            onClick={() => setShowCharacterComparison(true)}
+            disabled={characters.length < 2}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
+            title={
+              characters.length < 2
+                ? t(
+                    'ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ',
+                    'Need at least 2 characters to compare'
+                  )
+                : t(
+                    `เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`,
+                    `Compare ${characters.length} characters psychology`
+                  )
+            }
+          >
+            <span className="text-lg">🔬</span>
+            <span>
+              {t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Character List Tabs */}
@@ -1027,28 +1063,6 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             />
           </svg>
           {t('เพิ่ม', 'Add')}
-        </button>
-
-        {/* Gen All Characters Button - Create characters from story */}
-        <button
-          type="button"
-          onClick={handleGenerateAllCharacters}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 mb-0.5 rounded-md font-medium text-xs bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all disabled:opacity-50 border border-purple-500 shadow-lg shadow-purple-900/30"
-          title={t(
-            'AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสม (หรือเติมข้อมูลให้ตัวที่มีอยู่)',
-            'AI will analyze your story and create appropriate characters (or fill existing ones)'
-          )}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
-          </svg>
-          {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('สร้างทั้งหมด', 'Gen All')}
         </button>
       </div>
 
@@ -1969,9 +1983,21 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           {/* Psychology Display at Top */}
           <div className="mb-6">
             <PsychologyDisplay character={activeCharacter} />
+            
+            {/* Phase 3: Advanced Psychology Dashboard */}
+            <button
+              onClick={() => setShowPsychologyDashboard(true)}
+              className="mt-4 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-3"
+            >
+              <span className="text-2xl">✧</span>
+              <span className="uppercase tracking-wider">
+                Buddhist Psychology Dashboard (Phase 3)
+              </span>
+            </button>
+
             <button
               onClick={() => setShowPsychologyTest(true)}
-              className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3"
+              className="mt-3 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3"
             >
               <span className="text-2xl">🧪</span>
               <span className="uppercase tracking-wider">
@@ -2154,6 +2180,40 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         />
       )}
 
+      {/* --- PSYCHOLOGY DASHBOARD (Phase 3) --- */}
+      {showPsychologyDashboard && (
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Close Button */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowPsychologyDashboard(false)}
+                  className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-all shadow-lg"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Dashboard */}
+              <PsychologyDashboard character={activeCharacter} compact={false} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- CHARACTER COMPARISON --- */}
       {showCharacterComparison && (
         <CharacterComparison
@@ -2163,20 +2223,30 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       )}
 
       {/* --- PSYCHOLOGY TIMELINE --- */}
-      {showPsychologyTimeline && (
+      {showPsychologyTimeline && activeCharacter && (
         <PsychologyTimeline
           timeline={
-            scriptData.psychologyTimelines?.[activeCharacter.id] || {
-              characterId: activeCharacter.id,
+            scriptData.psychologyTimelines?.[activeCharacter.id] ||
+            scriptData.psychologyTimelines?.[activeCharacter.name] ||
+            {
+              characterId: activeCharacter.id || '',
               characterName: activeCharacter.name,
               snapshots: [],
               changes: [],
+              summary: {
+                total_kusala: 0,
+                total_akusala: 0,
+                net_progress: 0,
+                dominant_pattern: '',
+                carita_evolution: [],
+                magga_progress: 0,
+              },
               overallArc: {
                 startingBalance: 0,
                 endingBalance: 0,
                 totalChange: 0,
                 direction: 'คงที่',
-                interpretation: 'ยังไม่มีข้อมูลเพียงพอสำหรับการวิเคราะห์',
+                interpretation: '',
               },
             }
           }

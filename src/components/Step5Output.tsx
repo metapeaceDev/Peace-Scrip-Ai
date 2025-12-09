@@ -19,7 +19,8 @@ interface Step5OutputProps {
   onNavigateToCharacter?: (
     charName: string,
     fromStep?: number,
-    sceneContext?: { pointTitle: string; sceneIndex: number }
+    sceneContext?: { pointTitle: string; sceneIndex: number },
+    openPsychology?: boolean
   ) => void;
   returnToScene?: { pointTitle: string; sceneIndex: number } | null;
   onResetReturnToScene?: () => void;
@@ -121,6 +122,7 @@ const SHOT_LIST_HEADERS = [
   'shot',
   'cast',
   'costume',
+  'set',
   'description',
   'durationSec',
   'shotSize',
@@ -183,8 +185,20 @@ const generateScreenplayText = (data: ScriptData): string => {
           const charName = d.character.toUpperCase();
           // Indentation logic for text file (approximate)
           output += `\t\t\t\t${charName}\n`;
-          if (sit.characterThoughts && sit.characterThoughts.length > 0) {
-            output += `\t\t\t(thinking: ${sit.characterThoughts.substring(0, 20)}...)\n`;
+          
+          // Safe handling of characterThoughts - handles legacy data formats (string/array/object)
+          let thoughts = '';
+          if (sit.characterThoughts) {
+            if (typeof sit.characterThoughts === 'string') {
+              thoughts = sit.characterThoughts;
+            } else if (Array.isArray(sit.characterThoughts)) {
+              thoughts = (sit.characterThoughts as any[]).join(' ');
+            } else if (typeof sit.characterThoughts === 'object') {
+              thoughts = JSON.stringify(sit.characterThoughts);
+            }
+          }
+          if (thoughts && thoughts.length > 0) {
+            output += `\t\t\t(thinking: ${thoughts.substring(0, 20)}...)\n`;
           }
           output += `\t\t${d.dialogue}\n\n`;
         });
@@ -200,12 +214,16 @@ const generateShotListCSV = (data: ScriptData): string => {
     'Shot #',
     'Cast',
     'Costume',
+    'Set',
     'Description',
     'Size',
     'Angle',
     'Movement',
     'Equipment',
     'Lens',
+    'Aspect Ratio',
+    'Lighting',
+    'Color Temp',
     'Duration',
   ];
   let csvContent = headers.join(',') + '\n';
@@ -219,12 +237,16 @@ const generateShotListCSV = (data: ScriptData): string => {
           shot.shot,
           `"${(shot.cast || '').replace(/"/g, '""')}"`,
           `"${(shot.costume || '').replace(/"/g, '""')}"`,
-          `"${shot.description.replace(/"/g, '""')}"`, // Escape quotes
+          `"${(shot.set || '').replace(/"/g, '""')}"`,
+          `"${shot.description.replace(/"/g, '""')}"`,
           shot.shotSize,
           shot.perspective,
           shot.movement,
           shot.equipment,
           shot.focalLength,
+          shot.aspectRatio,
+          shot.lightingDesign,
+          shot.colorTemperature,
           shot.durationSec,
         ];
         csvContent += row.join(',') + '\n';
@@ -330,7 +352,28 @@ const SceneDisplay: React.FC<{
 }) => {
   const [activeTab, setActiveTab] = useState('design');
   const [isEditing, setIsEditing] = useState(false);
-  const [editedScene, setEditedScene] = useState<GeneratedScene>(sceneData);
+  
+  // Ensure all arrays exist (handle legacy data)
+  const safeSceneData: GeneratedScene = {
+    ...sceneData,
+    sceneDesign: {
+      ...sceneData.sceneDesign,
+      situations: (sceneData.sceneDesign?.situations || []).map(sit => ({
+        ...sit,
+        dialogue: sit.dialogue || [],
+        characterThoughts: sit.characterThoughts || '',
+      })),
+    },
+    shotList: sceneData.shotList || [],
+    propList: sceneData.propList || [],
+    storyboard: sceneData.storyboard || [],
+    breakdown: {
+      part1: sceneData.breakdown?.part1 || [],
+      part2: sceneData.breakdown?.part2 || [],
+      part3: sceneData.breakdown?.part3 || [],
+    },
+  };
+  const [editedScene, setEditedScene] = useState<GeneratedScene>(safeSceneData);
 
   // State for granular location editing
   const [locPrefix, setLocPrefix] = useState('INT.');
@@ -870,6 +913,13 @@ const SceneDisplay: React.FC<{
     abortGenerationRef.current = false; // Reset abort flag
 
     let currentSceneState = { ...editedScene };
+    
+    // Safety check for shotList
+    if (!currentSceneState.shotList || currentSceneState.shotList.length === 0) {
+      alert('No shots available to generate images for.');
+      setIsGeneratingAll(false);
+      return;
+    }
 
     // Process sequentially to maintain state integrity and avoid overwhelming API
     for (let i = 0; i < currentSceneState.shotList.length; i++) {
@@ -1049,7 +1099,7 @@ const SceneDisplay: React.FC<{
                             updateTableItem(section, i, h as string, e.target.value, subSection)
                           }
                           rows={2}
-                          className="w-full bg-gray-900 border border-gray-600 rounded px-2 py
+                          className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1"
                         />
                       )
                     ) : (
@@ -1496,7 +1546,7 @@ const SceneDisplay: React.FC<{
                   </label>
                   {isEditing ? (
                     <textarea
-                      value={sit.characterThoughts}
+                      value={typeof sit.characterThoughts === 'string' ? sit.characterThoughts : ''}
                       onChange={e => updateSituation(i, 'characterThoughts', e.target.value)}
                       rows={2}
                       className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-cyan-500"
@@ -1504,7 +1554,13 @@ const SceneDisplay: React.FC<{
                     />
                   ) : (
                     <p className="italic text-gray-400 pl-2 border-l-2 border-gray-600">
-                      {sit.characterThoughts}
+                      {typeof sit.characterThoughts === 'string' 
+                        ? sit.characterThoughts 
+                        : Array.isArray(sit.characterThoughts)
+                        ? (sit.characterThoughts as any[]).join(' ')
+                        : sit.characterThoughts 
+                        ? JSON.stringify(sit.characterThoughts)
+                        : ''}
                     </p>
                   )}
                 </div>
@@ -1639,8 +1695,8 @@ const SceneDisplay: React.FC<{
         )}
         {/* Fixed: Use standardized headers for Shot List to ensure all columns appear */}
         {activeTab === 'shotlist' &&
-          (editedScene.shotList.length > 0 || isEditing ? (
-            renderEditableTable(SHOT_LIST_HEADERS, editedScene.shotList, 'shotList')
+          ((editedScene.shotList?.length || 0) > 0 || isEditing ? (
+            renderEditableTable(SHOT_LIST_HEADERS, editedScene.shotList || [], 'shotList')
           ) : (
             <p className="text-gray-500 italic">
               No shot list available. Click Edit to start adding shots.
@@ -1746,8 +1802,8 @@ const SceneDisplay: React.FC<{
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {editedScene.shotList.length > 0 ? (
-                editedScene.shotList.map((shot, idx) => {
+              {(editedScene.shotList?.length || 0) > 0 ? (
+                (editedScene.shotList || []).map((shot, idx) => {
                   const shotImg = editedScene.storyboard?.find(s => s.shot === shot.shot)?.image;
                   const shotVideo = editedScene.storyboard?.find(s => s.shot === shot.shot)?.video;
                   const isGenerating = generatingShotId === idx;
@@ -1957,10 +2013,10 @@ const SceneDisplay: React.FC<{
         )}
 
         {activeTab === 'proplist' &&
-          (editedScene.propList.length > 0 ? (
+          ((editedScene.propList?.length || 0) > 0 ? (
             renderEditableTable(
-              Object.keys(editedScene.propList[0] || {}),
-              editedScene.propList,
+              Object.keys(editedScene.propList?.[0] || {}),
+              editedScene.propList || [],
               'propList'
             )
           ) : (
@@ -1969,10 +2025,10 @@ const SceneDisplay: React.FC<{
         {activeTab === 'breakdown' && (
           <div className="space-y-4">
             <h4 className="font-bold text-cyan-400">Part 1: General Info</h4>
-            {editedScene.breakdown.part1.length > 0 ? (
+            {(editedScene.breakdown?.part1?.length || 0) > 0 ? (
               renderEditableTable(
                 Object.keys(editedScene.breakdown.part1?.[0] || {}),
-                editedScene.breakdown.part1,
+                editedScene.breakdown.part1 || [],
                 'breakdown',
                 'part1'
               )
@@ -1981,10 +2037,10 @@ const SceneDisplay: React.FC<{
             )}
 
             <h4 className="font-bold text-cyan-400 pt-4">Part 2: Scene Details</h4>
-            {editedScene.breakdown.part2.length > 0 ? (
+            {(editedScene.breakdown?.part2?.length || 0) > 0 ? (
               renderEditableTable(
                 Object.keys(editedScene.breakdown.part2?.[0] || {}),
-                editedScene.breakdown.part2,
+                editedScene.breakdown.part2 || [],
                 'breakdown',
                 'part2'
               )
@@ -1993,10 +2049,10 @@ const SceneDisplay: React.FC<{
             )}
 
             <h4 className="font-bold text-cyan-400 pt-4">Part 3: Requirements</h4>
-            {editedScene.breakdown.part3.length > 0 ? (
+            {(editedScene.breakdown?.part3?.length || 0) > 0 ? (
               renderEditableTable(
                 Object.keys(editedScene.breakdown.part3?.[0] || {}),
-                editedScene.breakdown.part3,
+                editedScene.breakdown.part3 || [],
                 'breakdown',
                 'part3'
               )
@@ -2147,6 +2203,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
 
   // --- AUTO SCROLL EFFECT ---
   useEffect(() => {
@@ -2215,25 +2272,41 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         // Find characters present in this scene
         const presentCharNames = scene.sceneDesign.characters;
         
+        console.log(`🧠 [Psychology] Scene has characters:`, presentCharNames);
+        console.log(`🧠 [Psychology] Available characters:`, updatedCharacters.map(c => ({ name: c.name, id: c.id })));
+        
         presentCharNames.forEach(charName => {
           const charIndex = updatedCharacters.findIndex(c => c.name === charName);
-          if (charIndex === -1) return;
+          if (charIndex === -1) {
+            console.warn(`⚠️ [Psychology] Character "${charName}" not found in characters list`);
+            return;
+          }
 
           const character = updatedCharacters[charIndex];
+          console.log(`🧠 [Psychology] Processing ${character.name} (ID: ${character.id})`);
+          
           const timeline = updatedTimelines[character.id] || {
             characterId: character.id,
             characterName: character.name,
             snapshots: [] as PsychologySnapshot[],
             changes: [] as PsychologyChange[],
             summary: { total_kusala: 0, total_akusala: 0, net_progress: 0, dominant_pattern: 'สมดุล' },
-            overallArc: { startingBalance: 0, endingBalance: 0, totalChange: 0, direction: 'คงที่', interpretation: 'เริ่มเก็บข้อมูล' }
+            overallArc: { startingBalance: 0, endingBalance: 0, totalChange: 0, direction: 'คงที่' as const, interpretation: 'เริ่มเก็บข้อมูล' }
           };
 
           const result = updatePsychologyTimeline(timeline, character, scene, plotPoint.title);
           
+          console.log(`🧠 [Psychology] Updated timeline for ${character.name}:`, {
+            snapshots: result.timeline.snapshots.length,
+            changes: result.timeline.changes.length,
+            summary: result.timeline.summary,
+          });
+          
           updatedTimelines[character.id] = result.timeline;
           updatedCharacters[charIndex] = result.updatedCharacter;
         });
+        
+        console.log(`🧠 [Psychology] Final timelines:`, Object.keys(updatedTimelines));
         // --- PSYCHOLOGY UPDATE END ---
 
         setScriptData(prev => {
@@ -2251,10 +2324,15 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'done' },
         }));
       } catch (e: any) {
+        console.error('❌ Error generating scene:', e);
         setGenerationStatus(prev => ({
           ...prev,
           [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'error' },
         }));
+        setGlobalError(
+          `Failed to generate "${plotPoint.title}" scene ${sceneIndex + 1}: ${e.message || 'Unknown error'}`
+        );
+        throw e; // Re-throw to stop batch generation
       }
     },
     [scriptData, setScriptData, sceneNumberMap, onRegisterUndo]
@@ -2284,7 +2362,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         await handleGenerateSingle(task.point, task.sceneIndex);
       } catch (e) {
         setGlobalError(
-          `Failed to generate scene for "${(task.point, task.point.title)}". Generation paused.`
+          `Failed to generate scene for "${task.point.title}". Generation paused.`
         );
         break;
       }
@@ -2496,6 +2574,16 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             </button>
           )}
           
+          {/* Psychology Timeline Button */}
+          <button
+            onClick={() => setShowPsychologyTimeline(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
+            title="View character psychology changes across all scenes"
+          >
+            <span className="text-xl">📈</span>
+            <span>Psychology Timeline</span>
+          </button>
+          
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
@@ -2617,6 +2705,178 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         pointTitle={point.title}
                       />
 
+                      {/* Psychology Timeline for this scene */}
+                      {sceneData && sceneData.sceneDesign?.characters && sceneData.sceneDesign.characters.length > 0 && (
+                        <div className="mt-4 bg-gray-900/30 rounded-lg border border-purple-500/20 p-4">
+                          <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
+                            <span>📈</span>
+                            <span>Character Psychology in This Scene</span>
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {sceneData.sceneDesign.characters.map((charName, idx) => {
+                              try {
+                                if (!charName || typeof charName !== 'string') {
+                                  console.warn('[Psychology] Invalid character name:', charName);
+                                  return null;
+                                }
+                                
+                                const character = scriptData.characters.find(c => c.name === charName);
+                                if (!character) {
+                                  console.warn('[Psychology] Character not found:', charName);
+                                  return null;
+                                }
+
+                                const timeline = scriptData.psychologyTimelines?.[character.id] || scriptData.psychologyTimelines?.[character.name];
+                                if (!timeline || typeof timeline !== 'object') {
+                                  console.warn('[Psychology] No timeline for:', character.name);
+                                  return null;
+                                }
+                                if (!timeline.snapshots || !Array.isArray(timeline.snapshots) || timeline.snapshots.length === 0) {
+                                  console.warn('[Psychology] No snapshots for:', character.name);
+                                  return (
+                                    <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        {character.image && (
+                                          <img
+                                            src={character.image}
+                                            alt={character.name}
+                                            className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                          />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm font-bold text-purple-300 truncate">
+                                            {character.name}
+                                          </div>
+                                          <div className="text-xs text-gray-500 truncate">{character.role}</div>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500 text-center py-2">
+                                        No psychology data
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                const currentSceneNumber = sceneNumberMap[point.title]?.[sceneIndex];
+                                if (currentSceneNumber === undefined) {
+                                  console.warn('[Psychology] Scene number undefined for:', point.title, sceneIndex);
+                                  return null;
+                                }
+                                
+                                console.log('[Psychology] Looking for snapshot:', { 
+                                  character: character.name, 
+                                  currentSceneNumber, 
+                                  snapshotsCount: timeline.snapshots?.length || 0,
+                                  availableSnapshots: (timeline.snapshots || []).map(s => ({ 
+                                    sceneNumber: s?.sceneNumber, 
+                                    hasMentalBalance: typeof s?.mentalBalance === 'number' 
+                                  }))
+                                });
+                                
+                                const foundSnapshot = timeline.snapshots.find(s => 
+                                  s && 
+                                  typeof s === 'object' && 
+                                  s.sceneNumber === currentSceneNumber && 
+                                  typeof s.mentalBalance === 'number'
+                                );
+
+                                // CRITICAL: Create immutable references to prevent race conditions
+                                if (!foundSnapshot || typeof foundSnapshot !== 'object' || typeof foundSnapshot.mentalBalance !== 'number') {
+                                  console.warn('[Psychology] No valid snapshot found for scene', currentSceneNumber, 'character', character.name);
+                                  return (
+                                    <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        {character.image && (
+                                          <img
+                                            src={character.image}
+                                            alt={character.name}
+                                            className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                          />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm font-bold text-purple-300 truncate">
+                                            {character.name}
+                                          </div>
+                                          <div className="text-xs text-gray-500 truncate">{character.role}</div>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500 text-center py-2">
+                                        No data for this scene
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // Create immutable snapshot reference
+                                const snapshot = {
+                                  mentalBalance: foundSnapshot.mentalBalance,
+                                  total_kusala_kamma: foundSnapshot.total_kusala_kamma,
+                                  total_akusala_kamma: foundSnapshot.total_akusala_kamma,
+                                  magga_stage: foundSnapshot.magga_stage
+                                };
+
+                              return (
+                                <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {character.image && (
+                                      <img
+                                        src={character.image}
+                                        alt={character.name}
+                                        className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-bold text-purple-300 truncate">
+                                        {character.name}
+                                      </div>
+                                      <div className="text-xs text-gray-500 truncate">{character.role}</div>
+                                    </div>
+                                  </div>
+
+                                  {/* Always show psychology data since we validated snapshot above */}
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-gray-400">Mental Balance</span>
+                                      <span className={`text-sm font-bold ${
+                                        snapshot.mentalBalance >= 20 ? 'text-green-400' :
+                                        snapshot.mentalBalance >= 0 ? 'text-blue-400' :
+                                        snapshot.mentalBalance >= -20 ? 'text-yellow-400' :
+                                        'text-red-400'
+                                      }`}>
+                                        {snapshot.mentalBalance}
+                                      </span>
+                                    </div>
+                                    
+                                    {(typeof snapshot.total_kusala_kamma === 'number' || typeof snapshot.total_akusala_kamma === 'number') && (
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="bg-green-900/20 border border-green-500/30 rounded px-2 py-1 text-center">
+                                          <div className="text-green-400">+{snapshot.total_kusala_kamma || 0}</div>
+                                          <div className="text-[10px] text-gray-500">Kusala</div>
+                                        </div>
+                                        <div className="bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-center">
+                                          <div className="text-red-400">-{snapshot.total_akusala_kamma || 0}</div>
+                                          <div className="text-[10px] text-gray-500">Akusala</div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {snapshot.magga_stage && typeof snapshot.magga_stage === 'string' && (
+                                      <div className="text-xs bg-purple-900/30 px-2 py-1 rounded border border-purple-500/30 text-purple-300 text-center">
+                                        {snapshot.magga_stage}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                              } catch (error) {
+                                console.error('Error rendering scene psychology card:', error);
+                                return null;
+                              }
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {(scriptData.scenesPerPoint[point.title] > 1 || sceneIndex > 0) && (
                         <button
                           onClick={() => handleRemoveScene(point.title)}
@@ -2666,6 +2926,235 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           Back to Structure
         </button>
       </div>
+
+      {/* Psychology Timeline Modal */}
+      {showPsychologyTimeline && (
+        <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 bg-gray-800/80 p-6 rounded-lg border border-purple-500/30">
+                <div>
+                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                    📈 Psychology Timeline - All Characters
+                  </h2>
+                  <p className="text-gray-400 mt-2">
+                    Track psychological changes of all characters across scenes
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPsychologyTimeline(false)}
+                  className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
+                {Object.keys(scriptData.psychologyTimelines || {}).length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🧠</div>
+                    <h3 className="text-xl font-bold text-gray-300 mb-2">
+                      No Psychology Data Yet
+                    </h3>
+                    <p className="text-gray-500">
+                      Generate scenes to start tracking character psychology changes
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(scriptData.psychologyTimelines || {}).map(([charId, timeline]) => {
+                      try {
+                        // Strict validation
+                        if (!timeline || typeof timeline !== 'object') return null;
+                        if (!timeline.snapshots || !Array.isArray(timeline.snapshots)) return null;
+                        if (!timeline.summary || typeof timeline.summary !== 'object') return null;
+                        
+                        // Create immutable references to prevent race conditions
+                        // Filter out any invalid snapshots immediately
+                        const snapshots = (timeline.snapshots || []).filter(s => 
+                          s && 
+                          typeof s === 'object' && 
+                          typeof s.mentalBalance === 'number' &&
+                          typeof s.sceneNumber === 'number'
+                        );
+                        const summary = timeline.summary;
+                        const overallArc = timeline.overallArc;
+                        
+                        const character = scriptData.characters.find(c => c.id === charId || c.name === charId);
+                        if (!character) return null;
+
+                      return (
+                        <div 
+                          key={charId} 
+                          className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-purple-500/30 overflow-hidden shadow-xl hover:shadow-purple-500/20 transition-all cursor-pointer hover:scale-105 hover:border-purple-400/50"
+                          onClick={() => {
+                            if (onNavigateToCharacter) {
+                              onNavigateToCharacter(character.name, 5, undefined, true);
+                              setShowPsychologyTimeline(false);
+                            }
+                          }}
+                          title={`Click to view ${character.name}'s psychology timeline`}
+                        >
+                          {/* Character Header */}
+                          <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 p-4 border-b border-purple-500/30">
+                            <div className="flex items-center gap-3 mb-2">
+                              {character.image && (
+                                <img
+                                  src={character.image}
+                                  alt={character.name}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-400 shadow-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-purple-300 truncate">
+                                  {character.name}
+                                </h3>
+                                <p className="text-xs text-gray-400 truncate">{character.role}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 text-center">
+                              <div className="flex-1">
+                                <div className="text-xs text-gray-500">Scenes</div>
+                                <div className="text-xl font-bold text-cyan-400">
+                                  {snapshots.length}
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-xs text-gray-500">Changes</div>
+                                <div className="text-xl font-bold text-pink-400">
+                                  {timeline.changes?.length || 0}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Stats Grid */}
+                          {summary && (
+                            <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
+                              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-green-400 mb-1">Kusala</div>
+                                <div className="text-lg font-bold text-green-300">
+                                  +{summary.total_kusala || 0}
+                                </div>
+                              </div>
+                              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-red-400 mb-1">Akusala</div>
+                                <div className="text-lg font-bold text-red-300">
+                                  -{summary.total_akusala || 0}
+                                </div>
+                              </div>
+                              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-blue-400 mb-1">Net</div>
+                                <div className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                  {(summary.net_progress || 0) >= 0 ? '+' : ''}{summary.net_progress || 0}
+                                </div>
+                              </div>
+                              <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
+                                <div className="text-xs font-bold text-purple-300 truncate">
+                                  {summary.dominant_pattern || 'N/A'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Overall Arc - Compact */}
+                          {overallArc && overallArc.startingBalance !== undefined && overallArc.endingBalance !== undefined && (
+                            <div className="p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-gray-400">Character Arc</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                  overallArc.direction === 'กุศลขึ้น' 
+                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                    : overallArc.direction === 'กุศลลง'
+                                    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                                }`}>
+                                  {overallArc.direction || 'N/A'}
+                                </span>
+                              </div>
+                              
+                              {/* Progress Bar */}
+                              <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
+                                <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-bold z-10">
+                                  <span className="text-gray-400">{overallArc.startingBalance}</span>
+                                  <span className="text-cyan-300">→</span>
+                                  <span className="text-white">{overallArc.endingBalance}</span>
+                                </div>
+                                <div 
+                                  className={`absolute left-0 top-0 h-full transition-all ${
+                                    (overallArc.totalChange || 0) >= 0 
+                                      ? 'bg-gradient-to-r from-green-600/50 to-green-500/50' 
+                                      : 'bg-gradient-to-r from-red-600/50 to-red-500/50'
+                                  }`}
+                                  style={{ 
+                                    width: `${Math.min(100, Math.abs((overallArc.endingBalance + 100) / 2))}%` 
+                                  }}
+                                />
+                              </div>
+                              
+                              <p className="text-xs text-gray-400 mt-2 line-clamp-2">
+                                {overallArc.interpretation || 'No interpretation available'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Mini Timeline Preview */}
+                          {snapshots && snapshots.length > 0 && (
+                            <div className="p-4 pt-0">
+                              <div className="text-xs font-bold text-gray-400 mb-2">Scene Journey</div>
+                              <div className="flex gap-1 overflow-x-auto pb-1">
+                                {snapshots.map((snapshot, idx) => {
+                                  // snapshots already filtered for valid data at line 2986
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`flex-shrink-0 w-8 h-8 rounded border-2 flex items-center justify-center text-xs font-bold ${
+                                        snapshot.mentalBalance >= 20
+                                          ? 'bg-green-500/20 border-green-500 text-green-300'
+                                          : snapshot.mentalBalance >= 0
+                                          ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                                          : snapshot.mentalBalance >= -20
+                                          ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300'
+                                          : 'bg-red-500/20 border-red-500 text-red-300'
+                                      }`}
+                                      title={`Scene ${snapshot.sceneNumber}: Balance ${snapshot.mentalBalance}`}
+                                    >
+                                      {snapshot.sceneNumber}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                      } catch (error) {
+                        console.error('Error rendering psychology card:', error);
+                        return null;
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

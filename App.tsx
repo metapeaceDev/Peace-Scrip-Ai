@@ -133,6 +133,47 @@ const sanitizeScriptData = (raw: any): ScriptData => {
     });
   }
 
+  // Sanitize psychologyTimelines - ensure proper structure
+  const sanitizedPsychologyTimelines: Record<string, any> = {};
+  if (raw.psychologyTimelines && typeof raw.psychologyTimelines === 'object') {
+    Object.entries(raw.psychologyTimelines).forEach(([charId, timeline]) => {
+      const tl = timeline as any;
+      // Validate timeline structure
+      if (tl && typeof tl === 'object') {
+        sanitizedPsychologyTimelines[charId] = {
+          characterId: tl.characterId || charId,
+          characterName: tl.characterName || '',
+          changes: Array.isArray(tl.changes) ? tl.changes : [],
+          snapshots: Array.isArray(tl.snapshots) ? tl.snapshots : [],
+          summary: tl.summary && typeof tl.summary === 'object' ? {
+            total_kusala: tl.summary.total_kusala || 0,
+            total_akusala: tl.summary.total_akusala || 0,
+            net_progress: tl.summary.net_progress || 0,
+            dominant_pattern: tl.summary.dominant_pattern || 'N/A',
+          } : {
+            total_kusala: 0,
+            total_akusala: 0,
+            net_progress: 0,
+            dominant_pattern: 'N/A',
+          },
+          overallArc: tl.overallArc && typeof tl.overallArc === 'object' ? {
+            startingBalance: typeof tl.overallArc.startingBalance === 'number' ? tl.overallArc.startingBalance : 0,
+            endingBalance: typeof tl.overallArc.endingBalance === 'number' ? tl.overallArc.endingBalance : 0,
+            totalChange: typeof tl.overallArc.totalChange === 'number' ? tl.overallArc.totalChange : 0,
+            direction: tl.overallArc.direction || 'คงที่',
+            interpretation: tl.overallArc.interpretation || '',
+          } : {
+            startingBalance: 0,
+            endingBalance: 0,
+            totalChange: 0,
+            direction: 'คงที่',
+            interpretation: '',
+          },
+        };
+      }
+    });
+  }
+
   return {
     ...INITIAL_SCRIPT_DATA,
     ...raw,
@@ -146,6 +187,7 @@ const sanitizeScriptData = (raw: any): ScriptData => {
     }),
     team: raw.team || [],
     posterImage: raw.posterImage || undefined,
+    psychologyTimelines: sanitizedPsychologyTimelines,
   };
 };
 
@@ -253,6 +295,7 @@ function App() {
     pointTitle: string;
     sceneIndex: number;
   } | null>(null);
+  const [autoOpenPsychology, setAutoOpenPsychology] = useState(false);
 
   // Sync scriptData.language with UI language
   useEffect(() => {
@@ -638,15 +681,8 @@ function App() {
 
       const sanitized = sanitizeScriptData(data);
 
-      // Force sync language to current UI language when opening project
-      const currentLang = getCurrentLanguage();
-      const mappedLang = currentLang === 'th' ? 'Thai' : 'English';
-      if (sanitized.language !== mappedLang) {
-        console.log(
-          `🌐 Force-syncing project language on open: ${sanitized.language} -> ${mappedLang}`
-        );
-        sanitized.language = mappedLang;
-      }
+      // Keep project's original language setting
+      console.log(`🌐 Loaded project with language: ${sanitized.language}`);
 
       setScriptData(sanitized);
       setCurrentProjectId(id);
@@ -901,7 +937,8 @@ function App() {
   const handleNavigateToCharacter = (
     charName: string,
     fromStep?: number,
-    sceneContext?: { pointTitle: string; sceneIndex: number }
+    sceneContext?: { pointTitle: string; sceneIndex: number },
+    openPsychology?: boolean
   ) => {
     const foundChar = scriptData.characters.find(
       c => c.name === charName || c.name.includes(charName)
@@ -913,6 +950,9 @@ function App() {
       }
       if (sceneContext) {
         setReturnToScene(sceneContext);
+      }
+      if (openPsychology) {
+        setAutoOpenPsychology(true);
       }
       // Preserve context so we don't immediately clear what we just set
       goToStep(3, { preserveContext: true });
@@ -1284,6 +1324,8 @@ function App() {
                 onResetTargetCharId={() => setTargetCharId(null)}
                 returnToStep={returnToStep}
                 onReturnToOrigin={handleReturnToOrigin}
+                autoOpenPsychology={autoOpenPsychology}
+                onResetAutoOpenPsychology={() => setAutoOpenPsychology(false)}
               />
             )}
             {currentStep === 4 && (
