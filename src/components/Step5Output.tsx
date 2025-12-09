@@ -730,7 +730,226 @@ const SceneDisplay: React.FC<{
     });
   };
 
-  // --- Storyboard Handlers ---
+  // --- Psychology to Visual Helpers ---
+  const buildEmotionalContext = (character: Character): string => {
+    let context = '';
+    const emotion = character.emotionalState;
+    
+    if (emotion) {
+      // Map mood to visual expression
+      const moodMap: Record<string, string> = {
+        'peaceful': 'calm, serene, relaxed facial expression, composed posture',
+        'joyful': 'smiling, bright eyes, positive energy, open body language',
+        'angry': 'furrowed brows, tense jaw, intense gaze, clenched fists, hostile stance',
+        'confused': 'puzzled look, uncertain posture, questioning expression',
+        'fearful': 'wide eyes, tense body, defensive stance, worried expression',
+        'neutral': 'composed, neutral expression, balanced posture'
+      };
+      
+      context += `EMOTION: ${moodMap[emotion.currentMood] || 'neutral'}. `;
+      
+      // Energy level affects animation/presence
+      if (emotion.energyLevel > 70) {
+        context += 'HIGH ENERGY: energetic, animated, dynamic presence. ';
+      } else if (emotion.energyLevel < 30) {
+        context += 'LOW ENERGY: tired, sluggish, low vitality, weary appearance. ';
+      }
+      
+      // Mental balance affects overall demeanor
+      if (emotion.mentalBalance > 50) {
+        context += 'BALANCED MIND: clear-minded, centered, confident demeanor. ';
+      } else if (emotion.mentalBalance < -50) {
+        context += 'TROUBLED MIND: stressed, inner turmoil visible, anxious appearance. ';
+      }
+    }
+    
+    return context;
+  };
+
+  const buildDefilementContext = (character: Character): string => {
+    const defilements = character.internal?.defilement;
+    if (!defilements) return '';
+    
+    // Find dominant defilement (highest value)
+    const entries = Object.entries(defilements);
+    if (entries.length === 0) return '';
+    
+    const dominant = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+    const [name, value] = dominant;
+    
+    // Only mention if significantly high (>60%)
+    if (value < 60) return '';
+    
+    const defilementMap: Record<string, string> = {
+      'Lobha (Greed)': 'greedy eyes, calculating expression, grasping gestures',
+      'Anger (Anger)': 'angry face, hostile body language, aggressive stance',
+      'Moha (delusion)': 'confused look, uncertain posture, unfocused gaze',
+      'Mana (arrogance)': 'proud stance, superior expression, chin lifted, condescending look',
+      'Titthi (obsession)': 'intense focus, fixed stare, obsessive mannerism',
+      'Envy (Issa)': 'envious expression, bitter look, resentful posture',
+      'Restlessness (uddhacca)': 'restless movement, fidgeting, anxious energy'
+    };
+    
+    return `DOMINANT TRAIT: ${defilementMap[name] || name} (${Math.round(value)}% intensity). `;
+  };
+
+  const buildConsciousnessAura = (character: Character): string => {
+    const consciousness = character.internal?.consciousness;
+    if (!consciousness) return '';
+    
+    const values = Object.values(consciousness);
+    if (values.length === 0) return '';
+    
+    const avgConsciousness = values.reduce((a, b) => a + b, 0) / values.length;
+    
+    if (avgConsciousness > 75) {
+      return 'AURA: virtuous presence, serene energy, inner peace radiating, wise demeanor. ';
+    } else if (avgConsciousness > 50) {
+      return 'AURA: balanced presence, moderate composure. ';
+    } else if (avgConsciousness < 40) {
+      return 'AURA: troubled energy, restless presence, inner conflict visible. ';
+    }
+    
+    return '';
+  };
+
+  const buildCaritaMannerism = (character: Character): string => {
+    const carita = character.buddhist_psychology?.carita;
+    if (!carita) return '';
+    
+    const caritaMap: Record<string, string> = {
+      'ราคจริต': 'sensual mannerisms, pleasure-seeking expression, indulgent posture',
+      'โทสจริต': 'intense gaze, passionate body language, energetic movements, strong presence',
+      'โมหจริต': 'confused mannerisms, hesitant movements, uncertain expressions',
+      'สัทธาจริต': 'faithful demeanor, trusting expression, open posture, devotional presence',
+      'พุทธิจริต': 'intellectual gaze, analytical expression, thoughtful posture, scholarly manner',
+      'วิตกจริต': 'contemplative pose, thoughtful expression, meditative presence'
+    };
+    
+    return `TEMPERAMENT: ${caritaMap[carita] || carita}. `;
+  };
+
+  const buildDetailedPhysical = (character: Character): string => {
+    const physical = character.physical || {};
+    let details = '';
+    
+    // Gender
+    if (physical['Gender']) {
+      details += `${physical['Gender']}, `;
+    }
+    
+    // Build/Height/Weight
+    if (physical['Height, Weight']) {
+      details += `${physical['Height, Weight']}, `;
+    }
+    
+    // Skin color
+    if (physical['Skin color']) {
+      details += `${physical['Skin color']} skin, `;
+    }
+    
+    // Eye characteristics (very important for emotion!)
+    if (physical['Eye characteristics']) {
+      details += `eyes: ${physical['Eye characteristics']}, `;
+    }
+    
+    // Facial characteristics
+    if (physical['Facial characteristics']) {
+      details += `face: ${physical['Facial characteristics']}, `;
+    }
+    
+    return details;
+  };
+
+  const buildDetailedFashion = (character: Character, outfitDesc: string): string => {
+    const fashion = character.fashion || {};
+    let details = `wearing ${outfitDesc}`;
+    
+    // Style concept
+    if (fashion['Style Concept']) {
+      details += `, style: ${fashion['Style Concept']}`;
+    }
+    
+    // Color palette
+    if (fashion['Color Palette']) {
+      details += `, colors: ${fashion['Color Palette']}`;
+    }
+    
+    // Accessories
+    if (fashion['Accessories']) {
+      details += `, accessories: ${fashion['Accessories']}`;
+    }
+    
+    // Condition/Texture
+    if (fashion['Condition/Texture']) {
+      details += `, condition: ${fashion['Condition/Texture']}`;
+    }
+    
+    return details;
+  };
+
+  const buildGoalsContext = (character: Character): string => {
+    if (!character.goals) return '';
+    
+    let context = '';
+    
+    // Inner conflict affects body tension
+    if (character.goals.conflict) {
+      context += `INNER CONFLICT: ${character.goals.conflict} - shows in tense posture, worried micro-expressions. `;
+    }
+    
+    // Objective affects determination
+    if (character.goals.objective) {
+      context += `MOTIVATION: ${character.goals.objective} - shows in determined gaze, purposeful stance. `;
+    }
+    
+    return context;
+  };
+
+  const buildSituationContext = (currentScene: GeneratedScene, shotData: any): string => {
+    if (!currentScene.sceneDesign?.situations || currentScene.sceneDesign.situations.length === 0) {
+      return '';
+    }
+
+    let context = '';
+    
+    // Get the first situation (or find the most relevant one)
+    const situation = currentScene.sceneDesign.situations[0];
+    
+    // Add situation description (scene context)
+    if (situation.description) {
+      context += `SITUATION: ${situation.description}. `;
+    }
+    
+    // Add character inner thoughts (for subtle expression)
+    if (situation.characterThoughts) {
+      context += `CHARACTER THOUGHTS: "${situation.characterThoughts}" - show this through subtle facial expressions and body language. `;
+    }
+    
+    // Extract emotion from recent dialogue
+    if (situation.dialogue && situation.dialogue.length > 0) {
+      // Get last 2-3 lines of dialogue for context
+      const recentDialogue = situation.dialogue.slice(-3);
+      
+      // Check if this shot's character has dialogue
+      if (shotData.cast) {
+        const characterDialogue = recentDialogue.filter(d => 
+          d.character === shotData.cast || 
+          shotData.cast.includes(d.character) || 
+          d.character.includes(shotData.cast)
+        );
+        
+        if (characterDialogue.length > 0) {
+          const lastLine = characterDialogue[characterDialogue.length - 1];
+          context += `RECENT LINE: "${lastLine.dialogue}" - facial expression and body language should match the emotional tone of this dialogue. `;
+        }
+      }
+    }
+    
+    return context;
+  };
+
+  // --- Enhanced Storyboard Prompt Builder ---
   const buildPrompt = (shotData: any, currentScene: GeneratedScene, isVideo: boolean = false) => {
     // 1. Context: Location
     const locationContext = currentScene.sceneDesign.location || 'Unknown location';
@@ -738,10 +957,9 @@ const SceneDisplay: React.FC<{
     // 2. Context: Set Details (from Shot List override or default)
     const setDetails = shotData.set || locationContext;
 
-    // 3. Context: Characters & Costumes
-    // If 'Cast' is defined in Shot List, prioritize that specific character.
-    // Otherwise, list all characters in the scene.
+    // 3. Context: Characters & Costumes (ENHANCED with Psychology)
     let characterContext = '';
+    let psychologyContext = '';
 
     if (shotData.cast) {
       // Specific Cast Member
@@ -750,20 +968,28 @@ const SceneDisplay: React.FC<{
       );
 
       if (profile) {
-        const physical = profile.physical?.['Physical Characteristics'] || '';
+        // Physical characteristics (enhanced with details)
+        const detailedPhysical = buildDetailedPhysical(profile);
         const hair = profile.physical?.['Hair style'] || '';
 
-        // Costume Lookup
+        // Costume Lookup (enhanced with fashion details)
         let outfitDesc = profile.fashion?.['Main Outfit'] || '';
         if (shotData.costume) {
-          // Look up specific outfit ID in collection
           const specificOutfit = profile.outfitCollection?.find(o => o.id === shotData.costume);
           if (specificOutfit) {
             outfitDesc = specificOutfit.description;
           }
         }
+        const detailedFashion = buildDetailedFashion(profile, outfitDesc);
 
-        characterContext = `${shotData.cast}: ${physical}, ${hair}, wearing ${outfitDesc}`;
+        characterContext = `${shotData.cast}: ${detailedPhysical}${hair}, ${detailedFashion}`;
+
+        // 🧠 NEW: Add Psychology Context
+        psychologyContext = buildEmotionalContext(profile);
+        psychologyContext += buildDefilementContext(profile);
+        psychologyContext += buildConsciousnessAura(profile);
+        psychologyContext += buildCaritaMannerism(profile);
+        psychologyContext += buildGoalsContext(profile);
       } else {
         characterContext = shotData.cast; // Fallback to just name
       }
@@ -775,8 +1001,7 @@ const SceneDisplay: React.FC<{
           const profile = allCharacters.find(c => c.name.includes(name) || name.includes(c.name));
 
           if (profile) {
-            const physical = profile.physical?.['Physical Characteristics'] || '';
-            // Check Wardrobe Assignment
+            const detailedPhysical = buildDetailedPhysical(profile);
             const assignedOutfitId = currentScene.characterOutfits?.[name];
             let outfitDesc = profile.fashion?.['Main Outfit'] || '';
 
@@ -785,7 +1010,8 @@ const SceneDisplay: React.FC<{
               if (specificOutfit) outfitDesc = specificOutfit.description;
             }
 
-            return `${name}: ${physical}, wearing ${outfitDesc}`;
+            const detailedFashion = buildDetailedFashion(profile, outfitDesc);
+            return `${name}: ${detailedPhysical}${detailedFashion}`;
           }
           return '';
         })
@@ -798,16 +1024,30 @@ const SceneDisplay: React.FC<{
       ? 'Cinematic, Photorealistic, 4K, High Quality, Motion'
       : storyboardStyle;
 
-    // 5. Construct Rich Prompt with Style Continuity
-    return `
-            STYLE: ${styleInstruction}.
-            SCENE SETTING: ${setDetails}.
-            CHARACTERS: ${characterContext || 'Generic characters'}.
-            SHOT Action: ${shotData.description}.
-            CAMERA SPECS: ${shotData.shotSize} Shot, ${shotData.perspective} Angle.
-            LIGHTING/MOOD: ${shotData.lightingDesign || 'Neutral'}, ${currentScene.sceneDesign.moodTone}.
-            Ensure character consistency with descriptions.
-        `.trim();
+    // 5. Construct Rich Prompt with Psychology Enhancement
+    let prompt = `STYLE: ${styleInstruction}.
+SCENE SETTING: ${setDetails}.
+CHARACTERS: ${characterContext || 'Generic characters'}.`;
+
+    // Add psychology context if available
+    if (psychologyContext) {
+      prompt += `\n${psychologyContext}`;
+    }
+
+    // Add situation/dialogue context
+    const situationContext = buildSituationContext(currentScene, shotData);
+    if (situationContext) {
+      prompt += `\n${situationContext}`;
+    }
+
+    prompt += `
+SHOT Action: ${shotData.description}.
+CAMERA SPECS: ${shotData.shotSize} Shot, ${shotData.perspective} Angle.
+LIGHTING/MOOD: ${shotData.lightingDesign || 'Neutral'}, ${currentScene.sceneDesign.moodTone}.
+
+IMPORTANT: Show the character's emotional and psychological state through facial expressions, body language, and overall presence. Ensure character consistency with physical and psychological descriptions.`;
+
+    return prompt.trim();
   };
 
   const handleGenerateShotImage = async (shotIndex: number, shotData: any) => {
