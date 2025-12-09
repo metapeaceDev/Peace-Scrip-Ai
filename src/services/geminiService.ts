@@ -1559,7 +1559,7 @@ export async function generateCharacterDetails(
       Example:
       {
         "external": {
-          "Last Name": "...", "Nickname": "...", "Alias": "...", "Date of Birth Age": "...", "Address": "...", "Relationship": "...", "Ethnicity": "...", "Nationality": "...", "Religion": "...", "Blood Type": "...", "Health": "...", "Education": "...", "Financial Status": "...", "Occupation": "..."
+          "First Name": "...", "Last Name": "...", "Nickname": "...", "Alias": "...", "Date of Birth Age": "...", "Address": "...", "Relationship": "...", "Ethnicity": "...", "Nationality": "...", "Religion": "...", "Blood Type": "...", "Health": "...", "Education": "...", "Financial Status": "...", "Occupation": "..."
         },
         "physical": {
           "Physical Characteristics": "...", "Voice characteristics": "...", "Eye characteristics": "...", "Facial characteristics": "...", "Gender": "...", "Height, Weight": "...", "Skin color": "...", "Hair style": "..."
@@ -1603,9 +1603,7 @@ export async function generateCharacterDetails(
  * Generate all characters from story data (Step 1-2)
  * Analyzes the story and creates appropriate characters with full profiles
  */
-export async function generateAllCharactersFromStory(
-  scriptData: ScriptData
-): Promise<Character[]> {
+export async function generateAllCharactersFromStory(scriptData: ScriptData): Promise<Character[]> {
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
   if (userId) {
@@ -1678,7 +1676,7 @@ Return ONLY a valid JSON array of characters:
     "role": "Protagonist|Antagonist|Supporting|etc",
     "description": "Brief character description",
     "external": {
-      "Last Name": "...", "Nickname": "...", "Alias": "...", 
+      "First Name": "...", "Last Name": "...", "Nickname": "...", "Alias": "...", 
       "Date of Birth Age": "...", "Address": "...", 
       "Relationship": "...", "Ethnicity": "...", 
       "Nationality": "...", "Religion": "...", 
@@ -1794,6 +1792,208 @@ Return ONLY a valid JSON array of characters:
   }
 }
 
+/**
+ * Generate compatible characters that complement existing cast
+ * Analyzes existing characters + Step 1-3 data to create new characters that fit the story
+ */
+export async function generateCompatibleCharacters(
+  scriptData: ScriptData,
+  existingCharacters: Character[]
+): Promise<Character[]> {
+  // ✅ Quota validation
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'character',
+      details: { scriptType: 'character' },
+    });
+
+    if (!quotaCheck.allowed) {
+      throw new Error(
+        `❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `Upgrade to ${quotaCheck.upgradeRequired} plan to continue` : 'Please check your plan'}`
+      );
+    }
+  }
+
+  try {
+    const langInstruction =
+      scriptData.language === 'Thai'
+        ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All character names (unless foreign), descriptions, roles, and details MUST be in Thai. Do not use English for content values, only for JSON keys.'
+        : 'Ensure all value fields are written in English.';
+
+    // Build existing characters summary
+    const existingCharsSummary = existingCharacters
+      .map(
+        (char, idx) =>
+          `${idx + 1}. ${char.name} (${char.role}): ${char.description || 'No description'}`
+      )
+      .join('\n');
+
+    const prompt = `You are an expert Hollywood scriptwriter and casting director. You are working on a story that already has an existing cast of characters. Your task is to analyze the story, the existing characters, and create NEW compatible characters that will enhance the narrative.
+
+**Story Elements:**
+- Genre: ${scriptData.mainGenre}
+- Secondary Genres: ${scriptData.secondaryGenres?.join(', ') || 'None'}
+- Type: ${scriptData.projectType}
+- Title: ${scriptData.title || 'Untitled'}
+- Big Idea: ${scriptData.bigIdea || 'Not provided'}
+- Premise: ${scriptData.premise || 'Not provided'}
+- Theme: ${scriptData.theme || 'Not provided'}
+- Log Line: ${scriptData.logLine || 'Not provided'}
+
+**Existing Characters (${existingCharacters.length} total):**
+${existingCharsSummary}
+
+**Your Task:**
+Analyze the existing cast and story, then create 2-4 NEW characters that:
+
+1. **Complement the existing cast**: Fill gaps in roles (e.g., if no antagonist exists, create one; if no mentor, add one)
+2. **Support the story**: Create characters that enhance the narrative conflicts, themes, and plot
+3. **Add diversity**: Introduce different perspectives, backgrounds, or motivations
+4. **Maintain balance**: Don't duplicate existing roles; create unique, valuable additions
+
+**Character Types to Consider:**
+- Missing protagonist/antagonist counterparts
+- Supporting characters that create conflict or alliance
+- Characters that represent thematic elements
+- Romantic interests, mentors, rivals, or foils
+- Characters needed for specific plot developments
+
+**IMPORTANT INSTRUCTIONS:**
+1. ${langInstruction}
+2. Keep JSON keys in English (as shown in example)
+3. Create realistic, well-developed characters that FIT WITH the existing cast
+4. Each new character should have clear purpose and relationship potential with existing characters
+5. Consider how new characters interact with or challenge existing ones
+6. Include full profiles with external, physical, fashion, internal (psychology), and goals
+
+**Response Format:**
+Return ONLY a valid JSON array of 2-4 new characters:
+
+[
+  {
+    "name": "Character Full Name",
+    "role": "Antagonist|Supporting|Love Interest|Mentor|etc",
+    "description": "Brief description including how they relate to the existing story/characters",
+    "external": {
+      "First Name": "...", "Last Name": "...", "Nickname": "...", "Alias": "...", 
+      "Date of Birth Age": "...", "Address": "...", 
+      "Relationship": "...", "Ethnicity": "...", 
+      "Nationality": "...", "Religion": "...", 
+      "Blood Type": "...", "Health": "...", 
+      "Education": "...", "Financial Status": "...", 
+      "Occupation": "..."
+    },
+    "physical": {
+      "Physical Characteristics": "...", 
+      "Voice characteristics": "...", 
+      "Eye characteristics": "...", 
+      "Facial characteristics": "...", 
+      "Gender": "...", 
+      "Height, Weight": "...", 
+      "Skin color": "...", 
+      "Hair style": "..."
+    },
+    "fashion": {
+      "Style Concept": "...", 
+      "Main Outfit": "...", 
+      "Accessories": "...", 
+      "Color Palette": "...", 
+      "Condition/Texture": "..."
+    },
+    "internal": {
+      "consciousness": {
+        "Mindfulness (remembrance)": 80, 
+        "Wisdom (right view)": 75, 
+        "Faith (Belief in the right)": 85, 
+        "Hiri (Shame of sin)": 80, 
+        "Karuna (Compassion, knowing suffering)": 90, 
+        "Mudita (Joy in happiness)": 70
+      },
+      "subconscious": {
+        "Attachment": "...", 
+        "Taanha": "..."
+      },
+      "defilement": {
+        "Lobha (Greed)": 30, 
+        "Anger (Anger)": 40, 
+        "Moha (delusion)": 50, 
+        "Mana (arrogance)": 50, 
+        "Titthi (obsession)": 55, 
+        "Vicikiccha (doubt)": 30, 
+        "Thina (depression)": 25, 
+        "Uthachcha (distraction)": 30, 
+        "Ahirika (shamelessness)": 15, 
+        "Amodtappa (fearlessness of sin)": 15
+      }
+    },
+    "goals": {
+      "objective": "What they want to achieve",
+      "need": "What they actually need (internal)",
+      "action": "What they're actively doing",
+      "conflict": "What stands in their way / how they conflict with existing characters",
+      "backstory": "Their relevant history and connection to the story/existing characters"
+    }
+  }
+]`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.9,
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text);
+    const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
+
+    // Transform to full Character objects with IDs
+    const characters: Character[] = charactersArray.map((char, index: number) => ({
+      ...EMPTY_CHARACTER,
+      id: `char-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+      name: char.name || `New Character ${index + 1}`,
+      role: char.role || 'Supporting',
+      description: char.description || '',
+      external: { ...EMPTY_CHARACTER.external, ...(char.external || {}) },
+      physical: { ...EMPTY_CHARACTER.physical, ...(char.physical || {}) },
+      fashion: { ...EMPTY_CHARACTER.fashion, ...(char.fashion || {}) },
+      internal: {
+        consciousness: {
+          ...EMPTY_CHARACTER.internal.consciousness,
+          ...(char.internal?.consciousness || {}),
+        },
+        subconscious: {
+          ...EMPTY_CHARACTER.internal.subconscious,
+          ...(char.internal?.subconscious || {}),
+        },
+        defilement: {
+          ...EMPTY_CHARACTER.internal.defilement,
+          ...(char.internal?.defilement || {}),
+        },
+      },
+      goals: { ...EMPTY_CHARACTER.goals, ...(char.goals || {}) },
+    }));
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'character',
+        credits: characters.length * 2, // 2 credits per character
+      });
+    }
+
+    console.log(
+      `✅ Generated ${characters.length} compatible characters based on ${existingCharacters.length} existing characters`
+    );
+    return characters;
+  } catch (error) {
+    console.error('Error generating compatible characters:', error);
+    throw new Error('Failed to generate compatible characters: ' + (error as Error).message);
+  }
+}
+
 export async function fillMissingCharacterDetails(
   character: Character,
   language: string
@@ -1833,9 +2033,10 @@ export async function generateFullScriptOutline(
   secondaryGenres: string[],
   language: 'Thai' | 'English'
 ): Promise<Partial<ScriptData>> {
-  const langInstruction = language === 'Thai' 
-    ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All content (Big Idea, Premise, Theme, Logline, Timeline, Structure descriptions) MUST be in Thai. Do not use English for content.' 
-    : 'Output in English.';
+  const langInstruction =
+    language === 'Thai'
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All content (Big Idea, Premise, Theme, Logline, Timeline, Structure descriptions) MUST be in Thai. Do not use English for content.'
+      : 'Output in English.';
 
   const prompt = `
     Generate a complete story outline.
@@ -1938,7 +2139,143 @@ IMPORTANT: Use these psychological profiles to:
 
     ${characterPsychology}
 
-    Return JSON with keys: sceneDesign (sceneName, characters, location, situations: [{description, characterThoughts, dialogue: [{character, dialogue}]}], moodTone), shotList, propList, breakdown.
+    Return JSON with the following structure:
+    {
+      "sceneDesign": {
+        "sceneName": "Scene name in ${scriptData.language}",
+        "characters": ["character names"],
+        "location": "INT./EXT. LOCATION - TIME",
+        "situations": [
+          {
+            "description": "What happens in ${scriptData.language}",
+            "characterThoughts": "Internal thoughts in ${scriptData.language}",
+            "dialogue": [{"character": "Name", "dialogue": "Line in ${scriptData.language}"}]
+          }
+        ],
+        "moodTone": "Mood description in ${scriptData.language}"
+      },
+      "shotList": [
+        {
+          "scene": "${sceneNumber}",
+          "shot": 1,
+          "description": "Visual description in ${scriptData.language}",
+          "durationSec": 3,
+          "shotSize": "Choose from: ECU, CU, MCU, MS, MLS, LS, VLS, EST",
+          "perspective": "Choose from: Eye-Level, High Angle, Low Angle, Bird's Eye, Worm's Eye, POV, OTS, Canted",
+          "movement": "Choose from: Static, Pan, Tilt, Dolly In, Dolly Out, Zoom In, Zoom Out, Tracking, Handheld, Steadicam, Crane",
+          "equipment": "Choose from: Tripod, Dolly, Slider, Crane, Steadicam, Gimbal, Handheld Rig, Drone",
+          "focalLength": "Choose from: 14mm, 24mm, 35mm, 50mm, 85mm, 100mm, 135mm, 200mm+",
+          "aspectRatio": "Choose from: 16:9, 2.39:1, 4:3, 1:1",
+          "lightingDesign": "Lighting description in ${scriptData.language}",
+          "colorTemperature": "Choose from: Warm (3200K), Neutral (5600K), Cool (6500K+)",
+          "cast": "Character names in shot",
+          "costume": "Costume description in ${scriptData.language}",
+          "set": "Set/Location description in ${scriptData.language}"
+        }
+      ],
+      "propList": [
+        {
+          "scene": "${sceneNumber}",
+          "propArt": "Prop item name in ${scriptData.language}",
+          "sceneSetDetails": "Detailed set description in ${scriptData.language}"
+        }
+      ],
+      "breakdown": {
+        "part1": [
+          {
+            "Break Down Q": "1",
+            "Company Name": "Production company in ${scriptData.language}",
+            "Theme": "Scene theme/category in ${scriptData.language}",
+            "Filming Date": "DD/MM/YYYY",
+            "Time Departure": "HH:MM",
+            "Location": "Filming location in ${scriptData.language}",
+            "Name Break Down": "Breakdown creator name",
+            "Director": "Director name",
+            "First AD Phone": "+66-XXX-XXXX",
+            "PM Phone": "+66-XXX-XXXX"
+          }
+        ],
+        "part2": [
+          {
+            "No": "1",
+            "Time": "HH:MM",
+            "Scene": "${sceneNumber}",
+            "Locations": "Location name in ${scriptData.language}",
+            "Int.-Ext.": "INT or EXT",
+            "D or N": "D (Day) or N (Night)",
+            "Set": "Set description in ${scriptData.language}",
+            "Scene Name": "Scene name in ${scriptData.language}",
+            "Description": "Shot description in ${scriptData.language}",
+            "Cast": "Character names in ${scriptData.language}",
+            "Extra": "Number of extras",
+            "Prop": "Props needed in ${scriptData.language}",
+            "Costume": "Costume description in ${scriptData.language}",
+            "Remark": "Special notes in ${scriptData.language}"
+          }
+        ],
+        "part3": [
+          {
+            "Crew/Actors": "Role/Name in ${scriptData.language}",
+            "Extra": "Number needed",
+            "On Location Time": "HH:MM",
+            "Ready to Shoot Time": "HH:MM",
+            "Extra Included": "Yes/No",
+            "Costume Total": "Number of costumes",
+            "Prop Total": "Number of props",
+            "Support": "Support requirements in ${scriptData.language}",
+            "Special Equipment": "Equipment needed in ${scriptData.language}"
+          }
+        ]
+      }
+    }
+
+    IMPORTANT REQUIREMENTS:
+    1. Generate at least 5-8 shots per scene with COMPLETE details for ALL fields
+    2. Each shot MUST have ALL fields filled (no empty strings)
+    3. Use actual values from the dropdown options provided
+    4. PropList should list ALL props mentioned in the scene (at least 3-5 items)
+    5. Breakdown MUST follow professional Film Production Breakdown format:
+       
+       Part 1 - Production Information (1 row per scene):
+       - Break Down Q: Queue number
+       - Company Name: Production company
+       - Theme: Scene category/theme
+       - Filming Date: Scheduled date
+       - Time Departure: Call time
+       - Location: Where to film
+       - Name Break Down: Who created breakdown
+       - Director: Director name
+       - First AD Phone: First AD contact
+       - PM Phone: Production Manager contact
+       
+       Part 2 - Scene Details (multiple rows, one per shot):
+       - No: Shot number
+       - Time: Estimated time
+       - Scene: Scene number
+       - Locations: Location name
+       - Int.-Ext.: Interior or Exterior
+       - D or N: Day or Night
+       - Set: Set description
+       - Scene Name: Scene title
+       - Description: What happens
+       - Cast: Characters present
+       - Extra: Number of background actors
+       - Prop: Props needed
+       - Costume: Wardrobe details
+       - Remark: Special notes
+       
+       Part 3 - Production Resources (multiple rows for different resources):
+       - Crew/Actors: Personnel needed
+       - Extra: Extra count
+       - On Location Time: Arrival time
+       - Ready to Shoot Time: Ready time
+       - Extra Included: Yes/No
+       - Costume Total: Total costume pieces
+       - Prop Total: Total props
+       - Support: Additional support needed
+       - Special Equipment: Special gear required
+       
+       Generate realistic, production-ready data for each part (3-5 rows minimum for parts 2 and 3)
   `;
 
   try {
@@ -2579,9 +2916,40 @@ export async function generateMoviePoster(
   try {
     let prompt = '';
     if (customPrompt && customPrompt.trim().length > 0) {
+      // User provided custom prompt
       prompt = customPrompt;
     } else {
-      prompt = `Movie Poster. Title: ${scriptData.title}. Genre: ${scriptData.mainGenre}. Style: Cinematic, Professional.`;
+      // Build comprehensive prompt from Step 1-3 data
+      const parts = [
+        `Movie Poster for "${scriptData.title}".`,
+        `Main Genre: ${scriptData.mainGenre}.`,
+      ];
+
+      // Add secondary genres if available
+      const secondaryGenres = scriptData.secondaryGenres?.filter(g => g && g !== scriptData.mainGenre);
+      if (secondaryGenres && secondaryGenres.length > 0) {
+        parts.push(`Secondary Genres: ${secondaryGenres.join(', ')}.`);
+      }
+
+      // Add story boundary elements if available (Step 2)
+      if (scriptData.premise) {
+        parts.push(`Story: ${scriptData.premise.substring(0, 150)}.`);
+      } else if (scriptData.logLine) {
+        parts.push(`Story: ${scriptData.logLine}.`);
+      } else if (scriptData.bigIdea) {
+        parts.push(`Concept: ${scriptData.bigIdea.substring(0, 150)}.`);
+      }
+
+      // Add main character if available (Step 3)
+      const mainCharacter = scriptData.characters?.find(c => c.role === 'Protagonist');
+      if (mainCharacter && mainCharacter.name) {
+        parts.push(`Main Character: ${mainCharacter.name} - ${mainCharacter.description?.substring(0, 100) || 'protagonist'}.`);
+      }
+
+      // Add visual style
+      parts.push('Style: Cinematic, High Contrast, Professional Movie Poster, 4K Resolution.');
+
+      prompt = parts.join(' ');
     }
 
     return await generateImageWithCascade(prompt, {
@@ -2609,7 +2977,7 @@ export async function generateBoundary(scriptData: ScriptData): Promise<Partial<
   try {
     const isThai = scriptData.language === 'Thai';
     const langInstruction = isThai
-      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.' 
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.'
       : 'Output in English.';
 
     const prompt = `You are an expert Hollywood scriptwriter and story consultant. Based on the following story foundation, create a comprehensive boundary (framework) for the story.
@@ -2619,22 +2987,24 @@ ${langInstruction}
 ${isThai ? '⚠️ IMPORTANT: The user wants the result in THAI. Ignore the language of the input context and generate the output in THAI.' : ''}
 
 **Story Foundation from Step 1:**
-- Genre: ${scriptData.mainGenre}
-- Type: ${scriptData.projectType}
-- Additional Context: ${scriptData.logLine || scriptData.premise || scriptData.bigIdea || 'Not provided'}
+- **Title (USER PROVIDED - DO NOT CHANGE)**: ${scriptData.title || 'Untitled'}
+- **Main Genre**: ${scriptData.mainGenre}
+- **Secondary Genres**: ${scriptData.secondaryGenres?.filter(g => g).join(', ') || 'None'}
+- **Project Type**: ${scriptData.projectType}
+- **Additional Context**: ${scriptData.logLine || scriptData.premise || scriptData.bigIdea || 'Not provided'}
 
 **Your Task:**
-Generate a complete story boundary with the following elements:
+Generate a complete story boundary with the following elements, BASED ON THE USER'S TITLE "${scriptData.title || 'Untitled'}":
 
-1. **Title**: A compelling, marketable title that captures the essence of the story
+1. **Title**: MUST return exactly "${scriptData.title || 'Untitled'}" - DO NOT create a new title
 2. **Big Idea**: The core "What if..." concept or central premise (2-3 sentences)
 3. **Premise**: What the story is fundamentally about - the journey and transformation (3-4 sentences)
 4. **Theme**: The universal truth or lesson the story teaches (2-3 sentences starting with "This tale teaches that...")
 5. **Log Line**: A one-sentence pitch that supports the theme and hooks the audience
 6. **Timeline**: Complete timeline context including:
-   - movieTiming: When the story takes place in a day/night context
+   - movieTiming: MUST be a NUMBER in minutes ONLY (e.g., "120 นาที" for Thai or "120 minutes" for English). For series, estimate total runtime.
    - seasons: What season(s) the story spans
-   - date: Specific date, month, year or era
+   - date: MUST be CALENDAR DATES with START and END dates (e.g., "1 มกราคม 2567 - 15 มกราคม 2567" for Thai or "January 1, 2024 - January 15, 2024" for English). NOT descriptive text. Use actual day/month/year format.
    - social: Social/cultural context of the time period
    - economist: Economic conditions affecting the story
    - environment: Environmental/geographical setting details
@@ -2656,9 +3026,9 @@ Return ONLY a valid JSON object with this exact structure:
   "theme": "...",
   "logLine": "...",
   "timeline": {
-    "movieTiming": "...",
+    "movieTiming": "120 นาที",
     "seasons": "...",
-    "date": "...",
+    "date": "1 มกราคม 2567 - 15 มกราคม 2567",
     "social": "...",
     "economist": "...",
     "environment": "..."
@@ -2669,25 +3039,80 @@ IMPORTANT:
 - Make it compelling and professional
 - Ensure all elements are cohesive and support each other
 - Be specific and creative
-- Consider the genre and type throughout`;
+- Consider the genre and type throughout
+- movieTiming MUST be numeric minutes (e.g., "90 นาที", "120 นาที", "150 นาที")
+- date MUST be calendar dates with start and end (e.g., "1 ม.ค. 2567 - 15 ม.ค. 2567" or "Jan 1, 2024 - Jan 15, 2024")`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
+        responseMimeType: 'application/json',
         temperature: 0.9,
       },
     });
 
     const text = extractJsonFromResponse(response.text);
     const result = JSON.parse(text);
-    
+
     console.log('✅ Generated boundary:', result);
     return result;
   } catch (error) {
-    console.error("Error generating boundary:", error);
-    throw new Error("Failed to generate boundary from AI.");
+    console.error('Error generating boundary:', error);
+    throw new Error('Failed to generate boundary from AI.');
+  }
+}
+
+/**
+ * Generate a creative title based on Step 1 data (excluding current title)
+ */
+export async function generateTitle(scriptData: ScriptData): Promise<string> {
+  console.log(`🧠 Generating Title. Language: ${scriptData.language}`);
+  try {
+    const isThai = scriptData.language === 'Thai';
+    const langInstruction = isThai
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Generate a creative Thai title.'
+      : 'Output in English.';
+
+    const prompt = `You are an expert Hollywood title creator. Based on the following story foundation, create ONE creative and compelling title.
+
+**Language Requirement:**
+${langInstruction}
+
+**Story Foundation:**
+- Main Genre: ${scriptData.mainGenre}
+- Secondary Genres: ${scriptData.secondaryGenres?.filter(g => g).join(', ') || 'None'}
+- Project Type: ${scriptData.projectType}
+
+**Your Task:**
+Create a single, powerful title that captures the essence of this ${scriptData.mainGenre} story. The title should be:
+- Memorable and unique
+- Appropriate for the genre(s)
+- Concise (1-5 words)
+- Evocative and intriguing
+
+Return ONLY a JSON object:
+{
+  "title": "Your Generated Title Here"
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 1.2, // High creativity for title generation
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text);
+    const result = JSON.parse(text);
+
+    console.log('✅ Generated title:', result.title);
+    return result.title;
+  } catch (error) {
+    console.error('Error generating title:', error);
+    throw new Error('Failed to generate title from AI.');
   }
 }
 
@@ -2696,27 +3121,45 @@ IMPORTANT:
  */
 function getGenreGuidelines(genre: string): string {
   const guidelines: Record<string, string> = {
-    'Drama': 'Focus on character development, emotional depth, and realistic conflicts. Explore internal struggles and relationships.',
-    'Comedy': 'Emphasize humor, wit, and entertaining situations. Balance laughs with heart and relatable characters.',
-    'Horror': 'Build tension and fear. Consider what terrifies the audience. Include atmospheric elements and psychological depth.',
-    'Action': 'High stakes, physical conflict, and exciting set pieces. Hero must overcome increasingly difficult challenges.',
-    'Romance': 'Emotional connection between characters. Obstacles that test their love. Satisfying emotional payoff.',
-    'Sci-Fi': 'Explore "what if" scenarios with technology or future. Ground fantastical elements with human emotion.',
-    'Thriller': 'Suspense and tension building. Plot twists. Protagonist in danger, racing against time.',
-    'Fantasy': 'World-building is key. Magic/fantastical elements must have rules. Hero\'s journey in extraordinary world.',
-    'Mystery': 'Clues, red herrings, and a satisfying reveal. Detective/investigator protagonist uncovering truth.',
-    'Adventure': 'Journey and discovery. Exotic locations. Character growth through challenges and exploration.',
-    'Western': 'Frontier justice, moral codes, and rugged individuals. Themes of civilization vs. wilderness.',
-    'Musical': 'Songs advance plot and character. Emotional expression through music. Spectacle and performance.',
-    'Documentary': 'Real events and people. Factual accuracy with compelling narrative. Educational with emotional impact.',
-    'Animation': 'Visual creativity. Can be any genre but with unique visual storytelling opportunities.',
-    'War': 'Human cost of conflict. Brotherhood, sacrifice, and moral complexity of war.',
-    'Crime': 'Criminal underworld, law enforcement, or heist. Moral ambiguity and tension.',
-    'Biopic': 'Real person\'s life journey. Key moments that define them. Historical accuracy with dramatic license.',
-    'Sports': 'Underdog story, training montage, big game. Themes of teamwork and perseverance.',
+    Drama:
+      'Focus on character development, emotional depth, and realistic conflicts. Explore internal struggles and relationships.',
+    Comedy:
+      'Emphasize humor, wit, and entertaining situations. Balance laughs with heart and relatable characters.',
+    Horror:
+      'Build tension and fear. Consider what terrifies the audience. Include atmospheric elements and psychological depth.',
+    Action:
+      'High stakes, physical conflict, and exciting set pieces. Hero must overcome increasingly difficult challenges.',
+    Romance:
+      'Emotional connection between characters. Obstacles that test their love. Satisfying emotional payoff.',
+    'Sci-Fi':
+      'Explore "what if" scenarios with technology or future. Ground fantastical elements with human emotion.',
+    Thriller:
+      'Suspense and tension building. Plot twists. Protagonist in danger, racing against time.',
+    Fantasy:
+      "World-building is key. Magic/fantastical elements must have rules. Hero's journey in extraordinary world.",
+    Mystery:
+      'Clues, red herrings, and a satisfying reveal. Detective/investigator protagonist uncovering truth.',
+    Adventure:
+      'Journey and discovery. Exotic locations. Character growth through challenges and exploration.',
+    Western:
+      'Frontier justice, moral codes, and rugged individuals. Themes of civilization vs. wilderness.',
+    Musical:
+      'Songs advance plot and character. Emotional expression through music. Spectacle and performance.',
+    Documentary:
+      'Real events and people. Factual accuracy with compelling narrative. Educational with emotional impact.',
+    Animation:
+      'Visual creativity. Can be any genre but with unique visual storytelling opportunities.',
+    War: 'Human cost of conflict. Brotherhood, sacrifice, and moral complexity of war.',
+    Crime: 'Criminal underworld, law enforcement, or heist. Moral ambiguity and tension.',
+    Biopic:
+      "Real person's life journey. Key moments that define them. Historical accuracy with dramatic license.",
+    Sports: 'Underdog story, training montage, big game. Themes of teamwork and perseverance.',
   };
-  
-  return guidelines[genre] || 'Create a compelling story that engages the audience and follows the conventions of your chosen genre.';
+
+  return (
+    guidelines[genre] ||
+    'Create a compelling story that engages the audience and follows the conventions of your chosen genre.'
+  );
 }
 
 /**
@@ -2724,12 +3167,16 @@ function getGenreGuidelines(genre: string): string {
  */
 function getTypeGuidelines(type: string): string {
   const guidelines: Record<string, string> = {
-    'feature': 'Feature film (90-120 minutes): Three-act structure with deep character arcs. Build to satisfying climax.',
-    'short': 'Short film (5-30 minutes): Single compelling idea. Quick character introduction. Efficient storytelling. Strong ending.',
-    'series': 'TV Series: Season-long arcs with episode hooks. Character development across multiple episodes. Cliffhangers.',
-    'commercial': 'Commercial (30-60 seconds): Clear message. Emotional hook in seconds. Strong brand connection. Call to action.',
+    feature:
+      'Feature film (90-120 minutes): Three-act structure with deep character arcs. Build to satisfying climax.',
+    short:
+      'Short film (5-30 minutes): Single compelling idea. Quick character introduction. Efficient storytelling. Strong ending.',
+    series:
+      'TV Series: Season-long arcs with episode hooks. Character development across multiple episodes. Cliffhangers.',
+    commercial:
+      'Commercial (30-60 seconds): Clear message. Emotional hook in seconds. Strong brand connection. Call to action.',
   };
-  
+
   return guidelines[type] || 'Follow standard storytelling conventions for your chosen format.';
 }
 
@@ -2739,19 +3186,24 @@ function getTypeGuidelines(type: string): string {
 
 /**
  * Generate story structure from Step 1-3 data
- * Creates: Plot Points with descriptions based on genre, characters, and boundary
+ * Creates: 9 Plot Points with descriptions based on genre, characters, and boundary
+ * Also suggests optimal scene count per point (1-10 scenes)
  */
 export async function generateStructure(scriptData: ScriptData): Promise<Partial<ScriptData>> {
   try {
-    const langInstruction = scriptData.language === 'Thai' 
-      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All descriptions MUST be in Thai. Do not use English for content, only for JSON keys.' 
-      : 'Output in English.';
+    const langInstruction =
+      scriptData.language === 'Thai'
+        ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All descriptions MUST be in Thai. Do not use English for content, only for JSON keys.'
+        : 'Output in English.';
 
     const charactersInfo = scriptData.characters
-      .map(c => `- ${c.name} (${c.role}): ${c.description || c.goals?.objective || 'Character in the story'}`)
+      .map(
+        c =>
+          `- ${c.name} (${c.role}): ${c.description || c.goals?.objective || 'Character in the story'}`
+      )
       .join('\n');
 
-    const prompt = `You are an expert Hollywood story structure consultant. Based on the following story elements, create detailed Plot Point descriptions following the Hollywood 7-point structure.
+    const prompt = `You are an expert Hollywood story structure consultant. Based on the following story elements, create detailed Plot Point descriptions following the 9-Point Three-Act Structure.
 
 **Story Elements:**
 - Genre: ${scriptData.mainGenre}
@@ -2771,15 +3223,22 @@ ${charactersInfo || 'No characters defined yet'}
 - Era: ${scriptData.timeline?.date || 'Not specified'}
 
 **Your Task:**
-Create compelling descriptions for each of the 7 Hollywood Plot Points:
+Create compelling descriptions for each of the 9 Plot Points in the Three-Act Structure:
 
-1. **Opening (Setup)**: Introduce the protagonist's ordinary world, their life before the adventure begins
+**องก์ที่ 1 (Act 1) - การเริ่มต้นและการเปลี่ยนแปลง:**
+1. **Equilibrium**: The ordinary world, protagonist's life before the adventure
 2. **Inciting Incident**: The event that disrupts the ordinary world and starts the story
-3. **First Act Turn**: The moment the protagonist commits to the journey/goal
-4. **Midpoint**: A major revelation or reversal that changes everything
-5. **Second Act Turn**: All seems lost, the darkest moment before the climax
-6. **Climax**: The final confrontation, the protagonist's biggest challenge
-7. **Resolution**: The new normal, how the protagonist and world have changed
+3. **Turning Point**: The protagonist commits to the journey/goal, life changes irreversibly
+
+**องก์ที่ 2 (Act 2) - ความขัดแย้งและวิกฤต:**
+4. **Act Break**: Entering the new world, facing initial conflicts
+5. **Rising Action**: Complications mount, problems get worse despite efforts
+6. **Crisis**: The biggest obstacle, preventing the character from reaching the goal
+7. **Falling Action**: The lowest point, protagonist reflects and finds the ultimate solution
+
+**องก์ที่ 3 (Act 3) - การเผชิญหน้าและบทสรุป:**
+8. **Climax**: The final confrontation, the protagonist's biggest challenge
+9. **Ending**: The resolution, how the protagonist and world have changed
 
 **Genre-Specific Guidelines:**
 ${getGenreGuidelines(scriptData.mainGenre)}
@@ -2787,44 +3246,66 @@ ${getGenreGuidelines(scriptData.mainGenre)}
 **Format Guidelines:**
 ${getTypeGuidelines(scriptData.projectType)}
 
+**Scene Count Recommendations:**
+For each plot point, suggest the optimal number of scenes (1-10) based on:
+- Story pacing and genre conventions
+- Plot point importance (Climax typically needs more scenes than Equilibrium)
+- Project type (Feature films vs Short films have different needs)
+- Emotional impact requirements
+
 **Language Instruction:**
 ${langInstruction}
 
 Return ONLY a valid JSON object with this exact structure:
 {
   "structure": [
-    {"title": "Opening", "description": "..."},
-    {"title": "Inciting Incident", "description": "..."},
-    {"title": "First Act Turn", "description": "..."},
-    {"title": "Midpoint", "description": "..."},
-    {"title": "Second Act Turn", "description": "..."},
-    {"title": "Climax", "description": "..."},
-    {"title": "Resolution", "description": "..."}
-  ]
+    {"title": "Equilibrium", "description": "...", "act": 1},
+    {"title": "Inciting Incident", "description": "...", "act": 1},
+    {"title": "Turning Point", "description": "...", "act": 1},
+    {"title": "Act Break", "description": "...", "act": 2},
+    {"title": "Rising Action", "description": "...", "act": 2},
+    {"title": "Crisis", "description": "...", "act": 2},
+    {"title": "Falling Action", "description": "...", "act": 2},
+    {"title": "Climax", "description": "...", "act": 3},
+    {"title": "Ending", "description": "...", "act": 3}
+  ],
+  "scenesPerPoint": {
+    "Equilibrium": 2,
+    "Inciting Incident": 1,
+    "Turning Point": 2,
+    "Act Break": 3,
+    "Rising Action": 4,
+    "Crisis": 3,
+    "Falling Action": 2,
+    "Climax": 5,
+    "Ending": 2
+  }
 }
 
 IMPORTANT:
 - Each description should be 2-4 sentences
 - Be specific to THIS story's genre, characters, and theme
 - Show clear cause-and-effect progression
-- Build tension and stakes appropriately`;
+- Build tension and stakes appropriately
+- Scene counts should reflect story pacing (typically: Act 1 = 20-25%, Act 2 = 50-55%, Act 3 = 20-25%)
+- Climax usually needs the most scenes (3-5), Inciting Incident can be brief (1-2)`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
+        responseMimeType: 'application/json',
         temperature: 0.9,
       },
     });
 
     const text = extractJsonFromResponse(response.text);
     const result = JSON.parse(text);
-    
+
     console.log('✅ Generated structure:', result);
     return result;
   } catch (error) {
-    console.error("Error generating structure:", error);
-    throw new Error("Failed to generate structure from AI.");
+    console.error('Error generating structure:', error);
+    throw new Error('Failed to generate structure from AI.');
   }
 }

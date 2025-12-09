@@ -95,47 +95,63 @@ export const TEAM_ROLES = [
   'Location Manager',
 ];
 
+// 3-Act Structure with 9 Plot Points
+// องก์ 1 (Act 1): Points 1-3 | องก์ 2 (Act 2): Points 4-7 | องก์ 3 (Act 3): Points 8-9
 export const PLOT_POINTS: PlotPoint[] = [
+  // === องก์ 1 (Act 1) - การเริ่มต้นและการเปลี่ยนแปลง ===
   {
     title: 'Equilibrium',
+    act: 1,
     description:
       "Peace. At the beginning of the story, the main character may not have a good life, but he doesn't feel like he has any problems.",
   },
   {
     title: 'Inciting Incident',
+    act: 1,
     description: 'There have been events that have shaken the peace, both physically and mentally.',
   },
   {
     title: 'Turning Point',
+    act: 1,
     description:
       'A crucial moment that reveals the theme of the story, but the protagonist does not understand it. The character decides to fight, causing life to change and is difficult to predict.',
   },
+  
+  // === องก์ 2 (Act 2) - ความขัดแย้งและวิกฤต ===
   {
     title: 'Act Break',
+    act: 2,
     description:
       'As a result of the turning point, the characters have to face high conflicts. The characters have to solve many problems in order to move forward to reach their goals.',
   },
   {
     title: 'Rising Action',
+    act: 2,
     description:
       "Solving problems in various ways often makes things even more complicated. The characters' lives may be closer to their goals or further away from them.",
   },
   {
     title: 'Crisis',
+    act: 2,
     description:
       'The biggest crisis in a story is often the one that comes out the hardest, preventing the character from reaching his or her goal.',
   },
   {
     title: 'Falling Action',
+    act: 2,
     description:
       'The lowest point of a character. After reflecting on themselves, the protagonist may find the ultimate solution at this point.',
   },
+  
+  // === องก์ 3 (Act 3) - การเผชิญหน้าและบทสรุป ===
   {
     title: 'Climax',
+    act: 3,
     description: 'The most intense point of the story where the main conflict is confronted.',
   },
   {
     title: 'Ending',
+    act: 3,
     description: 'The conclusion of the story, answering the important question, Premise.',
   },
 ];
@@ -151,6 +167,7 @@ export const EMPTY_CHARACTER: Character = {
   imageStyle: 'Cinematic Realistic (4K Movie Still)',
   outfitCollection: [],
   external: {
+    'First Name': '',
     'Last Name': '',
     Nickname: '',
     Alias: '',

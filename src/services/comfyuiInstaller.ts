@@ -18,7 +18,7 @@ export interface InstallProgress {
   error?: string;
 }
 
-const COMFYUI_DEFAULT_URL = "http://localhost:8188";
+const COMFYUI_DEFAULT_URL = import.meta.env.VITE_COMFYUI_URL || import.meta.env.VITE_COMFYUI_API_URL || "http://localhost:8188";
 const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL; // Optional cloud fallback
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Bhumi (ภพภูมิ) Database - 31 Planes of Existence
  * Based on Abhidhamma cosmology
- * 
+ *
  * Classification:
  * - อบายภูมิ (Apāya Bhūmi) - 4 woeful states
  * - กามสุคติภูมิ (Kāma Sugati Bhūmi) - 7 sensual happy states
@@ -110,12 +110,7 @@ export const APAYA_BHUMI: BhumiData[] = [
       value: 500,
       in_human_years: '9,000,000 human years',
     },
-    generating_kamma: [
-      'ความอิจฉาริษยา (Envy)',
-      'ความหวงแหน',
-      'ความหวาดระแวง',
-      'ทำลายของเซ่นไหว้',
-    ],
+    generating_kamma: ['ความอิจฉาริษยา (Envy)', 'ความหวงแหน', 'ความหวาดระแวง', 'ทำลายของเซ่นไหว้'],
     environmental_rules: {
       kamma_creation_multiplier: 0.4,
       parami_development_possible: false,
@@ -216,7 +211,7 @@ export const KAMA_SUGATI_BHUMI: BhumiData[] = [
     name: 'ดาวดึงส์ (สวรรค์ชั้นที่ 2)',
     pali_name: 'Tāvatiṃsa',
     type: 'กามสุคติภูมิ',
-    category: 'Second Heaven - Indra\'s Realm',
+    category: "Second Heaven - Indra's Realm",
     lifespan: {
       unit: 'divine_years',
       value: 1000,
@@ -574,7 +569,8 @@ export const RUPA_BHUMI: BhumiData[] = [
       dominant_feeling: 'upekkha',
       escape_difficulty: 100,
     },
-    description: 'พรหมโลกไร้สัญญา ไม่มีจิต ไม่มีความคิด มีแต่รูปขันธ์เพียงอย่างเดียว เป็นภพที่หลงผิดว่าเป็นนิพพาน',
+    description:
+      'พรหมโลกไร้สัญญา ไม่มีจิต ไม่มีความคิด มีแต่รูปขันธ์เพียงอย่างเดียว เป็นภพที่หลงผิดว่าเป็นนิพพาน',
   },
 
   // Suddhavasa (Pure Abodes - 5 levels) - Only Anagamis

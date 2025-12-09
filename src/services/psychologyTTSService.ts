@@ -82,20 +82,42 @@ export class PsychologyTTSService {
 
   constructor(baseURL: string = 'http://localhost:8000') {
     this.baseURL = baseURL;
-    this.checkHealth();
+    // Check health silently on initialization (don't spam console)
+    this.checkHealth(true).catch(() => {
+      // Silently fail - service is optional
+      this.isAvailable = false;
+    });
   }
 
   /**
    * Check if TTS server is available
+   * @param silent - If true, suppresses error logging (for background checks)
    */
-  async checkHealth(): Promise<boolean> {
+  async checkHealth(silent: boolean = false): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseURL}/health`);
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000), // 2 second timeout
+      });
+      
+      if (!response.ok) {
+        this.isAvailable = false;
+        return false;
+      }
+      
       const data = await response.json();
       this.isAvailable = data.status === 'healthy' && data.model_loaded;
+      
+      if (!silent && this.isAvailable) {
+        console.log('✅ TTS server available:', this.baseURL);
+      }
+      
       return this.isAvailable;
     } catch (error) {
-      console.error('TTS server health check failed:', error);
+      // Only log error if not in silent mode and not a connection refused error
+      if (!silent && !(error instanceof TypeError && error.message.includes('fetch'))) {
+        console.warn('TTS server not available:', error instanceof Error ? error.message : 'Unknown error');
+      }
       this.isAvailable = false;
       return false;
     }

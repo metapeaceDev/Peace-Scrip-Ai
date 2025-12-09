@@ -11,6 +11,38 @@ import { buildWorkflow, buildFluxWorkflow } from './comfyuiWorkflowBuilder';
 const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 const USE_BACKEND_SERVICE = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
 
+// Flag to track if service is available (avoid repeated failed requests)
+let serviceAvailable: boolean | null = null;
+let lastCheck: number = 0;
+const CHECK_INTERVAL = 30000; // Re-check every 30 seconds
+
+/**
+ * Check if backend service is available
+ */
+async function checkServiceHealth(): Promise<boolean> {
+  const now = Date.now();
+  
+  // Return cached result if checked recently
+  if (serviceAvailable !== null && (now - lastCheck) < CHECK_INTERVAL) {
+    return serviceAvailable;
+  }
+  
+  try {
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    
+    serviceAvailable = response.ok;
+    lastCheck = now;
+    return serviceAvailable;
+  } catch {
+    // Service not available - fail silently
+    serviceAvailable = false;
+    lastCheck = now;
+    return false;
+  }
+}
+
 /**
  * Get Firebase ID token for authentication
  */
@@ -32,6 +64,12 @@ export async function generateImageWithBackend(
   priority: number = 5,
   onProgress?: (progress: number) => void
 ): Promise<string> {
+  // Check service health before attempting (avoid console errors)
+  const isHealthy = await checkServiceHealth();
+  if (!isHealthy) {
+    throw new Error('ComfyUI backend service is not available');
+  }
+  
   try {
     const idToken = await getIdToken();
 
@@ -203,18 +241,14 @@ async function pollJobStatus(
 
 /**
  * Check if backend service is available
+ * @param silent - If true, suppresses console errors (for background polling)
  */
-export async function checkBackendStatus() {
+export async function checkBackendStatus(silent: boolean = false) {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
     const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
       method: 'GET',
-      signal: controller.signal,
+      signal: AbortSignal.timeout(3000), // 3 second timeout
     });
-
-    clearTimeout(timeout);
 
     if (!response.ok) {
       return { running: false, error: 'Service unavailable' };
@@ -230,6 +264,11 @@ export async function checkBackendStatus() {
       queue: data.queue,
     };
   } catch (error: unknown) {
+    // Only log if not in silent mode and not a network error
+    if (!silent && !(error instanceof TypeError)) {
+      console.warn('Backend service check failed:', error);
+    }
+    
     return {
       running: false,
       error:

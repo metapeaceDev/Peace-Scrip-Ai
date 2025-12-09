@@ -1,7 +1,7 @@
 /**
  * Advanced Buddhist Psychology Processors
  * Based on Digital Mind Model v14
- * 
+ *
  * Contains:
  * 1. TanhaToUpadana_Escalator - Escalates Tanha (craving) to Upadana (clinging)
  * 2. Kilesa_Eradication_Processor - Permanent kilesa removal via Magga-ñāṇa
@@ -61,7 +61,7 @@ export interface Samyojana {
 export class TanhaToUpadana_Escalator {
   /**
    * Monitors Tanha intensity over time and escalates to Upadana when threshold is crossed
-   * 
+   *
    * Logic:
    * - Track Tanha intensity for last N moments
    * - If Tanha > threshold for consecutive moments → create Upadana
@@ -107,7 +107,7 @@ export class TanhaToUpadana_Escalator {
     // Create new Upadana
     const upadana_type = this.determineUpadanaType(tanha_target);
     const avg_tanha = recent_moments.reduce((a, b) => a + b, 0) / recent_moments.length;
-    
+
     const new_upadana: ActiveUpadana = {
       type: upadana_type,
       intensity: this.UPADANA_BASE_INTENSITY + (avg_tanha - this.TANHA_THRESHOLD),
@@ -218,7 +218,7 @@ export class TanhaToUpadana_Escalator {
 export class Kilesa_Eradication_Processor {
   /**
    * Links Magga-ñāṇa (Path Knowledge) to permanent Kilesa/Anusaya removal
-   * 
+   *
    * Buddhist Path has 4 stages:
    * 1. Sotapatti (Stream-Entry) - Eradicates first 3 fetters
    * 2. Sakadagami (Once-Returner) - Weakens sensual lust & ill-will
@@ -453,9 +453,7 @@ export class Kilesa_Eradication_Processor {
         if (parami.nekkhamma.level >= 80) {
           requirements_met.push('Nekkhamma (Renunciation) sufficient');
         } else {
-          requirements_missing.push(
-            `Nekkhamma needs ${80 - parami.nekkhamma.level} more levels`
-          );
+          requirements_missing.push(`Nekkhamma needs ${80 - parami.nekkhamma.level} more levels`);
         }
 
         if (anusaya.kama_raga < 10) {
@@ -482,16 +480,11 @@ export class Kilesa_Eradication_Processor {
         if (parami.upekkha.level >= 120) {
           requirements_met.push('Upekkhā (Equanimity) perfected');
         } else {
-          requirements_missing.push(
-            `Upekkhā needs ${120 - parami.upekkha.level} more levels`
-          );
+          requirements_missing.push(`Upekkhā needs ${120 - parami.upekkha.level} more levels`);
         }
 
         const remaining_kilesa =
-          anusaya.kama_raga +
-          anusaya.patigha +
-          anusaya.mana +
-          anusaya.avijja;
+          anusaya.kama_raga + anusaya.patigha + anusaya.mana + anusaya.avijja;
 
         if (remaining_kilesa === 0) {
           requirements_met.push('All Kilesa eradicated');
@@ -511,15 +504,12 @@ export class Kilesa_Eradication_Processor {
   /**
    * Calculate progress towards next Magga stage (0-100%)
    */
-  static calculateMaggaProgress(
-    target_magga: MaggaStage,
-    character: Character
-  ): number {
+  static calculateMaggaProgress(target_magga: MaggaStage, character: Character): number {
     const check = this.canAttainMagga(target_magga, character);
     const total_requirements = check.requirements_met.length + check.requirements_missing.length;
-    
+
     if (total_requirements === 0) return 0;
-    
+
     return Math.floor((check.requirements_met.length / total_requirements) * 100);
   }
 }
@@ -533,14 +523,14 @@ export class Kilesa_Eradication_Processor {
  */
 export function getNextMaggaStage(current: MaggaStage | null): MaggaStage | null {
   if (!current) return 'sotapatti';
-  
+
   const stages: MaggaStage[] = ['sotapatti', 'sakadagami', 'anagami', 'arahatta'];
   const current_index = stages.indexOf(current);
-  
+
   if (current_index === -1 || current_index === stages.length - 1) {
     return null; // Already Arahant
   }
-  
+
   return stages[current_index + 1];
 }
 
@@ -554,6 +544,6 @@ export function getMaggaDescription(stage: MaggaStage): string {
     anagami: 'อนาคามี (ผู้ไม่กลับมา) - ตัดกามราคะและพยาบาทสิ้นเชิง เกิดสุทธาวาส',
     arahatta: 'อรหัตต์ (ผู้บรรลุธรรม) - ตัดกิเลสทั้งหมด ไม่เกิดอีก บรรลุปรินิพพาน',
   };
-  
+
   return descriptions[stage];
 }

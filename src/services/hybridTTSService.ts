@@ -46,7 +46,8 @@ export class HybridTTSService {
     // Try Psychology TTS first (if preferred)
     if (preferPsychology) {
       try {
-        const isAvailable = await psychologyTTS.checkHealth();
+        // Silent health check - don't spam console
+        const isAvailable = await psychologyTTS.checkHealth(true);
 
         if (isAvailable) {
           const audioBlob = await psychologyTTS.synthesize({
