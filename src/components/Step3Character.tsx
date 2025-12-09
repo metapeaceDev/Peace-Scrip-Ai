@@ -628,10 +628,6 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           // Retry generation without reference images
           try {
             const style = activeCharacter.imageStyle || CHARACTER_IMAGE_STYLES[0];
-            const completePhysicalInfo = {
-              ...activeCharacter.external,
-              ...activeCharacter.physical,
-            };
 
             console.log('🔄 Retrying without Face ID...');
             const completeCharacterData = {

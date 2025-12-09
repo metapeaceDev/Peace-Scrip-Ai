@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import type {
   ImageProvider,
   VideoProvider,
-  AutoSelectionCriteria,
   AIProviderSettings,
   ProviderStatus,
 } from '../../types';
@@ -13,7 +12,6 @@ import {
   getRecommendedSettings,
   saveRenderSettings,
   loadRenderSettings,
-  getDeviceDisplayName,
   estimateRenderTime,
   getCloudProviders,
   type SystemResources,

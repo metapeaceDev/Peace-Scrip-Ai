@@ -18,7 +18,6 @@ import Step5Output from './src/components/Step5Output';
 import Studio from './src/components/Studio';
 import TeamManager from './src/components/TeamManager';
 import AuthPage from './src/components/AuthPage';
-import ErrorBoundary from './src/components/ErrorBoundary';
 import ComfyUISetup from './src/components/ComfyUISetup';
 import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';
@@ -267,10 +266,13 @@ function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [showComfyUISetup, setShowComfyUISetup] = useState(false);
-  const [comfyUIReady, setComfyUIReady] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_comfyUIReady, setComfyUIReady] = useState(false);
   const [showLoRASetup, setShowLoRASetup] = useState(false);
-  const [loraReady, setLoraReady] = useState(false);
-  const [comfyUISkipped, setComfyUISkipped] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_loraReady, setLoraReady] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_comfyUISkipped, setComfyUISkipped] = useState(false);
   const [showSubscriptionDashboard, setShowSubscriptionDashboard] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);

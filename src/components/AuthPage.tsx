@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { firebaseAuth } from '../services/firebaseAuth';
-import { firestoreService } from '../services/firestoreService';
 
 interface SimpleUser {
   uid: string;

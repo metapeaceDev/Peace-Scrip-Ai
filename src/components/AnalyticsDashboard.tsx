@@ -12,7 +12,6 @@ import {
   calculateCostSavings,
   getUsageHistory,
   exportUsageData,
-  UsageStats,
 } from '../services/usageTracker';
 import { SUBSCRIPTION_PRICES } from '../services/paymentService';
 

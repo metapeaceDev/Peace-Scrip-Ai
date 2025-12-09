@@ -28,7 +28,6 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
   // Poster Editor State
   const [posterPrompt, setPosterPrompt] = useState('');
-  const [showPosterSettings, setShowPosterSettings] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-update prompt when title or genre changes

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine, PsychologySnapshot, PsychologyChange } from '../../types';
 import {
-  generateScene,
   generateStoryboardImage,
   generateStoryboardVideo,
   VIDEO_MODELS_CONFIG,
@@ -16,7 +15,7 @@ interface Step5OutputProps {
   setScriptData: React.Dispatch<React.SetStateAction<ScriptData>>;
   prevStep: () => void;
   onRegisterUndo?: () => void;
-  goToStep: (step: number) => void;
+  _goToStep: (step: number) => void;
   onNavigateToCharacter?: (
     charName: string,
     fromStep?: number,
@@ -333,7 +332,7 @@ const SceneDisplay: React.FC<{
   onSave: (updatedScene: GeneratedScene) => void;
   allCharacters: Character[];
   onRegisterUndo?: () => void;
-  goToStep: (step: number) => void;
+  _goToStep: (step: number) => void;
   onNavigateToCharacter?: (
     charName: string,
     fromStep?: number,
@@ -347,7 +346,7 @@ const SceneDisplay: React.FC<{
   onSave,
   allCharacters,
   onRegisterUndo,
-  goToStep,
+  _goToStep,
   onNavigateToCharacter,
   pointTitle,
   sceneIndex,
@@ -2952,7 +2951,7 @@ const SceneItem: React.FC<{
   onUpdate: (scene: GeneratedScene) => void;
   allCharacters: Character[];
   onRegisterUndo?: () => void;
-  goToStep: (step: number) => void;
+  _goToStep: (step: number) => void;
   onNavigateToCharacter?: (
     charName: string,
     fromStep?: number,
@@ -2972,7 +2971,7 @@ const SceneItem: React.FC<{
   onUpdate,
   allCharacters,
   onRegisterUndo,
-  goToStep,
+  _goToStep,
   onNavigateToCharacter,
   pointTitle,
   onDelete,
@@ -3059,7 +3058,7 @@ const SceneItem: React.FC<{
               onSave={onUpdate}
               allCharacters={allCharacters}
               onRegisterUndo={onRegisterUndo}
-              goToStep={goToStep}
+              _goToStep={_goToStep}
               onNavigateToCharacter={onNavigateToCharacter}
               pointTitle={pointTitle}
               sceneIndex={sceneIndex}
@@ -3085,7 +3084,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   setScriptData,
   prevStep,
   onRegisterUndo,
-  goToStep,
+  _goToStep,
   onNavigateToCharacter,
   returnToScene,
   onResetReturnToScene,
@@ -3769,7 +3768,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         onUpdate={updated => handleSceneUpdate(point.title, sceneIndex, updated)}
                         allCharacters={scriptData.characters}
                         onRegisterUndo={onRegisterUndo}
-                        goToStep={goToStep}
+                        _goToStep={_goToStep}
                         onNavigateToCharacter={onNavigateToCharacter}
                         pointTitle={point.title}
                         onDelete={() => handleRemoveScene(point.title, sceneIndex)}
