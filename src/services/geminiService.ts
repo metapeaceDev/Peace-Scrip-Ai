@@ -2321,6 +2321,496 @@ IMPORTANT: Use these psychological profiles to:
   }
 }
 
+/**
+ * Refine existing scene - improve quality while keeping core structure
+ */
+export async function refineScene(
+  scriptData: ScriptData,
+  plotPoint: PlotPoint,
+  existingScene: GeneratedScene,
+  sceneIndex: number,
+  totalScenesForPoint: number,
+  sceneNumber: number
+): Promise<GeneratedScene> {
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'scene',
+      details: { scriptType: 'scene' },
+    });
+    if (!quotaCheck.allowed) {
+      throw new Error(
+        `❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `อัพเกรดเป็นแผน ${quotaCheck.upgradeRequired} เพื่อใช้งานต่อ` : 'กรุณาตรวจสอบแผนของคุณ'}`
+      );
+    }
+  }
+
+  const languageInstruction =
+    scriptData.language === 'Thai'
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น).'
+      : 'Ensure all dialogue and descriptions are in English.';
+
+  const psychologyProfiles = scriptData.characters
+    .map(c => formatPsychologyForPrompt(c))
+    .join('\n\n');
+
+  // Serialize existing scene for reference
+  const existingSceneJson = JSON.stringify(existingScene.sceneDesign, null, 2);
+
+  const prompt = `
+You are refining Scene #${sceneNumber} for plot point: "${plotPoint.title}".
+${languageInstruction}
+
+EXISTING SCENE (use as foundation):
+${existingSceneJson}
+
+CHARACTER PSYCHOLOGY:
+${psychologyProfiles}
+
+YOUR TASK: REFINE AND IMPROVE this scene while KEEPING THE SAME CORE STRUCTURE.
+
+Improvements to make:
+1. **Dialogue**: Make more natural, character-appropriate, emotionally resonant
+2. **Descriptions**: Add sensory details, visual richness, atmosphere
+3. **Character Thoughts**: Deepen internal conflicts and motivations
+4. **Pacing**: Improve rhythm and tension build-up
+5. **Psychology**: Ensure character actions align with their mental states
+6. **Consistency**: Check continuity with previous scenes
+
+KEEP THE SAME:
+- Scene name and location concept
+- List of characters
+- Number of situations
+- Overall plot progression
+
+Return the SAME JSON structure as the existing scene, but with refined content.
+DO NOT change the structure, just improve the quality of content within it.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
+    });
+
+    if (!response || !response.text) {
+      throw new Error('No response from AI model');
+    }
+
+    const text = extractJsonFromResponse(response.text);
+    const parsedScene = JSON.parse(text);
+
+    // Validate response structure
+    if (!parsedScene.sceneDesign) {
+      throw new Error('AI response missing sceneDesign structure');
+    }
+    if (!Array.isArray(parsedScene.sceneDesign.situations)) {
+      throw new Error('AI response missing situations array');
+    }
+
+  const processedScene = {
+    ...parsedScene,
+    sceneNumber,
+    storyboard: existingScene.storyboard || [],
+    sceneDesign: {
+      ...parsedScene.sceneDesign,
+      situations: parsedScene.sceneDesign.situations.map((sit: any) => ({
+        ...sit,
+        dialogue: Array.isArray(sit.dialogue)
+          ? sit.dialogue.map((d: any) => ({
+              ...d,
+              id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
+            }))
+          : [],
+      })),
+    },
+  };
+
+  if (userId) {
+    await recordUsage(userId, {
+      type: 'scene',
+      credits: 1,
+    });
+  }
+
+  return processedScene;
+  } catch (error) {
+    console.error('Error refining scene:', error);
+    throw new Error(`Failed to refine scene: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Regenerate scene using user's edited data
+ */
+export async function regenerateWithEdits(
+  scriptData: ScriptData,
+  plotPoint: PlotPoint,
+  editedScene: GeneratedScene,
+  sceneIndex: number,
+  totalScenesForPoint: number,
+  sceneNumber: number
+): Promise<GeneratedScene> {
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    const quotaCheck = await checkQuota(userId, {
+      type: 'scene',
+      details: { scriptType: 'scene' },
+    });
+    if (!quotaCheck.allowed) {
+      throw new Error(
+        `❌ ${quotaCheck.reason}\n\n💡 ${quotaCheck.upgradeRequired ? `อัพเกรดเป็นแผน ${quotaCheck.upgradeRequired} เพื่อใช้งานต่อ` : 'กรุณาตรวจสอบแผนของคุณ'}`
+      );
+    }
+  }
+
+  const languageInstruction =
+    scriptData.language === 'Thai'
+      ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น).'
+      : 'Ensure all dialogue and descriptions are in English.';
+
+  const psychologyProfiles = scriptData.characters
+    .map(c => formatPsychologyForPrompt(c))
+    .join('\n\n');
+
+  const editedSceneJson = JSON.stringify(editedScene.sceneDesign, null, 2);
+  
+  // Extract character list from edited scene for emphasis
+  const editedCharacterList = editedScene.sceneDesign.characters || [];
+  const characterListStr = editedCharacterList.length > 0 
+    ? editedCharacterList.map(c => `"${c}"`).join(', ')
+    : 'No characters';
+
+  const prompt = `
+You are regenerating Scene #${sceneNumber} for plot point: "${plotPoint.title}".
+${languageInstruction}
+
+EDITED SCENE DATA (user has modified this):
+${editedSceneJson}
+
+⚠️ CRITICAL - CHARACTERS IN THIS SCENE (MUST PRESERVE EXACTLY):
+The user has explicitly set these characters for this scene: [${characterListStr}]
+YOU MUST include ALL these characters in your generated scene.
+DO NOT remove any character from this list.
+DO NOT add characters that are not in this list.
+The "characters" array in your response MUST be exactly: ${JSON.stringify(editedCharacterList)}
+
+CHARACTER PSYCHOLOGY:
+${psychologyProfiles}
+
+YOUR TASK: CREATE A NEW SCENE that INCORPORATES the user's edits.
+
+The user has manually edited:
+- Character dialogues (use them as-is or as inspiration)
+- Scene descriptions (respect their creative direction)
+- **Character list (MUST PRESERVE EXACTLY - do not add or remove any character)**
+- Situation structure (they may have reorganized)
+
+Your role:
+1. **PRESERVE the exact character list** - this is non-negotiable
+2. **KEEP all user edits** that are explicitly written
+3. **CREATE DIALOGUE FOR ALL CHARACTERS** - Every character in the list MUST have dialogue
+4. **EXPAND** on their ideas with more detail
+5. **FILL IN gaps** where data is missing or incomplete
+6. **ENSURE CONSISTENCY** with their creative vision
+7. **IMPROVE** technical aspects (shot list, props, breakdown) to match edited content
+8. **ALIGN** with character psychology profiles
+
+⚠️ CRITICAL REQUIREMENTS:
+
+**DIALOGUE:**
+- EVERY character in the characters list MUST appear in at least one situation's dialogue array
+- If a character is in the scene, they MUST speak (create natural dialogue for them)
+- Each situation can have multiple dialogue entries
+- Format: {"id": "unique-id", "character": "Name", "dialogue": "Dialogue in ${scriptData.language}"}
+
+**SHOT LIST:**
+- Generate at least 5-8 complete shots
+- EVERY shot MUST have ALL fields filled (scene, shot, description, durationSec, shotSize, perspective, movement, equipment, focalLength, aspectRatio, lightingDesign, colorTemperature, cast, costume, set)
+- Use proper technical values (ECU, CU, MS, LS, etc. for shotSize)
+- Include all characters who appear in each shot in the "cast" field
+
+**BREAKDOWN:**
+- Part 1: Production Information (1 complete row with ALL fields)
+- Part 2: Scene Details (at least 1 row per major shot/setup with ALL fields)
+- Part 3: Crew/Resource Requirements (at least 3-5 rows with ALL fields)
+- DO NOT leave any field empty - use appropriate values for each field
+
+CRITICAL: You MUST return a COMPLETE JSON structure with ALL required fields.
+The response MUST include:
+- sceneDesign (with name, location, timeOfDay, sceneDescription, characters, situations)
+  - Each situation MUST have dialogue array with entries for characters
+- shotList (array of at least 5-8 complete shots with ALL fields)
+- propList (array of props)
+- breakdown (part1, part2, part3 arrays with complete rows)
+
+Example structure showing COMPLETE data:
+{
+  "sceneDesign": {
+    "sceneName": "Scene name in ${scriptData.language}",
+    "location": "Location",
+    "timeOfDay": "Day/Night",
+    "sceneDescription": "Description in ${scriptData.language}",
+    "characters": ${JSON.stringify(editedCharacterList)},
+    "situations": [
+      {
+        "name": "Situation name",
+        "description": "What happens",
+        "dialogue": [
+          {"id": "dlg-1", "character": "${editedCharacterList[0] || 'Character1'}", "dialogue": "Dialogue in ${scriptData.language}"},
+          {"id": "dlg-2", "character": "${editedCharacterList[1] || 'Character2'}", "dialogue": "Response in ${scriptData.language}"}
+        ]
+      }
+    ]
+  },
+  "shotList": [
+    {
+      "scene": "${sceneNumber}",
+      "shot": 1,
+      "description": "Visual description",
+      "durationSec": 3,
+      "shotSize": "MS",
+      "perspective": "Eye-Level",
+      "movement": "Static",
+      "equipment": "Tripod",
+      "focalLength": "50mm",
+      "aspectRatio": "16:9",
+      "lightingDesign": "Lighting description",
+      "colorTemperature": "Neutral (5600K)",
+      "cast": "${editedCharacterList.join(', ')}",
+      "costume": "Costume description",
+      "set": "Set description"
+    }
+  ],
+  "propList": [{"scene": "${sceneNumber}", "propArt": "Prop name", "sceneSetDetails": "Details"}],
+  "breakdown": {
+    "part1": [{"Break Down Q": "1", "Company Name": "Company", "Theme": "Theme", "Filming Date": "01/01/2025", "Time Departure": "08:00", "Location": "Location", "Name Break Down": "Name", "Director": "Director", "First AD Phone": "+66-XXX-XXXX", "PM Phone": "+66-XXX-XXXX"}],
+    "part2": [{"No": "1", "Time": "08:00", "Scene": "${sceneNumber}", "Locations": "Location", "Int.-Ext.": "INT", "D or N": "D", "Set": "Set", "Scene Name": "Name", "Description": "Description", "Cast": "${editedCharacterList.join(', ')}", "Extra": "0", "Prop": "Props", "Costume": "Costume", "Remark": "Notes"}],
+    "part3": [{"Crew/Actors": "Role", "Extra": "0", "On Location Time": "08:00", "Ready to Shoot Time": "09:00", "Extra Included": "No", "Costume Total": "1", "Prop Total": "1", "Support": "Support", "Special Equipment": "Equipment"}]
+  }
+}
+
+Generate a complete scene with ALL fields properly filled. DO NOT use empty strings or skip any required fields.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
+    });
+
+    if (!response || !response.text) {
+      throw new Error('No response from AI model');
+    }
+
+    const text = extractJsonFromResponse(response.text);
+    const parsedScene = JSON.parse(text);
+
+    // Validate response structure
+    if (!parsedScene.sceneDesign) {
+      throw new Error('AI response missing sceneDesign structure');
+    }
+    if (!Array.isArray(parsedScene.sceneDesign.situations)) {
+      throw new Error('AI response missing situations array');
+    }
+
+    // ⚠️ CRITICAL VALIDATION - Restore user's character list if AI removed any
+    const aiCharacters = parsedScene.sceneDesign.characters || [];
+    const missingCharacters = editedCharacterList.filter(char => !aiCharacters.includes(char));
+    
+    if (missingCharacters.length > 0) {
+      console.warn(
+        `⚠️ AI removed characters that user added: ${missingCharacters.join(', ')}. Restoring them.`
+      );
+      // Force restore the exact character list from edited scene
+      parsedScene.sceneDesign.characters = [...editedCharacterList];
+    }
+    
+    // Also check if AI added unwanted characters
+    const extraCharacters = aiCharacters.filter((char: string) => !editedCharacterList.includes(char));
+    if (extraCharacters.length > 0) {
+      console.warn(
+        `⚠️ AI added characters that user didn't want: ${extraCharacters.join(', ')}. Removing them.`
+      );
+      parsedScene.sceneDesign.characters = [...editedCharacterList];
+    }
+
+    // ⚠️ VALIDATE DIALOGUE - Ensure all characters have dialogue
+    const charactersWithDialogue = new Set<string>();
+    parsedScene.sceneDesign.situations.forEach((sit: any) => {
+      if (Array.isArray(sit.dialogue)) {
+        sit.dialogue.forEach((d: any) => {
+          if (d.character) charactersWithDialogue.add(d.character);
+        });
+      }
+    });
+    
+    const charactersWithoutDialogue = editedCharacterList.filter(
+      char => !charactersWithDialogue.has(char)
+    );
+    
+    if (charactersWithoutDialogue.length > 0) {
+      console.warn(
+        `⚠️ Characters without dialogue: ${charactersWithoutDialogue.join(', ')}. This may affect scene completeness.`
+      );
+    }
+
+    // ⚠️ VALIDATE SHOT LIST
+    if (!Array.isArray(parsedScene.shotList) || parsedScene.shotList.length < 3) {
+      console.warn(
+        `⚠️ Shot list has only ${parsedScene.shotList?.length || 0} shots. Recommended: at least 5-8 shots.`
+      );
+    }
+
+    // ⚠️ VALIDATE BREAKDOWN
+    if (!parsedScene.breakdown) {
+      console.warn('⚠️ Missing breakdown structure');
+    } else {
+      if (!Array.isArray(parsedScene.breakdown.part1) || parsedScene.breakdown.part1.length === 0) {
+        console.warn('⚠️ Breakdown Part 1 is missing or empty');
+      }
+      if (!Array.isArray(parsedScene.breakdown.part2) || parsedScene.breakdown.part2.length === 0) {
+        console.warn('⚠️ Breakdown Part 2 is missing or empty');
+      }
+      if (!Array.isArray(parsedScene.breakdown.part3) || parsedScene.breakdown.part3.length === 0) {
+        console.warn('⚠️ Breakdown Part 3 is missing or empty');
+      }
+    }
+
+  const processedScene = {
+    ...parsedScene,
+    sceneNumber,
+    storyboard: editedScene.storyboard || [],
+    sceneDesign: {
+      ...parsedScene.sceneDesign,
+      characters: editedCharacterList, // Force use edited character list
+      situations: parsedScene.sceneDesign.situations.map((sit: any) => ({
+        ...sit,
+        dialogue: Array.isArray(sit.dialogue)
+          ? sit.dialogue.map((d: any) => ({
+              ...d,
+              id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
+            }))
+          : [],
+      })),
+    },
+  };
+
+  if (userId) {
+    await recordUsage(userId, {
+      type: 'scene',
+      credits: 1,
+    });
+  }
+
+  return processedScene;
+  } catch (error) {
+    console.error('Error regenerating with edits:', error);
+    throw new Error(`Failed to regenerate with edits: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Convert dialogue to character's specific dialect and speech pattern
+ * @param dialogue - Original dialogue text
+ * @param character - Character with speech pattern settings
+ * @param scriptData - Script context for better conversion
+ * @returns Converted dialogue with dialect/accent applied
+ */
+export async function convertDialogueToDialect(
+  dialogue: string,
+  character: Character,
+  scriptData: ScriptData
+): Promise<string> {
+  try {
+    const speechPattern = character.speechPattern;
+    
+    // If no speech pattern or standard settings, return original
+    if (!speechPattern || 
+        (speechPattern.dialect === 'standard' && 
+         speechPattern.accent === 'none' && 
+         speechPattern.formalityLevel === 'informal' && 
+         speechPattern.personality === 'polite')) {
+      return dialogue;
+    }
+
+    // Import dialect presets
+    const { DIALECT_PRESETS, ACCENT_PATTERNS } = await import('../../constants');
+    
+    // Build conversion prompt
+    const dialectInfo = speechPattern.dialect !== 'standard' 
+      ? DIALECT_PRESETS[speechPattern.dialect as keyof typeof DIALECT_PRESETS]
+      : null;
+    
+    const accentInfo = speechPattern.accent !== 'none'
+      ? ACCENT_PATTERNS[speechPattern.accent as keyof typeof ACCENT_PATTERNS]
+      : null;
+
+    const prompt = `คุณเป็นผู้เชี่ยวชาญด้านการแปลงภาษาพูดและสำเนียงในภาษาไทย
+
+# บริบทตัวละคร
+ชื่อ: ${character.name}
+อายุ: ${character.physical?.age || 'ไม่ระบุ'}
+บทบาท: ${character.role || 'ไม่ระบุ'}
+
+# การตั้งค่าการพูด
+${dialectInfo ? `
+ภาษาถิ่น: ${dialectInfo.name}
+คำศัพท์ทั่วไป: ${Object.entries(dialectInfo.commonWords || {}).map(([k, v]) => `"${k}" → "${v}"`).join(', ')}
+ท้ายประโยค: ${dialectInfo.suffixes?.join(', ') || 'ไม่มี'}
+ตัวอย่าง: ${dialectInfo.examples?.slice(0, 3).join(' | ') || 'ไม่มี'}
+` : ''}
+${accentInfo ? `
+สำเนียง: ${accentInfo.name}
+กฎการแปลง: ${accentInfo.rules?.map((r: { pattern: string; replacement: string }) => `"${r.pattern}" → "${r.replacement}"`).join(', ') || 'ไม่มี'}
+` : ''}
+ระดับความเป็นทางการ: ${speechPattern.formalityLevel}
+บุคลิกการพูด: ${speechPattern.personality}
+${speechPattern.speechTics && speechPattern.speechTics.length > 0 ? `คำพูดติดปาก: ${speechPattern.speechTics.join(', ')}` : ''}
+${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `วลีพิเศษ: ${speechPattern.customPhrases.join(' | ')}` : ''}
+
+# บทภาพยนตร์
+เรื่อง: ${scriptData.title || 'ไม่มีชื่อ'}
+ประเภท: ${scriptData.projectType || 'ไม่ระบุ'}
+
+# ภารกิจของคุณ
+แปลงบทสนทนาต่อไปนี้ให้เข้ากับภาษาถิ่น สำเนียง และบุคลิกการพูดของตัวละคร
+โดยคงความหมายและอารมณ์เดิมไว้ให้มากที่สุด
+
+บทสนทนาเดิม:
+"${dialogue}"
+
+คำแนะนำ:
+1. แทนที่คำศัพท์มาตรฐานด้วยคำถิ่น (ตามรายการ commonWords)
+2. เพิ่มคำท้ายประโยคตามภาษาถิ่น (เช่น "เด้อ" "บ่" "จ๊า")
+3. ปรับสำเนียงตามกฎการแปลง (ถ้ามี)
+4. สอดแทรกคำพูดติดปากอย่างเป็นธรรมชาติ (ถ้ามี)
+5. ใช้วลีพิเศษที่เหมาะสมกับสถานการณ์ (ถ้ามี)
+6. ปรับระดับความสุภาพตามการตั้งค่า
+7. แสดงบุคลิกการพูดให้เห็นชัดเจน
+
+# ผลลัพธ์
+ตอบกลับด้วยบทสนทนาที่แปลงแล้วเท่านั้น ไม่ต้องอธิบาย ไม่ต้องใส่เครื่องหมายคำพูด แค่ข้อความที่แปลงแล้ว`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt,
+    });
+    
+    const convertedDialogue = response.text.trim();
+
+    // Remove surrounding quotes if present
+    const cleaned = convertedDialogue.replace(/^["']|["']$/g, '');
+
+    return cleaned || dialogue; // Fallback to original if conversion fails
+  } catch (error) {
+    console.error('Error converting dialogue to dialect:', error);
+    return dialogue; // Return original on error
+  }
+}
+
 export async function generateStoryboardImage(
   prompt: string,
   characters?: Character[],

@@ -21,6 +21,9 @@ import ComfyUISetup from './src/components/ComfyUISetup';
 import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';
 import SubscriptionDashboard from './src/components/SubscriptionDashboard';
+import StripeCheckout from './src/components/StripeCheckout';
+import PaymentSuccess from './src/components/PaymentSuccess';
+import PaymentCancel from './src/components/PaymentCancel';
 import { LanguageSwitcher } from './src/components/LanguageSwitcher';
 import QuotaWidget from './src/components/QuotaWidget';
 import { api } from './src/services/api';
@@ -254,6 +257,9 @@ function App() {
   const [loraReady, setLoraReady] = useState(false);
   const [comfyUISkipped, setComfyUISkipped] = useState(false);
   const [showSubscriptionDashboard, setShowSubscriptionDashboard] = useState(false);
+  const [showStripeCheckout, setShowStripeCheckout] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [showPaymentCancel, setShowPaymentCancel] = useState(false);
 
   const [view, setView] = useState<'studio' | 'editor'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
@@ -1005,7 +1011,30 @@ function App() {
       </div>
     );
 
-  // Show Subscription Dashboard if user clicks upgrade/subscription
+  // Show Stripe Checkout if user clicks upgrade
+  if (showStripeCheckout) {
+    return <StripeCheckout onClose={() => setShowStripeCheckout(false)} />;
+  }
+
+  // Show Payment Success Page
+  if (showPaymentSuccess) {
+    return <PaymentSuccess onContinue={() => setShowPaymentSuccess(false)} />;
+  }
+
+  // Show Payment Cancel Page
+  if (showPaymentCancel) {
+    return (
+      <PaymentCancel
+        onRetry={() => {
+          setShowPaymentCancel(false);
+          setShowStripeCheckout(true);
+        }}
+        onBack={() => setShowPaymentCancel(false)}
+      />
+    );
+  }
+
+  // Show Subscription Dashboard if user clicks manage subscription
   if (showSubscriptionDashboard) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -1129,7 +1158,7 @@ function App() {
 
             {/* Current Plan */}
             {currentUser && (
-              <QuotaWidget onUpgradeClick={() => setShowSubscriptionDashboard(true)} />
+              <QuotaWidget onUpgradeClick={() => setShowStripeCheckout(true)} />
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -1196,7 +1225,7 @@ function App() {
             <div className="flex items-center gap-2">
               <LanguageSwitcher compact />
               {currentUser && (
-                <QuotaWidget onUpgradeClick={() => setShowSubscriptionDashboard(true)} />
+                <QuotaWidget onUpgradeClick={() => setShowStripeCheckout(true)} />
               )}
             </div>
 

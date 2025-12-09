@@ -21,6 +21,9 @@ export interface SubscriptionPrice {
   yearlyPrice: number; // in THB (with discount)
   currency: 'THB' | 'USD';
   earlyBirdDiscount?: number; // percentage (0-100)
+  stripeMonthlyLink?: string; // Stripe Payment Link for monthly subscription
+  stripeYearlyLink?: string; // Stripe Payment Link for yearly subscription
+  stripeEarlyBirdLink?: string; // Stripe Payment Link for Early Bird discount
 }
 
 export interface PaymentIntent {
@@ -75,20 +78,29 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
     monthlyPrice: 299,
     yearlyPrice: 2990, // 10 months price (2 months free)
     currency: 'THB',
-    earlyBirdDiscount: 50, // 50% OFF for early birds
+    earlyBirdDiscount: 50, // 50% OFF for early birds → ฿150/month
+    stripeMonthlyLink: 'https://buy.stripe.com/dRmbJ12Ir9bd8mwfnE1kA0g',
+    stripeYearlyLink: 'https://buy.stripe.com/aFa3cvcj1879byI2AS1kA0h',
+    stripeEarlyBirdLink: 'https://buy.stripe.com/00weVd0Aj5Z16eo8Zg1kA0i',
   },
   pro: {
     tier: 'pro',
     monthlyPrice: 999,
     yearlyPrice: 9990, // 10 months price (2 months free)
     currency: 'THB',
-    earlyBirdDiscount: 50,
+    earlyBirdDiscount: 50, // 50% OFF for early birds → ฿500/month
+    stripeMonthlyLink: 'https://buy.stripe.com/eVq4gz5UDfzBeKU5N41kA0j',
+    stripeYearlyLink: 'https://buy.stripe.com/fZu28rbeXafh9qAgrI1kA0k',
+    stripeEarlyBirdLink: 'https://buy.stripe.com/00w00j5UD1ILfOY8Zg1kA0m',
   },
   enterprise: {
     tier: 'enterprise',
-    monthlyPrice: 8000, // Starting price
+    monthlyPrice: 8000, // Starting price (custom pricing)
     yearlyPrice: 80000,
     currency: 'THB',
+    earlyBirdDiscount: 0, // Enterprise: Contact Sales
+    stripeMonthlyLink: '', // TODO: Contact Sales (no direct checkout)
+    stripeYearlyLink: '', // TODO: Contact Sales (no direct checkout)
   },
 };
 

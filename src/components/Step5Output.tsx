@@ -9,6 +9,7 @@ import {
 import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../../constants';
 import { hasAccessToModel } from '../services/userStore';
+import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 
 interface Step5OutputProps {
   scriptData: ScriptData;
@@ -340,6 +341,7 @@ const SceneDisplay: React.FC<{
   ) => void;
   pointTitle: string;
   sceneIndex: number;
+  scriptData: ScriptData;
 }> = ({
   sceneData,
   onSave,
@@ -349,6 +351,7 @@ const SceneDisplay: React.FC<{
   onNavigateToCharacter,
   pointTitle,
   sceneIndex,
+  scriptData,
 }) => {
   const [activeTab, setActiveTab] = useState('design');
   const [isEditing, setIsEditing] = useState(false);
@@ -391,6 +394,12 @@ const SceneDisplay: React.FC<{
   // Deletion confirmation states (UI based to avoid window.confirm issues)
   const [confirmDeleteSituationId, setConfirmDeleteSituationId] = useState<number | null>(null);
   const [confirmDeleteShotId, setConfirmDeleteShotId] = useState<number | null>(null);
+  const [confirmDeleteShotListId, setConfirmDeleteShotListId] = useState<number | null>(null);
+  const [confirmDeletePropId, setConfirmDeletePropId] = useState<number | null>(null);
+  const [confirmDeleteBreakdownId, setConfirmDeleteBreakdownId] = useState<{
+    part: 'part1' | 'part2' | 'part3';
+    index: number;
+  } | null>(null);
 
   // Ref for stopping auto-generation
   const abortGenerationRef = useRef(false);
@@ -991,6 +1000,137 @@ const SceneDisplay: React.FC<{
     }
   };
 
+  // Delete Shot List Item
+  const handleDeleteShotListItem = (index: number) => {
+    if (confirmDeleteShotListId === index) {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const newShotList = [...prev.shotList];
+        newShotList.splice(index, 1);
+        const updated = { ...prev, shotList: newShotList };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmDeleteShotListId(null);
+    } else {
+      setConfirmDeleteShotListId(index);
+      setTimeout(() => setConfirmDeleteShotListId(null), 3000);
+    }
+  };
+
+  // Delete Prop List Item
+  const handleDeletePropListItem = (index: number) => {
+    if (confirmDeletePropId === index) {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const newPropList = [...prev.propList];
+        newPropList.splice(index, 1);
+        const updated = { ...prev, propList: newPropList };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmDeletePropId(null);
+    } else {
+      setConfirmDeletePropId(index);
+      setTimeout(() => setConfirmDeletePropId(null), 3000);
+    }
+  };
+
+  // Clear All functions
+  const [confirmClearSection, setConfirmClearSection] = useState<string | null>(null);
+
+  const handleClearAllShotList = () => {
+    if (confirmClearSection === 'shotlist') {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const updated = { ...prev, shotList: [] as any[] };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmClearSection(null);
+    } else {
+      setConfirmClearSection('shotlist');
+      setTimeout(() => setConfirmClearSection(null), 3000);
+    }
+  };
+
+  const handleClearAllStoryboard = () => {
+    if (confirmClearSection === 'storyboard') {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const updated = { ...prev, storyboard: [] as any[] };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmClearSection(null);
+    } else {
+      setConfirmClearSection('storyboard');
+      setTimeout(() => setConfirmClearSection(null), 3000);
+    }
+  };
+
+  const handleClearAllPropList = () => {
+    if (confirmClearSection === 'proplist') {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const updated = { ...prev, propList: [] as any[] };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmClearSection(null);
+    } else {
+      setConfirmClearSection('proplist');
+      setTimeout(() => setConfirmClearSection(null), 3000);
+    }
+  };
+
+  // Delete Breakdown Item
+  const handleDeleteBreakdownItem = (part: 'part1' | 'part2' | 'part3', index: number) => {
+    if (
+      confirmDeleteBreakdownId &&
+      confirmDeleteBreakdownId.part === part &&
+      confirmDeleteBreakdownId.index === index
+    ) {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const newBreakdown = { ...prev.breakdown };
+        const partArray = [...newBreakdown[part]];
+        partArray.splice(index, 1);
+        newBreakdown[part] = partArray;
+        const updated = { ...prev, breakdown: newBreakdown };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmDeleteBreakdownId(null);
+    } else {
+      setConfirmDeleteBreakdownId({ part, index });
+      setTimeout(() => setConfirmDeleteBreakdownId(null), 3000);
+    }
+  };
+
+  // Clear All Breakdown
+  const handleClearAllBreakdown = () => {
+    if (confirmClearSection === 'breakdown') {
+      if (onRegisterUndo) onRegisterUndo();
+      setEditedScene(prev => {
+        const updated = {
+          ...prev,
+          breakdown: {
+            part1: [] as any[],
+            part2: [] as any[],
+            part3: [] as any[],
+          },
+        };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      setConfirmClearSection(null);
+    } else {
+      setConfirmClearSection('breakdown');
+      setTimeout(() => setConfirmClearSection(null), 3000);
+    }
+  };
+
   // Get parsed location for display view
   const displayLocation = parseLocationParts(
     editedScene.sceneDesign.location || 'INT. UNKNOWN - DAY'
@@ -1013,6 +1153,13 @@ const SceneDisplay: React.FC<{
                 {h.replace(/([A-Z])/g, ' $1').trim()}
               </th>
             ))}
+            {/* Add Actions column for Shot List, Prop List, and Breakdown */}
+            {(section === 'shotList' || section === 'propList' || section === 'breakdown') &&
+              isEditing && (
+                <th scope="col" className="px-4 py-3 min-w-[100px] whitespace-nowrap text-center">
+                  Actions
+                </th>
+              )}
           </tr>
         </thead>
         <tbody>
@@ -1108,6 +1255,63 @@ const SceneDisplay: React.FC<{
                   </td>
                 );
               })}
+              {/* Delete button for Shot List, Prop List, and Breakdown */}
+              {(section === 'shotList' || section === 'propList' || section === 'breakdown') &&
+                isEditing && (
+                  <td className="px-2 py-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (section === 'shotList') {
+                          handleDeleteShotListItem(i);
+                        } else if (section === 'propList') {
+                          handleDeletePropListItem(i);
+                        } else if (section === 'breakdown' && subSection) {
+                          handleDeleteBreakdownItem(subSection, i);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                        (section === 'shotList' && confirmDeleteShotListId === i) ||
+                        (section === 'propList' && confirmDeletePropId === i) ||
+                        (section === 'breakdown' &&
+                          confirmDeleteBreakdownId?.part === subSection &&
+                          confirmDeleteBreakdownId?.index === i)
+                          ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                          : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                      }`}
+                      title={
+                        (section === 'shotList' && confirmDeleteShotListId === i) ||
+                        (section === 'propList' && confirmDeletePropId === i) ||
+                        (section === 'breakdown' &&
+                          confirmDeleteBreakdownId?.part === subSection &&
+                          confirmDeleteBreakdownId?.index === i)
+                          ? 'Click again to confirm'
+                          : 'Delete item'
+                      }
+                    >
+                      {(section === 'shotList' && confirmDeleteShotListId === i) ||
+                      (section === 'propList' && confirmDeletePropId === i) ||
+                      (section === 'breakdown' &&
+                        confirmDeleteBreakdownId?.part === subSection &&
+                        confirmDeleteBreakdownId?.index === i) ? (
+                        '✓ Confirm?'
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </td>
+                )}
             </tr>
           ))}
         </tbody>
@@ -1624,6 +1828,39 @@ const SceneDisplay: React.FC<{
                                   className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-1 text-white text-sm resize-none"
                                   placeholder="Dialogue line"
                                 />
+                                {/* Apply Dialect Button */}
+                                {(() => {
+                                  const character = scriptData.characters.find(c => c.name === line.character);
+                                  const hasSpeechPattern = character?.speechPattern && 
+                                    (character.speechPattern.dialect !== 'standard' || 
+                                     character.speechPattern.accent !== 'none');
+                                  
+                                  return hasSpeechPattern ? (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!character) return;
+                                        try {
+                                          const { convertDialogueToDialect } = await import('../services/geminiService');
+                                          const converted = await convertDialogueToDialect(
+                                            line.dialogue,
+                                            character,
+                                            scriptData
+                                          );
+                                          updateDialogue(i, line.id, 'dialogue', converted);
+                                        } catch (error) {
+                                          console.error('Failed to convert dialect:', error);
+                                          alert('ไม่สามารถแปลงภาษาได้ กรุณาลองใหม่');
+                                        }
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-1 bg-cyan-900/50 hover:bg-cyan-800 border border-cyan-700 hover:border-cyan-500 rounded text-cyan-300 hover:text-white transition-all shrink-0 text-xs"
+                                      title={`Apply ${character.speechPattern?.dialect} dialect`}
+                                    >
+                                      🔄
+                                      <span className="hidden sm:inline">Dialect</span>
+                                    </button>
+                                  ) : null;
+                                })()}
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveDialogue(i, line.id)}
@@ -1694,14 +1931,49 @@ const SceneDisplay: React.FC<{
           </div>
         )}
         {/* Fixed: Use standardized headers for Shot List to ensure all columns appear */}
-        {activeTab === 'shotlist' &&
-          ((editedScene.shotList?.length || 0) > 0 || isEditing ? (
-            renderEditableTable(SHOT_LIST_HEADERS, editedScene.shotList || [], 'shotList')
-          ) : (
-            <p className="text-gray-500 italic">
-              No shot list available. Click Edit to start adding shots.
-            </p>
-          ))}
+        {activeTab === 'shotlist' && (
+          <div className="space-y-4">
+            {isEditing && (editedScene.shotList?.length || 0) > 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleClearAllShotList}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                    confirmClearSection === 'shotlist'
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                      : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                  }`}
+                  title={
+                    confirmClearSection === 'shotlist'
+                      ? 'Click again to confirm delete all'
+                      : 'Clear all shots from list'
+                  }
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {confirmClearSection === 'shotlist' ? 'Confirm Clear All?' : 'Clear All Shots'}
+                </button>
+              </div>
+            )}
+            {(editedScene.shotList?.length || 0) > 0 || isEditing ? (
+              renderEditableTable(SHOT_LIST_HEADERS, editedScene.shotList || [], 'shotList')
+            ) : (
+              <p className="text-gray-500 italic">
+                No shot list available. Click Edit to start adding shots.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* New Storyboard Tab */}
         {activeTab === 'storyboard' && (
@@ -1756,6 +2028,37 @@ const SceneDisplay: React.FC<{
                 </div>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
+                {/* Clear All Storyboard button */}
+                {(editedScene.storyboard?.length || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllStoryboard}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                      confirmClearSection === 'storyboard'
+                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                        : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                    }`}
+                    title={
+                      confirmClearSection === 'storyboard'
+                        ? 'Click again to confirm'
+                        : 'Clear all storyboard images/videos'
+                    }
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {confirmClearSection === 'storyboard' ? 'Confirm?' : 'Clear All'}
+                  </button>
+                )}
                 {isGeneratingAll ? (
                   <button
                     type="button"
@@ -1855,26 +2158,23 @@ const SceneDisplay: React.FC<{
                             <button
                               type="button"
                               onClick={() => handleDeleteShotImage(shot.shot)}
-                              className={`p-1.5 rounded-full text-white transition-colors ${confirmDeleteShotId === shot.shot ? 'bg-red-600' : 'bg-black/60 hover:bg-red-900/80'}`}
-                              title="Delete Media"
+                              className={`p-2 rounded-lg text-white font-bold transition-all shadow-lg ${
+                                confirmDeleteShotId === shot.shot
+                                  ? 'bg-red-600 hover:bg-red-700 animate-pulse scale-110'
+                                  : 'bg-black/70 hover:bg-red-600 backdrop-blur-sm'
+                              }`}
+                              title={
+                                confirmDeleteShotId === shot.shot
+                                  ? '✓ Click again to confirm delete'
+                                  : 'Delete storyboard media'
+                              }
                             >
                               {confirmDeleteShotId === shot.shot ? (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
+                                <span className="text-xs px-1">Confirm?</span>
                               ) : (
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
+                                  className="h-5 w-5"
                                   viewBox="0 0 20 20"
                                   fill="currentColor"
                                 >
@@ -2012,18 +2312,91 @@ const SceneDisplay: React.FC<{
           </div>
         )}
 
-        {activeTab === 'proplist' &&
-          ((editedScene.propList?.length || 0) > 0 ? (
-            renderEditableTable(
-              Object.keys(editedScene.propList?.[0] || {}),
-              editedScene.propList || [],
-              'propList'
-            )
-          ) : (
-            <p className="text-gray-500 italic">No prop list available.</p>
-          ))}
+        {activeTab === 'proplist' && (
+          <div className="space-y-4">
+            {isEditing && (editedScene.propList?.length || 0) > 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleClearAllPropList}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                    confirmClearSection === 'proplist'
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                      : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                  }`}
+                  title={
+                    confirmClearSection === 'proplist'
+                      ? 'Click again to confirm delete all'
+                      : 'Clear all props from list'
+                  }
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {confirmClearSection === 'proplist' ? 'Confirm Clear All?' : 'Clear All Props'}
+                </button>
+              </div>
+            )}
+            {(editedScene.propList?.length || 0) > 0 ? (
+              renderEditableTable(
+                Object.keys(editedScene.propList?.[0] || {}),
+                editedScene.propList || [],
+                'propList'
+              )
+            ) : (
+              <p className="text-gray-500 italic">No prop list available.</p>
+            )}
+          </div>
+        )}
         {activeTab === 'breakdown' && (
           <div className="space-y-4">
+            {/* Clear All Breakdown button */}
+            {isEditing &&
+              ((editedScene.breakdown?.part1?.length || 0) > 0 ||
+                (editedScene.breakdown?.part2?.length || 0) > 0 ||
+                (editedScene.breakdown?.part3?.length || 0) > 0) && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleClearAllBreakdown}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                      confirmClearSection === 'breakdown'
+                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                        : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                    }`}
+                    title={
+                      confirmClearSection === 'breakdown'
+                        ? 'Click again to confirm delete all'
+                        : 'Clear all breakdown data (Part 1, 2, 3)'
+                    }
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {confirmClearSection === 'breakdown'
+                      ? 'Confirm Clear All?'
+                      : 'Clear All Breakdown'}
+                  </button>
+                </div>
+              )}
             <h4 className="font-bold text-cyan-400">Part 1: General Info</h4>
             {(editedScene.breakdown?.part1?.length || 0) > 0 ? (
               renderEditableTable(
@@ -2084,6 +2457,9 @@ const SceneItem: React.FC<{
     sceneContext?: { pointTitle: string; sceneIndex: number }
   ) => void;
   pointTitle: string; // Needed for anchor ID
+  onDelete?: () => void;
+  canDelete?: boolean;
+  scriptData: ScriptData; // Added for dialect conversion
 }> = ({
   sceneIndex,
   sceneNumber,
@@ -2097,6 +2473,9 @@ const SceneItem: React.FC<{
   goToStep,
   onNavigateToCharacter,
   pointTitle,
+  onDelete,
+  canDelete,
+  scriptData,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -2136,13 +2515,37 @@ const SceneItem: React.FC<{
             )}
           </h4>
         </div>
-        <div className="flex items-center space-x-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center space-x-2" onClick={e => e.stopPropagation()}>
           <div className="text-sm font-mono w-20 text-right">
             {status === 'pending' && <span className="text-gray-500">Pending</span>}
             {status === 'done' && <span className="text-green-400">✓ Done</span>}
             {status === 'error' && <span className="text-red-400">✗ Error</span>}
           </div>
           <div className="w-24 h-6 text-center">{button}</div>
+          {canDelete && onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md transition-colors flex items-center gap-1"
+              title={`Delete Scene ${sceneNumber}`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -2158,6 +2561,7 @@ const SceneItem: React.FC<{
               onNavigateToCharacter={onNavigateToCharacter}
               pointTitle={pointTitle}
               sceneIndex={sceneIndex}
+              scriptData={scriptData}
             />
           ) : (
             <div className="mt-4 p-10 flex items-center justify-center bg-gray-900/20 rounded-lg border-2 border-dashed border-gray-700">
@@ -2204,6 +2608,17 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
+  
+  // Regenerate Modal State
+  const [regenerateModal, setRegenerateModal] = useState<{
+    isOpen: boolean;
+    plotPoint: PlotPoint | null;
+    sceneIndex: number;
+  }>({
+    isOpen: false,
+    plotPoint: null,
+    sceneIndex: -1,
+  });
 
   // --- AUTO SCROLL EFFECT ---
   useEffect(() => {
@@ -2248,7 +2663,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   }, [scriptData.structure, scriptData.scenesPerPoint]);
 
   const handleGenerateSingle = useCallback(
-    async (plotPoint: PlotPoint, sceneIndex: number) => {
+    async (plotPoint: PlotPoint, sceneIndex: number, mode: 'fresh' | 'refine' | 'use-edited' = 'fresh') => {
       if (onRegisterUndo) onRegisterUndo();
       setGlobalError(null);
       setGenerationStatus(prev => ({
@@ -2257,17 +2672,58 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       }));
       try {
         const sceneNumber = sceneNumberMap[plotPoint.title][sceneIndex];
-        const scene = await generateScene(
-          scriptData,
-          plotPoint,
-          sceneIndex,
-          scriptData.scenesPerPoint[plotPoint.title],
-          sceneNumber
-        );
+        const existingScene = scriptData.generatedScenes[plotPoint.title]?.[sceneIndex];
+        
+        let scene;
+        
+        // Import services dynamically
+        const { generateScene, refineScene, regenerateWithEdits } = await import('../services/geminiService');
+        
+        // Choose generation method based on mode
+        switch (mode) {
+          case 'refine':
+            if (!existingScene) {
+              throw new Error('ไม่พบฉากเดิมสำหรับการปรับปรุง');
+            }
+            scene = await refineScene(
+              scriptData,
+              plotPoint,
+              existingScene,
+              sceneIndex,
+              scriptData.scenesPerPoint[plotPoint.title],
+              sceneNumber
+            );
+            break;
+            
+          case 'use-edited':
+            if (!existingScene) {
+              throw new Error('ไม่พบฉากที่แก้ไขแล้ว');
+            }
+            scene = await regenerateWithEdits(
+              scriptData,
+              plotPoint,
+              existingScene,
+              sceneIndex,
+              scriptData.scenesPerPoint[plotPoint.title],
+              sceneNumber
+            );
+            break;
+            
+          case 'fresh':
+          default:
+            scene = await generateScene(
+              scriptData,
+              plotPoint,
+              sceneIndex,
+              scriptData.scenesPerPoint[plotPoint.title],
+              sceneNumber
+            );
+            break;
+        }
 
         // --- PSYCHOLOGY UPDATE START ---
-        let updatedTimelines = { ...(scriptData.psychologyTimelines || {}) };
-        let updatedCharacters = [...scriptData.characters];
+        const updatedTimelines = { ...(scriptData.psychologyTimelines || {}) };
+        const updatedCharacters = [...scriptData.characters];
 
         // Find characters present in this scene
         const presentCharNames = scene.sceneDesign.characters;
@@ -2445,39 +2901,65 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     }));
   };
 
-  const handleRemoveScene = (pointTitle: string) => {
-    const currentCount = scriptData.scenesPerPoint[pointTitle] || 0;
-    if (currentCount <= 0) return;
+  const handleRemoveScene = (pointTitle: string, sceneIndex: number) => {
+    // Use actual scene count from generatedScenes array instead of scenesPerPoint
+    const actualScenes = scriptData.generatedScenes[pointTitle] || [];
+    const actualCount = actualScenes.length;
+    const recordedCount = scriptData.scenesPerPoint[pointTitle] || 0;
+    const currentCount = Math.max(actualCount, recordedCount);
+    
+    console.log('🗑️ handleRemoveScene called:', { 
+      pointTitle, 
+      sceneIndex, 
+      recordedCount, 
+      actualCount, 
+      currentCount 
+    });
+    
+    if (currentCount <= 0 || sceneIndex < 0 || sceneIndex >= currentCount) {
+      console.warn('❌ Cannot delete - invalid index:', { currentCount, sceneIndex });
+      return;
+    }
 
-    const lastIndex = currentCount - 1;
-    const hasData = scriptData.generatedScenes[pointTitle]?.[lastIndex];
+    const hasData = scriptData.generatedScenes[pointTitle]?.[sceneIndex];
+    console.log('📊 Scene has data:', hasData ? 'YES' : 'NO');
 
     // Register Undo
     if (onRegisterUndo) onRegisterUndo();
 
     if (hasData) {
+      const sceneNumberOffset = scriptData.structure
+        .slice(0, scriptData.structure.findIndex(p => p.title === pointTitle))
+        .reduce((sum, p) => sum + (scriptData.scenesPerPoint[p.title] || 1), 0);
+      const continuousSceneNumber = sceneNumberOffset + sceneIndex + 1;
+      
       if (
         !window.confirm(
-          `Are you sure you want to delete the last scene (Scene ${lastIndex + 1}) in "${pointTitle}"? This cannot be undone.`
+          `Are you sure you want to delete Scene ${continuousSceneNumber} in "${pointTitle}"? This cannot be undone.`
         )
       ) {
+        console.log('❌ User cancelled deletion');
         return;
       }
     }
+
+    console.log('✅ Proceeding with deletion...');
 
     setScriptData(prev => {
       const newScenes = prev.generatedScenes[pointTitle]
         ? [...prev.generatedScenes[pointTitle]]
         : [];
-      if (newScenes.length > lastIndex) {
-        newScenes.splice(lastIndex, 1);
+      if (newScenes.length > sceneIndex) {
+        newScenes.splice(sceneIndex, 1);
       }
+
+      console.log('🔄 Updated scenes:', { before: prev.generatedScenes[pointTitle]?.length || 0, after: newScenes.length });
 
       return {
         ...prev,
         scenesPerPoint: {
           ...prev.scenesPerPoint,
-          [pointTitle]: currentCount - 1,
+          [pointTitle]: Math.max(0, newScenes.length),
         },
         generatedScenes: {
           ...prev.generatedScenes,
@@ -2486,9 +2968,21 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       };
     });
 
+    // Reindex generation status
     setGenerationStatus(prev => {
-      const newStatusGroup = { ...(prev[pointTitle] || {}) };
-      delete newStatusGroup[lastIndex];
+      const oldStatusGroup = { ...(prev[pointTitle] || {}) };
+      const newStatusGroup: Record<number, Status> = {};
+      
+      Object.keys(oldStatusGroup).forEach(key => {
+        const idx = parseInt(key);
+        if (idx < sceneIndex) {
+          newStatusGroup[idx] = oldStatusGroup[idx];
+        } else if (idx > sceneIndex) {
+          newStatusGroup[idx - 1] = oldStatusGroup[idx];
+        }
+        // Skip sceneIndex (deleted scene)
+      });
+
       return {
         ...prev,
         [pointTitle]: newStatusGroup,
@@ -2510,7 +3004,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return (
           <button
             type="button"
-            onClick={() => handleGenerateSingle(point, sceneIndex)}
+            onClick={() => setRegenerateModal({ isOpen: true, plotPoint: point, sceneIndex })}
             className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-md"
           >
             Regenerate
@@ -2520,7 +3014,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return (
           <button
             type="button"
-            onClick={() => handleGenerateSingle(point, sceneIndex)}
+            onClick={() => handleGenerateSingle(point, sceneIndex, 'fresh')}
             className="text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md"
           >
             Retry
@@ -2530,7 +3024,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return (
           <button
             type="button"
-            onClick={() => handleGenerateSingle(point, sceneIndex)}
+            onClick={() => handleGenerateSingle(point, sceneIndex, 'fresh')}
             className="text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded-md"
           >
             Generate
@@ -2539,8 +3033,36 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     }
   };
 
+  // Check if scene has edits (simple check: compare with original)
+  const hasSceneEdits = (point: PlotPoint, sceneIndex: number): boolean => {
+    const scene = scriptData.generatedScenes[point.title]?.[sceneIndex];
+    // For now, assume if scene exists, it might have edits
+    // In the future, could track edit history
+    return !!scene;
+  };
+
   return (
     <div className="p-6 animate-fade-in pb-24">
+      {/* Regenerate Options Modal */}
+      <RegenerateOptionsModal
+        isOpen={regenerateModal.isOpen}
+        onClose={() => setRegenerateModal({ isOpen: false, plotPoint: null, sceneIndex: -1 })}
+        onConfirm={(mode: RegenerationMode) => {
+          if (regenerateModal.plotPoint) {
+            handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode);
+          }
+        }}
+        sceneName={regenerateModal.plotPoint ? 
+          (scriptData.generatedScenes[regenerateModal.plotPoint.title]?.[regenerateModal.sceneIndex]?.sceneDesign?.sceneName || 
+           `${regenerateModal.plotPoint.title} - Scene ${regenerateModal.sceneIndex + 1}`) :
+          'Unknown Scene'
+        }
+        hasEdits={regenerateModal.plotPoint ? 
+          hasSceneEdits(regenerateModal.plotPoint, regenerateModal.sceneIndex) : 
+          false
+        }
+      />
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
@@ -2649,7 +3171,14 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       )}
 
       <div className="space-y-8">
-        {scriptData.structure.map((point, pointIndex) => (
+        {scriptData.structure.map((point, pointIndex) => {
+          // Calculate continuous scene number
+          let sceneNumberOffset = 0;
+          for (let i = 0; i < pointIndex; i++) {
+            sceneNumberOffset += scriptData.scenesPerPoint[scriptData.structure[i].title] || 1;
+          }
+
+          return (
           <div
             key={pointIndex}
             className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
@@ -2683,6 +3212,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                 (_, sceneIndex) => {
                   const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
                   const status = generationStatus[point.title]?.[sceneIndex] || 'pending';
+                  const continuousSceneNumber = sceneNumberOffset + sceneIndex + 1;
+                  const totalScenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
 
                   return (
                     <div
@@ -2692,8 +3223,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     >
                       <SceneItem
                         sceneIndex={sceneIndex}
-                        sceneNumber={sceneIndex + 1}
-                        isPart={scriptData.scenesPerPoint[point.title] > 1}
+                        sceneNumber={continuousSceneNumber}
+                        isPart={totalScenesInPoint > 1}
                         status={status}
                         sceneData={sceneData}
                         button={getButtonForScene(point, sceneIndex)}
@@ -2703,6 +3234,9 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         goToStep={goToStep}
                         onNavigateToCharacter={onNavigateToCharacter}
                         pointTitle={point.title}
+                        onDelete={() => handleRemoveScene(point.title, sceneIndex)}
+                        canDelete={true}
+                        scriptData={scriptData}
                       />
 
                       {/* Psychology Timeline for this scene */}
@@ -2757,15 +3291,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                   );
                                 }
                                 
-                                const currentSceneNumber = sceneNumberMap[point.title]?.[sceneIndex];
-                                if (currentSceneNumber === undefined) {
-                                  console.warn('[Psychology] Scene number undefined for:', point.title, sceneIndex);
-                                  return null;
-                                }
-                                
+                                // Use continuousSceneNumber directly instead of sceneNumberMap
                                 console.log('[Psychology] Looking for snapshot:', { 
                                   character: character.name, 
-                                  currentSceneNumber, 
+                                  currentSceneNumber: continuousSceneNumber, 
                                   snapshotsCount: timeline.snapshots?.length || 0,
                                   availableSnapshots: (timeline.snapshots || []).map(s => ({ 
                                     sceneNumber: s?.sceneNumber, 
@@ -2776,13 +3305,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                 const foundSnapshot = timeline.snapshots.find(s => 
                                   s && 
                                   typeof s === 'object' && 
-                                  s.sceneNumber === currentSceneNumber && 
+                                  s.sceneNumber === continuousSceneNumber && 
                                   typeof s.mentalBalance === 'number'
                                 );
 
                                 // CRITICAL: Create immutable references to prevent race conditions
                                 if (!foundSnapshot || typeof foundSnapshot !== 'object' || typeof foundSnapshot.mentalBalance !== 'number') {
-                                  console.warn('[Psychology] No valid snapshot found for scene', currentSceneNumber, 'character', character.name);
+                                  console.warn('[Psychology] No valid snapshot found for scene', continuousSceneNumber, 'character', character.name);
                                   return (
                                     <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
                                       <div className="flex items-center gap-2 mb-2">
@@ -2876,34 +3405,14 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                           </div>
                         </div>
                       )}
-
-                      {(scriptData.scenesPerPoint[point.title] > 1 || sceneIndex > 0) && (
-                        <button
-                          onClick={() => handleRemoveScene(point.title)}
-                          className="absolute -right-2 -top-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
-                          title="Remove Scene"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-3 w-3"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      )}
                     </div>
                   );
                 }
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-12 flex justify-between border-t border-gray-700 pt-8">

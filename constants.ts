@@ -259,3 +259,149 @@ export const INITIAL_SCRIPT_DATA: ScriptData = {
   generatedScenes: Object.fromEntries(PLOT_POINTS.map((p): [string, any[]] => [p.title, []])),
   team: [],
 };
+
+// ===== SPEECH PATTERN & DIALECT PRESETS =====
+export const DIALECT_PRESETS = {
+  standard: {
+    name: 'ภาษากลาง (Standard Thai)',
+    description: 'ภาษาไทยมาตรฐาน',
+    commonWords: {},
+    suffixes: ['ครับ', 'ค่ะ', 'นะ', 'จ้า'],
+    examples: [
+      'สวัสดีครับ',
+      'ขอบคุณค่ะ',
+      'ไปไหนมา',
+    ],
+  },
+  isaan: {
+    name: 'ภาษาอีสาน (Isaan)',
+    description: 'ภาษาถิ่นภาคตะวันออกเฉียงเหนือ',
+    commonWords: {
+      'อะไร': 'หยัง',
+      'ทำไม': 'ทำหยัง',
+      'มาก': 'หลาย',
+      'ไป': 'ไป๋',
+      'ไม่': 'บ่',
+      'ใช่': 'แม่น',
+      'อร่อย': 'แซบ',
+      'ที่ไหน': 'ใส',
+    },
+    suffixes: ['บ่', 'เด้อ', 'เนาะ', 'ฮือ', 'แม่น'],
+    examples: [
+      'บ่รู้เด้อ',
+      'กินข้าวแล้วบ่',
+      'ไปใส',
+      'เป็นหยังของ',
+      'แซบหลายเด้อ',
+    ],
+  },
+  northern: {
+    name: 'ภาษาเหนือ (Northern/Lanna)',
+    description: 'ภาษาถิ่นภาคเหนือ (คำเมือง)',
+    commonWords: {
+      'อะไร': 'อี่หยัง',
+      'ทำไม': 'ทำหยัง',
+      'มาก': 'หลาย',
+      'ไม่': 'บ่',
+      'ที่ไหน': 'ใส',
+      'อร่อย': 'แซบ',
+    },
+    suffixes: ['จ๊า', 'เจ้า', 'เนอ', 'เด้อ', 'นา'],
+    examples: [
+      'ไปใสจ๊า',
+      'กินข้าวแล้วบ่',
+      'ดีหลายเจ้า',
+      'เป็นหยังเนอ',
+    ],
+  },
+  southern: {
+    name: 'ภาษาใต้ (Southern)',
+    description: 'ภาษาถิ่นภาคใต้',
+    commonWords: {
+      'ทำไม': 'ปะไร',
+      'มาก': 'จ๋า',
+      'อร่อย': 'อร่อยจัง',
+    },
+    suffixes: ['จ๋า', 'โว้ย', 'เหา', 'เว้ย'],
+    examples: [
+      'กินข้าวกันจ๋า',
+      'ปะไรวะ',
+      'ดีจ๋าเหา',
+      'ไปไหนโว้ย',
+    ],
+  },
+  central: {
+    name: 'ภาษากลาง (ชัดเจน)',
+    description: 'ภาษาไทยกลาง พูดชัดเจน',
+    commonWords: {},
+    suffixes: ['ครับ', 'ค่ะ'],
+    examples: [
+      'สวัสดีครับ',
+      'ขอบคุณมากค่ะ',
+    ],
+  },
+};
+
+export const ACCENT_PATTERNS = {
+  none: {
+    name: 'ไม่มีสำเนียง',
+    rules: [] as { pattern: string; replacement: string }[],
+  },
+  isaan: {
+    name: 'สำเนียงอีสาน',
+    description: 'ออกเสียง ร เป็น ล บางคำ',
+    rules: [
+      { pattern: 'ครับ', replacement: 'บ่' },
+      { pattern: 'ค่ะ', replacement: 'เด้อ' },
+      { pattern: 'มาก', replacement: 'หลาย' },
+      { pattern: 'ไม่', replacement: 'บ่' },
+    ],
+  },
+  northern: {
+    name: 'สำเนียงเหนือ',
+    description: 'น้ำเสียงนุ่มนวล',
+    rules: [
+      { pattern: 'ครับ', replacement: 'จ๊า' },
+      { pattern: 'ค่ะ', replacement: 'จ๊า' },
+    ],
+  },
+  southern: {
+    name: 'สำเนียงใต้',
+    description: 'พูดเร็ว เสียงดัง',
+    rules: [
+      { pattern: 'ครับ', replacement: 'จ๋า' },
+      { pattern: 'ค่ะ', replacement: 'จ๋า' },
+    ],
+  },
+  chinese: {
+    name: 'สำเนียงจีน',
+    description: 'ออกเสียง ร เป็น ล, จ เป็น ซ',
+    rules: [
+      { pattern: 'ร', replacement: 'ล' },
+      { pattern: 'จ', replacement: 'ซ' },
+      { pattern: 'ช', replacement: 'ซ' },
+    ],
+  },
+  western: {
+    name: 'สำเนียงฝรั่ง',
+    description: 'เน้นเสียง ร ชัดเจน พูดช้า',
+    rules: [] as { pattern: string; replacement: string }[],
+  },
+};
+
+export const FORMALITY_LABELS = {
+  formal: 'ทางการ (ครับ/ค่ะ)',
+  informal: 'ไม่เป็นทางการ (นะ/จ้า)',
+  casual: 'สบายๆ (เว้ย)',
+  slang: 'สแลง',
+};
+
+export const PERSONALITY_LABELS = {
+  polite: 'สุภาพ (Polite)',
+  rude: 'หยาบคาย (Rude)',
+  humorous: 'ตลก (Humorous)',
+  serious: 'จริงจัง (Serious)',
+  childlike: 'เด็ก (Childlike)',
+  elderly: 'ผู้สูงอายุ (Elderly)',
+  intellectual: 'ปัญญาชน (Intellectual)',
+};
