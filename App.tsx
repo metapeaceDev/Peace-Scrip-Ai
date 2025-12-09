@@ -6,6 +6,7 @@ import type {
   ProjectMetadata,
   ProjectType,
   DialogueLine,
+  CharacterPsychologyTimeline,
 } from './types';
 import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './constants';
 import StepIndicator from './src/components/StepIndicator';
@@ -87,11 +88,16 @@ const sanitizeGeneratedScenes = (
   return newMap;
 };
 
-const sanitizeScriptData = (raw: any): ScriptData => {
+const sanitizeScriptData = (raw: unknown): ScriptData => {
+  if (!raw || typeof raw !== 'object') {
+    return INITIAL_SCRIPT_DATA;
+  }
+  const data = raw as Partial<ScriptData>;
+  
   // Safely merge characters
   const mergedCharacters =
-    raw.characters && Array.isArray(raw.characters) && raw.characters.length > 0
-      ? raw.characters.map((savedChar: Partial<Character>, index: number) => ({
+    data.characters && Array.isArray(data.characters) && data.characters.length > 0
+      ? data.characters.map((savedChar: Partial<Character>, index: number) => ({
           ...EMPTY_CHARACTER,
           ...savedChar,
           id:
@@ -128,19 +134,27 @@ const sanitizeScriptData = (raw: any): ScriptData => {
 
   // Safely merge structure (if partial)
   let mergedStructure = INITIAL_SCRIPT_DATA.structure;
-  if (raw.structure && Array.isArray(raw.structure) && raw.structure.length > 0) {
+  if (data.structure && Array.isArray(data.structure) && data.structure.length > 0) {
     // Try to map extracted points to the 9-point structure
     mergedStructure = INITIAL_SCRIPT_DATA.structure.map(defaultPoint => {
-      const found = raw.structure.find((p: any) => p.title === defaultPoint.title);
+      const found = data.structure!.find((p) => p.title === defaultPoint.title);
       return found ? { ...defaultPoint, description: found.description } : defaultPoint;
     });
   }
 
   // Sanitize psychologyTimelines - ensure proper structure
-  const sanitizedPsychologyTimelines: Record<string, any> = {};
-  if (raw.psychologyTimelines && typeof raw.psychologyTimelines === 'object') {
-    Object.entries(raw.psychologyTimelines).forEach(([charId, timeline]) => {
-      const tl = timeline as any;
+  type TimelineData = {
+    characterId?: string;
+    characterName?: string;
+    changes?: unknown[];
+    snapshots?: unknown[];
+    summary?: Record<string, unknown>;
+    overallArc?: Record<string, unknown>;
+  };
+  const sanitizedPsychologyTimelines: Record<string, TimelineData> = {};
+  if (data.psychologyTimelines && typeof data.psychologyTimelines === 'object') {
+    Object.entries(data.psychologyTimelines).forEach(([charId, timeline]) => {
+      const tl = timeline as TimelineData;
       // Validate timeline structure
       if (tl && typeof tl === 'object') {
         sanitizedPsychologyTimelines[charId] = {
@@ -179,18 +193,18 @@ const sanitizeScriptData = (raw: any): ScriptData => {
 
   return {
     ...INITIAL_SCRIPT_DATA,
-    ...raw,
+    ...(data as Record<string, unknown>),
     characters: mergedCharacters,
     structure: mergedStructure,
-    timeline: { ...INITIAL_SCRIPT_DATA.timeline, ...(raw.timeline || {}) },
-    scenesPerPoint: { ...INITIAL_SCRIPT_DATA.scenesPerPoint, ...(raw.scenesPerPoint || {}) },
+    timeline: { ...INITIAL_SCRIPT_DATA.timeline, ...(data.timeline && typeof data.timeline === 'object' ? data.timeline : {}) },
+    scenesPerPoint: { ...INITIAL_SCRIPT_DATA.scenesPerPoint, ...(data.scenesPerPoint && typeof data.scenesPerPoint === 'object' ? data.scenesPerPoint : {}) },
     generatedScenes: sanitizeGeneratedScenes({
       ...INITIAL_SCRIPT_DATA.generatedScenes,
-      ...(raw.generatedScenes || {}),
+      ...(data.generatedScenes && typeof data.generatedScenes === 'object' ? data.generatedScenes : {}),
     }),
-    team: raw.team || [],
-    posterImage: raw.posterImage || undefined,
-    psychologyTimelines: sanitizedPsychologyTimelines,
+    team: (data.team && Array.isArray(data.team)) ? data.team : [],
+    posterImage: typeof data.posterImage === 'string' ? data.posterImage : undefined,
+    psychologyTimelines: sanitizedPsychologyTimelines as unknown as Record<string, CharacterPsychologyTimeline>,
   };
 };
 
@@ -234,7 +248,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      const pageText = textContent.items.map((item: { str: string }) => item.str).join(' ');
       fullText += pageText + '\n';
     }
     return fullText;
@@ -411,22 +425,23 @@ function App() {
           } else {
             console.log('ℹ️ No redirect result (normal page load)');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const err = error as { code?: string; message?: string };
           console.error('❌ Redirect result error:', error);
-          console.error('Error code:', error.code);
-          console.error('Error message:', error.message);
+          console.error('Error code:', err.code);
+          console.error('Error message:', err.message);
           // Show user-friendly error
           if (
-            error.code === 'auth/popup-closed-by-user' ||
-            error.code === 'auth/cancelled-popup-request'
+            err.code === 'auth/popup-closed-by-user' ||
+            err.code === 'auth/cancelled-popup-request'
           ) {
             console.log('User cancelled Google Sign-in');
-          } else if (error.code === 'auth/operation-not-allowed') {
+          } else if (err.code === 'auth/operation-not-allowed') {
             alert(
               '❌ Google Sign-in ยังไม่ได้เปิดใช้งานใน Firebase Console\n\nกรุณาติดต่อผู้ดูแลระบบ'
             );
           } else {
-            alert('❌ เกิดข้อผิดพลาดใน Google Sign-in:\n' + error.message);
+            alert('❌ เกิดข้อผิดพลาดใน Google Sign-in:\n' + err.message);
           }
         }
 
@@ -462,7 +477,7 @@ function App() {
               const projectMetadata = response.projects.map(p => ({
                 id: p.id,
                 title: p.title,
-                type: p.type as any,
+                type: (p.type || 'Movie') as ProjectType,
                 lastModified: p.updatedAt.getTime(),
                 posterImage: p.posterImage || undefined, // Use posterImage from Firestore metadata
               }));
@@ -492,8 +507,9 @@ function App() {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         if (hasKey) setHasApiKey(true);
         else alert('You must select a paid API key.');
-      } catch (e: any) {
-        if (e.message && e.message.includes('Requested entity was not found')) {
+      } catch (e: unknown) {
+        const error = e as { message?: string };
+        if (error.message && error.message.includes('Requested entity was not found')) {
           alert('Project not found. Please try selecting the key again.');
           if (window.aistudio) await window.aistudio.openSelectKey();
         } else console.error(e);
@@ -534,7 +550,7 @@ function App() {
         const projectMetadata = response.projects.map(p => ({
           id: p.id,
           title: p.title,
-          type: p.type as any,
+          type: (p.type || 'Movie') as ProjectType,
           lastModified: p.updatedAt.getTime(),
           posterImage: p.posterImage || undefined,
         }));
@@ -634,7 +650,7 @@ function App() {
         newId = await api.createProject(title, type, newData);
       } else if (currentUser) {
         // Online mode: use Firestore
-        const response = await firestoreService.createProject(currentUser.uid, newData as any);
+        const response = await firestoreService.createProject(currentUser.uid, newData as Partial<ScriptData>);
         newId = response.project.id;
       } else {
         throw new Error('No user logged in');
@@ -679,7 +695,7 @@ function App() {
         // Online mode: use Firestore
         setUploadStatusText('Downloading project data...');
         const response = await firestoreService.getProject(id);
-        data = response.project as any as ScriptData;
+        data = response.project as unknown as ScriptData;
         setUploadStatusText('Preparing workspace...');
       } else {
         throw new Error('No user logged in');
@@ -790,7 +806,7 @@ function App() {
         await api.createProject(title, pType, newData);
       } else if (currentUser) {
         // Online mode: use Firestore
-        await firestoreService.createProject(currentUser.uid, newData as any);
+        await firestoreService.createProject(currentUser.uid, newData as Partial<ScriptData>);
       } else {
         throw new Error('No user logged in');
       }
@@ -800,17 +816,18 @@ function App() {
 
       console.log('✅ Import completed successfully!');
       alert(`✅ Project imported successfully!\n\nTitle: ${title}\nType: ${pType}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { message?: string };
       console.error('❌ Import error:', e);
-      console.error('Error details:', e.message);
+      console.error('Error details:', error.message);
 
       let errorMsg = 'Import failed: ';
-      if (e.message.includes('JSON')) {
+      if (error.message && error.message.includes('JSON')) {
         errorMsg += 'Invalid JSON format. Please check the file.';
-      } else if (e.message.includes('timeout')) {
+      } else if (error.message && error.message.includes('timeout')) {
         errorMsg += 'Operation timed out. File may be too large.';
       } else {
-        errorMsg += e.message;
+        errorMsg += error.message || 'Unknown error';
       }
 
       alert(errorMsg);
@@ -830,7 +847,7 @@ function App() {
       } else if (currentUser) {
         // Online mode: use Firestore
         const response = await firestoreService.getProject(id);
-        data = response.project as any as ScriptData;
+        data = response.project as unknown as ScriptData;
       } else {
         throw new Error('No user logged in');
       }
@@ -891,9 +908,10 @@ function App() {
         lastSavedDataRef.current = JSON.stringify(data);
         setIsDirty(false);
         return true;
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const error = e as { message?: string };
         console.error('Auto-save failed', e);
-        setSaveFeedback(e.message || 'Error saving!');
+        setSaveFeedback(error.message || 'Error saving!');
         return false;
       }
     },
