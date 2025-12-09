@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import type { ScriptData, PlotPoint, Character, GeneratedScene, DialogueLine } from '../../types';
-import { PLOT_POINTS, EMPTY_CHARACTER } from '../../constants';
+import type { ScriptData, PlotPoint, Character, GeneratedScene } from '../../types';
+import { EMPTY_CHARACTER } from '../../constants';
 import {
   generateWithComfyUI as generateWithBackendComfyUI,
   checkBackendStatus,
@@ -590,9 +590,10 @@ async function generateVideoWithComfyUI(
       }
 
       throw new Error('ComfyUI timeout: Video generation took too long');
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
+      const err = error as { name?: string };
+      if (err.name === 'AbortError') {
         throw new Error('ComfyUI connection timeout. Please check if ComfyUI server is running and accessible.');
       }
       throw error;
@@ -615,7 +616,8 @@ async function generateImageWithGemini25(
   // Skip quota monitoring for now
   // recordRequest('gemini-2.5');
 
-  const parts: any[] = [];
+  type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+  const parts: GeminiPart[] = [];
 
   // IMPORTANT: Add reference image FIRST for better Face ID matching
   if (referenceImageBase64) {
@@ -643,7 +645,8 @@ async function generateImageWithGemini25(
     contents: { parts },
   });
 
-  const imageData = response.candidates?.[0]?.content?.parts?.find((part: any) =>
+  type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
+  const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
     part.inlineData?.mimeType?.startsWith('image/')
   );
 
@@ -660,7 +663,8 @@ async function generateImageWithGemini20(
   // Skip quota monitoring for now
   // recordRequest('gemini-2.0');
 
-  const parts: any[] = [];
+  type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+  const parts: GeminiPart[] = [];
 
   // IMPORTANT: Add reference image FIRST for better Face ID matching
   if (referenceImageBase64) {
@@ -688,7 +692,8 @@ async function generateImageWithGemini20(
     contents: { parts },
   });
 
-  const imageData = response.candidates?.[0]?.content?.parts?.find((part: any) =>
+  type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
+  const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
     part.inlineData?.mimeType?.startsWith('image/')
   );
 
@@ -747,7 +752,8 @@ async function generateImageWithCascade(
     forceProvider = 'pollinations';
     console.log('✅ Forcing Pollinations.ai');
   } else if (modelId === 'openai-dalle') {
-    forceProvider = 'dalle';
+    // Skip DALL-E for now (not implemented)
+    // forceProvider = 'dalle';
     console.log('✅ Forcing DALL-E 3');
   }
 
@@ -780,17 +786,19 @@ async function generateImageWithCascade(
         try {
           console.log('🚀 Forcing Gemini 2.5 Pro for Face ID generation');
           return await generateImageWithGemini25(prompt, options.referenceImage);
-        } catch (error: any) {
-          console.error('❌ Gemini Pro failed:', error.message);
-          throw new Error(`Gemini Pro generation failed: ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error('❌ Gemini Pro failed:', err.message);
+          throw new Error(`Gemini Pro generation failed: ${err.message}`);
         }
       } else if (modelId === 'gemini-flash') {
         try {
           console.log('🚀 Forcing Gemini 2.0 Flash for Face ID generation');
           return await generateImageWithGemini20(prompt, options.referenceImage);
-        } catch (error: any) {
-          console.error('❌ Gemini Flash failed:', error.message);
-          throw new Error(`Gemini Flash generation failed: ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error('❌ Gemini Flash failed:', err.message);
+          throw new Error(`Gemini Flash generation failed: ${err.message}`);
         }
       } else if (modelId === 'comfyui-sdxl' || modelId === 'comfyui-flux') {
         console.log(`🚀 Forcing ComfyUI ${modelId.toUpperCase()} for Face ID generation`);
@@ -811,17 +819,18 @@ async function generateImageWithCascade(
     try {
       const backendStatus = await Promise.race([
         checkBackendStatus(),
-        new Promise<any>((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Backend health check timeout')), 3000)
         ),
       ]);
 
-      platformSupport = backendStatus.platform?.supportsFaceID ?? false;
+      const status = backendStatus as { platform?: { supportsFaceID?: boolean; os?: string; hasNvidiaGPU?: boolean } };
+      platformSupport = status.platform?.supportsFaceID ?? false;
       isMacPlatform = !platformSupport;
 
       console.log(`\n🖥️  Platform Detection:`);
-      console.log(`   OS: ${backendStatus.platform?.os || 'unknown'}`);
-      console.log(`   GPU: ${backendStatus.platform?.hasNvidiaGPU ? 'NVIDIA' : 'Integrated/MPS'}`);
+      console.log(`   OS: ${status.platform?.os || 'unknown'}`);
+      console.log(`   GPU: ${status.platform?.hasNvidiaGPU ? 'NVIDIA' : 'Integrated/MPS'}`);
       console.log(`   InstantID Support: ${platformSupport ? '✅ Yes' : '❌ No (Mac/MPS)'}`);
     } catch (error) {
       console.log('⚠️  Backend offline - assuming Mac platform for safety');
@@ -846,10 +855,10 @@ async function generateImageWithCascade(
         !renderSettings ||
         renderSettings.executionMode === 'local' ||
         renderSettings.executionMode === 'hybrid';
-      const shouldTryCloud =
-        !renderSettings ||
-        renderSettings.executionMode === 'cloud' ||
-        renderSettings.executionMode === 'hybrid';
+      // const shouldTryCloud =
+      //   !renderSettings ||
+      //   renderSettings.executionMode === 'cloud' ||
+      //   renderSettings.executionMode === 'hybrid';
 
       if (USE_COMFYUI_BACKEND && shouldTryLocal) {
         try {
@@ -860,7 +869,7 @@ async function generateImageWithCascade(
 
           const backendStatus = await Promise.race([
             checkBackendStatus(),
-            new Promise<any>((_, reject) =>
+            new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('Backend timeout')), 3000)
             ),
           ]);
@@ -870,7 +879,8 @@ async function generateImageWithCascade(
           }
 
           // Get mode settings (default: balanced for stability)
-          const mode: GenerationMode = (options as any).generationMode || 'balanced';
+          const optionsWithMode = options as { generationMode?: GenerationMode };
+          const mode: GenerationMode = optionsWithMode.generationMode || 'balanced';
           const modeSettings = MODE_PRESETS[mode];
           const modeLabels = {
             quality: '🏆 QUALITY MODE',
@@ -907,10 +917,11 @@ async function generateImageWithCascade(
 
           console.log(`✅ [1/3] SUCCESS: IP-Adapter Unified completed!`);
           return comfyImage;
-        } catch (error: any) {
-          console.error(`❌ [1/3] FAILED: IP-Adapter - ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error(`❌ [1/3] FAILED: IP-Adapter - ${err.message}`);
           console.log(`⏭️  Falling back to Priority 2: Gemini 2.5...`);
-          errors.push(`IP-Adapter failed: ${error.message}`);
+          errors.push(`IP-Adapter failed: ${err.message}`);
         }
       } else {
         console.log(`⏭️  [1/3] SKIPPED: ComfyUI Backend disabled`);
@@ -927,19 +938,20 @@ async function generateImageWithCascade(
         const result = await generateImageWithGemini25(prompt, options.referenceImage);
         console.log(`✅ [1/2] SUCCESS: Gemini 2.5 completed!`);
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { message?: string; status?: string };
         const isQuotaError =
-          error?.message?.includes('quota') ||
-          error?.message?.includes('429') ||
-          error?.status === 'RESOURCE_EXHAUSTED';
+          err?.message?.includes('quota') ||
+          err?.message?.includes('429') ||
+          err?.status === 'RESOURCE_EXHAUSTED';
 
         if (isQuotaError) {
           console.error(`❌ [1/2] FAILED: Gemini 2.5 - Quota exceeded`);
         } else {
-          console.error(`❌ [1/2] FAILED: Gemini 2.5 - ${error.message}`);
+          console.error(`❌ [1/2] FAILED: Gemini 2.5 - ${err.message}`);
         }
         console.log(`⏭️  Falling back to Priority 2: SDXL Base...`);
-        errors.push(`Gemini 2.5 failed: ${error.message}`);
+        errors.push(`Gemini 2.5 failed: ${err.message}`);
       }
 
       // ─── PRIORITY 2: SDXL Base (No Face ID) ─────────────────────────────────
@@ -973,9 +985,10 @@ async function generateImageWithCascade(
           console.log(`✅ [2/2] SUCCESS: SDXL Base completed (no Face ID)`);
           console.log(`⚠️  Note: Image generated from prompt only, no face matching`);
           return comfyImage;
-        } catch (error: any) {
-          console.error(`❌ [2/2] FAILED: SDXL Base - ${error.message}`);
-          errors.push(`SDXL Base failed: ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error(`❌ [2/2] FAILED: SDXL Base - ${err.message}`);
+          errors.push(`SDXL Base failed: ${err.message}`);
         }
       }
 
@@ -1012,7 +1025,7 @@ async function generateImageWithCascade(
 
           const backendStatus = await Promise.race([
             checkBackendStatus(),
-            new Promise<any>((_, reject) =>
+            new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('Backend timeout')), 3000)
             ),
           ]);
@@ -1044,10 +1057,11 @@ async function generateImageWithCascade(
 
           console.log(`✅ [1/3] SUCCESS: InstantID completed!`);
           return comfyImage;
-        } catch (error: any) {
-          console.error(`❌ [1/3] FAILED: InstantID - ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error(`❌ [1/3] FAILED: InstantID - ${err.message}`);
           console.log(`⏭️  Falling back to Priority 2: IP-Adapter...`);
-          errors.push(`InstantID failed: ${error.message}`);
+          errors.push(`InstantID failed: ${err.message}`);
         }
       } else {
         console.log(`⏭️  [1/3] SKIPPED: ComfyUI Backend disabled`);
@@ -1090,10 +1104,11 @@ async function generateImageWithCascade(
 
           console.log(`✅ [2/3] SUCCESS: IP-Adapter completed!`);
           return comfyImage;
-        } catch (error: any) {
-          console.error(`❌ [2/3] FAILED: IP-Adapter - ${error.message}`);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.error(`❌ [2/3] FAILED: IP-Adapter - ${err.message}`);
           console.log(`⏭️  Falling back to Priority 3: Gemini 2.5...`);
-          errors.push(`IP-Adapter failed: ${error.message}`);
+          errors.push(`IP-Adapter failed: ${err.message}`);
         }
       }
 
@@ -1107,18 +1122,19 @@ async function generateImageWithCascade(
         const result = await generateImageWithGemini25(prompt, options.referenceImage);
         console.log(`✅ [3/3] SUCCESS: Gemini 2.5 completed!`);
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { message?: string; status?: string };
         const isQuotaError =
-          error?.message?.includes('quota') ||
-          error?.message?.includes('429') ||
-          error?.status === 'RESOURCE_EXHAUSTED';
+          err?.message?.includes('quota') ||
+          err?.message?.includes('429') ||
+          err?.status === 'RESOURCE_EXHAUSTED';
 
         if (isQuotaError) {
           console.error(`❌ [3/3] FAILED: Gemini 2.5 - Quota exceeded`);
           errors.push('Gemini 2.5 quota exceeded');
         } else {
-          console.error(`❌ [3/3] FAILED: Gemini 2.5 - ${error.message}`);
-          errors.push(`Gemini 2.5 failed: ${error.message}`);
+          console.error(`❌ [3/3] FAILED: Gemini 2.5 - ${err.message}`);
+          errors.push(`Gemini 2.5 failed: ${err.message}`);
         }
       }
 
@@ -1152,25 +1168,28 @@ async function generateImageWithCascade(
       try {
         console.log('🚀 Forcing Gemini 2.5 Pro for image generation');
         return await generateImageWithGemini25(prompt);
-      } catch (error: any) {
-        console.error('❌ Gemini Pro failed:', error.message);
-        throw new Error(`Gemini Pro generation failed: ${error.message}`);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.error('❌ Gemini Pro failed:', err.message);
+        throw new Error(`Gemini Pro generation failed: ${err.message}`);
       }
     } else if (modelId === 'gemini-flash') {
       try {
         console.log('🚀 Forcing Gemini 2.0 Flash for image generation');
         return await generateImageWithGemini20(prompt);
-      } catch (error: any) {
-        console.error('❌ Gemini Flash failed:', error.message);
-        throw new Error(`Gemini Flash generation failed: ${error.message}`);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.error('❌ Gemini Flash failed:', err.message);
+        throw new Error(`Gemini Flash generation failed: ${err.message}`);
       }
     } else if (modelId === 'pollinations') {
       try {
         console.log('🚀 Forcing Pollinations for image generation');
         return await generateImageWithStableDiffusion(prompt);
-      } catch (error: any) {
-        console.error('❌ Pollinations failed:', error.message);
-        throw new Error(`Pollinations generation failed: ${error.message}`);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.error('❌ Pollinations failed:', err.message);
+        throw new Error(`Pollinations generation failed: ${err.message}`);
       }
     } else if (modelId === 'openai-dalle') {
       console.error('❌ DALL-E 3 not yet implemented');
@@ -1190,7 +1209,7 @@ async function generateImageWithCascade(
       // Quick backend health check with timeout
       const backendStatus = await Promise.race([
         checkBackendStatus(),
-        new Promise<any>((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Backend health check timeout')), 3000)
         ),
       ]);
@@ -1269,9 +1288,10 @@ async function generateImageWithCascade(
 
       console.log('✅ Tier 1 Success: ComfyUI Backend + LoRA');
       return comfyImage;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       console.error('❌ Tier 1 (ComfyUI Backend) failed:', error);
-      errors.push(`ComfyUI Backend error: ${error.message}`);
+      errors.push(`ComfyUI Backend error: ${err.message}`);
       console.log('⚠️ ComfyUI Backend unavailable, falling back to Gemini API...');
     }
   } else {
@@ -1298,18 +1318,19 @@ async function generateImageWithCascade(
     const result = await generateImageWithGemini25(prompt, options.referenceImage);
     console.log('✅ Tier 2 Success: Gemini 2.5 Flash Image');
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string; status?: string };
     const isQuotaError =
-      error?.message?.includes('quota') ||
-      error?.message?.includes('429') ||
-      error?.status === 'RESOURCE_EXHAUSTED';
+      err?.message?.includes('quota') ||
+      err?.message?.includes('429') ||
+      err?.status === 'RESOURCE_EXHAUSTED';
     if (isQuotaError) {
       const resetIn = 60; // getTimeUntilReset('gemini-2.5');
       console.log(`⚠️ Tier 2: Gemini 2.5 quota exceeded. Resets in ${resetIn}s.`);
       errors.push(`Gemini 2.5 quota exceeded (reset in ${resetIn}s)`);
     } else {
       console.error('❌ Tier 2 failed:', error);
-      errors.push(`Gemini 2.5 error: ${error.message}`);
+      errors.push(`Gemini 2.5 error: ${err.message}`);
     }
   }
 
@@ -1325,18 +1346,19 @@ async function generateImageWithCascade(
     const result = await generateImageWithGemini20(prompt, options.referenceImage);
     console.log('✅ Tier 3 Success: Gemini 2.0 Flash Exp');
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string; status?: string };
     const isQuotaError =
-      error?.message?.includes('quota') ||
-      error?.message?.includes('429') ||
-      error?.status === 'RESOURCE_EXHAUSTED';
+      err?.message?.includes('quota') ||
+      err?.message?.includes('429') ||
+      err?.status === 'RESOURCE_EXHAUSTED';
     if (isQuotaError) {
       const resetIn = 60; // getTimeUntilReset('gemini-2.0');
       console.error(`❌ Tier 3 failed: Quota exceeded (reset in ${resetIn}s)`);
       errors.push(`Gemini 2.0 quota exceeded (reset in ${resetIn}s)`);
     } else {
       console.error('❌ Tier 3 failed:', error);
-      errors.push(`Gemini 2.0 error: ${error.message}`);
+      errors.push(`Gemini 2.0 error: ${err.message}`);
     }
   }
 
@@ -1366,9 +1388,10 @@ async function generateImageWithCascade(
     const sdImage = await generateImageWithStableDiffusion(prompt, options.seed);
     console.log('✅ Tier 4 Success: Pollinations.ai');
     return sdImage;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('❌ Tier 4 failed:', error);
-    errors.push(`Pollinations.ai error: ${error.message}`);
+    errors.push(`Pollinations.ai error: ${err.message}`);
   }
 
   // All tiers failed
@@ -2075,7 +2098,8 @@ export async function generateFullScriptOutline(
       ...parsed,
       characters: [{ goals: parsed.characterGoals }],
     };
-    delete (result as any).characterGoals;
+    const resultWithGoals = result as Record<string, unknown>;
+    delete resultWithGoals.characterGoals;
 
     return result;
   } catch (error) {
@@ -2308,10 +2332,10 @@ IMPORTANT: Use these psychological profiles to:
       storyboard: [],
       sceneDesign: {
         ...parsedScene.sceneDesign,
-        situations: parsedScene.sceneDesign.situations.map((sit: any) => ({
+        situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
           ...sit,
           dialogue: Array.isArray(sit.dialogue)
-            ? sit.dialogue.map((d: any) => ({
+            ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
                 ...d,
                 id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
               }))
@@ -2429,10 +2453,10 @@ DO NOT change the structure, just improve the quality of content within it.
     storyboard: existingScene.storyboard || [],
     sceneDesign: {
       ...parsedScene.sceneDesign,
-      situations: parsedScene.sceneDesign.situations.map((sit: any) => ({
+      situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
         ...sit,
         dialogue: Array.isArray(sit.dialogue)
-          ? sit.dialogue.map((d: any) => ({
+          ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
               ...d,
               id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
             }))
@@ -2653,10 +2677,10 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
 
     // ⚠️ VALIDATE DIALOGUE - Ensure all characters have dialogue
     const charactersWithDialogue = new Set<string>();
-    parsedScene.sceneDesign.situations.forEach((sit: any) => {
+    parsedScene.sceneDesign.situations.forEach((sit: Record<string, unknown>) => {
       if (Array.isArray(sit.dialogue)) {
-        sit.dialogue.forEach((d: any) => {
-          if (d.character) charactersWithDialogue.add(d.character);
+        (sit.dialogue as Array<Record<string, unknown>>).forEach((d) => {
+          if (d.character && typeof d.character === 'string') charactersWithDialogue.add(d.character);
         });
       }
     });
@@ -2700,10 +2724,10 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
     sceneDesign: {
       ...parsedScene.sceneDesign,
       characters: editedCharacterList, // Force use edited character list
-      situations: parsedScene.sceneDesign.situations.map((sit: any) => ({
+      situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
         ...sit,
         dialogue: Array.isArray(sit.dialogue)
-          ? sit.dialogue.map((d: any) => ({
+          ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
               ...d,
               id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
             }))
@@ -2849,9 +2873,10 @@ export async function generateStoryboardImage(
       negativePrompt: 'low quality, blurry, distorted, text, watermark',
       onProgress: onProgress,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('Error generating storyboard image:', error);
-    throw new Error(error.message || 'Failed to generate storyboard image.');
+    throw new Error(err.message || 'Failed to generate storyboard image.');
   }
 }
 
@@ -3022,9 +3047,10 @@ ${description}`;
       generationMode: generationMode, // Pass selected mode
       preferredModel: preferredModel, // Pass model preference
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('Error generating character image:', error);
-    throw new Error(error.message || 'Failed to generate character image.');
+    throw new Error(err.message || 'Failed to generate character image.');
   }
 }
 
@@ -3099,7 +3125,7 @@ export async function generateCostumeImage(
     const distinguishingMarks = physicalInfo['Distinguishing Marks'] || '';
 
     // Fashion Section (Costume & Fashion)
-    const mainOutfit = physicalInfo['Main Outfit'] || '';
+    // const mainOutfit = physicalInfo['Main Outfit'] || '';
     const accessories = physicalInfo['Accessories'] || '';
     const footwear = physicalInfo['Footwear'] || '';
     const headwear = physicalInfo['Headwear'] || '';
@@ -3277,9 +3303,10 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
     }
 
     return imageUrl;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('Error generating costume image:', error);
-    throw new Error(error.message || 'Failed to generate costume image.');
+    throw new Error(err.message || 'Failed to generate costume image.');
   }
 }
 
@@ -3308,7 +3335,13 @@ export async function generateStoryboardVideo(
       const modelConfig = VIDEO_MODELS_CONFIG.PAID.GEMINI_VEO;
 
       const model = 'veo-3.1-fast-generate-preview';
-      const params: any = {
+      type VeoParams = {
+        model: string;
+        prompt: string;
+        config: { numberOfVideos: number; resolution: string; aspectRatio: string };
+        image?: { imageBytes: string; mimeType: string };
+      };
+      const params: VeoParams = {
         model,
         prompt: `Cinematic shot. ${prompt}`,
         config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' },
@@ -3369,8 +3402,9 @@ export async function generateStoryboardVideo(
           });
           // Free model, no credit deduction
           return result;
-        } catch (comfyError: any) {
-          console.error('❌ Tier 2 failed:', comfyError);
+        } catch (comfyError: unknown) {
+          const err = comfyError as { message?: string };
+          console.error('❌ Tier 2 failed:', err);
           if (preferredModel !== 'auto') throw comfyError; // Don't fallback if manually selected
         }
       } else {
@@ -3406,9 +3440,10 @@ export async function generateStoryboardVideo(
 
     // Fallback Logic (if auto or failed)
     throw new Error(`Failed to generate video with ${preferredModel}. Please try another model.`);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('❌ Video generation failed:', error);
-    throw new Error(`Failed to generate video: ${error.message}`);
+    throw new Error(`Failed to generate video: ${err.message}`);
   }
 }
 
@@ -3462,9 +3497,10 @@ export async function generateMoviePoster(
       negativePrompt: 'low quality, amateur, blurry, text errors, ugly',
       onProgress: onProgress,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error('Error generating movie poster:', error);
-    throw new Error(error.message || 'Failed to generate movie poster.');
+    throw new Error(err.message || 'Failed to generate movie poster.');
   }
 }
 
