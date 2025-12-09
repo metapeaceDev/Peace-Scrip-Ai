@@ -75,7 +75,9 @@ export const CHARACTER_IMAGE_STYLES = [
 export const TEAM_ROLES = [
   // Core Management
   'Director (ผู้กำกับ)',
-  'Assistant Director (ผู้ช่วยผู้กำกับ)',
+  '1st Assistant Director (ผู้ช่วยผู้กำกับคนที่ 1)',
+  '2nd Assistant Director (ผู้ช่วยผู้กำกับคนที่ 2)',
+  '3rd Assistant Director (ผู้ช่วยผู้กำกับคนที่ 3)',
   'Producer (โปรดิวเซอร์)',
   'Executive Producer (โปรดิวเซอร์บริหาร)',
   'Line Producer (โปรดิวเซอร์สายงาน)',
