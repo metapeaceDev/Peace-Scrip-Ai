@@ -18,6 +18,7 @@ import Step5Output from './src/components/Step5Output';
 import Studio from './src/components/Studio';
 import TeamManager from './src/components/TeamManager';
 import AuthPage from './src/components/AuthPage';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import ComfyUISetup from './src/components/ComfyUISetup';
 import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';

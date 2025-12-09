@@ -27,6 +27,17 @@ class ErrorBoundary extends Component<Props, State> {
       error,
       errorInfo
     });
+
+    // Send to Sentry if available
+    if (window.Sentry) {
+      window.Sentry.captureException(error, {
+        contexts: {
+          react: {
+            componentStack: errorInfo.componentStack,
+          },
+        },
+      });
+    }
   }
 
   private handleReset = () => {
