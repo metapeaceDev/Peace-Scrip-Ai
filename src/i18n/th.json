@@ -248,8 +248,160 @@
   },
 
   "step3": {
-    "title": "ขั้นตอนที่ 3: ตัวละคร",
-    "subtitle": "สร้างและจัดการตัวละครในเรื่อง"
+    "title": "ขั้นที่ 3: สร้างตัวละคร",
+    "subtitle": "กำหนดตัวละครในเรื่องของคุณ เพิ่มตัวเอก ตัวร้าย และตัวละครสมทบ",
+    "returnNotice": "กำลังแก้ไขจาก Scene Design",
+    "returnButton": "กลับไป Scene Design",
+    "tabs": {
+      "external": "External",
+      "internal": "Internal",
+      "goals": "Goals"
+    },
+    "externalTabs": {
+      "info": "Information",
+      "physical": "Physical",
+      "speech": "🗣️ Speech Pattern",
+      "costume": "Costume & Fashion"
+    },
+    "internalTabs": {
+      "consciousness": "จิตสำนึก (Consciousness)",
+      "subconscious": "จิตใต้สำนึก (Subconscious)"
+    },
+    "fields": {
+      "name": "ชื่อ",
+      "namePlaceholder": "เช่น John Doe",
+      "role": "บทบาท / ประเภท",
+      "description": "Character Description & Role",
+      "descriptionPlaceholder": "เช่น นักสืบที่มีอดีตมืดมน หลอกหลอนโดยอดีต...",
+      "imageStyle": "IMAGE STYLE",
+      "aiModel": "AI Model",
+      "generationMode": "Generation Mode",
+      "faceIdentity": "Face Identity (Master)",
+      "costumeRef": "Costume Reference"
+    },
+    "buttons": {
+      "addCharacter": "+ เพิ่มตัวละคร",
+      "deleteCharacter": "ลบตัวละคร",
+      "genButton": "สร้าง",
+      "genButtonFillEmpty": "เติมอัตโนมัติ",
+      "generating": "กำลังสร้าง...",
+      "fillEmptyOnly": "เติมเฉพาะที่ว่าง",
+      "faceIdPortrait": "Face ID Portrait",
+      "aiPortrait": "AI Portrait",
+      "upload": "Upload",
+      "generateAll": "สร้างตัวละครทั้งหมด",
+      "addMode": "+ เพิ่ม (คงเดิม)",
+      "replaceMode": "⚠️ แทนที่ทั้งหมด",
+      "preview": "ดูตัวอย่าง",
+      "compareCharacters": "เปรียบเทียบตัวละคร",
+      "dashboard": "Dashboard",
+      "psychologyTest": "ทดสอบจิตวิทยา",
+      "psychologyTimeline": "Psychology Timeline",
+      "capturePhoto": "ถ่ายภาพ",
+      "stopCamera": "ปิดกล้อง",
+      "uploadFace": "อัพโหลดใบหน้า",
+      "uploadOutfitStyle": "Upload Outfit Style",
+      "generateOutfit": "Generate Outfit",
+      "generateOutfitFaceId": "Generate Outfit (Face ID)",
+      "downloadOutfit": "ดาวน์โหลด",
+      "deleteOutfit": "ลบ",
+      "voiceSample": "🔊 Voice Sample",
+      "voicePlaying": "🔊 Playing...",
+      "back": "กลับ",
+      "next": "ถัดไป"
+    },
+    "sections": {
+      "information": "Information (External)",
+      "physical": "Physical Characteristics",
+      "speechPattern": "Speech Pattern & Voice",
+      "costume": "Costume & Fashion",
+      "consciousness": "จิตสำนึก (Consciousness)",
+      "subconscious": "จิตใต้สำนึก (Subconscious)",
+      "goals": "Goals & Motivation",
+      "fittingRoom": "Fitting Room (Newest First)"
+    },
+    "dialects": {
+      "standard": "Standard / Neutral",
+      "northern": "Northern Thai (คำเมือง)",
+      "northeastern": "Northeastern (อีสาน)",
+      "southern": "Southern Thai",
+      "urban": "Urban Bangkok",
+      "formal": "Formal / Literary",
+      "rural": "Rural / Countryside"
+    },
+    "accents": {
+      "clear": "Clear / Standard",
+      "regional": "Regional Accent",
+      "foreign": "Foreign Accent",
+      "slurred": "Slurred / Unclear"
+    },
+    "formality": {
+      "veryFormal": "Very Formal (ราชาศัพท์)",
+      "formal": "Formal",
+      "neutral": "Neutral",
+      "informal": "Informal",
+      "veryInformal": "Very Informal (สแลง)"
+    },
+    "personality": {
+      "confident": "Confident / Assertive",
+      "timid": "Timid / Hesitant",
+      "aggressive": "Aggressive / Blunt",
+      "friendly": "Friendly / Warm",
+      "sarcastic": "Sarcastic / Witty",
+      "mysterious": "Mysterious / Reserved"
+    },
+    "aiModels": {
+      "auto": "🤖 AUTO - Smart Selection",
+      "pollinations": "⚡⚡⚡ Pollinations (5-10s, Medium quality)",
+      "comfyuiSdxl": "⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)",
+      "geminiFlash": "⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)",
+      "geminiPro": "🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)",
+      "comfyuiFlux": "🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)",
+      "openaiDalle": "🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)"
+    },
+    "generationModes": {
+      "quality": "🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac",
+      "balanced": "⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended",
+      "speed": "⚡ SPEED (15 steps, 3-5 min)"
+    },
+    "messages": {
+      "uploadSuccess": "อัพโหลดสำเร็จ",
+      "deleteConfirm": "⚠️ คุณแน่ใจหรือไม่ที่จะลบตัวละครนี้?",
+      "deleteWarning": "การกระทำนี้ไม่สามารถย้อนกลับได้",
+      "noDescription": "Please enter a character description or physical details first.",
+      "noMainOutfit": "Please describe the 'Main Outfit' in the Costume section first.",
+      "faceIdDisabled": "Face ID Disabled: ComfyUI setup was skipped. Face matching will not work.",
+      "enableFaceId": "Enable Face ID"
+    },
+    "confirm": {
+      "continueAdd": "ดำเนินการต่อ?",
+      "replaceAll": "สร้างใหม่ทั้งหมด",
+      "deleteAll": "ตัวละครเดิมทั้งหมด",
+      "willBeDeleted": "จะถูกลบ",
+      "createNew": "และสร้างชุดใหม่ทั้งหมดจาก Step 1-2",
+      "areYouSure": "แน่ใจหรือไม่?",
+      "generateFromStory": "สร้างตัวละครทั้งหมดจากเรื่องของคุณ?",
+      "aiWillAnalyze": "AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสมอัตโนมัติ:",
+      "title": "ชื่อเรื่อง",
+      "genre": "แนว",
+      "story": "เนื้อเรื่อง",
+      "existing": "เดิม",
+      "new": "ใหม่",
+      "total": "รวม",
+      "characters": "ตัว",
+      "successAdd": "เพิ่มตัวละครสำเร็จ",
+      "successCreate": "สร้างตัวละครสำเร็จ",
+      "newCharacters": "ตัวละครใหม่"
+    },
+    "errors": {
+      "generateFailed": "ไม่สามารถสร้างตัวละครได้",
+      "imageFailed": "Failed to generate image.",
+      "costumeFailed": "Failed to generate costume image."
+    },
+    "actions": {
+      "back": "กลับ",
+      "next": "ถัดไป"
+    }
   },
 
   "step4": {

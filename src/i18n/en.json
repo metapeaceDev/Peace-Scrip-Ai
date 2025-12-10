@@ -248,8 +248,160 @@
   },
 
   "step3": {
-    "title": "STEP 3: Characters",
-    "subtitle": "Create and manage characters in your story"
+    "title": "STEP 3: Character Creation",
+    "subtitle": "Define the cast of your story. Add protagonists, antagonists, and supporting characters.",
+    "returnNotice": "Editing from Scene Design",
+    "returnButton": "Back to Scene Design",
+    "tabs": {
+      "external": "External",
+      "internal": "Internal",
+      "goals": "Goals"
+    },
+    "externalTabs": {
+      "info": "Information",
+      "physical": "Physical",
+      "speech": "🗣️ Speech Pattern",
+      "costume": "Costume & Fashion"
+    },
+    "internalTabs": {
+      "consciousness": "Consciousness",
+      "subconscious": "Subconscious"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. John Doe",
+      "role": "Role / Type",
+      "description": "Character Description & Role",
+      "descriptionPlaceholder": "e.g., A grizzled detective on the edge, haunted by his past...",
+      "imageStyle": "IMAGE STYLE",
+      "aiModel": "AI Model",
+      "generationMode": "Generation Mode",
+      "faceIdentity": "Face Identity (Master)",
+      "costumeRef": "Costume Reference"
+    },
+    "buttons": {
+      "addCharacter": "+ Add Character",
+      "deleteCharacter": "Delete Character",
+      "genButton": "Gen",
+      "genButtonFillEmpty": "Auto-Fill",
+      "generating": "Generating...",
+      "fillEmptyOnly": "Fill empty only",
+      "faceIdPortrait": "Face ID Portrait",
+      "aiPortrait": "AI Portrait",
+      "upload": "Upload",
+      "generateAll": "Generate All Characters",
+      "addMode": "+ Add (Keep Existing)",
+      "replaceMode": "⚠️ Replace All",
+      "preview": "Preview",
+      "compareCharacters": "Compare Characters",
+      "dashboard": "Dashboard",
+      "psychologyTest": "Psychology Test",
+      "psychologyTimeline": "Psychology Timeline",
+      "capturePhoto": "Capture Photo",
+      "stopCamera": "Stop Camera",
+      "uploadFace": "Upload Face",
+      "uploadOutfitStyle": "Upload Outfit Style",
+      "generateOutfit": "Generate Outfit",
+      "generateOutfitFaceId": "Generate Outfit (Face ID)",
+      "downloadOutfit": "Download",
+      "deleteOutfit": "Delete",
+      "voiceSample": "🔊 Voice Sample",
+      "voicePlaying": "🔊 Playing...",
+      "back": "Back",
+      "next": "Next"
+    },
+    "sections": {
+      "information": "Information (External)",
+      "physical": "Physical Characteristics",
+      "speechPattern": "Speech Pattern & Voice",
+      "costume": "Costume & Fashion",
+      "consciousness": "Consciousness",
+      "subconscious": "Subconscious",
+      "goals": "Goals & Motivation",
+      "fittingRoom": "Fitting Room (Newest First)"
+    },
+    "dialects": {
+      "standard": "Standard / Neutral",
+      "northern": "Northern Thai (คำเมือง)",
+      "northeastern": "Northeastern (อีสาน)",
+      "southern": "Southern Thai",
+      "urban": "Urban Bangkok",
+      "formal": "Formal / Literary",
+      "rural": "Rural / Countryside"
+    },
+    "accents": {
+      "clear": "Clear / Standard",
+      "regional": "Regional Accent",
+      "foreign": "Foreign Accent",
+      "slurred": "Slurred / Unclear"
+    },
+    "formality": {
+      "veryFormal": "Very Formal (ราชาศัพท์)",
+      "formal": "Formal",
+      "neutral": "Neutral",
+      "informal": "Informal",
+      "veryInformal": "Very Informal (สแลง)"
+    },
+    "personality": {
+      "confident": "Confident / Assertive",
+      "timid": "Timid / Hesitant",
+      "aggressive": "Aggressive / Blunt",
+      "friendly": "Friendly / Warm",
+      "sarcastic": "Sarcastic / Witty",
+      "mysterious": "Mysterious / Reserved"
+    },
+    "aiModels": {
+      "auto": "🤖 AUTO - Smart Selection",
+      "pollinations": "⚡⚡⚡ Pollinations (5-10s, Medium quality)",
+      "comfyuiSdxl": "⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)",
+      "geminiFlash": "⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)",
+      "geminiPro": "🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)",
+      "comfyuiFlux": "🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)",
+      "openaiDalle": "🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)"
+    },
+    "generationModes": {
+      "quality": "🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac",
+      "balanced": "⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended",
+      "speed": "⚡ SPEED (15 steps, 3-5 min)"
+    },
+    "messages": {
+      "uploadSuccess": "Upload successful",
+      "deleteConfirm": "⚠️ Are you sure you want to delete this character?",
+      "deleteWarning": "This action cannot be undone",
+      "noDescription": "Please enter a character description or physical details first.",
+      "noMainOutfit": "Please describe the 'Main Outfit' in the Costume section first.",
+      "faceIdDisabled": "Face ID Disabled: ComfyUI setup was skipped. Face matching will not work.",
+      "enableFaceId": "Enable Face ID"
+    },
+    "confirm": {
+      "continueAdd": "Continue?",
+      "replaceAll": "Replace All Characters",
+      "deleteAll": "All existing characters",
+      "willBeDeleted": "will be deleted",
+      "createNew": "and a new cast will be created from Step 1-2",
+      "areYouSure": "Are you sure?",
+      "generateFromStory": "Generate all characters from your story?",
+      "aiWillAnalyze": "AI will analyze your story and automatically create appropriate characters:",
+      "title": "Title",
+      "genre": "Genre",
+      "story": "Story",
+      "existing": "Existing",
+      "new": "New",
+      "total": "Total",
+      "characters": "characters",
+      "successAdd": "Successfully added characters",
+      "successCreate": "Successfully created characters",
+      "newCharacters": "New characters"
+    },
+    "errors": {
+      "generateFailed": "Failed to generate characters",
+      "imageFailed": "Failed to generate image.",
+      "costumeFailed": "Failed to generate costume image."
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next"
+    }
   },
 
   "step4": {

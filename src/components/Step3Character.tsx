@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { ScriptData, Character, GeneratedScene, DialectType, AccentType, FormalityLevel, SpeechPersonality } from '../../types';
+import { useTranslation } from './LanguageSwitcher';
 import {
   generateCharacterDetails,
   fillMissingCharacterDetails,
@@ -95,8 +96,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   autoOpenPsychology,
   onResetAutoOpenPsychology,
 }) => {
-  // i18n helper
-  const t = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
+  // i18n
+  const { t } = useTranslation();
+
+  // i18n helper (for legacy code compatibility)
+  const legacyT = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
 
   const [activeCharIndex, setActiveCharIndex] = useState(0);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
@@ -392,31 +396,31 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     if (keepExistingCharacters && hasExistingCharacters) {
       // ADD MODE: Keep existing + analyze to create compatible new characters
       const confirmAdd = confirm(
-        `🎭 ${t('สร้างตัวละครเพิ่มเติม', 'Generate Additional Characters')}\n\n` +
-          `${t('AI จะวิเคราะห์:', 'AI will analyze:')}\n` +
-          `• ${t('ตัวละครเดิม', 'Existing characters')}: ${characters.length} ${t('ตัว', 'characters')}\n` +
-          `• ${t('ข้อมูลจาก Step 1-3', 'Data from Step 1-3')}\n\n` +
-          `${t('เพื่อสร้างตัวละครใหม่ที่สอดคล้องกับเรื่องและตัวเดิม', 'To create new characters that complement the story and existing cast')}\n\n` +
-          `${t('ดำเนินการต่อ?', 'Continue?')}`
+        `🎭 ${legacyT('สร้างตัวละครเพิ่มเติม', 'Generate Additional Characters')}\n\n` +
+          `${legacyT('AI จะวิเคราะห์:', 'AI will analyze:')}\n` +
+          `• ${legacyT('ตัวละครเดิม', 'Existing characters')}: ${characters.length} ${legacyT('ตัว', 'characters')}\n` +
+          `• ${legacyT('ข้อมูลจาก Step 1-3', 'Data from Step 1-3')}\n\n` +
+          `${legacyT('เพื่อสร้างตัวละครใหม่ที่สอดคล้องกับเรื่องและตัวเดิม', 'To create new characters that complement the story and existing cast')}\n\n` +
+          `${legacyT('ดำเนินการต่อ?', 'Continue?')}`
       );
       if (!confirmAdd) return;
     } else if (!keepExistingCharacters && hasExistingCharacters) {
       // REPLACE MODE: Delete all and create new
       const confirmReplace = confirm(
-        `⚠️ ${t('สร้างใหม่ทั้งหมด', 'Replace All Characters')}\n\n` +
-          `${t('ตัวละครเดิมทั้งหมด', 'All existing characters')} (${characters.length} ${t('ตัว', 'characters')}) ${t('จะถูกลบ', 'will be deleted')}\n` +
-          `${t('และสร้างชุดใหม่ทั้งหมดจาก Step 1-2', 'and a new cast will be created from Step 1-2')}\n\n` +
-          `${t('แน่ใจหรือไม่?', 'Are you sure?')}`
+        `⚠️ ${legacyT('สร้างใหม่ทั้งหมด', 'Replace All Characters')}\n\n` +
+          `${legacyT('ตัวละครเดิมทั้งหมด', 'All existing characters')} (${characters.length} ${legacyT('ตัว', 'characters')}) ${legacyT('จะถูกลบ', 'will be deleted')}\n` +
+          `${legacyT('และสร้างชุดใหม่ทั้งหมดจาก Step 1-2', 'and a new cast will be created from Step 1-2')}\n\n` +
+          `${legacyT('แน่ใจหรือไม่?', 'Are you sure?')}`
       );
       if (!confirmReplace) return;
     } else {
       // No existing characters, create new
       const confirmCreate = confirm(
-        `🎭 ${t('สร้างตัวละครทั้งหมดจากเรื่องของคุณ?', 'Generate all characters from your story?')}\n\n` +
-          `${t('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสมอัตโนมัติ:', 'AI will analyze your story and automatically create appropriate characters:')}\n` +
-          `• ${t('ชื่อเรื่อง', 'Title')}: ${scriptData.title || 'Untitled'}\n` +
-          `• ${t('แนว', 'Genre')}: ${scriptData.mainGenre}\n` +
-          `• ${t('เนื้อเรื่อง', 'Story')}: ${(scriptData.premise || scriptData.bigIdea || '').substring(0, 80)}...`
+        `🎭 ${legacyT('สร้างตัวละครทั้งหมดจากเรื่องของคุณ?', 'Generate all characters from your story?')}\n\n` +
+          `${legacyT('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสมอัตโนมัติ:', 'AI will analyze your story and automatically create appropriate characters:')}\n` +
+          `• ${legacyT('ชื่อเรื่อง', 'Title')}: ${scriptData.title || 'Untitled'}\n` +
+          `• ${legacyT('แนว', 'Genre')}: ${scriptData.mainGenre}\n` +
+          `• ${legacyT('เนื้อเรื่อง', 'Story')}: ${(scriptData.premise || scriptData.bigIdea || '').substring(0, 80)}...`
       );
       if (!confirmCreate) return;
     }
@@ -451,11 +455,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         setActiveCharIndex(characters.length); // Jump to first new character
 
         alert(
-          `✅ ${t('เพิ่มตัวละครสำเร็จ', 'Successfully added characters')}!\n\n` +
-            `${t('เดิม', 'Existing')}: ${characters.length} ${t('ตัว', 'characters')}\n` +
-            `${t('ใหม่', 'New')}: ${newCharacters.length} ${t('ตัว', 'characters')}\n` +
-            `${t('รวม', 'Total')}: ${combinedCharacters.length} ${t('ตัว', 'characters')}\n\n` +
-            `${t('ตัวละครใหม่', 'New characters')}: ${newCharacters.map(c => c.name).join(', ')}`
+          `✅ ${legacyT('เพิ่มตัวละครสำเร็จ', 'Successfully added characters')}!\n\n` +
+            `${legacyT('เดิม', 'Existing')}: ${characters.length} ${legacyT('ตัว', 'characters')}\n` +
+            `${legacyT('ใหม่', 'New')}: ${newCharacters.length} ${legacyT('ตัว', 'characters')}\n` +
+            `${legacyT('รวม', 'Total')}: ${combinedCharacters.length} ${legacyT('ตัว', 'characters')}\n\n` +
+            `${legacyT('ตัวละครใหม่', 'New characters')}: ${newCharacters.map(c => c.name).join(', ')}`
         );
       } else {
         // REPLACE MODE: Replace all
@@ -463,15 +467,15 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         setActiveCharIndex(0);
 
         alert(
-          `✅ ${t('สร้างตัวละครสำเร็จ', 'Successfully created characters')} ${newCharacters.length} ${t('ตัว', 'characters')}!\n\n` +
-            `${t('ตัวละคร', 'Characters')}: ${newCharacters.map(c => c.name).join(', ')}`
+          `✅ ${legacyT('สร้างตัวละครสำเร็จ', 'Successfully created characters')} ${newCharacters.length} ${legacyT('ตัว', 'characters')}!\n\n` +
+            `${legacyT('ตัวละคร', 'Characters')}: ${newCharacters.map(c => c.name).join(', ')}`
         );
       }
 
       setProgress(100);
     } catch (e: unknown) {
       const error = e as Error;
-      setError(error.message || t('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters'));
+      setError(error.message || legacyT('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters'));
       console.error('Error generating characters:', e);
     } finally {
       setIsLoading(false);
@@ -864,7 +868,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         <div className="bg-orange-900/40 border border-orange-500/50 rounded-lg p-3 mb-6 flex justify-between items-center animate-pulse">
           <span className="text-orange-300 font-bold text-sm flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
-            Editing from Scene Design
+            {t('step3.returnNotice')}
           </span>
           <button
             onClick={onReturnToOrigin}
@@ -882,7 +886,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 clipRule="evenodd"
               />
             </svg>
-            Back to Scene Design
+            {t('step3.returnButton')}
           </button>
         </div>
       )}
@@ -890,13 +894,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-cyan-400">
-            {t('ขั้นที่ 3: สร้างตัวละคร', 'STEP 3: Character Creation')}
+            {t('step3.title')}
           </h2>
           <p className="text-gray-400 mb-6">
-            {t(
-              'กำหนดตัวละครในเรื่องของคุณ เพิ่มตัวเอก ตัวร้าย และตัวละครสมทบ',
-              'Define the cast of your story. Add protagonists, antagonists, and supporting characters.'
-            )}
+            {t('step3.subtitle')}
           </p>
         </div>
         
@@ -909,7 +910,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               onClick={handleGenerateAllCharacters}
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all disabled:opacity-50 border border-purple-500 shadow-lg shadow-purple-900/30"
-              title={t(
+              title={legacyT(
                 keepExistingCharacters
                   ? 'วิเคราะห์ตัวละครเดิม + Step 1-3 เพื่อสร้างตัวใหม่ที่สอดคล้อง'
                   : 'สร้างตัวละครใหม่ทั้งหมดจาก Step 1-2',
@@ -926,7 +927,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               >
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
               </svg>
-              {isLoading ? t('กำลังสร้าง...', 'Generating...') : t('🎭 สร้างทั้งหมด', '🎭 Gen All')}
+              {isLoading ? legacyT('กำลังสร้าง...', 'Generating...') : legacyT('🎭 สร้างทั้งหมด', '🎭 Gen All')}
             </button>
             
             <label className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 cursor-pointer pl-1">
@@ -937,7 +938,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
               />
               <span className="select-none">
-                {t('เก็บตัวละครเดิมไว้', 'Keep existing')}
+                {legacyT('เก็บตัวละครเดิมไว้', 'Keep existing')}
               </span>
             </label>
           </div>
@@ -949,11 +950,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-cyan-600 disabled:hover:to-blue-600"
             title={
               characters.length < 2
-                ? t(
+                ? legacyT(
                     'ต้องมีอย่างน้อย 2 ตัวละครเพื่อเปรียบเทียบ',
                     'Need at least 2 characters to compare'
                   )
-                : t(
+                : legacyT(
                     `เปรียบเทียบจิตวิทยา ${characters.length} ตัวละคร`,
                     `Compare ${characters.length} characters psychology`
                   )
@@ -961,7 +962,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           >
             <span className="text-lg">🔬</span>
             <span>
-              {t('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
+              {legacyT('เปรียบเทียบ', 'Compare')} {characters.length >= 2 ? characters.length : '—'}
             </span>
           </button>
 
@@ -970,13 +971,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             onClick={() => setShowCharactersPreview(true)}
             disabled={characters.length === 0}
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-green-900/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title={t(
+            title={legacyT(
               'ดูตัวอย่างตัวละครทั้งหมดพร้อมดาวน์โหลด',
               'Preview all characters with download'
             )}
           >
             <span className="text-lg">👥</span>
-            <span>{t('ดูตัวอย่าง', 'Preview')}</span>
+            <span>{legacyT('ดูตัวอย่าง', 'Preview')}</span>
           </button>
         </div>
       </div>
@@ -1076,7 +1077,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          {t('เพิ่ม', 'Add')}
+          {legacyT('เพิ่ม', 'Add')}
         </button>
       </div>
 
@@ -1396,7 +1397,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               {/* Name Input */}
               <div className="md:col-span-5">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {t('ชื่อตัวละคร', 'Character Name')}
+                  {legacyT('ชื่อตัวละคร', 'Character Name')}
                 </label>
                 <input
                   type="text"
@@ -1411,7 +1412,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               {/* Role Selection */}
               <div className="md:col-span-4">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {t('บทบาท / ประเภท', 'Role / Type')}
+                  {legacyT('บทบาท / ประเภท', 'Role / Type')}
                 </label>
                 <select
                   value={activeCharacter.role || CHARACTER_ROLES[0]}
@@ -1446,8 +1447,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     }`}
                     title={
                       fillEmptyOnly
-                        ? t('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only')
-                        : t(
+                        ? legacyT('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only')
+                        : legacyT(
                             'สร้างโปรไฟล์ตัวละครเต็มรูปแบบจาก AI',
                             'Generate full character profile from AI'
                           )
@@ -1456,10 +1457,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     <span className="text-lg">✨</span>
                     <span>
                       {isLoading
-                        ? t('กำลังสร้าง...', 'Generating...')
+                        ? legacyT('กำลังสร้าง...', 'Generating...')
                         : fillEmptyOnly
-                          ? t('เติมอัตโนมัติ', 'Auto-Fill')
-                          : t('สร้าง', 'Gen')}
+                          ? legacyT('เติมอัตโนมัติ', 'Auto-Fill')
+                          : legacyT('สร้าง', 'Gen')}
                     </span>
                   </button>
                   <div className="flex items-center gap-1.5">
@@ -1474,7 +1475,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       htmlFor="fillEmptyOnly"
                       className="text-[10px] text-gray-400 cursor-pointer leading-tight"
                     >
-                      {t('เติมเฉพาะที่ว่าง', 'Fill empty only')}
+                      {legacyT('เติมเฉพาะที่ว่าง', 'Fill empty only')}
                     </label>
                   </div>
                 </div>
@@ -2714,10 +2715,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               <div className="flex justify-between items-center mb-6 bg-gray-800/80 p-6 rounded-lg border border-green-500/30">
                 <div>
                   <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-                    👥 {t('ตัวละครทั้งหมด', 'All Characters')}
+                    👥 {legacyT('ตัวละครทั้งหมด', 'All Characters')}
                   </h2>
                   <p className="text-gray-400 mt-2">
-                    {t(
+                    {legacyT(
                       `${characters.length} ตัวละครใน "${scriptData.title}"`,
                       `${characters.length} characters in "${scriptData.title}"`
                     )}
@@ -2742,7 +2743,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <span>{t('ดาวน์โหลด HTML', 'Download HTML')}</span>
+                    <span>{legacyT('ดาวน์โหลด HTML', 'Download HTML')}</span>
                   </button>
                   <button
                     onClick={() => setShowCharactersPreview(false)}
@@ -2780,7 +2781,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
                       {char.description && (
                         <div className="mb-4">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">{t('คำอธิบาย', 'Description')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">{legacyT('คำอธิบาย', 'Description')}</h4>
                           <p className="text-gray-300 text-sm">{char.description}</p>
                         </div>
                       )}
@@ -2790,19 +2791,19 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                         <div className="grid grid-cols-3 gap-2 mb-4">
                           {char.physical?.age && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{t('อายุ', 'Age')}</div>
+                              <div className="text-[10px] text-gray-500">{legacyT('อายุ', 'Age')}</div>
                               <div className="text-sm font-bold text-white">{char.physical.age}</div>
                             </div>
                           )}
                           {char.physical?.height && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{t('ส่วนสูง', 'Height')}</div>
+                              <div className="text-[10px] text-gray-500">{legacyT('ส่วนสูง', 'Height')}</div>
                               <div className="text-sm font-bold text-white">{char.physical.height}</div>
                             </div>
                           )}
                           {char.physical?.build && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{t('รูปร่าง', 'Build')}</div>
+                              <div className="text-[10px] text-gray-500">{legacyT('รูปร่าง', 'Build')}</div>
                               <div className="text-sm font-bold text-white">{char.physical.build}</div>
                             </div>
                           )}
@@ -2812,14 +2813,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       {/* Goals */}
                       {char.goals?.objective && (
                         <div className="mb-3">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">🎯 {t('เป้าหมายภายนอก', 'Objective')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">🎯 {legacyT('เป้าหมายภายนอก', 'Objective')}</h4>
                           <p className="text-gray-300 text-sm">{char.goals.objective}</p>
                         </div>
                       )}
 
                       {char.goals?.need && (
                         <div className="mb-3">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">💭 {t('ความต้องการ', 'Need')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">💭 {legacyT('ความต้องการ', 'Need')}</h4>
                           <p className="text-gray-300 text-sm">{char.goals.need}</p>
                         </div>
                       )}
@@ -2827,17 +2828,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       {/* Psychology Summary */}
                       {char.buddhist_psychology && (
                         <div className="mt-4 pt-4 border-t border-gray-700">
-                          <h4 className="text-xs font-bold text-purple-400 mb-2">🧠 {t('จิตวิทยา', 'Psychology')}</h4>
+                          <h4 className="text-xs font-bold text-purple-400 mb-2">🧠 {legacyT('จิตวิทยา', 'Psychology')}</h4>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             {char.buddhist_psychology.carita && (
                               <div className="bg-purple-900/20 p-2 rounded">
-                                <div className="text-gray-500 text-[10px]">{t('จริต', 'Carita')}</div>
+                                <div className="text-gray-500 text-[10px]">{legacyT('จริต', 'Carita')}</div>
                                 <div className="text-purple-300 font-bold">{char.buddhist_psychology.carita}</div>
                               </div>
                             )}
                             {char.mind_state?.magga_stage && (
                               <div className="bg-blue-900/20 p-2 rounded">
-                                <div className="text-gray-500 text-[10px]">{t('ภูมิธรรม', 'Magga')}</div>
+                                <div className="text-gray-500 text-[10px]">{legacyT('ภูมิธรรม', 'Magga')}</div>
                                 <div className="text-blue-300 font-bold">{char.mind_state.magga_stage}</div>
                               </div>
                             )}
