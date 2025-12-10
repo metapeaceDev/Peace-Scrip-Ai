@@ -59,6 +59,10 @@ enable-comfyui.sh
 # Firebase cache
 .firebase/hosting.*.cache
 
+# Duplicate folders (keep only src/ versions)
+/services
+/components
+
 # Planning documents (optional)
 /planning_documents
 thai-tts-development/
