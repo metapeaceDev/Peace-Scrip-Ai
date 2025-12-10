@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from './LanguageSwitcher';
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -7,7 +8,14 @@ interface StepIndicatorProps {
 }
 
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps, onStepClick }) => {
-  const steps = ["Genre", "Boundary", "Character", "Structure", "Output"];
+  const { t } = useTranslation();
+  const steps = [
+    t('studio.step1'),
+    t('studio.step2'),
+    t('studio.step3'),
+    t('studio.step4'),
+    t('studio.step5')
+  ];
 
   return (
     <nav aria-label="Script creation steps" className="w-full px-4 sm:px-0">

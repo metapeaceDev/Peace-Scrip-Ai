@@ -13,7 +13,15 @@
     "previous": "Previous",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "or": "OR",
+    "upload": "Upload",
+    "download": "Download",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "generating": "Generating...",
+    "stop": "Stop",
+    "reset": "Reset"
   },
 
   "auth": {
@@ -154,6 +162,69 @@
     "selectGenre": "Select Genre",
     "projectName": "Project Name",
     "createProject": "Create Project"
+  },
+
+  "step1": {
+    "title": "STEP 1: Genre, story line to be told",
+    "subtitle": "Choose main and secondary genres for your story",
+    "poster": {
+      "title": "Project Poster Art",
+      "subtitle": "AI Powered",
+      "noPoster": "No Poster",
+      "description": "Generate a cinematic poster for",
+      "customizePrompt": "The AI uses your genre and title to create a unique visual identity. You can customize the prompt below to refine the style, mood, or composition.",
+      "promptLabel": "AI Generation Prompt",
+      "promptPlaceholder": "Describe the visual style, characters, and mood of the poster...",
+      "autoFill": "Auto-Fill Prompt",
+      "upload": "Upload",
+      "download": "Download Poster",
+      "uploadCustom": "Upload Custom Poster",
+      "generate": "Generate Poster",
+      "regenerate": "Regenerate Poster",
+      "generating": "Designing...",
+      "enterTitle": "Please enter a title first"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter your movie title",
+      "generateTitle": "Generate Title",
+      "generatingTitle": "Generating...",
+      "mainGenre": "1.1 Main story line",
+      "secondaryGenre1": "1.2 Secondary story line 1",
+      "secondaryGenre2": "1.3 Secondary story line 2",
+      "projectLanguage": "🌐 Project Content Language"
+    },
+    "actions": {
+      "choosePath": "Choose your path:",
+      "startManually": "Start Manually (Step-by-Step)",
+      "autoGenerate": "Auto-Generate Full Script",
+      "stopReset": "Stop / Reset",
+      "or": "OR"
+    },
+    "errors": {
+      "failedTitle": "❌ Failed to generate title. Please try again.",
+      "autoGenerateError": "An unexpected error occurred during auto-generation."
+    }
+  },
+
+  "step2": {
+    "title": "STEP 2: Story Scope and Details",
+    "subtitle": "Define the scope and fundamental details of your story"
+  },
+
+  "step3": {
+    "title": "STEP 3: Characters",
+    "subtitle": "Create and manage characters in your story"
+  },
+
+  "step4": {
+    "title": "STEP 4: Story Structure",
+    "subtitle": "Define the structure and plot points of your story"
+  },
+
+  "step5": {
+    "title": "STEP 5: Output and Export",
+    "subtitle": "View results and export your project"
   },
 
   "errors": {

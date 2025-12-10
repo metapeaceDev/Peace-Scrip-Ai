@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ScriptData } from '../../types';
 import { GENRES } from '../../constants';
 import { generateFullScriptOutline, generateMoviePoster, generateTitle } from '../services/geminiService';
+import { useTranslation } from '../components/LanguageSwitcher';
 
 interface Step1GenreProps {
   scriptData: ScriptData;
@@ -20,6 +21,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
   setCurrentStep,
   onRegisterUndo,
 }) => {
+  const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
@@ -103,7 +105,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
       setCurrentStep(5);
     } catch (e: unknown) {
-      setError((e as Error).message || 'An unexpected error occurred during auto-generation.');
+      setError((e as Error).message || t('step1.errors.autoGenerateError'));
     } finally {
       setIsGenerating(false);
     }
@@ -111,7 +113,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
   const handleGeneratePoster = async () => {
     if (!scriptData.title) {
-      alert('Please enter a title first.');
+      alert(t('step1.poster.enterTitle'));
       return;
     }
     if (onRegisterUndo) onRegisterUndo();
@@ -139,7 +141,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
       updateScriptData({ title: newTitle });
     } catch (error) {
       console.error('Failed to generate title:', error);
-      setError('❌ Failed to generate title. Please try again.');
+      setError(t('step1.errors.failedTitle'));
     } finally {
       setIsGeneratingTitle(false);
     }
@@ -177,7 +179,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
   return (
     <div>
       <h2 className="text-2xl font-bold text-cyan-400 mb-6">
-        STEP 1: Genre, story line to be told
+        {t('step1.title')}
       </h2>
 
       {/* Project Poster Section - Redesigned */}
@@ -208,7 +210,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="text-xs text-gray-600 font-medium">No Poster</span>
+                  <span className="text-xs text-gray-600 font-medium">{t('step1.poster.noPoster')}</span>
                 </div>
               )}
 
@@ -217,7 +219,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
                   <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
                   <span className="text-cyan-400 text-xs font-bold animate-pulse">
-                    Generating...
+                    {t('step1.poster.generating')}
                   </span>
                   {progress > 0 && (
                     <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
@@ -277,7 +279,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                     clipRule="evenodd"
                   />
                 </svg>
-                Upload
+                {t('step1.poster.upload')}
               </button>
               <input
                 type="file"
@@ -293,29 +295,28 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
           <div className="flex-1 flex flex-col justify-between">
             <div>
               <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                Project Poster Art
+                {t('step1.poster.title')}
                 <span className="text-xs bg-cyan-900/50 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50">
-                  AI Powered
+                  {t('step1.poster.subtitle')}
                 </span>
               </h3>
               <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                Generate a cinematic poster for &quot;{scriptData.title || 'Your Project'}&quot;.
-                The AI uses your genre and title to create a unique visual identity. You can
-                customize the prompt below to refine the style, mood, or composition.
+                {t('step1.poster.description')} &quot;{scriptData.title || 'Your Project'}&quot;.
+                {t('step1.poster.customizePrompt')}
               </p>
             </div>
 
             <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-bold text-cyan-500 uppercase tracking-wider">
-                  AI Generation Prompt
+                  {t('step1.poster.promptLabel')}
                 </label>
                 <button
                   onClick={resetPrompt}
                   className="text-[10px] text-gray-500 hover:text-white underline"
                   title="Reset to default based on current title/genre"
                 >
-                  Auto-Fill Prompt
+                  {t('step1.poster.autoFill')}
                 </button>
               </div>
               <textarea
@@ -323,7 +324,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                 onChange={e => setPosterPrompt(e.target.value)}
                 onFocus={() => onRegisterUndo?.()} // Snapshot text state on focus
                 className="w-full bg-gray-800 border border-gray-600 rounded-md p-3 text-sm text-gray-200 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-none flex-1 min-h-[100px]"
-                placeholder="Describe the visual style, characters, and mood of the poster..."
+                placeholder={t('step1.poster.promptPlaceholder')}
               />
               <button
                 onClick={handleGeneratePoster}
@@ -331,7 +332,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                 className="mt-4 w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg shadow-cyan-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
               >
                 {isGeneratingPoster ? (
-                  'Designing...'
+                  t('step1.poster.generating')
                 ) : (
                   <>
                     <svg
@@ -346,7 +347,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                         clipRule="evenodd"
                       />
                     </svg>
-                    {scriptData.posterImage ? 'Regenerate Poster' : 'Generate Poster'}
+                    {scriptData.posterImage ? t('step1.poster.regenerate') : t('step1.poster.generate')}
                   </>
                 )}
               </button>
@@ -358,7 +359,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
       <div className="space-y-6">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
-            Title
+            {t('step1.fields.title')}
           </label>
           <div className="flex gap-2">
             <input
@@ -369,7 +370,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
               onChange={e => updateScriptData({ title: e.target.value })}
               onFocus={() => onRegisterUndo?.()} // Snapshot text state
               className="flex-1 bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
-              placeholder="Enter your movie title"
+              placeholder={t('step1.fields.titlePlaceholder')}
             />
             <button
               onClick={handleGenerateTitle}
@@ -403,10 +404,10 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Generating...
+                  {t('step1.fields.generatingTitle')}
                 </>
               ) : (
-                <>✨ Generate Title</>
+                <>✨ {t('step1.fields.generateTitle')}</>
               )}
             </button>
           </div>
@@ -416,7 +417,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
         <div>
           <label htmlFor="mainGenre" className="block text-sm font-medium text-gray-300 mb-2">
-            1.1 Main story line
+            {t('step1.fields.mainGenre')}
           </label>
           <select
             id="mainGenre"
@@ -439,7 +440,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
               htmlFor="secondaryGenre1"
               className="block text-sm font-medium text-gray-300 mb-2"
             >
-              1.2 Secondary story line 1
+              {t('step1.fields.secondaryGenre1')}
             </label>
             <select
               id="secondaryGenre1"
@@ -460,7 +461,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
               htmlFor="secondaryGenre2"
               className="block text-sm font-medium text-gray-300 mb-2"
             >
-              1.3 Secondary story line 2
+              {t('step1.fields.secondaryGenre2')}
             </label>
             <select
               id="secondaryGenre2"
@@ -481,7 +482,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
         {/* PROJECT LANGUAGE SELECTOR - MOVED TO END */}
         <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500/50 rounded-xl p-4">
           <label htmlFor="projectLanguage" className="block text-sm font-medium text-purple-300 mb-2">
-            🌐 Project Content Language
+            {t('step1.fields.projectLanguage')}
           </label>
           <select
             id="projectLanguage"
@@ -497,16 +498,16 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
         </div>
       </div>
       <div className="mt-8 border-t border-gray-700 pt-6">
-        <p className="text-center text-gray-400 mb-4">Choose your path:</p>
+        <p className="text-center text-gray-400 mb-4">{t('step1.actions.choosePath')}</p>
         {error && <p className="text-red-400 mt-2 mb-4 text-sm text-center">{error}</p>}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
           <button
             onClick={nextStep}
             className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
           >
-            Start Manually (Step-by-Step)
+            {t('step1.actions.startManually')}
           </button>
-          <span className="text-gray-500">OR</span>
+          <span className="text-gray-500">{t('step1.actions.or')}</span>
           {isGenerating ? (
             <button
               onClick={() => setIsGenerating(false)}
@@ -524,14 +525,14 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                   clipRule="evenodd"
                 />
               </svg>
-              Stop / Reset
+              {t('step1.actions.stopReset')}
             </button>
           ) : (
             <button
               onClick={handleAutoGenerate}
               className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center"
             >
-              Auto-Generate Full Script
+              {t('step1.actions.autoGenerate')}
             </button>
           )}
         </div>
