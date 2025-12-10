@@ -21,12 +21,15 @@ import AuthPage from './src/components/AuthPage';
 import ComfyUISetup from './src/components/ComfyUISetup';
 import LoRASetup from './src/components/LoRASetup';
 import { ProviderSettings } from './src/components/ProviderSettings';
+import ProviderSelector from './src/components/ProviderSelector';
+import UsageDashboard from './src/components/UsageDashboard';
 import SubscriptionDashboard from './src/components/SubscriptionDashboard';
 import StripeCheckout from './src/components/StripeCheckout';
 import PaymentSuccess from './src/components/PaymentSuccess';
 import PaymentCancel from './src/components/PaymentCancel';
 import { LanguageSwitcher } from './src/components/LanguageSwitcher';
 import QuotaWidget from './src/components/QuotaWidget';
+import VideoGenerationTestPage from './src/pages/VideoGenerationTestPage.tsx';
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
@@ -34,6 +37,8 @@ import { firestoreService } from './src/services/firestoreService';
 import { checkComfyUIStatus } from './src/services/comfyuiInstaller';
 import { checkAllRequiredModels } from './src/services/loraInstaller';
 import { getCurrentLanguage, type Language } from './src/i18n';
+import { getProviderConfig, saveProviderConfig } from './src/services/providerConfigStore';
+import type { ProviderMode, ModelPreference } from './src/services/providerConfigStore';
 
 interface SimpleUser {
   uid: string;
@@ -277,8 +282,10 @@ function App() {
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showPaymentCancel, setShowPaymentCancel] = useState(false);
+  const [showProviderSelector, setShowProviderSelector] = useState(false);
+  const [showUsageDashboard, setShowUsageDashboard] = useState(false);
 
-  const [view, setView] = useState<'studio' | 'editor'>('studio');
+  const [view, setView] = useState<'studio' | 'editor' | 'video-test'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
@@ -1162,6 +1169,46 @@ function App() {
 
   if (!isAuthenticated) return <AuthPage onLoginSuccess={handleLoginSuccess} />;
 
+  // Video Generation Test Page
+  if (view === 'video-test') {
+    return (
+      <>
+        <div className="bg-gray-900 border-b border-gray-800 px-8 py-3 flex justify-between items-center">
+          <button
+            onClick={() => setView('studio')}
+            className="text-gray-400 hover:text-white flex items-center gap-1 text-sm font-bold uppercase tracking-wide transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Back to Studio
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              Logged in as <strong className="text-cyan-400">{currentUserDisplayName}</strong>
+            </span>
+            <button
+              onClick={handleLogout}
+              className="text-xs text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-gray-800"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+        <VideoGenerationTestPage />
+      </>
+    );
+  }
+
   if (view === 'studio') {
     return (
       <>
@@ -1178,6 +1225,22 @@ function App() {
           <div className="flex items-center gap-3">
             {/* Language Switcher */}
             <LanguageSwitcher compact />
+
+            {/* Video Test Button */}
+            <button
+              onClick={() => setView('video-test')}
+              className="text-xs bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 hover:text-purple-300 px-3 py-1.5 rounded border border-purple-600/30 transition-all flex items-center gap-1.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3.5 w-3.5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+              </svg>
+              Video Test
+            </button>
 
             {/* Current Plan */}
             {currentUser && (
@@ -1323,6 +1386,26 @@ function App() {
               <span className="hidden sm:inline">Crew</span>
             </button>
 
+            {/* Provider Mode Button */}
+            <button
+              onClick={() => setShowProviderSelector(true)}
+              className="flex items-center gap-1 text-sm text-purple-300 hover:text-white bg-purple-900/30 hover:bg-purple-700 px-3 py-1.5 rounded transition-colors border border-purple-800"
+              title="AI Provider Settings"
+            >
+              <span>🔀</span>
+              <span className="hidden sm:inline">Provider</span>
+            </button>
+
+            {/* Usage Dashboard Button */}
+            <button
+              onClick={() => setShowUsageDashboard(true)}
+              className="flex items-center gap-1 text-sm text-green-300 hover:text-white bg-green-900/30 hover:bg-green-700 px-3 py-1.5 rounded transition-colors border border-green-800"
+              title="Usage & Cost Tracking"
+            >
+              <span>📊</span>
+              <span className="hidden sm:inline">Usage</span>
+            </button>
+
             {/* Save Status Indicator */}
             <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 py-1 px-3 rounded-full border border-gray-700">
               <span
@@ -1416,6 +1499,51 @@ function App() {
             setScriptData={setScriptData}
             onClose={() => setIsTeamManagerOpen(false)}
           />
+        )}
+
+        {/* Provider Selector Modal */}
+        {showProviderSelector && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="relative max-w-6xl max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowProviderSelector(false)}
+                className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 bg-gray-800/80 hover:bg-gray-700 rounded-full p-2 transition-colors"
+                title="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <ProviderSelector
+                onModeChange={(mode: ProviderMode) => {
+                  const config = getProviderConfig();
+                  saveProviderConfig({ ...config, mode });
+                }}
+                onModelChange={(preference: ModelPreference) => {
+                  const config = getProviderConfig();
+                  saveProviderConfig({ ...config, modelPreference: preference });
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Usage Dashboard Modal */}
+        {showUsageDashboard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-7xl max-h-[90vh] overflow-y-auto m-4">
+              <button
+                onClick={() => setShowUsageDashboard(false)}
+                className="sticky top-4 right-4 float-right z-10 text-white hover:text-gray-300 bg-gray-800/80 hover:bg-gray-700 rounded-full p-2 transition-colors"
+                title="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <UsageDashboard />
+            </div>
+          </div>
         )}
       </main>
       <footer className="max-w-5xl mx-auto px-6 py-8 text-center text-gray-600 text-sm">

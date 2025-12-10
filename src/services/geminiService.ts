@@ -267,9 +267,23 @@ function selectWorkflow(preferredWorkflow: string = PREFERRED_WORKFLOW): {
 // Video Models Configuration
 const VIDEO_MODELS = {
   ANIMATEDIFF: 'mm_sd_v15_v2.ckpt',
+  ANIMATEDIFF_V3: 'mm-sd-v3.safetensors',
   SVD: 'svd_xt_1_1.safetensors', // Stable Video Diffusion
   SVD_IMG2VID: 'svd_image_decoder.safetensors',
 };
+
+// Import video motion engine
+import {
+  buildVideoPrompt,
+  buildMotionContext,
+  buildCameraMovementContext,
+  buildTimingContext,
+  buildEnvironmentalMotionContext,
+  getMotionModuleStrength,
+  getRecommendedFPS,
+  getRecommendedFrameCount,
+  type ShotData,
+} from './videoMotionEngine';
 
 async function generateImageWithStableDiffusion(prompt: string, seed?: number): Promise<string> {
   try {
@@ -422,7 +436,7 @@ async function generateImageWithComfyUI(
   throw new Error('Local ComfyUI not supported. Please enable VITE_USE_COMFYUI_BACKEND=true');
 }
 
-// --- TIER 4: COMFYUI VIDEO GENERATION + LORA ---
+// --- TIER 4: COMFYUI VIDEO GENERATION + ANIMATEDIFF + LORA ---
 async function generateVideoWithComfyUI(
   prompt: string,
   options: {
@@ -433,76 +447,204 @@ async function generateVideoWithComfyUI(
     frameCount?: number;
     fps?: number;
     motionStrength?: number;
+    useAnimateDiff?: boolean; // NEW: Enable AnimateDiff
+    motionModule?: string; // NEW: AnimateDiff module
+    character?: Character; // NEW: For psychology-driven motion
+    shotData?: ShotData; // NEW: For camera/timing intelligence
+    currentScene?: GeneratedScene; // NEW: For environmental context
     onProgress?: (progress: number) => void;
   } = {}
 ): Promise<string> {
   try {
-    console.log('🎬 Using ComfyUI for video generation...');
+    // Determine if using AnimateDiff or SVD
+    const useAnimateDiff = options.useAnimateDiff !== false; // Default to true
+    
+    // Calculate optimal parameters from psychology if available
+    let finalFrameCount = options.frameCount;
+    let finalFPS = options.fps;
+    let finalMotionStrength = options.motionStrength;
 
-    // ... (workflow setup) ...
-    const workflow: any = {
-      '1': {
-        inputs: {
-          ckpt_name: VIDEO_MODELS.SVD,
+    if (options.shotData && options.character) {
+      // Use video motion engine for intelligent parameter calculation
+      const recommendedFPS = getRecommendedFPS(options.shotData);
+      const recommendedFrames = getRecommendedFrameCount(options.shotData, recommendedFPS);
+      const recommendedStrength = getMotionModuleStrength(options.shotData, options.character);
+
+      finalFPS = finalFPS || recommendedFPS;
+      finalFrameCount = finalFrameCount || recommendedFrames;
+      finalMotionStrength = finalMotionStrength || recommendedStrength;
+
+      console.log(`📊 Motion Intelligence:
+  - FPS: ${finalFPS} (${options.fps ? 'manual' : 'auto-calculated'})
+  - Frames: ${finalFrameCount} (${options.frameCount ? 'manual' : 'auto-calculated'})
+  - Strength: ${finalMotionStrength.toFixed(2)} (${options.motionStrength ? 'manual' : 'psychology-driven'})`);
+    } else {
+      finalFPS = finalFPS || 8;
+      finalFrameCount = finalFrameCount || 16;
+      finalMotionStrength = finalMotionStrength || 0.8;
+    }
+
+    // Build workflow based on model choice
+    interface WorkflowNode {
+      inputs: Record<string, any>;
+      class_type: string;
+    }
+    
+    interface Workflow {
+      [key: string]: WorkflowNode;
+    }
+
+    let workflow: Workflow;
+
+    if (useAnimateDiff) {
+      // ============================================
+      // ANIMATEDIFF WORKFLOW
+      // ============================================
+      workflow = {
+        '1': {
+          inputs: {
+            ckpt_name: 'sd_xl_base_1.0.safetensors', // Base model
+          },
+          class_type: 'CheckpointLoaderSimple',
         },
-        class_type: 'ImageOnlyCheckpointLoader',
-      },
-      '2': {
-        inputs: {
-          width: 1024,
-          height: 576,
-          batch_size: options.frameCount || 25,
-          seed: Math.floor(Math.random() * 1000000000),
+        '2': {
+          inputs: {
+            text: prompt,
+            clip: ['1', 1],
+          },
+          class_type: 'CLIPTextEncode',
         },
-        class_type: 'EmptyLatentVideo',
-      },
-      '3': {
-        inputs: {
-          text: prompt,
-          clip: ['1', 1],
+        '3': {
+          inputs: {
+            text: options.negativePrompt || 'low quality, blurry, distorted, watermark, static, frozen, duplicate frames',
+            clip: ['1', 1],
+          },
+          class_type: 'CLIPTextEncode',
         },
-        class_type: 'CLIPTextEncode',
-      },
-      '4': {
-        inputs: {
-          text: options.negativePrompt || 'low quality, blurry, distorted, watermark, static',
-          clip: ['1', 1],
+        '4': {
+          inputs: {
+            width: 512,
+            height: 512,
+            batch_size: finalFrameCount,
+          },
+          class_type: 'EmptyLatentImage',
         },
-        class_type: 'CLIPTextEncode',
-      },
-      '5': {
-        inputs: {
-          seed: Math.floor(Math.random() * 1000000000),
-          steps: 20,
-          cfg: 7,
-          sampler_name: 'euler',
-          scheduler: 'karras',
-          denoise: 1,
-          model: ['1', 0],
-          positive: ['3', 0],
-          negative: ['4', 0],
-          latent_video: ['2', 0],
+        '5': {
+          inputs: {
+            model_name: options.motionModule || VIDEO_MODELS.ANIMATEDIFF,
+          },
+          class_type: 'AnimateDiffLoaderV1',
         },
-        class_type: 'KSampler',
-      },
-      '6': {
-        inputs: {
-          samples: ['5', 0],
-          vae: ['1', 2],
+        '6': {
+          inputs: {
+            model: ['1', 0],
+            motion_model: ['5', 0],
+          },
+          class_type: 'AnimateDiffModelLoader',
         },
-        class_type: 'VAEDecode',
-      },
-      '7': {
-        inputs: {
-          filename_prefix: 'peace-script-video',
-          fps: options.fps || 8,
-          compress_level: 4,
-          format: 'video/h264-mp4',
-          images: ['6', 0],
+        '7': {
+          inputs: {
+            seed: Math.floor(Math.random() * 1000000000),
+            steps: 20,
+            cfg: 7.5,
+            sampler_name: 'euler_ancestral',
+            scheduler: 'karras',
+            denoise: 1.0,
+            model: ['6', 0],
+            positive: ['2', 0],
+            negative: ['3', 0],
+            latent_image: ['4', 0],
+            motion_scale: finalMotionStrength,
+          },
+          class_type: 'KSampler',
         },
-        class_type: 'VHS_VideoCombine',
-      },
-    };
+        '8': {
+          inputs: {
+            samples: ['7', 0],
+            vae: ['1', 2],
+          },
+          class_type: 'VAEDecode',
+        },
+        '9': {
+          inputs: {
+            filename_prefix: 'peace-script-animatediff',
+            fps: finalFPS,
+            loop_count: 0,
+            save_image: false,
+            format: 'video/h264-mp4',
+            images: ['8', 0],
+          },
+          class_type: 'VHS_VideoCombine',
+        },
+      };
+    } else {
+      // ============================================
+      // SVD (STABLE VIDEO DIFFUSION) WORKFLOW
+      // ============================================
+      workflow = {
+        '1': {
+          inputs: {
+            ckpt_name: VIDEO_MODELS.SVD,
+          },
+          class_type: 'ImageOnlyCheckpointLoader',
+        },
+        '2': {
+          inputs: {
+            width: 1024,
+            height: 576,
+            batch_size: finalFrameCount,
+            seed: Math.floor(Math.random() * 1000000000),
+          },
+          class_type: 'EmptyLatentVideo',
+        },
+        '3': {
+          inputs: {
+            text: prompt,
+            clip: ['1', 1],
+          },
+          class_type: 'CLIPTextEncode',
+        },
+        '4': {
+          inputs: {
+            text: options.negativePrompt || 'low quality, blurry, distorted, watermark, static',
+            clip: ['1', 1],
+          },
+          class_type: 'CLIPTextEncode',
+        },
+        '5': {
+          inputs: {
+            seed: Math.floor(Math.random() * 1000000000),
+            steps: 20,
+            cfg: 7,
+            sampler_name: 'euler',
+            scheduler: 'karras',
+            denoise: 1,
+            model: ['1', 0],
+            positive: ['3', 0],
+            negative: ['4', 0],
+            latent_video: ['2', 0],
+          },
+          class_type: 'KSampler',
+        },
+        '6': {
+          inputs: {
+            samples: ['5', 0],
+            vae: ['1', 2],
+          },
+          class_type: 'VAEDecode',
+        },
+        '7': {
+          inputs: {
+            filename_prefix: 'peace-script-svd',
+            fps: finalFPS,
+            compress_level: 4,
+            format: 'video/h264-mp4',
+            images: ['6', 0],
+          },
+          class_type: 'VHS_VideoCombine',
+        },
+      };
+    }
 
     // If base image provided, use img2vid workflow
     if (options.baseImage) {
@@ -3310,14 +3452,101 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
   }
 }
 
+import type { MotionEdit } from '../types/motionEdit';
+import { 
+  buildVideoPromptWithMotion, 
+  motionEditToAnimateDiffParams
+} from './motionEditorService';
+
 export async function generateStoryboardVideo(
   prompt: string,
   base64Image?: string,
   onProgress?: (progress: number) => void,
-  preferredModel: string = 'auto'
+  preferredModel: string = 'auto',
+  options?: {
+    character?: Character;
+    currentScene?: GeneratedScene;
+    shotData?: ShotData;
+    useAnimateDiff?: boolean;
+    motionStrength?: number;
+    fps?: number;
+    duration?: number;
+    motionEdit?: MotionEdit; // 🆕 NEW: Motion Editor support
+  }
 ): Promise<string> {
   try {
     console.log(`🎬 Generating video with model: ${preferredModel}`);
+
+    // 🎯 NEW: Build Motion-Aware Prompt if psychology data available
+    let enhancedPrompt = prompt;
+    let finalMotionStrength = options?.motionStrength;
+    let finalFPS = options?.fps;
+    let finalFrameCount: number | undefined;
+
+    // 🆕 PRIORITY: Use Motion Editor data if provided
+    if (options?.motionEdit && options?.character) {
+      console.log('🎬 MOTION EDITOR MODE ACTIVE');
+      
+      // Build comprehensive prompt from Motion Editor
+      enhancedPrompt = buildVideoPromptWithMotion(
+        options.motionEdit,
+        options.character,
+        options.currentScene
+      );
+
+      // Get AnimateDiff parameters from Motion Editor
+      const motionParams = motionEditToAnimateDiffParams(
+        options.motionEdit,
+        options.character,
+        options.currentScene
+      );
+
+      finalMotionStrength = motionParams.motion_strength;
+      finalFPS = motionParams.fps;
+      finalFrameCount = motionParams.frame_count;
+
+      console.log(`📊 Motion Editor Parameters:
+  - Camera: ${motionParams.camera_movement}
+  - Lighting: ${motionParams.lighting_context}
+  - Sound: ${motionParams.sound_context}
+  - FPS: ${finalFPS}
+  - Frames: ${finalFrameCount}
+  - Motion Strength: ${finalMotionStrength.toFixed(2)}`);
+      
+    } else if (options?.character && options?.currentScene && options?.shotData) {
+      console.log('🧠 Psychology-Driven Motion Enhancement ACTIVE');
+      
+      // Build comprehensive video prompt with motion intelligence
+      enhancedPrompt = buildVideoPrompt(
+        options.shotData,
+        options.currentScene,
+        options.character,
+        prompt
+      );
+
+      // Auto-calculate optimal parameters
+      const recommendedFPS = getRecommendedFPS(options.shotData);
+      const recommendedFrames = getRecommendedFrameCount(
+        options.shotData, 
+        finalFPS || recommendedFPS
+      );
+      const recommendedStrength = getMotionModuleStrength(
+        options.shotData,
+        options.character
+      );
+
+      finalFPS = finalFPS || recommendedFPS;
+      finalFrameCount = recommendedFrames;
+      finalMotionStrength = finalMotionStrength || recommendedStrength;
+
+      console.log(`📊 Motion Intelligence Calculated:
+  - Duration: ${options.shotData.durationSec || 5}s
+  - FPS: ${finalFPS}
+  - Frames: ${finalFrameCount}
+  - Motion Strength: ${finalMotionStrength.toFixed(2)}
+  - Camera: ${options.shotData.movement || 'Static'}
+  - Character Energy: ${options.character.emotionalState?.energyLevel || 50}`);
+    }
 
     // 0. Check Subscription Access
     if (preferredModel !== 'auto') {
@@ -3343,7 +3572,7 @@ export async function generateStoryboardVideo(
       };
       const params: VeoParams = {
         model,
-        prompt: `Cinematic shot. ${prompt}`,
+        prompt: `Cinematic shot. ${enhancedPrompt}`, // Use enhanced prompt!
         config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' },
       };
       if (base64Image) {
@@ -3386,21 +3615,29 @@ export async function generateStoryboardVideo(
       return `${videoUri}&key=${apiKey}`;
     }
 
-    if (preferredModel === 'comfyui-svd' || (preferredModel === 'auto' && COMFYUI_ENABLED)) {
-      // Try Tier 2: ComfyUI + SVD (if enabled)
+    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff' || (preferredModel === 'auto' && COMFYUI_ENABLED)) {
+      // Try Tier 2: ComfyUI + AnimateDiff or SVD (if enabled)
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
-          console.log('🎬 Tier 2: Trying ComfyUI + Stable Video Diffusion...');
-          const result = await generateVideoWithComfyUI(prompt, {
+          const useAnimateDiff = preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
+          console.log(`🎬 Tier 2: Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`);
+          
+          const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
             lora: LORA_MODELS.DETAIL_ENHANCER,
             loraStrength: 0.8,
-            negativePrompt: 'low quality, blurry, static, watermark',
-            frameCount: 25,
-            fps: 8,
+            negativePrompt: 'low quality, blurry, static, watermark, frozen frames, duplicate frames',
+            frameCount: finalFrameCount || 25,
+            fps: finalFPS || 8,
+            motionStrength: finalMotionStrength || 0.8,
+            useAnimateDiff: useAnimateDiff,
+            character: options?.character,
+            shotData: options?.shotData,
+            currentScene: options?.currentScene,
             onProgress: onProgress,
           });
           // Free model, no credit deduction
+          console.log(`✅ Tier 2 Success: ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
           return result;
         } catch (comfyError: unknown) {
           const err = comfyError as { message?: string };

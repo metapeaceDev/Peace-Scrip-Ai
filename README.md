@@ -35,9 +35,14 @@ Peace Script AI offers flexible pricing tiers for every creator:
 | **PRO**        | **฿999/เดือน**    | Production Houses      | Unlimited projects, 500 credits, All features    |
 | **ENTERPRISE** | Custom            | Studios, Organizations | Custom quotas, On-premise, White label           |
 
+**💡 Cost Optimization:** Choose between Cloud APIs (fast) or Open Source (free)
+- 🆓 **Open Source Mode**: ComfyUI + FLUX + LoRA (Free, requires GPU or cloud hosting)
+- ☁️ **Cloud API Mode**: Gemini + Veo (Paid, faster, no setup needed)
+- 🔀 **Hybrid Mode**: Mix both for best value (recommended)
+
 **💡 Early Bird:** Get 50% OFF for the first year!
 
-📊 See full pricing details in [PRICING_STRATEGY.md](./PRICING_STRATEGY.md)
+📊 See full details: [PRICING_STRATEGY.md](./PRICING_STRATEGY.md) | [COST_OPTIMIZATION_ROADMAP.md](./COST_OPTIMIZATION_ROADMAP.md)
 
 ## 🛠️ Tech Stack
 

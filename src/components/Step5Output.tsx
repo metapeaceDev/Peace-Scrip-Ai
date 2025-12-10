@@ -10,6 +10,10 @@ import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../../constants';
 import { hasAccessToModel } from '../services/userStore';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
+import { MotionEditor } from './MotionEditor';
+import type { MotionEdit } from '../types/motionEdit';
+import { DEFAULT_MOTION_EDIT } from '../types/motionEdit';
+import MotionEditorPage from '../pages/MotionEditorPage';
 
 interface Step5OutputProps {
   scriptData: ScriptData;
@@ -353,6 +357,7 @@ const SceneDisplay: React.FC<{
   sceneIndex,
   scriptData,
 }) => {
+  // Sub-tabs for Scene Design only
   const [activeTab, setActiveTab] = useState('design');
   const [isEditing, setIsEditing] = useState(false);
   
@@ -1828,81 +1833,82 @@ IMPORTANT: Show the character's emotional and psychological state through facial
 
   return (
     <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600 fade-in-scene relative">
+      {/* Sub-tabs Navigation (Level 2 - Inside Scene) */}
       <div className="flex justify-between items-center border-b border-gray-600 mb-4 pb-2">
         <div className="flex flex-wrap gap-2">
           <button
-            type="button"
-            onClick={() => setActiveTab('design')}
-            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'design' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-          >
-            Scene Design
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('shotlist')}
-            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'shotlist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-          >
-            Shot List
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('storyboard')}
-            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'storyboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-          >
-            Storyboard
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('proplist')}
-            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'proplist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-          >
-            Prop List
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('breakdown')}
-            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'breakdown' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-          >
-            Breakdown
-          </button>
-        </div>
-        <div className="flex items-center gap-2 mt-2 sm:mt-0">
-          {isEditing ? (
-            <>
-              <button
                 type="button"
-                onClick={handleSave}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors shadow-lg"
+                onClick={() => setActiveTab('design')}
+                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'design' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
               >
-                Save
+                Scene Details
               </button>
               <button
                 type="button"
-                onClick={handleCancel}
-                className="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors"
+                onClick={() => setActiveTab('shotlist')}
+                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'shotlist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
               >
-                Cancel
+                Shot List
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-3 w-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+              <button
+                type="button"
+                onClick={() => setActiveTab('proplist')}
+                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'proplist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
               >
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-              Edit
-            </button>
-          )}
-        </div>
-      </div>
+                Prop List
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('storyboard')}
+                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'storyboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                Storyboard
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('breakdown')}
+                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'breakdown' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+              >
+                Breakdown
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mt-2 sm:mt-0">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors shadow-lg"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                  Edit
+                </button>
+              )}
+            </div>
+          </div>
 
       <div className="prose prose-invert prose-sm max-w-none">
         {activeTab === 'design' && (
@@ -2940,7 +2946,6 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     </div>
   );
 };
-
 // Collapsible Scene Wrapper
 const SceneItem: React.FC<{
   sceneIndex: number;
@@ -3111,7 +3116,125 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
+  
+  // 🎯 Main Tab Navigation (Step5 Level)
+  const [mainTab, setMainTab] = useState<'sceneDesign' | 'simulation' | 'motionEditor'>('sceneDesign');
+  const [editingShotIndex, setEditingShotIndex] = useState<number | null>(0); // Auto-select first shot
+  const [currentShotMotion, setCurrentShotMotion] = useState<MotionEdit | null>(null);
+  const [showMotionEditorModal, setShowMotionEditorModal] = useState(false); // 🎬 Modal for full Motion Editor
+  
+  // 🔄 Helper: Convert shot to MotionEdit format
+  const convertShotToMotionEdit = (shot: {
+    description: string;
+    shotSize: string;
+    movement: string;
+    perspective: string;
+    equipment: string;
+    durationSec: number;
+    focalLength?: string;
+  }): MotionEdit => {
+    if (!shot) return DEFAULT_MOTION_EDIT;
+    
+    return {
+      shot_preview_generator_panel: {
+        structure: '',
+        prompt: shot.description || '',
+        shot_type: 'Medium Shot',
+        voiceover: ''
+      },
+      camera_control: {
+        shot_prompt: shot.description || '',
+        perspective: (shot.perspective || 'Neutral') as any,
+        movement: (shot.movement || 'Static') as any,
+        equipment: (shot.equipment || 'Tripod') as any,
+        focal_length: (shot.focalLength || '50mm') as any
+      },
+      frame_control: {
+        foreground: '',
+        object: '',
+        background: ''
+      },
+      lighting_design: {
+        description: '',
+        color_temperature: 'Neutral'
+      },
+      sounds: {
+        auto_sfx: true,
+        description: ''
+      }
+    };
+  };
+  
+  // 💾 Helper: Save MotionEdit changes back to shot
+  const handleMotionChange = useCallback((
+    sceneTitle: string,
+    sceneIndex: number,
+    shotIndex: number,
+    updatedMotion: MotionEdit
+  ) => {
+    if (onRegisterUndo) onRegisterUndo();
+    
+    setScriptData(prev => {
+      const scenes = prev.generatedScenes[sceneTitle] || [];
+      const updatedScenes = [...scenes];
+      
+      if (updatedScenes[sceneIndex] && updatedScenes[sceneIndex].shotList) {
+        const shots = [...updatedScenes[sceneIndex].shotList];
+        const camera = updatedMotion.camera_control;
+        const preview = updatedMotion.shot_preview_generator_panel;
+        
+        shots[shotIndex] = {
+          ...shots[shotIndex],
+          shotSize: preview.shot_type,
+          movement: camera.movement,
+          perspective: camera.perspective,
+          equipment: camera.equipment,
+          focalLength: camera.focal_length,
+          description: camera.shot_prompt || preview.prompt || shots[shotIndex].description
+        };
+        
+        updatedScenes[sceneIndex] = {
+          ...updatedScenes[sceneIndex],
+          shotList: shots
+        };
+      }
+      
+      return {
+        ...prev,
+        generatedScenes: {
+          ...prev.generatedScenes,
+          [sceneTitle]: updatedScenes
+        }
+      };
+    });
+    
+    // Update current motion state
+    setCurrentShotMotion(updatedMotion);
+  }, [onRegisterUndo, setScriptData]);
+  
+  // ⌨️ Keyboard shortcuts for main tabs
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
+        switch(e.key) {
+          case '1':
+            e.preventDefault();
+            setMainTab('sceneDesign');
+            break;
+          case '2':
+            e.preventDefault();
+            setMainTab('simulation');
+            break;
+          case '3':
+            e.preventDefault();
+            setMainTab('motionEditor');
+            break;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Regenerate Modal State
   const [regenerateModal, setRegenerateModal] = useState<{
@@ -3547,6 +3670,40 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
   return (
     <div className="p-6 animate-fade-in pb-24">
+      {/* 🎬 Professional Motion Editor Modal */}
+      {showMotionEditorModal && editingShotIndex !== null && (() => {
+        // Get current shot data
+        const allShots: Array<{ shot: any; sceneTitle: string; sceneIndex: number; shotIndex: number }> = [];
+        scriptData.structure.forEach((point) => {
+          const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
+          Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
+            const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
+            if (sceneData?.shotList) {
+              sceneData.shotList.forEach((shot, shotIndex) => {
+                allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex });
+              });
+            }
+          });
+        });
+        
+        const currentShot = allShots[editingShotIndex];
+        
+        return (
+          <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm overflow-auto">
+            <MotionEditorPage
+              scriptData={scriptData}
+              shotId={`shot-${editingShotIndex}`}
+              onSave={(updatedShot) => {
+                console.log('Shot updated:', updatedShot);
+                // TODO: Save updated shot data back to scriptData
+                setShowMotionEditorModal(false);
+              }}
+              onClose={() => setShowMotionEditorModal(false)}
+            />
+          </div>
+        );
+      })()}
+    
       {/* Regenerate Options Modal */}
       <RegenerateOptionsModal
         isOpen={regenerateModal.isOpen}
@@ -3599,16 +3756,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               {isLoading ? t('step5.buttons.generating') : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
             </button>
           )}
-          
-          {/* Psychology Timeline Button */}
-          <button
-            onClick={() => setShowPsychologyTimeline(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
-            title="View character psychology changes across all scenes"
-          >
-            <span className="text-xl">📈</span>
-            <span>{t('step5.buttons.psychologyTimeline')}</span>
-          </button>
           
           <button
             onClick={() => setShowPreview(!showPreview)}
@@ -3710,6 +3857,65 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         </div>
       )}
 
+      {/* 🎯 Main Tabs Navigation (Step5 Level - Outside Equilibrium) */}
+      <div className="mb-6 bg-gray-900/50 rounded-lg border border-gray-700 p-1">
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setMainTab('sceneDesign')}
+            title="Scene organization and structure (Alt+1)"
+            className={`flex-1 py-4 px-6 font-bold text-base transition-all relative group rounded-lg ${
+              mainTab === 'sceneDesign'
+                ? 'text-cyan-400 bg-gray-800/80 shadow-lg'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              📝 Scene Design
+            </span>
+            {mainTab === 'sceneDesign' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-b-lg"></div>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMainTab('simulation')}
+            title="Character psychology timeline (Alt+2)"
+            className={`flex-1 py-4 px-6 font-bold text-base transition-all relative group rounded-lg ${
+              mainTab === 'simulation'
+                ? 'text-purple-400 bg-gray-800/80 shadow-lg'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              🎭 Simulation
+            </span>
+            {mainTab === 'simulation' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-lg"></div>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMainTab('motionEditor')}
+            title="Professional cinematic controls (Alt+3)"
+            className={`flex-1 py-4 px-6 font-bold text-base transition-all relative group rounded-lg ${
+              mainTab === 'motionEditor'
+                ? 'text-green-400 bg-gray-800/80 shadow-lg'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              🎬 Motion Editor
+            </span>
+            {mainTab === 'motionEditor' && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-teal-500 rounded-b-lg"></div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 📌 Scene Design Tab - Equilibrium Structure */}
+      {mainTab === 'sceneDesign' && (
       <div className="space-y-8">
         {scriptData.structure.map((point, pointIndex) => {
           // Calculate continuous scene number
@@ -3959,6 +4165,365 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           );
         })}
       </div>
+      )}
+
+      {/* 🎭 Simulation Tab - Character Psychology Timeline */}
+      {mainTab === 'simulation' && (
+        <div className="p-6 bg-gray-900/30 rounded-lg border border-gray-700 min-h-[600px]">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-purple-400 mb-2">🎭 Character Psychology Timeline</h2>
+            <p className="text-gray-400 text-sm">Track psychological changes of all characters across scenes</p>
+          </div>
+          
+          {/* Psychology Timeline Content */}
+          <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
+            {Object.keys(scriptData.psychologyTimelines || {}).length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🧠</div>
+                <h3 className="text-xl font-bold text-gray-300 mb-2">
+                  No Psychology Data Yet
+                </h3>
+                <p className="text-gray-500">
+                  Generate scenes to start tracking character psychology changes
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Object.entries(scriptData.psychologyTimelines || {}).map(([charId, timeline]: [string, any]) => {
+                  try {
+                    // Strict validation
+                    if (!timeline || typeof timeline !== 'object') return null;
+                    if (!timeline.snapshots || !Array.isArray(timeline.snapshots)) return null;
+                    if (!timeline.summary || typeof timeline.summary !== 'object') return null;
+                    
+                    // Create immutable references
+                    const snapshots = (timeline.snapshots || []).filter((s: any) => 
+                      s && 
+                      typeof s === 'object' && 
+                      typeof s.mentalBalance === 'number' &&
+                      typeof s.sceneNumber === 'number'
+                    );
+                    const summary = timeline.summary;
+                    const overallArc = timeline.overallArc;
+                    
+                    const character = scriptData.characters.find((c: any) => c.id === charId || c.name === charId);
+                    if (!character) return null;
+
+                    return (
+                      <div 
+                        key={charId} 
+                        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-purple-500/30 overflow-hidden shadow-xl hover:shadow-purple-500/20 transition-all cursor-pointer hover:scale-105 hover:border-purple-400/50"
+                        onClick={() => {
+                          if (onNavigateToCharacter) {
+                            onNavigateToCharacter(character.name, 5, undefined);
+                          }
+                        }}
+                        title={`Click to view ${character.name}'s details`}
+                      >
+                        {/* Character Header */}
+                        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 p-4 border-b border-purple-500/30">
+                          <div className="flex items-center gap-3 mb-2">
+                            {character.image && (
+                              <img
+                                src={character.image}
+                                alt={character.name}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-purple-400 shadow-lg"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-bold text-purple-300 truncate">
+                                {character.name}
+                              </h3>
+                              <p className="text-xs text-gray-400 truncate">{character.role}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-4 text-center">
+                            <div className="flex-1">
+                              <div className="text-xs text-gray-500">Scenes</div>
+                              <div className="text-xl font-bold text-cyan-400">
+                                {snapshots.length}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-xs text-gray-500">Changes</div>
+                              <div className="text-xl font-bold text-pink-400">
+                                {timeline.changes?.length || 0}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stats Grid */}
+                        {summary && (
+                          <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
+                            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
+                              <div className="text-[10px] text-green-400 mb-1">Kusala</div>
+                              <div className="text-lg font-bold text-green-300">
+                                +{summary.total_kusala || 0}
+                              </div>
+                            </div>
+                            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
+                              <div className="text-[10px] text-red-400 mb-1">Akusala</div>
+                              <div className="text-lg font-bold text-red-300">
+                                -{summary.total_akusala || 0}
+                              </div>
+                            </div>
+                            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
+                              <div className="text-[10px] text-blue-400 mb-1">Net</div>
+                              <div className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                {(summary.net_progress || 0) >= 0 ? '+' : ''}{summary.net_progress || 0}
+                              </div>
+                            </div>
+                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
+                              <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
+                              <div className="text-xs font-bold text-purple-300 truncate">
+                                {summary.dominant_pattern || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Overall Arc - Compact */}
+                        {overallArc && overallArc.startingBalance !== undefined && overallArc.endingBalance !== undefined && (
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-bold text-gray-400">Character Arc</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                overallArc.direction === 'กุศลขึ้น' 
+                                  ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                  : overallArc.direction === 'กุศลลง'
+                                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                  : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                              }`}>
+                                {overallArc.direction || 'N/A'}
+                              </span>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
+                              <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-bold z-10">
+                                <span className="text-gray-400">{overallArc.startingBalance}</span>
+                                <span className="text-cyan-300">→</span>
+                                <span className="text-white">{overallArc.endingBalance}</span>
+                              </div>
+                              <div 
+                                className={`absolute left-0 top-0 h-full transition-all ${
+                                  (overallArc.totalChange || 0) >= 0 
+                                    ? 'bg-gradient-to-r from-green-600/50 to-green-500/50' 
+                                    : 'bg-gradient-to-r from-red-600/50 to-red-500/50'
+                                }`}
+                                style={{ 
+                                  width: `${Math.min(100, Math.abs((overallArc.endingBalance + 100) / 2))}%` 
+                                }}
+                              />
+                            </div>
+                            
+                            <p className="text-xs text-gray-400 mt-2 line-clamp-2">
+                              {overallArc.interpretation || 'No interpretation available'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Mini Timeline Preview */}
+                        {snapshots && snapshots.length > 0 && (
+                          <div className="p-4 pt-0">
+                            <div className="text-xs font-bold text-gray-400 mb-2">Scene Journey</div>
+                            <div className="flex gap-1 overflow-x-auto pb-1">
+                              {snapshots.map((snapshot: any, idx: number) => {
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`flex-shrink-0 w-8 h-8 rounded border-2 flex items-center justify-center text-xs font-bold ${
+                                      snapshot.mentalBalance >= 20
+                                        ? 'bg-green-500/20 border-green-500 text-green-300'
+                                        : snapshot.mentalBalance >= 0
+                                        ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                                        : snapshot.mentalBalance >= -20
+                                        ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300'
+                                        : 'bg-red-500/20 border-red-500 text-red-300'
+                                    }`}
+                                    title={`Scene ${snapshot.sceneNumber}: Balance ${snapshot.mentalBalance}`}
+                                  >
+                                    {snapshot.sceneNumber}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } catch (error) {
+                    console.error('Error rendering psychology card:', error);
+                    return null;
+                  }
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🎬 Motion Editor Tab - All Shots */}
+      {mainTab === 'motionEditor' && (
+        <div className="p-6 bg-gray-900/30 rounded-lg border border-gray-700 min-h-[600px]">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-green-400 mb-2">🎬 Professional Motion Editor</h2>
+            <p className="text-gray-400 text-sm">Cinematic camera controls for all shots</p>
+          </div>
+
+          {(() => {
+            // Collect all shots from all scenes
+            const allShots: Array<{ shot: any; sceneTitle: string; sceneIndex: number; shotIndex: number }> = [];
+            scriptData.structure.forEach((point) => {
+              const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
+              Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
+                const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
+                if (sceneData?.shotList) {
+                  sceneData.shotList.forEach((shot, shotIndex) => {
+                    allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex });
+                  });
+                }
+              });
+            });
+
+            return allShots.length > 0 ? (
+              <>
+                {/* Shot Selector - Compact Top Bar */}
+                <div className="mb-4 flex items-center gap-4">
+                  <h3 className="text-sm font-semibold text-gray-400">
+                    Shot: {editingShotIndex !== null ? editingShotIndex + 1 : 1} / {allShots.length}
+                  </h3>
+                  <div className="flex-1 flex gap-2 overflow-x-auto pb-2">
+                    {allShots.map((item, globalIdx) => (
+                      <button
+                        key={globalIdx}
+                        type="button"
+                        onClick={() => {
+                          setEditingShotIndex(globalIdx);
+                          setCurrentShotMotion(DEFAULT_MOTION_EDIT);
+                        }}
+                        className={`flex-shrink-0 w-10 h-10 rounded-lg font-bold text-xs transition-all ${
+                          editingShotIndex === globalIdx
+                            ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
+                            : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
+                        }`}
+                        title={`${item.sceneTitle} - Shot ${item.shotIndex + 1}`}
+                      >
+                        {globalIdx + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Shot Selector - Compact Top Bar */}
+                <div className="mb-4 flex items-center gap-4">
+                  <h3 className="text-sm font-semibold text-gray-400">
+                    Shot: {editingShotIndex !== null ? editingShotIndex + 1 : 1} / {allShots.length}
+                  </h3>
+                  <div className="flex-1 flex gap-2 overflow-x-auto pb-2">
+                    {allShots.map((item, globalIdx) => (
+                      <button
+                        key={globalIdx}
+                        type="button"
+                        onClick={() => {
+                          setEditingShotIndex(globalIdx);
+                          setCurrentShotMotion(DEFAULT_MOTION_EDIT);
+                        }}
+                        className={`flex-shrink-0 w-10 h-10 rounded-lg font-bold text-xs transition-all ${
+                          editingShotIndex === globalIdx
+                            ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
+                            : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
+                        }`}
+                        title={`${item.sceneTitle} - Shot ${item.shotIndex + 1}`}
+                      >
+                        {globalIdx + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Always show MotionEditor for current shot */}
+                {allShots[editingShotIndex ?? 0] && (
+                  <div className="border-t border-gray-700 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-green-400">
+                        {allShots[editingShotIndex ?? 0].sceneTitle} - Shot {(editingShotIndex ?? 0) + 1}
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowMotionEditorModal(true)}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Open Professional Motion Editor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newIdx = Math.max(0, (editingShotIndex ?? 0) - 1);
+                            setEditingShotIndex(newIdx);
+                            setCurrentShotMotion(DEFAULT_MOTION_EDIT);
+                          }}
+                          disabled={editingShotIndex === 0}
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          ← Prev
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
+                            setEditingShotIndex(newIdx);
+                            setCurrentShotMotion(DEFAULT_MOTION_EDIT);
+                          }}
+                          disabled={editingShotIndex === allShots.length - 1}
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-800/50 rounded-lg mb-4">
+                      <p className="text-gray-400 text-sm mb-2">
+                        <strong>Description:</strong> {allShots[editingShotIndex ?? 0].shot.description}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+                        <div><strong>Size:</strong> {allShots[editingShotIndex ?? 0].shot.shotSize}</div>
+                        <div><strong>Movement:</strong> {allShots[editingShotIndex ?? 0].shot.movement}</div>
+                        <div><strong>Duration:</strong> {allShots[editingShotIndex ?? 0].shot.durationSec}s</div>
+                        <div><strong>Equipment:</strong> {allShots[editingShotIndex ?? 0].shot.equipment}</div>
+                      </div>
+                    </div>
+                    
+                    {/* 🎬 Professional Motion Editor Component */}
+                    <MotionEditor
+                      initialMotionEdit={convertShotToMotionEdit(allShots[editingShotIndex ?? 0].shot)}
+                      onMotionChange={(updatedMotion) => {
+                        const idx = editingShotIndex ?? 0;
+                        handleMotionChange(
+                          allShots[idx].sceneTitle,
+                          allShots[idx].sceneIndex,
+                          allShots[idx].shotIndex,
+                          updatedMotion
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">No shots available</p>
+                <p className="text-sm mt-2">Generate scenes first in Scene Design tab</p>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       <div className="mt-12 flex justify-between border-t border-gray-700 pt-8">
         <button
@@ -4054,234 +4619,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         </div>
       )}
 
-      {/* Psychology Timeline Modal */}
-      {showPsychologyTimeline && (
-        <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
-          <div className="min-h-screen px-4 py-8">
-            <div className="max-w-7xl mx-auto">
-              {/* Header */}
-              <div className="flex justify-between items-center mb-6 bg-gray-800/80 p-6 rounded-lg border border-purple-500/30">
-                <div>
-                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                    📈 Psychology Timeline - All Characters
-                  </h2>
-                  <p className="text-gray-400 mt-2">
-                    Track psychological changes of all characters across scenes
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowPsychologyTimeline(false)}
-                  className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
-                >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
-                {Object.keys(scriptData.psychologyTimelines || {}).length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">🧠</div>
-                    <h3 className="text-xl font-bold text-gray-300 mb-2">
-                      No Psychology Data Yet
-                    </h3>
-                    <p className="text-gray-500">
-                      Generate scenes to start tracking character psychology changes
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(scriptData.psychologyTimelines || {}).map(([charId, timeline]) => {
-                      try {
-                        // Strict validation
-                        if (!timeline || typeof timeline !== 'object') return null;
-                        if (!timeline.snapshots || !Array.isArray(timeline.snapshots)) return null;
-                        if (!timeline.summary || typeof timeline.summary !== 'object') return null;
-                        
-                        // Create immutable references to prevent race conditions
-                        // Filter out any invalid snapshots immediately
-                        const snapshots = (timeline.snapshots || []).filter(s => 
-                          s && 
-                          typeof s === 'object' && 
-                          typeof s.mentalBalance === 'number' &&
-                          typeof s.sceneNumber === 'number'
-                        );
-                        const summary = timeline.summary;
-                        const overallArc = timeline.overallArc;
-                        
-                        const character = scriptData.characters.find(c => c.id === charId || c.name === charId);
-                        if (!character) return null;
-
-                      return (
-                        <div 
-                          key={charId} 
-                          className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-purple-500/30 overflow-hidden shadow-xl hover:shadow-purple-500/20 transition-all cursor-pointer hover:scale-105 hover:border-purple-400/50"
-                          onClick={() => {
-                            if (onNavigateToCharacter) {
-                              onNavigateToCharacter(character.name, 5, undefined, true);
-                              setShowPsychologyTimeline(false);
-                            }
-                          }}
-                          title={`Click to view ${character.name}'s psychology timeline`}
-                        >
-                          {/* Character Header */}
-                          <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 p-4 border-b border-purple-500/30">
-                            <div className="flex items-center gap-3 mb-2">
-                              {character.image && (
-                                <img
-                                  src={character.image}
-                                  alt={character.name}
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-400 shadow-lg"
-                                />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-lg font-bold text-purple-300 truncate">
-                                  {character.name}
-                                </h3>
-                                <p className="text-xs text-gray-400 truncate">{character.role}</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-4 text-center">
-                              <div className="flex-1">
-                                <div className="text-xs text-gray-500">Scenes</div>
-                                <div className="text-xl font-bold text-cyan-400">
-                                  {snapshots.length}
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <div className="text-xs text-gray-500">Changes</div>
-                                <div className="text-xl font-bold text-pink-400">
-                                  {timeline.changes?.length || 0}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Stats Grid */}
-                          {summary && (
-                            <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
-                              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-green-400 mb-1">Kusala</div>
-                                <div className="text-lg font-bold text-green-300">
-                                  +{summary.total_kusala || 0}
-                                </div>
-                              </div>
-                              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-red-400 mb-1">Akusala</div>
-                                <div className="text-lg font-bold text-red-300">
-                                  -{summary.total_akusala || 0}
-                                </div>
-                              </div>
-                              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-blue-400 mb-1">Net</div>
-                                <div className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                                  {(summary.net_progress || 0) >= 0 ? '+' : ''}{summary.net_progress || 0}
-                                </div>
-                              </div>
-                              <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
-                                <div className="text-xs font-bold text-purple-300 truncate">
-                                  {summary.dominant_pattern || 'N/A'}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Overall Arc - Compact */}
-                          {overallArc && overallArc.startingBalance !== undefined && overallArc.endingBalance !== undefined && (
-                            <div className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-gray-400">Character Arc</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                                  overallArc.direction === 'กุศลขึ้น' 
-                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                    : overallArc.direction === 'กุศลลง'
-                                    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                                }`}>
-                                  {overallArc.direction || 'N/A'}
-                                </span>
-                              </div>
-                              
-                              {/* Progress Bar */}
-                              <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
-                                <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-bold z-10">
-                                  <span className="text-gray-400">{overallArc.startingBalance}</span>
-                                  <span className="text-cyan-300">→</span>
-                                  <span className="text-white">{overallArc.endingBalance}</span>
-                                </div>
-                                <div 
-                                  className={`absolute left-0 top-0 h-full transition-all ${
-                                    (overallArc.totalChange || 0) >= 0 
-                                      ? 'bg-gradient-to-r from-green-600/50 to-green-500/50' 
-                                      : 'bg-gradient-to-r from-red-600/50 to-red-500/50'
-                                  }`}
-                                  style={{ 
-                                    width: `${Math.min(100, Math.abs((overallArc.endingBalance + 100) / 2))}%` 
-                                  }}
-                                />
-                              </div>
-                              
-                              <p className="text-xs text-gray-400 mt-2 line-clamp-2">
-                                {overallArc.interpretation || 'No interpretation available'}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Mini Timeline Preview */}
-                          {snapshots && snapshots.length > 0 && (
-                            <div className="p-4 pt-0">
-                              <div className="text-xs font-bold text-gray-400 mb-2">Scene Journey</div>
-                              <div className="flex gap-1 overflow-x-auto pb-1">
-                                {snapshots.map((snapshot, idx) => {
-                                  // snapshots already filtered for valid data at line 2986
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className={`flex-shrink-0 w-8 h-8 rounded border-2 flex items-center justify-center text-xs font-bold ${
-                                        snapshot.mentalBalance >= 20
-                                          ? 'bg-green-500/20 border-green-500 text-green-300'
-                                          : snapshot.mentalBalance >= 0
-                                          ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                                          : snapshot.mentalBalance >= -20
-                                          ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300'
-                                          : 'bg-red-500/20 border-red-500 text-red-300'
-                                      }`}
-                                      title={`Scene ${snapshot.sceneNumber}: Balance ${snapshot.mentalBalance}`}
-                                    >
-                                      {snapshot.sceneNumber}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                      } catch (error) {
-                        console.error('Error rendering psychology card:', error);
-                        return null;
-                      }
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Psychology Timeline removed - now in Simulation tab */}
     </div>
   );
 };
