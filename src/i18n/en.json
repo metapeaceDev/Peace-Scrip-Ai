@@ -433,8 +433,138 @@
   },
 
   "step5": {
-    "title": "STEP 5: Output and Export",
-    "subtitle": "View results and export your project"
+    "title": "Step 5: Production Output",
+    "subtitle": "Review generated scenes, create shot lists, and export your screenplay.",
+    "buttons": {
+      "generateAll": "Generate All Scenes",
+      "generating": "Generating...",
+      "psychologyTimeline": "Psychology Timeline",
+      "showPreview": "Show Preview",
+      "hidePreview": "Hide Preview",
+      "export": "Export",
+      "back": "Back",
+      "regenerate": "Regenerate",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "add": "Add",
+      "download": "Download",
+      "close": "Close",
+      "viewTimeline": "View Timeline",
+      "addShot": "+ Add Shot",
+      "generateStoryboard": "Generate Storyboard",
+      "generateVideo": "Generate Video"
+    },
+    "export": {
+      "pdf": "Export as PDF",
+      "pdfComingSoon": "📄 Export as PDF (Coming Soon)",
+      "finalDraft": "Export as Final Draft",
+      "finalDraftComingSoon": "📜 Export as Final Draft (Coming Soon)",
+      "text": "Export as Text",
+      "csv": "Export Shot List (CSV)",
+      "storyboard": "Export Storyboard (HTML)",
+      "pdfNote": "PDF Export is coming soon! For now, use \"Export as Text\" and convert to PDF using Google Docs or Word.",
+      "finalDraftNote": "Final Draft Export is coming soon! For now, use \"Export as Text\" and import to Final Draft manually."
+    },
+    "scene": {
+      "sceneNumber": "Scene",
+      "sceneHeader": "Scene Header",
+      "location": "Location",
+      "mood": "Mood & Tone",
+      "wardrobe": "Wardrobe Manager",
+      "cast": "Cast",
+      "situations": "Situations & Dialogue",
+      "shotList": "Shot List",
+      "storyboard": "Storyboard",
+      "intExt": "Int / Ext",
+      "timeOfDay": "Time of Day",
+      "defaultWardrobe": "Default Wardrobe",
+      "wearing": "Wearing",
+      "defaultLook": "Default Look",
+      "outfit": "Outfit",
+      "removeFromScene": "Remove from Scene",
+      "goToProfile": "Go to Profile",
+      "addCharacter": "Add Character",
+      "selectCharacter": "-- Select Character --"
+    },
+    "situation": {
+      "situation": "Situation",
+      "dialogue": "Dialogue",
+      "action": "Action",
+      "speaker": "Speaker",
+      "line": "Line",
+      "emotion": "Emotion",
+      "addSituation": "+ Add Situation",
+      "addDialogue": "+ Add Dialogue",
+      "deleteSituation": "Delete Situation",
+      "confirmDelete": "Are you sure you want to delete?",
+      "thisAction": "This action cannot be undone"
+    },
+    "shot": {
+      "shot": "Shot",
+      "cast": "Cast",
+      "costume": "Costume",
+      "set": "Set",
+      "description": "Description",
+      "duration": "Duration (sec)",
+      "shotSize": "Shot Size",
+      "perspective": "Perspective",
+      "movement": "Movement",
+      "equipment": "Equipment",
+      "focalLength": "Focal Length",
+      "aspectRatio": "Aspect Ratio",
+      "lightingDesign": "Lighting Design",
+      "colorTemperature": "Color Temperature",
+      "select": "Select..."
+    },
+    "storyboard": {
+      "panel": "Panel",
+      "generating": "Generating...",
+      "regenerate": "Regenerate",
+      "download": "Download",
+      "selectModel": "Select Model",
+      "generateAll": "Generate All",
+      "noImages": "No storyboard images yet",
+      "clickGenerate": "Click 'Generate Storyboard' to create images"
+    },
+    "video": {
+      "model": "Model",
+      "generating": "Generating video...",
+      "selectModel": "Select Video Model",
+      "noVideo": "No video yet",
+      "clickGenerate": "Click 'Generate Video' to create"
+    },
+    "messages": {
+      "allScenesGenerated": "✅ All scenes generated successfully!",
+      "generatingScenes": "Generating scenes...",
+      "sceneGenerated": "Scene generated successfully",
+      "generationFailed": "Generation failed",
+      "noScenesYet": "No scenes generated yet",
+      "clickGenerateAll": "Click 'Generate All Scenes' to start",
+      "exportSuccess": "Export successful!",
+      "copySuccess": "Copied to clipboard",
+      "downloadSuccess": "Download successful"
+    },
+    "location": {
+      "int": "INT. (Indoor)",
+      "ext": "EXT. (Outdoor)",
+      "intExt": "INT./EXT.",
+      "ie": "I/E."
+    },
+    "timeOfDay": {
+      "day": "DAY",
+      "night": "NIGHT",
+      "dawn": "DAWN",
+      "dusk": "DUSK",
+      "morning": "MORNING",
+      "evening": "EVENING",
+      "continuous": "CONTINUOUS",
+      "later": "LATER"
+    },
+    "actions": {
+      "back": "Back"
+    }
   },
 
   "errors": {

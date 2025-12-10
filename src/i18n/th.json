@@ -433,8 +433,138 @@
   },
 
   "step5": {
-    "title": "ขั้นตอนที่ 5: ผลลัพธ์และการ Export",
-    "subtitle": "ดูผลลัพธ์และ export โปรเจกต์ของคุณ"
+    "title": "Step 5: Production Output",
+    "subtitle": "ตรวจสอบฉากที่สร้าง สร้างรายการช็อต และ export บทภาพยนตร์",
+    "buttons": {
+      "generateAll": "สร้างทุกฉาก",
+      "generating": "กำลังสร้าง...",
+      "psychologyTimeline": "Psychology Timeline",
+      "showPreview": "แสดงตัวอย่าง",
+      "hidePreview": "ซ่อนตัวอย่าง",
+      "export": "Export",
+      "back": "กลับ",
+      "regenerate": "สร้างใหม่",
+      "edit": "แก้ไข",
+      "save": "บันทึก",
+      "cancel": "ยกเลิก",
+      "delete": "ลบ",
+      "add": "เพิ่ม",
+      "download": "ดาวน์โหลด",
+      "close": "ปิด",
+      "viewTimeline": "ดู Timeline",
+      "addShot": "+ เพิ่มช็อต",
+      "generateStoryboard": "สร้าง Storyboard",
+      "generateVideo": "สร้างวิดีโอ"
+    },
+    "export": {
+      "pdf": "Export เป็น PDF",
+      "pdfComingSoon": "📄 Export as PDF (Coming Soon)",
+      "finalDraft": "Export เป็น Final Draft",
+      "finalDraftComingSoon": "📜 Export as Final Draft (Coming Soon)",
+      "text": "Export เป็น Text",
+      "csv": "Export Shot List (CSV)",
+      "storyboard": "Export Storyboard (HTML)",
+      "pdfNote": "PDF Export is coming soon! For now, use \"Export as Text\" and convert to PDF using Google Docs or Word.",
+      "finalDraftNote": "Final Draft Export is coming soon! For now, use \"Export as Text\" and import to Final Draft manually."
+    },
+    "scene": {
+      "sceneNumber": "ฉากที่",
+      "sceneHeader": "Scene Header",
+      "location": "Location",
+      "mood": "Mood & Tone",
+      "wardrobe": "Wardrobe Manager",
+      "cast": "Cast",
+      "situations": "Situations & Dialogue",
+      "shotList": "Shot List",
+      "storyboard": "Storyboard",
+      "intExt": "Int / Ext",
+      "timeOfDay": "Time of Day",
+      "defaultWardrobe": "Default Wardrobe",
+      "wearing": "Wearing",
+      "defaultLook": "Default Look",
+      "outfit": "Outfit",
+      "removeFromScene": "Remove from Scene",
+      "goToProfile": "Go to Profile",
+      "addCharacter": "เพิ่มตัวละคร",
+      "selectCharacter": "-- เลือกตัวละคร --"
+    },
+    "situation": {
+      "situation": "Situation",
+      "dialogue": "Dialogue",
+      "action": "Action",
+      "speaker": "Speaker",
+      "line": "Line",
+      "emotion": "Emotion",
+      "addSituation": "+ เพิ่ม Situation",
+      "addDialogue": "+ เพิ่ม Dialogue",
+      "deleteSituation": "ลบ Situation",
+      "confirmDelete": "แน่ใจหรือไม่ว่าต้องการลบ?",
+      "thisAction": "การกระทำนี้ไม่สามารถย้อนกลับได้"
+    },
+    "shot": {
+      "shot": "Shot",
+      "cast": "Cast",
+      "costume": "Costume",
+      "set": "Set",
+      "description": "Description",
+      "duration": "Duration (sec)",
+      "shotSize": "Shot Size",
+      "perspective": "Perspective",
+      "movement": "Movement",
+      "equipment": "Equipment",
+      "focalLength": "Focal Length",
+      "aspectRatio": "Aspect Ratio",
+      "lightingDesign": "Lighting Design",
+      "colorTemperature": "Color Temperature",
+      "select": "Select..."
+    },
+    "storyboard": {
+      "panel": "Panel",
+      "generating": "กำลังสร้าง...",
+      "regenerate": "สร้างใหม่",
+      "download": "ดาวน์โหลด",
+      "selectModel": "เลือก Model",
+      "generateAll": "สร้างทั้งหมด",
+      "noImages": "ยังไม่มีรูปภาพ Storyboard",
+      "clickGenerate": "คลิก 'สร้าง Storyboard' เพื่อสร้างภาพ"
+    },
+    "video": {
+      "model": "Model",
+      "generating": "กำลังสร้างวิดีโอ...",
+      "selectModel": "เลือก Video Model",
+      "noVideo": "ยังไม่มีวิดีโอ",
+      "clickGenerate": "คลิก 'สร้างวิดีโอ' เพื่อสร้าง"
+    },
+    "messages": {
+      "allScenesGenerated": "✅ สร้างทุกฉากเรียบร้อยแล้ว!",
+      "generatingScenes": "กำลังสร้างฉาก...",
+      "sceneGenerated": "สร้างฉากเรียบร้อย",
+      "generationFailed": "การสร้างล้มเหลว",
+      "noScenesYet": "ยังไม่มีฉากที่สร้าง",
+      "clickGenerateAll": "คลิก 'สร้างทุกฉาก' เพื่อเริ่มต้น",
+      "exportSuccess": "Export สำเร็จ!",
+      "copySuccess": "คัดลอกไปยังคลิปบอร์ดแล้ว",
+      "downloadSuccess": "ดาวน์โหลดสำเร็จ"
+    },
+    "location": {
+      "int": "INT. (Indoor)",
+      "ext": "EXT. (Outdoor)",
+      "intExt": "INT./EXT.",
+      "ie": "I/E."
+    },
+    "timeOfDay": {
+      "day": "DAY",
+      "night": "NIGHT",
+      "dawn": "DAWN",
+      "dusk": "DUSK",
+      "morning": "MORNING",
+      "evening": "EVENING",
+      "continuous": "CONTINUOUS",
+      "later": "LATER"
+    },
+    "actions": {
+      "back": "กลับ"
+    }
   },
 
   "errors": {

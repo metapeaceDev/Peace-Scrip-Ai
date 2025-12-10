@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine, PsychologySnapshot, PsychologyChange } from '../../types';
+import { useTranslation } from './LanguageSwitcher';
 import {
   generateStoryboardImage,
   generateStoryboardVideo,
@@ -3089,6 +3090,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   returnToScene,
   onResetReturnToScene,
 }) => {
+  // i18n
+  const { t } = useTranslation();
   type Status = 'pending' | 'loading' | 'done' | 'error';
   type GenerationStatus = Record<string, Record<number, Status>>;
 
@@ -3567,10 +3570,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
-            Step 5: Production Output
+            {t('step5.title')}
           </h2>
           <p className="text-gray-400 mt-1">
-            Review generated scenes, create shot lists, and export your screenplay.
+            {t('step5.subtitle')}
           </p>
         </div>
 
@@ -3593,7 +3596,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   clipRule="evenodd"
                 />
               </svg>
-              {isLoading ? 'Generating...' : `Generate All Scenes (${allTasks.length})`}
+              {isLoading ? t('step5.buttons.generating') : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
             </button>
           )}
           
@@ -3604,14 +3607,14 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             title="View character psychology changes across all scenes"
           >
             <span className="text-xl">📈</span>
-            <span>Psychology Timeline</span>
+            <span>{t('step5.buttons.psychologyTimeline')}</span>
           </button>
           
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
           >
-            {showPreview ? 'Hide Preview' : 'Show Preview'}
+            {showPreview ? t('step5.buttons.hidePreview') : t('step5.buttons.showPreview')}
           </button>
 
           <div className="relative">
@@ -3619,7 +3622,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
               className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
             >
-              <span>Export</span>
+              <span>{t('step5.buttons.export')}</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
@@ -3638,16 +3641,16 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
                 <button 
                   onClick={() => {
-                    alert('PDF Export is coming soon! For now, use "Export as Text" and convert to PDF using Google Docs or Word.');
+                    alert(t('step5.export.pdfNote'));
                     setIsExportMenuOpen(false);
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
                 >
-                  📄 Export as PDF (Coming Soon)
+                  {t('step5.export.pdfComingSoon')}
                 </button>
                 <button 
                   onClick={() => {
-                    alert('Final Draft Export is coming soon! For now, use "Export as Text" and import to Final Draft manually.');
+                    alert(t('step5.export.finalDraftNote'));
                     setIsExportMenuOpen(false);
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
