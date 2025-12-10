@@ -208,8 +208,43 @@
   },
 
   "step2": {
-    "title": "STEP 2: Story Scope and Details",
-    "subtitle": "Define the scope and fundamental details of your story"
+    "title": "STEP 2: Creating a boundary for the story",
+    "subtitle": "Define the scope and fundamental details of your story",
+    "generateButton": "✨ Generate",
+    "generating": "Generating...",
+    "selectGenreFirst": "Please select Genre in Step 1 first",
+    "fields": {
+      "title": "Title",
+      "bigIdea": "Big idea",
+      "bigIdeaPlaceholder": "What will happen if... or is the story of...",
+      "premise": "Premise",
+      "premisePlaceholder": "What is this movie going to tell?",
+      "theme": "Theme",
+      "themePlaceholder": "This tale teaches that...",
+      "logLine": "Log line",
+      "logLinePlaceholder": "A logical way of thinking to support the Theme.",
+      "timeline": "Timeline",
+      "movieTiming": "Movie Timing",
+      "seasons": "Timeline Seasons in Movies",
+      "date": "Timeline Date, month, year",
+      "social": "Social Timelines",
+      "economist": "Economist Timeline",
+      "environment": "Timeline Environment"
+    },
+    "aiAnalyzing": "🎬 AI is analyzing and creating story boundary...",
+    "aiDetails": {
+      "analyzingGenre": "Analyzing Genre:",
+      "analyzingType": "Analyzing Type:",
+      "creating": "Creating Title, Big Idea, Premise, Theme, Log Line and Timeline"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next Step"
+    },
+    "errors": {
+      "selectGenre": "⚠️ Please select Genre in Step 1 first",
+      "generateFailed": "❌ Generation failed. Please try again"
+    }
   },
 
   "step3": {
@@ -218,8 +253,31 @@
   },
 
   "step4": {
-    "title": "STEP 4: Story Structure",
-    "subtitle": "Define the structure and plot points of your story"
+    "title": "STEP 4: Creating chapter structure",
+    "subtitle": "Define the structure and plot points of your story",
+    "generateButton": "✨ Auto-Generate",
+    "generating": "Generating...",
+    "selectGenreFirst": "Please select Genre in Step 1 first",
+    "acts": {
+      "act1": "Act 1 - Setup & Change",
+      "act2": "Act 2 - Conflict & Crisis",
+      "act3": "Act 3 - Confrontation & Resolution"
+    },
+    "scenes": "Scenes:",
+    "placeholderDescribe": "Describe the",
+    "aiAnalyzing": "🎬 AI is creating story structure...",
+    "aiDetails": {
+      "analyzing": "Analyzing Genre and Characters from Step 1-3",
+      "creating": "Creating 9 Plot Points with 3-Act Structure"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next & Generate Output"
+    },
+    "errors": {
+      "selectGenre": "⚠️ Please select Genre in Step 1 first",
+      "generateFailed": "❌ Generation failed. Please try again"
+    }
   },
 
   "step5": {

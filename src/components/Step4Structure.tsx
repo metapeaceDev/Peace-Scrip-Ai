@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
 import { generateStructure } from '../services/geminiService';
+import { useTranslation } from './LanguageSwitcher';
 
 interface Step4StructureProps {
   scriptData: ScriptData;
@@ -17,6 +18,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
   prevStep,
   onRegisterUndo,
 }) => {
+  const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +46,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 
   const handleGenerateStructure = async () => {
     if (!scriptData.mainGenre) {
-      setError('⚠️ กรุณาเลือก Genre ใน Step 1 ก่อน');
+      setError(t('step4.errors.selectGenre'));
       return;
     }
 
@@ -67,7 +69,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
       setError(null);
     } catch (err) {
       console.error('Failed to generate structure:', err);
-      setError('❌ การสร้างล้มเหลว กรุณาลองใหม่อีกครั้ง');
+      setError(t('step4.errors.generateFailed'));
     } finally {
       setIsGenerating(false);
     }
@@ -81,9 +83,9 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
   };
 
   const actLabels = {
-    1: { title: 'Act 1 - Setup & Change', color: 'cyan' },
-    2: { title: 'Act 2 - Conflict & Crisis', color: 'purple' },
-    3: { title: 'Act 3 - Confrontation & Resolution', color: 'pink' },
+    1: { title: t('step4.acts.act1'), color: 'cyan' },
+    2: { title: t('step4.acts.act2'), color: 'purple' },
+    3: { title: t('step4.acts.act3'), color: 'pink' },
   };
 
   const getActColor = (actNum: number) => {
@@ -98,7 +100,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h2 className="text-2xl font-bold text-cyan-400">STEP 4: Creating chapter structure</h2>
+        <h2 className="text-2xl font-bold text-cyan-400">{t('step4.title')}</h2>
         <button
           onClick={handleGenerateStructure}
           disabled={isGenerating || !scriptData.mainGenre}
@@ -111,8 +113,8 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
           }`}
           title={
             !scriptData.mainGenre
-              ? 'กรุณาเลือก Genre ใน Step 1 ก่อน'
-              : 'Generate structure from Step 1-3 data'
+              ? t('step4.selectGenreFirst')
+              : t('step4.generateButton')
           }
         >
           {isGenerating ? (
@@ -137,7 +139,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              <span>กำลังสร้าง...</span>
+              <span>{t('step4.generating')}</span>
             </>
           ) : (
             <>
@@ -153,7 +155,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                   clipRule="evenodd"
                 />
               </svg>
-              <span>✨ Auto-Generate</span>
+              <span>{t('step4.generateButton')}</span>
             </>
           )}
         </button>
@@ -189,10 +191,10 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
               ></path>
             </svg>
             <div className="text-sm text-indigo-300">
-              <p className="font-bold mb-1">🎬 AI กำลังสร้างโครงสร้างเรื่อง...</p>
+              <p className="font-bold mb-1">{t('step4.aiAnalyzing')}</p>
               <p className="text-xs text-indigo-400">
-                • วิเคราะห์ Genre และ Characters จาก Step 1-3
-                <br />• สร้าง 9 Plot Points แบบ 3-Act Structure
+                • {t('step4.aiDetails.analyzing')}
+                <br />• {t('step4.aiDetails.creating')}
               </p>
             </div>
           </div>
@@ -237,7 +239,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                             htmlFor={`scene-count-${globalIndex}`}
                             className="text-sm text-gray-400"
                           >
-                            Scenes:
+                            {t('step4.scenes')}
                           </label>
                           <select
                             id={`scene-count-${globalIndex}`}
@@ -261,7 +263,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                         onFocus={handleFocus}
                         rows={3}
                         className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500 text-sm"
-                        placeholder={`Describe the ${point.title} of your story...`}
+                        placeholder={`${t('step4.placeholderDescribe')} ${point.title}...`}
                       />
                     </div>
                   );
@@ -276,13 +278,13 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
           onClick={prevStep}
           className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
         >
-          Back
+          {t('step4.actions.back')}
         </button>
         <button
           onClick={nextStep}
           className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
         >
-          Next & Generate Output
+          {t('step4.actions.next')}
         </button>
       </div>
     </div>
