@@ -41,7 +41,7 @@ export function ProviderSettings() {
   // Device Settings States
   const [resources, setResources] = useState<SystemResources | null>(null);
   const [deviceSettings, setDeviceSettings] = useState<RenderSettings | null>(null);
-  const [deviceHealth, setDeviceHealth] = useState<any>(null);
+  const [deviceHealth, setDeviceHealth] = useState<{ status?: string; message?: string; local?: boolean; cloud?: boolean } | null>(null);
   const [deviceLoading, setDeviceLoading] = useState(true);
 
   // Load settings from localStorage on mount
@@ -149,7 +149,7 @@ export function ProviderSettings() {
     saveRenderSettings(newSettings);
   };
 
-  const handleSettingChange = (key: keyof AIProviderSettings, value: any) => {
+  const handleSettingChange = (key: keyof AIProviderSettings, value: string | number | boolean | ImageProvider | VideoProvider) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 

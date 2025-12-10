@@ -313,7 +313,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const handleFieldChange = <T extends 'external' | 'physical' | 'goals' | 'fashion'>(
     section: T,
     field: keyof Character[T],
-    value: any
+    value: string | number | boolean
   ) => {
     const updatedSection = { ...activeCharacter[section], [field]: value };
     updateCharacterAtIndex(activeCharIndex, { [section]: updatedSection } as Partial<Character>);
@@ -323,7 +323,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     section: 'internal',
     subSection: 'consciousness' | 'subconscious' | 'defilement',
     field: string,
-    value: any
+    value: string | number | boolean
   ) => {
     const updatedSubSection = { ...activeCharacter[section][subSection], [field]: value };
     const updatedSection = { ...activeCharacter[section], [subSection]: updatedSubSection };

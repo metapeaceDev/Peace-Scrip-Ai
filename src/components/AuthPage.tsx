@@ -33,9 +33,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         setIsLogin(true);
         setError('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      setError((err as Error).message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
     } finally {
       setLoading(false);
     }
@@ -49,9 +49,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       await firebaseAuth.loginWithGoogle();
       // User will be redirected away, loading state will persist
       // The result will be handled in App.tsx on page load after redirect back
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google');
+      setError((err as Error).message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google');
       setLoading(false);
     }
   };

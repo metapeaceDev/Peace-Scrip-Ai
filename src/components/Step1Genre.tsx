@@ -102,8 +102,8 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
       });
 
       setCurrentStep(5);
-    } catch (e: any) {
-      setError(e.message || 'An unexpected error occurred during auto-generation.');
+    } catch (e: unknown) {
+      setError((e as Error).message || 'An unexpected error occurred during auto-generation.');
     } finally {
       setIsGenerating(false);
     }

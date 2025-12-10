@@ -18,7 +18,7 @@ import './DeviceSettings.css';
 export const DeviceSettings: React.FC = () => {
   const [resources, setResources] = useState<SystemResources | null>(null);
   const [settings, setSettings] = useState<RenderSettings | null>(null);
-  const [health, setHealth] = useState<any>(null);
+  const [health, setHealth] = useState<{ status?: string; message?: string; local?: boolean; cloud?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 

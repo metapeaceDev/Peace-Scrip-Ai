@@ -32,6 +32,7 @@ export const SubscriptionDashboard: React.FC = () => {
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier | null>(null);
 
   useEffect(() => {

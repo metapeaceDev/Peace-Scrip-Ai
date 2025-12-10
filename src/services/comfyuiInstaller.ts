@@ -168,6 +168,7 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
   try {
     // This would query ComfyUI's /object_info endpoint to check available models
     const response = await fetch(`${comfyUrl}/object_info`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const data = await response.json();
     
     // Check for required checkpoint models (Flux, SDXL, etc.)

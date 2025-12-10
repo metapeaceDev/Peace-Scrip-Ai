@@ -84,6 +84,7 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
         avijja: 90,
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _portfolio: ParamiPortfolio = {
         dana: { level: 10, exp: 0 },
         sila: { level: 8, exp: 0 },
@@ -107,6 +108,7 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
     });
 
     it('should identify critical anusaya levels', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const anusaya: AnusayaProfile = {
         kama_raga: 75, // Warning level: 70 → Critical
         patigha: 60, // Warning level: 65 → Not critical
