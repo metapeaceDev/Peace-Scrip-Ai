@@ -11,7 +11,7 @@ import type {
 import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './constants';
 import StepIndicator from './src/components/StepIndicator';
 import Step1Genre from './src/components/Step1Genre';
-import Step2Boundary from './src/components/Step2Boundary';
+import Step2StoryScope from './src/components/Step2StoryScope';
 import Step3Character from './src/components/Step3Character';
 import Step4Structure from './src/components/Step4Structure';
 import Step5Output from './src/components/Step5Output';
@@ -1440,7 +1440,7 @@ function App() {
               />
             )}
             {currentStep === 2 && (
-              <Step2Boundary
+              <Step2StoryScope
                 scriptData={scriptData}
                 updateScriptData={updateScriptData}
                 nextStep={nextStep}

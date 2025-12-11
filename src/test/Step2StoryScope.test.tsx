@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Step2Boundary from '../components/Step2Boundary';
+import Step2StoryScope from '../components/Step2StoryScope';
 
-describe('Step2Boundary', () => {
+describe('Step2StoryScope', () => {
   const mockOnNext = vi.fn();
   const mockOnBack = vi.fn();
   const mockOnUpdate = vi.fn();
@@ -24,19 +24,19 @@ describe('Step2Boundary', () => {
   };
 
   it('renders boundary settings', () => {
-    render(<Step2Boundary {...defaultProps} />);
+    render(<Step2StoryScope {...defaultProps} />);
     expect(screen.getByText(/ขอบเขตเรื่อง/i)).toBeInTheDocument();
   });
 
   it('calls onBack when back button is clicked', () => {
-    render(<Step2Boundary {...defaultProps} />);
+    render(<Step2StoryScope {...defaultProps} />);
     const backButton = screen.getByText(/ย้อนกลับ/i);
     fireEvent.click(backButton);
     expect(mockOnBack).toHaveBeenCalled();
   });
 
   it('updates scriptData when input changes', () => {
-    render(<Step2Boundary {...defaultProps} />);
+    render(<Step2StoryScope {...defaultProps} />);
     const settingInput = screen.getByPlaceholderText(/สถานที่/i);
     fireEvent.change(settingInput, { target: { value: 'กรุงเทพฯ' } });
     expect(mockOnUpdate).toHaveBeenCalled();

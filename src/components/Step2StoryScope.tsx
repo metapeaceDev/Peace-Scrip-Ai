@@ -5,7 +5,7 @@ import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 
-interface Step2BoundaryProps {
+interface Step2StoryScopeProps {
   scriptData: ScriptData;
   updateScriptData: (data: Partial<ScriptData>) => void;
   nextStep: () => void;
@@ -79,7 +79,7 @@ const InputFieldWithRegenerate: React.FC<{
   </div>
 );
 
-const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptData, nextStep, prevStep, onRegisterUndo }) => {
+const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScriptData, nextStep, prevStep, onRegisterUndo }) => {
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,118 +142,186 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
 
     // Start reading
     const isThai = scriptData.language === 'Thai';
-    const textToRead = [
-      scriptData.title ? `${isThai ? 'ชื่อเรื่อง' : 'Title'}: ${scriptData.title}` : '',
-      scriptData.bigIdea ? `${isThai ? 'แนวคิดหลัก' : 'Big Idea'}: ${scriptData.bigIdea}` : '',
-      scriptData.premise ? `${isThai ? 'พื้นฐานเรื่อง' : 'Premise'}: ${scriptData.premise}` : '',
-      scriptData.theme ? `${isThai ? 'ธีม' : 'Theme'}: ${scriptData.theme}` : '',
-      scriptData.logLine ? `${isThai ? 'ล็อกไลน์' : 'Log Line'}: ${scriptData.logLine}` : '',
-      scriptData.synopsis ? `${isThai ? 'เรื่องย่อ' : 'Synopsis'}: ${scriptData.synopsis}` : '',
-    ].filter(text => text).join('. ');
+    
+    // Build text segments with proper pauses for natural rhythm
+    const segments: Array<{label: string; content: string}> = [];
+    
+    if (scriptData.title) {
+      segments.push({
+        label: isThai ? 'ชื่อเรื่อง' : 'Title',
+        content: scriptData.title
+      });
+    }
+    
+    if (scriptData.bigIdea) {
+      segments.push({
+        label: isThai ? 'แนวคิดหลัก' : 'Big Idea',
+        content: scriptData.bigIdea
+      });
+    }
+    
+    if (scriptData.premise) {
+      segments.push({
+        label: isThai ? 'พื้นฐานเรื่อง' : 'Premise',
+        content: scriptData.premise
+      });
+    }
+    
+    if (scriptData.theme) {
+      segments.push({
+        label: isThai ? 'ธีม' : 'Theme',
+        content: scriptData.theme
+      });
+    }
+    
+    if (scriptData.logLine) {
+      segments.push({
+        label: isThai ? 'ล็อกไลน์' : 'Log Line',
+        content: scriptData.logLine
+      });
+    }
+    
+    if (scriptData.synopsis) {
+      segments.push({
+        label: isThai ? 'เรื่องย่อ' : 'Synopsis',
+        content: scriptData.synopsis
+      });
+    }
 
-    if (!textToRead) {
+    if (segments.length === 0) {
       alert(isThai ? 'ไม่มีเนื้อหาให้อ่าน กรุณากด Generate AI ก่อน' : 'No content to read. Please generate content first.');
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    
-    // Get available voices and select the best Thai voice
+    // Get and validate voices
     const voices = window.speechSynthesis.getVoices();
-    console.log('🔊 Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+    console.log('🔊 Total available voices:', voices.length);
+    console.log('📋 All voices:', voices.map(v => `${v.name} (${v.lang})`));
+    
+    let selectedVoice: SpeechSynthesisVoice | null = null;
     
     if (isThai) {
-      // Priority: Find Thai voices in order of preference
-      const thaiVoices = voices.filter(voice => 
-        voice.lang === 'th-TH' || 
-        voice.lang.startsWith('th') || 
-        voice.name.toLowerCase().includes('thai')
-      );
+      // Find ALL Thai voices with detailed logging
+      const thaiVoices = voices.filter(voice => {
+        const langMatch = voice.lang === 'th-TH' || voice.lang === 'th' || voice.lang.startsWith('th-');
+        const nameMatch = voice.name.toLowerCase().includes('thai');
+        return langMatch || nameMatch;
+      });
       
-      console.log('🇹🇭 Thai voices found:', thaiVoices.map(v => v.name));
+      console.log('🇹🇭 Thai voices found:', thaiVoices.length);
+      thaiVoices.forEach(v => console.log(`  - ${v.name} (${v.lang}) ${v.localService ? '[Local]' : '[Remote]'}`));
       
-      // Prefer female voices (usually clearer)
-      const femaleThaiVoice = thaiVoices.find(voice => 
-        voice.name.toLowerCase().includes('female') ||
-        voice.name.toLowerCase().includes('kanya') ||
-        voice.name.toLowerCase().includes('siri')
-      );
+      // Priority selection for Thai voices
+      selectedVoice = 
+        // 1. Try Kanya (common Thai female voice on iOS/macOS)
+        thaiVoices.find(v => v.name.toLowerCase().includes('kanya')) ||
+        // 2. Try any female Thai voice
+        thaiVoices.find(v => v.name.toLowerCase().includes('female')) ||
+        // 3. Try Siri Thai
+        thaiVoices.find(v => v.name.toLowerCase().includes('siri') && v.lang.startsWith('th')) ||
+        // 4. Try any local Thai voice
+        thaiVoices.find(v => v.localService) ||
+        // 5. Use first available Thai voice
+        thaiVoices[0];
       
-      if (femaleThaiVoice) {
-        utterance.voice = femaleThaiVoice;
-        console.log('✅ Selected voice:', femaleThaiVoice.name);
-      } else if (thaiVoices.length > 0) {
-        utterance.voice = thaiVoices[0];
-        console.log('✅ Selected voice:', thaiVoices[0].name);
+      if (selectedVoice) {
+        console.log('✅ Selected Thai voice:', selectedVoice.name, `(${selectedVoice.lang})`);
       } else {
-        console.warn('⚠️ No Thai voice found, using default');
+        console.error('❌ No Thai voice available! Will use system default.');
+        console.log('💡 Suggestion: Install Thai language pack in System Preferences > Accessibility > Spoken Content');
       }
-      
-      utterance.lang = 'th-TH';
     } else {
-      // English voices
+      // English voice selection
       const enVoices = voices.filter(voice => 
-        voice.lang === 'en-US' || voice.lang.startsWith('en')
+        voice.lang === 'en-US' || voice.lang.startsWith('en-')
       );
       
-      const femaleEnVoice = enVoices.find(voice => 
-        voice.name.toLowerCase().includes('female') ||
-        voice.name.toLowerCase().includes('samantha') ||
-        voice.name.toLowerCase().includes('victoria')
-      );
+      selectedVoice = 
+        enVoices.find(v => v.name.toLowerCase().includes('samantha')) ||
+        enVoices.find(v => v.name.toLowerCase().includes('victoria')) ||
+        enVoices.find(v => v.name.toLowerCase().includes('female')) ||
+        enVoices[0];
       
-      if (femaleEnVoice) {
-        utterance.voice = femaleEnVoice;
-      } else if (enVoices.length > 0) {
-        utterance.voice = enVoices[0];
+      if (selectedVoice) {
+        console.log('✅ Selected English voice:', selectedVoice.name);
       }
-      
-      utterance.lang = 'en-US';
     }
     
-    // Adjust voice characteristics based on genre
+    // Configure voice parameters based on genre
     const genre = scriptData.mainGenre?.toLowerCase() || '';
+    let rate = 0.9; // Default: slightly slower for clarity
+    let pitch = 1.0;
     
     if (genre.includes('action') || genre.includes('thriller')) {
-      utterance.rate = 1.0; // Faster for action
-      utterance.pitch = 0.95; // Slightly lower pitch
+      rate = 0.95; // Moderate pace for action
+      pitch = 1.0;
     } else if (genre.includes('romance') || genre.includes('drama')) {
-      utterance.rate = 0.85; // Slower, more emotional
-      utterance.pitch = 1.05; // Slightly higher, softer
+      rate = 0.85; // Slower, more emotional
+      pitch = 1.05; // Slightly higher, softer
     } else if (genre.includes('horror') || genre.includes('mystery')) {
-      utterance.rate = 0.8; // Slow and suspenseful
-      utterance.pitch = 0.9; // Lower, darker tone
+      rate = 0.8; // Slow and suspenseful
+      pitch = 0.95; // Slightly lower, darker
     } else if (genre.includes('comedy')) {
-      utterance.rate = 1.05; // Upbeat, energetic
-      utterance.pitch = 1.1; // Higher, cheerful
-    } else {
-      utterance.rate = 0.95; // Default: slightly slower for clarity
-      utterance.pitch = 1.0;
+      rate = 1.0; // Upbeat pace
+      pitch = 1.05; // Cheerful tone
     }
     
-    utterance.volume = 1.0;
-
-    utterance.onstart = () => {
-      console.log('🔊 Speech started');
-      setIsReading(true);
-      setIsPaused(false);
-    };
-
-    utterance.onend = () => {
-      console.log('✅ Speech ended');
-      setIsReading(false);
-      setIsPaused(false);
-    };
-
-    utterance.onerror = (event) => {
-      console.error('❌ Speech error:', event);
-      setIsReading(false);
-      setIsPaused(false);
-    };
-
-    // Small delay to ensure cancel has completed
-    setTimeout(() => {
+    console.log(`🎭 Genre: ${scriptData.mainGenre}, Rate: ${rate}, Pitch: ${pitch}`);
+    
+    // Read segments sequentially with natural pauses
+    let currentSegmentIndex = 0;
+    
+    const speakSegment = () => {
+      if (currentSegmentIndex >= segments.length) {
+        setIsReading(false);
+        setIsPaused(false);
+        console.log('✅ Finished reading all segments');
+        return;
+      }
+      
+      const segment = segments[currentSegmentIndex];
+      
+      // Create text with natural punctuation for better rhythm
+      const textWithPause = `${segment.label}. ${segment.content}. `;
+      
+      const utterance = new SpeechSynthesisUtterance(textWithPause);
+      utterance.lang = isThai ? 'th-TH' : 'en-US';
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      
+      utterance.rate = rate;
+      utterance.pitch = pitch;
+      utterance.volume = 1.0;
+      
+      utterance.onstart = () => {
+        if (currentSegmentIndex === 0) {
+          setIsReading(true);
+          setIsPaused(false);
+        }
+        console.log(`🔊 Speaking segment ${currentSegmentIndex + 1}/${segments.length}: ${segment.label}`);
+      };
+      
+      utterance.onend = () => {
+        console.log(`✓ Completed: ${segment.label}`);
+        currentSegmentIndex++;
+        // Small delay between segments for natural rhythm
+        setTimeout(speakSegment, 300);
+      };
+      
+      utterance.onerror = (event) => {
+        console.error(`❌ Error in segment ${currentSegmentIndex}:`, event);
+        setIsReading(false);
+        setIsPaused(false);
+      };
+      
       window.speechSynthesis.speak(utterance);
+    };
+    
+    // Start reading the first segment after a small delay
+    setTimeout(() => {
+      speakSegment();
     }, 100);
   };
 
@@ -759,4 +827,4 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
   );
 };
 
-export default Step2Boundary;
+export default Step2StoryScope;
