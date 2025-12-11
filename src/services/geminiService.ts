@@ -3931,10 +3931,93 @@ ${isThai ? '⚠️ IMPORTANT: The user wants the result in THAI. Ignore the lang
 Generate a complete story boundary with the following elements, BASED ON THE USER'S TITLE "${scriptData.title || 'Untitled'}":
 
 1. **Title**: MUST return exactly "${scriptData.title || 'Untitled'}" - DO NOT create a new title
-2. **Big Idea**: The core "What if..." concept or central premise (2-3 sentences)
-3. **Premise**: What the story is fundamentally about - the journey and transformation (3-4 sentences)
-4. **Theme**: The universal truth or lesson the story teaches (2-3 sentences starting with "This tale teaches that...")
-5. **Log Line**: A one-sentence pitch that supports the theme and hooks the audience
+
+2. **Big Idea**: The core "What if..." concept or central premise that drives the entire narrative (2-3 sentences)
+   - This is the hook, the unique angle that makes this story worth telling
+   - Must connect directly to the Theme
+
+3. **Premise**: What the story is fundamentally about - the external journey and internal transformation (3-4 sentences)
+   - Focus on the protagonist's journey from point A to point B
+   - Include both external plot and internal character arc
+
+4. **Theme** (⭐⭐⭐ MOST CRITICAL - THE MORAL COMPASS & CONTROLLING BOUNDARY):
+   
+   **Theme คือหัวใจและหลักการสำคัญที่สุดของเรื่อง - เป็นความจริงสากลที่ตัวละครและผู้ชมจะได้เรียนรู้ไปพร้อมกัน**
+   
+   📖 **What is Theme:**
+   Theme is the universal truth, moral lesson, or principle that governs the entire story. It is the BOUNDARY that:
+   - Controls the story's direction and keeps it morally grounded
+   - Ensures the narrative doesn't contradict natural laws or moral principles (ไม่ขัดแย้งกับหลักธรรมชาติและหลักธรรม)
+   - Serves as the moral compass for all character decisions and plot events
+   - Teaches both protagonist and audience the same profound lesson through lived experience
+   
+   🎯 **Core Requirements:**
+   1. **Universal Truth** - Must be based on timeless, natural laws that apply across cultures and eras:
+      - Laws of cause and effect (กรรม-ผล / karma)
+      - Natural consequences (actions lead to results)
+      - Moral principles (honesty, compassion, justice, courage, sacrifice)
+      - Human nature truths (fear, love, greed, redemption)
+   
+   2. **Non-Contradictory to Natural/Moral Laws** - Theme MUST align with:
+      - ✅ Truth always emerges (not "lies succeed permanently")
+      - ✅ Love requires sacrifice (not "selfishness brings happiness")
+      - ✅ Violence begets violence (not "revenge brings peace")
+      - ✅ Greed leads to downfall (not "corruption has no consequences")
+      - ✅ Courage overcomes fear (not "avoidance solves problems")
+      - ✅ Compassion heals (not "cruelty is rewarded")
+   
+   3. **Story Control Function** - Theme acts as the BOUNDARY that:
+      - Determines what events CAN and CANNOT happen
+      - Guides protagonist's arc from false belief to truth
+      - Creates consistent cause-and-effect chain
+      - Ensures satisfying, morally coherent resolution
+   
+   4. **Dual Learning Path** - Both character AND audience must:
+      - Start from the same false belief or ignorance
+      - Experience the same challenges and revelations
+      - Arrive at the same universal truth together
+      - Take away the same profound lesson
+   
+   📝 **Format Instructions:**
+   Write 3-4 sentences that clearly articulate:
+   
+   a) **State the Universal Truth** (ความจริงสากล):
+      Example: "This story teaches that true courage is not the absence of fear, but the willingness to act righteously despite it"
+   
+   b) **Connect to Big Idea** (เชื่อมโยงกับ Big Idea):
+      Explain how this theme naturally emerges from the story's premise
+   
+   c) **Demonstrate Through Journey** (แสดงผ่านการเดินทางของตัวละคร):
+      Describe how the protagonist will learn this truth through trials and consequences
+   
+   d) **Audience Lesson** (บทเรียนสำหรับผู้ชม):
+      State what wisdom the audience will gain by witnessing this journey
+   
+   ✨ **Examples of Profound, Dharma-Aligned Themes:**
+   
+   - **Karma/Consequence**: "Every action creates ripples - good deeds plant seeds of joy, while harmful acts inevitably return as suffering. Through [protagonist]'s journey from selfishness to compassion, both character and audience learn that we cannot escape the consequences of our choices."
+   
+   - **Truth vs. Deception**: "Lies may offer temporary shelter, but truth is the only foundation for lasting peace. As [protagonist] discovers that each deception creates a heavier burden, the audience witnesses how honesty, though painful, liberates the soul."
+   
+   - **Love & Sacrifice**: "True love is proven not in words but in sacrifice - the willingness to put another's wellbeing above our own desires. Both [protagonist] and viewers learn that love without sacrifice is merely attachment, while genuine sacrifice transforms both giver and receiver."
+   
+   - **Greed's Downfall**: "Greed, like fire, consumes everything - including the greedy. Through [protagonist]'s loss of all they hoarded, the story demonstrates that contentment brings more peace than endless accumulation ever could."
+   
+   - **Redemption**: "No person is beyond redemption, but redemption requires facing the full weight of our wrongdoings. As [protagonist] confronts their past harm and makes genuine amends, we learn that transformation comes through accountability, not avoidance."
+   
+   - **Courage & Fear**: "Fear is a teacher, not a master - it shows us what matters most. Through [protagonist]'s journey from paralysis to action, both character and audience discover that courage means acting for what is right despite trembling hands."
+   
+   ⚠️ **CRITICAL RULES:**
+   - Theme MUST be consistent with Big Idea (they must support each other)
+   - Theme MUST NOT contradict natural laws or moral principles
+   - Theme MUST guide all plot decisions (if an event contradicts the theme, it doesn't belong)
+   - Theme MUST offer genuine wisdom, not cynicism or nihilism
+   - Theme IS the moral compass - without it, the story loses direction and meaning
+   
+   **Remember**: Theme is not just a message - it is the CONTROLLING PRINCIPLE that ensures your story has moral integrity, emotional truth, and lasting impact.
+
+5. **Log Line**: A one-sentence pitch that encapsulates the premise and hints at the theme, hooking the audience with the central conflict
+
 6. **Timeline**: Complete timeline context including:
    - movieTiming: MUST be a NUMBER in minutes ONLY (e.g., "120 นาที" for Thai or "120 minutes" for English). For series, estimate total runtime.
    - seasons: What season(s) the story spans

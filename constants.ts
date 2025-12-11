@@ -316,6 +316,7 @@ export const INITIAL_SCRIPT_DATA: ScriptData = {
   premise: '',
   theme: '',
   logLine: '',
+  synopsis: '',
   timeline: {
     movieTiming: '',
     seasons: '',

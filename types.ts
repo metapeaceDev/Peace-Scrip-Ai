@@ -257,6 +257,7 @@ export interface ScriptData {
   premise: string;
   theme: string;
   logLine: string;
+  synopsis: string; // 📝 NEW: Detailed story synopsis (expanded from logLine)
   timeline: {
     movieTiming: string;
     seasons: string;
