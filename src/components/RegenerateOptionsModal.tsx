@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 
 export type RegenerationMode = 'fresh' | 'refine' | 'use-edited';
 
-export type ContentType = 'boundary' | 'characters' | 'structure' | 'scenes';
-
 interface RegenerateOptionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (mode: RegenerationMode) => void;
-  contentType: ContentType; // 'boundary', 'characters', 'structure', 'scenes'
-  contentName: string; // e.g., "Opening Image", "Step 2: Boundary", "Main Character"
+  sceneName: string;
   hasEdits: boolean;
 }
 
@@ -17,102 +14,12 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  contentType,
-  contentName,
+  sceneName,
   hasEdits,
 }) => {
   const [selectedMode, setSelectedMode] = useState<RegenerationMode>('fresh');
 
   if (!isOpen) return null;
-
-  // Dynamic content based on type
-  const getContentLabel = () => {
-    switch (contentType) {
-      case 'boundary':
-        return {
-          title: 'Creating a boundary for the story',
-          titleTh: 'สร้าง Boundary (ขอบเขตเรื่อง)',
-          freshDetails: [
-            'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1: Genre, story line to be told)',
-            'ไม่นำคำตอบเดิมมาพิจารณา',
-            'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด แปลกใหม่ แตกต่าง',
-          ],
-          refineDetails: [
-            'ใช้ข้อมูลปัจจุบันเป็นพื้นฐาน',
-            'ปรับปรุง Big Idea, Premise, Theme, LogLine ให้ดีและสมบูรณ์แบบยิ่งขึ้น',
-            'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-          ],
-          useEditedDetails: [
-            'นำการแก้ไข และอัพเดตล่าสุด',
-            'มาสร้างต่อยอด สอดคล้องกับที่แก้ไข ให้สมบูรณ์',
-            'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-          ],
-        };
-      case 'characters':
-        return {
-          title: 'Generating Characters',
-          titleTh: 'สร้างตัวละคร',
-          freshDetails: [
-            'ใช้เฉพาะข้อมูลพื้นฐาน (Genre, Boundary, Structure)',
-            'ไม่นำตัวละครเดิมมาพิจารณา',
-            'เหมาะสำหรับ: ต้องการตัวละครใหม่ทั้งหมด',
-          ],
-          refineDetails: [
-            'ใช้ตัวละครปัจจุบันเป็นพื้นฐาน',
-            'ปรับปรุง backstory, goals, personality ให้ลึกซึ้งขึ้น',
-            'เหมาะสำหรับ: ชอบตัวละครแต่ต้องการพัฒนาต่อ',
-          ],
-          useEditedDetails: [
-            'นำการแก้ไขตัวละคร (ชื่อ, บุคลิก, เป้าหมาย)',
-            'มาสร้างรายละเอียดอื่นให้สอดคล้อง',
-            'เหมาะสำหรับ: แก้ไขตัวละครแล้ว ต้องการ AI เติมเต็ม',
-          ],
-        };
-      case 'structure':
-        return {
-          title: 'Building Story Structure',
-          titleTh: 'สร้างโครงสร้างเรื่อง (9 Plot Points)',
-          freshDetails: [
-            'ใช้เฉพาะข้อมูลพื้นฐาน (Boundary, Characters)',
-            'ไม่นำโครงสร้างเดิมมาพิจารณา',
-            'เหมาะสำหรับ: ต้องการเปลี่ยนโครงเรื่องใหม่หมด',
-          ],
-          refineDetails: [
-            'ใช้โครงสร้างปัจจุบันเป็นพื้นฐาน',
-            'ปรับปรุงคำอธิบายแต่ละ Plot Point ให้ชัดเจนขึ้น',
-            'เหมาะสำหรับ: ชอบโครงเรื่องแต่ต้องการรายละเอียดดีขึ้น',
-          ],
-          useEditedDetails: [
-            'นำการแก้ไข Plot Points',
-            'มาสร้างรายละเอียดให้เชื่อมโยงกันดี',
-            'เหมาะสำหรับ: แก้ไขโครงเรื่องแล้ว ต้องการ AI ขยายความ',
-          ],
-        };
-      case 'scenes':
-      default:
-        return {
-          title: 'Regenerate Scene',
-          titleTh: 'สร้างฉาก',
-          freshDetails: [
-            'ใช้เฉพาะข้อมูลพื้นฐาน (Plot Point, Characters, Previous Scenes)',
-            'ไม่นำข้อมูลฉากเดิมมาพิจารณา',
-            'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-          ],
-          refineDetails: [
-            'ใช้ฉากปัจจุบันเป็นพื้นฐาน',
-            'ปรับปรุง dialogue, description, ความสมจริง',
-            'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-          ],
-          useEditedDetails: [
-            'นำการแก้ไข dialogue, description, characters ไปใช้',
-            'สร้างฉากใหม่ที่สอดคล้องกับที่แก้ไข',
-            'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-          ],
-        };
-    }
-  };
-
-  const labels = getContentLabel();
 
   const modes = [
     {
@@ -120,9 +27,13 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       icon: '🔄',
       title: 'Fresh Start',
       titleTh: 'เริ่มใหม่ทั้งหมด',
-      description: 'Generate completely new content from scratch',
-      descriptionTh: 'สร้างใหม่ทั้งหมด ไม่อิงจากข้อมูลเดิม',
-      details: labels.freshDetails,
+      description: 'Generate completely new scene from scratch',
+      descriptionTh: 'สร้างฉากใหม่ทั้งหมด ไม่อิงจากฉากเดิม',
+      details: [
+        'ใช้เฉพาะข้อมูลพื้นฐาน (Plot Point, Characters, Previous Scenes)',
+        'ไม่นำข้อมูลฉากเดิมมาพิจารณา',
+        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+      ],
       color: 'cyan',
       recommended: !hasEdits,
     },
@@ -130,10 +41,14 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       id: 'refine' as RegenerationMode,
       icon: '✨',
       title: 'Refine Existing',
-      titleTh: 'ปรับปรุงข้อมูลเดิม',
-      description: 'Improve current content while keeping the core structure',
-      descriptionTh: 'ปรับปรุงคุณภาพ โดยรักษาโครงสร้างหลัก',
-      details: labels.refineDetails,
+      titleTh: 'ปรับปรุงฉากเดิม',
+      description: 'Improve current scene while keeping the core structure',
+      descriptionTh: 'ปรับปรุงคุณภาพฉากเดิม โดยรักษาโครงสร้างหลัก',
+      details: [
+        'ใช้ฉากปัจจุบันเป็นพื้นฐาน',
+        'ปรับปรุง dialogue, description, ความสมจริง',
+        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+      ],
       color: 'purple',
       recommended: !hasEdits && selectedMode !== 'fresh',
     },
@@ -144,7 +59,11 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       titleTh: 'ใช้ข้อมูลที่แก้ไข',
       description: 'Regenerate based on your manual edits',
       descriptionTh: 'สร้างใหม่โดยรวมการแก้ไขของคุณเข้าไป',
-      details: labels.useEditedDetails,
+      details: [
+        'นำการแก้ไข dialogue, description, characters ไปใช้',
+        'สร้างฉากใหม่ที่สอดคล้องกับที่แก้ไข',
+        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+      ],
       color: 'green',
       recommended: hasEdits,
       disabled: !hasEdits,
@@ -172,10 +91,10 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
             <div>
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <span className="text-2xl">🔄</span>
-                <span>{labels.title}</span>
+                <span>Regenerate Scene</span>
               </h3>
               <p className="text-sm text-gray-400 mt-1">
-                {labels.titleTh}: <span className="text-cyan-400 font-semibold">{contentName}</span>
+                เลือกวิธีการสร้างฉาก: <span className="text-cyan-400 font-semibold">{sceneName}</span>
               </p>
             </div>
             <button
@@ -315,7 +234,7 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
             onClick={handleConfirm}
             className={`px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg transition-all font-bold shadow-lg shadow-cyan-500/20`}
           >
-            {contentType === 'scenes' ? 'สร้างฉาก' : 'สร้างใหม่'}
+            สร้างฉาก
           </button>
         </div>
       </div>

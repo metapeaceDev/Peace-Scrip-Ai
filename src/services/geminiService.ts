@@ -3905,74 +3905,14 @@ export async function generateMoviePoster(
 /**
  * Generate story boundary from Step 1 data (genre, type)
  * Creates: title, bigIdea, premise, theme, logLine, timeline
- * @param scriptData - Current script data
- * @param mode - Regeneration mode: 'fresh' | 'refine' | 'use-edited'
  */
-export async function generateBoundary(
-  scriptData: ScriptData,
-  mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
-): Promise<Partial<ScriptData>> {
-  console.log(`🧠 Generating Boundary. Mode: ${mode}, Language: ${scriptData.language}`);
+export async function generateBoundary(scriptData: ScriptData): Promise<Partial<ScriptData>> {
+  console.log(`🧠 Generating Boundary. Language: ${scriptData.language}`);
   try {
     const isThai = scriptData.language === 'Thai';
     const langInstruction = isThai
       ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.'
       : 'Output in English.';
-
-    // Mode-specific instructions
-    let modeInstruction = '';
-    let existingDataContext = '';
-    
-    if (mode === 'fresh') {
-      modeInstruction = `
-**🔄 FRESH START MODE:**
-- Generate COMPLETELY NEW boundary from scratch
-- Use ONLY Step 1 data (Genre, Project Type, Title)
-- DO NOT reference or consider any existing Big Idea, Premise, Theme, LogLine, or Synopsis
-- Create original, unique concepts that haven't been seen before
-- This is a clean slate - be creative and innovative
-`;
-    } else if (mode === 'refine') {
-      modeInstruction = `
-**✨ REFINE EXISTING MODE:**
-- KEEP the core structure and direction of existing boundary
-- Use current boundary as foundation: Big Idea, Premise, Theme, LogLine
-- IMPROVE quality, depth, clarity, and completeness
-- Enhance descriptions, add nuance, strengthen connections
-- Make it MORE professional, polished, and compelling
-- DO NOT change the fundamental direction or theme
-`;
-      existingDataContext = `
-**Current Boundary (to be refined):**
-- Big Idea: ${scriptData.bigIdea || 'Not provided'}
-- Premise: ${scriptData.premise || 'Not provided'}
-- Theme: ${scriptData.theme || 'Not provided'}
-- LogLine: ${scriptData.logLine || 'Not provided'}
-- Synopsis: ${scriptData.synopsis || 'Not provided'}
-- Timeline: ${JSON.stringify(scriptData.timeline, null, 2)}
-`;
-    } else if (mode === 'use-edited') {
-      modeInstruction = `
-**📝 USE EDITED DATA MODE:**
-- User has manually edited the boundary
-- RESPECT and INCORPORATE all manual edits
-- Generate NEW content that ALIGNS with edited parts
-- Fill in gaps and expand on user's ideas
-- Maintain consistency with user's creative direction
-- Think of this as collaborative writing - you're helping complete their vision
-`;
-      existingDataContext = `
-**User's Edited Boundary (MUST respect and build upon):**
-- Big Idea: ${scriptData.bigIdea || 'Not provided'}
-- Premise: ${scriptData.premise || 'Not provided'}
-- Theme: ${scriptData.theme || 'Not provided'}
-- LogLine: ${scriptData.logLine || 'Not provided'}
-- Synopsis: ${scriptData.synopsis || 'Not provided'}
-- Timeline: ${JSON.stringify(scriptData.timeline, null, 2)}
-
-⚠️ CRITICAL: Keep the user's creative intent and style. Expand, don't replace.
-`;
-    }
 
     const prompt = `You are an expert Hollywood scriptwriter and story consultant. Based on the following story foundation, create a comprehensive boundary (framework) for the story.
 
@@ -3980,15 +3920,12 @@ export async function generateBoundary(
 ${langInstruction}
 ${isThai ? '⚠️ IMPORTANT: The user wants the result in THAI. Ignore the language of the input context and generate the output in THAI.' : ''}
 
-${modeInstruction}
-
 **Story Foundation from Step 1:**
 - **Title (USER PROVIDED - DO NOT CHANGE)**: ${scriptData.title || 'Untitled'}
 - **Main Genre**: ${scriptData.mainGenre}
 - **Secondary Genres**: ${scriptData.secondaryGenres?.filter(g => g).join(', ') || 'None'}
 - **Project Type**: ${scriptData.projectType}
-
-${existingDataContext}
+- **Additional Context**: ${scriptData.logLine || scriptData.premise || scriptData.bigIdea || 'Not provided'}
 
 **Your Task:**
 Generate a complete story boundary with the following elements, BASED ON THE USER'S TITLE "${scriptData.title || 'Untitled'}":

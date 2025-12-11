@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
-import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 
 interface Step2BoundaryProps {
   scriptData: ScriptData;
@@ -28,8 +27,6 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [originalData, setOriginalData] = useState<Partial<ScriptData> | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ [e.target.name]: e.target.value });
@@ -49,60 +46,18 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
       return;
     }
 
-    // เก็บข้อมูลเดิมไว้เช็คว่ามีการแก้ไขหรือไม่
-    setOriginalData({
-      bigIdea: scriptData.bigIdea,
-      premise: scriptData.premise,
-      theme: scriptData.theme,
-      logLine: scriptData.logLine,
-      synopsis: scriptData.synopsis,
-      timeline: { ...scriptData.timeline },
-    });
-
-    // แสดง Modal ให้เลือก mode
-    setShowRegenerateModal(true);
-  };
-
-  const handleRegenerateConfirm = async (mode: RegenerationMode) => {
     if (onRegisterUndo) onRegisterUndo();
     setIsGenerating(true);
     setError(null);
 
     try {      
-      console.log(`🧠 Generating Boundary with mode: ${mode}, language: ${scriptData.language}`);
+      console.log(`🧠 Generating Boundary with language: ${scriptData.language}`);
       
-      // สร้าง context ตาม mode
-      let contextData = { ...scriptData };
-      
-      if (mode === 'fresh') {
-        // Fresh Start: ใช้เฉพาะ Step 1 data
-        contextData = {
-          ...scriptData,
-          bigIdea: '',
-          premise: '',
-          theme: '',
-          logLine: '',
-          synopsis: '',
-          timeline: {
-            movieTiming: '',
-            seasons: '',
-            date: '',
-            social: '',
-            economist: '',
-            environment: '',
-          },
-        };
-      } else if (mode === 'refine') {
-        // Refine: ใช้ข้อมูลเดิมทั้งหมด
-        contextData = scriptData;
-      } else if (mode === 'use-edited') {
-        // Use Edited: ใช้ข้อมูลที่แก้ไขแล้ว
-        contextData = scriptData;
-      }
-      
-      const result = await generateBoundary(contextData, mode);
+      const result = await generateBoundary(scriptData);
       
       updateScriptData({
+        // Keep user's original title - don't let AI change it
+        // title: result.title || scriptData.title,
         bigIdea: result.bigIdea || scriptData.bigIdea,
         premise: result.premise || scriptData.premise,
         theme: result.theme || scriptData.theme,
@@ -341,18 +296,6 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
           {t('step2.actions.next')}
         </button>
       </div>
-
-      {/* Regenerate Options Modal */}
-      <RegenerateOptionsModal
-        isOpen={showRegenerateModal}
-        onClose={() => setShowRegenerateModal(false)}
-        onConfirm={handleRegenerateConfirm}
-        contentType="boundary"
-        contentName="Story Boundary"
-        hasEdits={
-          !!(scriptData.bigIdea || scriptData.premise || scriptData.theme || scriptData.logLine || scriptData.synopsis)
-        }
-      />
     </div>
   );
 };
