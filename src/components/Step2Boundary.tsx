@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
@@ -92,6 +92,27 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Load voices on mount to avoid speech synthesis issues
+  useEffect(() => {
+    // Load voices immediately
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      console.log('🔊 Available voices:', voices.length);
+    };
+    
+    loadVoices();
+    
+    // Some browsers load voices asynchronously
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // Cleanup: cancel any ongoing speech when component unmounts
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ [e.target.name]: e.target.value });
   };
@@ -102,7 +123,7 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
 
   const handleReadStory = () => {
     if (isReading) {
-      // Stop reading
+      // Stop reading completely
       window.speechSynthesis.cancel();
       setIsReading(false);
       setIsPaused(false);
@@ -115,6 +136,9 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
       setIsPaused(false);
       return;
     }
+
+    // Cancel any existing speech before starting new one
+    window.speechSynthesis.cancel();
 
     // Start reading
     const isThai = scriptData.language === 'Thai';
@@ -133,27 +157,55 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
     }
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = isThai ? 'th-TH' : 'en-US';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
+    
+    // Get available voices and select the best Thai voice
+    const voices = window.speechSynthesis.getVoices();
+    if (isThai) {
+      // Try to find a good Thai voice
+      const thaiVoice = voices.find(voice => 
+        voice.lang === 'th-TH' || voice.lang.startsWith('th')
+      );
+      if (thaiVoice) {
+        utterance.voice = thaiVoice;
+      }
+      utterance.lang = 'th-TH';
+    } else {
+      // Try to find a good English voice
+      const enVoice = voices.find(voice => 
+        voice.lang === 'en-US' || voice.lang.startsWith('en')
+      );
+      if (enVoice) {
+        utterance.voice = enVoice;
+      }
+      utterance.lang = 'en-US';
+    }
+    
+    utterance.rate = 0.95; // Slightly slower for better clarity
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
     utterance.onstart = () => {
+      console.log('🔊 Speech started');
       setIsReading(true);
       setIsPaused(false);
     };
 
     utterance.onend = () => {
+      console.log('✅ Speech ended');
       setIsReading(false);
       setIsPaused(false);
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (event) => {
+      console.error('❌ Speech error:', event);
       setIsReading(false);
       setIsPaused(false);
     };
 
-    window.speechSynthesis.speak(utterance);
+    // Small delay to ensure cancel has completed
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 100);
   };
 
   const handlePauseReading = () => {
