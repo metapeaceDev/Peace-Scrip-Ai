@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  comfyui-backend:
+    build: .
+    container_name: comfyui-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - COMFYUI_PATH=/workspace/ComfyUI
+      - MAX_CONCURRENT_JOBS=2
+      - JOB_TIMEOUT=300
+    volumes:
+      # Mount models directory (create on host first)
+      - ./models:/workspace/ComfyUI/models
+      # Mount output directory
+      - ./output:/tmp/comfyui_output
+      # Mount service account (if using Firebase)
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - comfyui-network
+
+networks:
+  comfyui-network:
+    driver: bridge

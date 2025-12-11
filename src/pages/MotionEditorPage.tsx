@@ -17,8 +17,8 @@
  * @version 3.0.0 - TypeScript + Tailwind CSS
  */
 
-import React, { useState } from 'react';
-import type { ScriptData } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import type { ScriptData, GeneratedScene } from '../../types';
 import KeyframeTimeline from '../components/KeyframeTimeline';
 
 interface MotionEditorPageProps {
@@ -28,12 +28,58 @@ interface MotionEditorPageProps {
   onClose?: () => void;
 }
 
+interface TimelineClip {
+  id: string;
+  start: number;
+  end: number;
+  label: string;
+  color: string;
+  mediaUrl?: string;
+  mediaType?: 'video' | 'image';
+}
+
 export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({ 
   scriptData, 
   shotId, 
   onSave,
   onClose 
 }) => {
+  
+  // 🎬 PHASE 1: Extract Storyboard Data from ScriptData
+  const currentScene = useMemo<GeneratedScene | null>(() => {
+    if (!scriptData || !shotId) return null;
+    
+    // Find scene containing this shot
+    for (const plotPoint of scriptData.structure) {
+      const scenes = scriptData.generatedScenes[plotPoint.title] || [];
+      for (const scene of scenes) {
+        if (scene.shotList?.some(s => s.shot?.toString() === shotId)) {
+          return scene;
+        }
+      }
+    }
+    return null;
+  }, [scriptData, shotId]);
+
+  // Get storyboard item for current shot
+  const storyboardItem = useMemo(() => {
+    if (!currentScene || !shotId) return null;
+    return currentScene.storyboard?.find(s => s.shot?.toString() === shotId);
+  }, [currentScene, shotId]);
+
+  // Extract media URLs
+  const videoUrl = storyboardItem?.video || null;
+  const imageUrl = storyboardItem?.image || null;
+  
+  console.log('🎬 MotionEditor - Media Data:', {
+    shotId,
+    hasScene: !!currentScene,
+    hasStoryboard: !!storyboardItem,
+    hasVideo: !!videoUrl,
+    hasImage: !!imageUrl,
+    videoUrl: videoUrl?.substring(0, 50) + '...',
+    imageUrl: imageUrl?.substring(0, 50) + '...'
+  });
   
   // State
   const [stylePreset, setStylePreset] = useState('neutral');
@@ -90,11 +136,66 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     parameters?: Record<string, unknown>;
     interpolation: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step';
   }>>([]);
+
+  // Auto-generate keyframes from motion parameters and video/image
+  useEffect(() => {
+    // Only auto-generate if keyframes are empty
+    if (keyframes.length === 0 && (videoUrl || imageUrl)) {
+      const initialKeyframes = [
+        {
+          id: 'kf_start',
+          time: 0,
+          parameters: { ...motionParameters },
+          interpolation: 'linear' as const
+        },
+        {
+          id: 'kf_mid',
+          time: duration / 2,
+          parameters: { ...motionParameters },
+          interpolation: 'ease-in-out' as const
+        },
+        {
+          id: 'kf_end',
+          time: duration,
+          parameters: { ...motionParameters },
+          interpolation: 'ease-out' as const
+        }
+      ];
+      setKeyframes(initialKeyframes);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl, imageUrl, duration]);
   
   // Tracks for Multi-track Timeline
   const [tracks, setTracks] = useState([
     { 
       id: 1, 
+      name: '🎬 Video', 
+      clips: videoUrl ? [{
+        id: 'video_main',
+        start: 0,
+        end: duration,
+        label: `Shot ${shotId}`,
+        color: '#ef4444',
+        mediaUrl: videoUrl,
+        mediaType: 'video' as const
+      }] : []
+    },
+    { 
+      id: 2, 
+      name: '🖼️ Image', 
+      clips: imageUrl && !videoUrl ? [{
+        id: 'image_main',
+        start: 0,
+        end: duration,
+        label: `Shot ${shotId}`,
+        color: '#8b5cf6',
+        mediaUrl: imageUrl,
+        mediaType: 'image' as const
+      }] : []
+    },
+    { 
+      id: 3, 
       name: '🔊 SFX', 
       clips: [
         { id: 'sfx1', start: 0, end: 2, label: 'Wind', color: '#10b981' },
@@ -102,20 +203,59 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
       ]
     },
     { 
-      id: 2, 
+      id: 4, 
       name: '💬 Dialogue', 
       clips: [
         { id: 'dlg1', start: 1.2, end: 2.5, label: 'Speech', color: '#3b82f6' }
       ]
     },
     { 
-      id: 3, 
+      id: 5, 
       name: '🎭 Actions', 
       clips: [
         { id: 'act1', start: 0, end: 5, label: 'Movement', color: '#8b5cf6' }
       ]
     }
   ]);
+  
+  // 🎬 Update tracks when media changes
+  useEffect(() => {
+    setTracks(prev => {
+      const newTracks = [...prev];
+      
+      // Update Video track
+      newTracks[0] = {
+        id: 1,
+        name: '🎬 Video',
+        clips: videoUrl ? [{
+          id: 'video_main',
+          start: 0,
+          end: duration,
+          label: `Shot ${shotId}`,
+          color: '#ef4444',
+          mediaUrl: videoUrl,
+          mediaType: 'video' as const
+        }] : []
+      };
+      
+      // Update Image track
+      newTracks[1] = {
+        id: 2,
+        name: '🖼️ Image',
+        clips: imageUrl && !videoUrl ? [{
+          id: 'image_main',
+          start: 0,
+          end: duration,
+          label: `Shot ${shotId}`,
+          color: '#8b5cf6',
+          mediaUrl: imageUrl,
+          mediaType: 'image' as const
+        }] : []
+      };
+      
+      return newTracks;
+    });
+  }, [videoUrl, imageUrl, shotId, duration]);
   
   // Prompts
   const [prompts, setPrompts] = useState([
@@ -155,7 +295,6 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   // Video Generation
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   
   // Video Player Controls
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -200,6 +339,18 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
 
   const updateMotionParameter = (param: string, value: number) => {
     setMotionParameters({ ...motionParameters, [param]: value });
+    
+    // Update keyframes with new parameter values
+    if (keyframes.length > 0) {
+      const updatedKeyframes = keyframes.map(kf => ({
+        ...kf,
+        parameters: {
+          ...kf.parameters,
+          [param]: value
+        }
+      }));
+      setKeyframes(updatedKeyframes);
+    }
   };
 
   const handleGenerateVideo = async () => {
@@ -212,7 +363,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
         if (prev >= 100) {
           clearInterval(interval);
           setIsGenerating(false);
-          setVideoUrl('https://example.com/generated-video.mp4');
+          // Video URL is now from storyboard data
           return 100;
         }
         return prev + 10;
@@ -515,7 +666,14 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
           <div className="col-span-5 space-y-6 order-2">
             {/* Preview */}
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-orange-400 mb-3">👁️ Preview</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-orange-400">👁️ Preview</h3>
+                {(videoUrl || imageUrl) && (
+                  <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-full">
+                    {videoUrl ? '🎬 Video Ready' : '🖼️ Image Ready'}
+                  </span>
+                )}
+              </div>
               
               <div 
                 className={`bg-black rounded-lg flex items-center justify-center border-2 border-gray-600 ${
@@ -528,16 +686,42 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                 {videoUrl ? (
                   <video 
                     ref={videoRef}
-                    src={videoUrl} 
-                    className="w-full h-full rounded-lg"
-                  />
+                    src={videoUrl}
+                    className="w-full h-full rounded-lg object-contain"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onTimeUpdate={(e) => {
+                      // Sync timeline with video playback
+                      setCurrentTime(e.currentTarget.currentTime);
+                    }}
+                    onError={(e) => {
+                      console.warn('Video load error:', e);
+                    }}
+                  >
+                    <source src={videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                ) : imageUrl ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <img 
+                      src={imageUrl}
+                      alt={`Shot ${shotId}`}
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                      onError={(e) => {
+                        console.warn('Image load error');
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="text-center text-gray-500">
                     <svg className="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <p className="text-lg font-semibold">No preview available</p>
-                    <p className="text-sm mt-2">Generate video to see preview</p>
+                    <p className="text-sm mt-2">Generate video or image in Storyboard</p>
+                    <p className="text-xs text-gray-600 mt-1">Shot ID: {shotId || 'Unknown'}</p>
                   </div>
                 )}
               </div>
@@ -1098,15 +1282,67 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
         {/* Timeline Content */}
         <div className="px-4 py-2">
           {timelineMode === 'keyframe' && (
-            <KeyframeTimeline 
-              duration={duration}
-              keyframes={keyframes}
-              onKeyframesChange={setKeyframes}
-              parameters={motionParameters}
-              onTimeChange={setCurrentTime}
-              playing={isPlaying}
-              onPlayingChange={setIsPlaying}
-            />
+            <div>
+              {/* Keyframe Controls */}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-400">⏱️ Keyframes:</span>
+                  <span className="text-xs text-blue-400 font-mono">{keyframes.length} frames</span>
+                  {videoUrl && (
+                    <span className="text-xs text-green-400">🎬 Video</span>
+                  )}
+                  {imageUrl && !videoUrl && (
+                    <span className="text-xs text-purple-400">🖼️ Image</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const newKf = {
+                        id: `kf_${Date.now()}`,
+                        time: currentTime,
+                        parameters: { ...motionParameters },
+                        interpolation: 'linear' as const
+                      };
+                      const updated = [...keyframes, newKf].sort((a, b) => a.time - b.time);
+                      setKeyframes(updated);
+                    }}
+                    className="px-3 py-1 bg-blue-600/80 hover:bg-blue-600 rounded text-xs font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <span>➕</span>
+                    <span>Add Keyframe</span>
+                  </button>
+                  <button
+                    onClick={() => setKeyframes([])}
+                    disabled={keyframes.length === 0}
+                    className="px-3 py-1 bg-red-600/80 hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed rounded text-xs font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <span>🗑️</span>
+                    <span>Clear All</span>
+                  </button>
+                </div>
+              </div>
+
+              <KeyframeTimeline 
+                duration={duration}
+                keyframes={keyframes}
+                onKeyframesChange={setKeyframes}
+                parameters={motionParameters}
+                onTimeChange={setCurrentTime}
+                playing={isPlaying}
+                onPlayingChange={setIsPlaying}
+              />
+
+              {/* Keyframe Info */}
+              {keyframes.length === 0 && (
+                <div className="mt-3 p-4 bg-gray-800/30 border border-gray-700/50 rounded-lg text-center">
+                  <div className="text-4xl mb-2">⏱️</div>
+                  <p className="text-sm text-gray-400 mb-2">No keyframes yet</p>
+                  <p className="text-xs text-gray-500">Click &quot;Add Keyframe&quot; to create animation points</p>
+                  <p className="text-xs text-gray-600 mt-1">Keyframes control motion parameters over time</p>
+                </div>
+              )}
+            </div>
           )}
 
           {timelineMode === 'multitrack' && (
@@ -1171,10 +1407,12 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                       </div>
                       
                       {/* Clips */}
-                      {track.clips.map(clip => (
+                      {track.clips.map(clip => {
+                        const timelineClip = clip as TimelineClip;
+                        return (
                         <div
                           key={clip.id}
-                          className="absolute top-0.5 bottom-0.5 rounded px-1.5 flex items-center text-[10px] font-semibold text-white shadow cursor-move hover:opacity-90 transition-opacity"
+                          className="absolute top-0.5 bottom-0.5 rounded px-1.5 flex items-center gap-1 text-[10px] font-semibold text-white shadow cursor-move hover:opacity-90 transition-opacity overflow-hidden"
                           style={{
                             left: `${(clip.start / duration) * 100}%`,
                             width: `${((clip.end - clip.start) / duration) * 100}%`,
@@ -1182,9 +1420,30 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                             minWidth: '40px'
                           }}
                         >
-                          {clip.label}
+                          {/* Thumbnail for Video/Image clips */}
+                          {timelineClip.mediaUrl && timelineClip.mediaType === 'video' && (
+                            <div className="flex-shrink-0 w-6 h-6 bg-gray-900 rounded overflow-hidden">
+                              <video 
+                                src={timelineClip.mediaUrl} 
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                              />
+                            </div>
+                          )}
+                          {timelineClip.mediaUrl && timelineClip.mediaType === 'image' && (
+                            <div className="flex-shrink-0 w-6 h-6 bg-gray-900 rounded overflow-hidden">
+                              <img 
+                                src={timelineClip.mediaUrl} 
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <span className="truncate">{clip.label}</span>
                         </div>
-                      ))}
+                      );
+                      })}
 
                       {/* Playhead */}
                       <div

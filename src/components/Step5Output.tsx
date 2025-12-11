@@ -395,6 +395,11 @@ const SceneDisplay: React.FC<{
   const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
   const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
   const [progress, setProgress] = useState(0);
+  
+  // 🆕 Video Resolution & Aspect Ratio
+  const [videoAspectRatio, setVideoAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:3' | 'custom'>('16:9');
+  const [customWidth, setCustomWidth] = useState<number>(1024);
+  const [customHeight, setCustomHeight] = useState<number>(576);
 
   // Deletion confirmation states (UI based to avoid window.confirm issues)
   const [confirmDeleteSituationId, setConfirmDeleteSituationId] = useState<number | null>(null);
@@ -1383,7 +1388,16 @@ IMPORTANT: Show the character's emotional and psychological state through facial
         prompt,
         existingImage,
         p => setProgress(p),
-        preferredVideoModel
+        preferredVideoModel,
+        {
+          character: scriptData.characters[0], // Pass first character for psychology
+          currentScene: editedScene,
+          shotData: shotData,
+          // 🆕 Pass aspect ratio and resolution
+          aspectRatio: videoAspectRatio,
+          width: videoAspectRatio === 'custom' ? customWidth : undefined,
+          height: videoAspectRatio === 'custom' ? customHeight : undefined,
+        }
       );
 
       const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
@@ -2534,7 +2548,91 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     </optgroup>
                   </select>
                 </div>
+                {/* 🆕 Aspect Ratio Selector */}
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-400 mb-1">
+                    📐 ASPECT RATIO
+                    <span className="ml-1 text-cyan-400 text-xs">
+                      {videoAspectRatio === '16:9' && '(Landscape)'}
+                      {videoAspectRatio === '9:16' && '(Portrait/TikTok)'}
+                      {videoAspectRatio === '1:1' && '(Square/Instagram)'}
+                      {videoAspectRatio === '4:3' && '(Standard)'}
+                      {videoAspectRatio === 'custom' && `(${customWidth}x${customHeight})`}
+                    </span>
+                  </label>
+                  <select
+                    value={videoAspectRatio}
+                    onChange={e => setVideoAspectRatio(e.target.value as any)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                  >
+                    <option value="16:9">🖥️ 16:9 - Widescreen (1024x576)</option>
+                    <option value="9:16">📱 9:16 - Portrait/TikTok (576x1024)</option>
+                    <option value="1:1">⬛ 1:1 - Square/Instagram (512x512)</option>
+                    <option value="4:3">📺 4:3 - Standard (768x576)</option>
+                    <option value="custom">⚙️ Custom Resolution</option>
+                  </select>
+                </div>
               </div>
+              
+              {/* 🆕 Custom Resolution Controls */}
+              {videoAspectRatio === 'custom' && (
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 mb-1">WIDTH (px)</label>
+                    <input
+                      type="number"
+                      value={customWidth}
+                      onChange={e => setCustomWidth(Math.max(256, Math.min(1920, parseInt(e.target.value) || 512)))}
+                      min="256"
+                      max="1920"
+                      step="8"
+                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 mb-1">HEIGHT (px)</label>
+                    <input
+                      type="number"
+                      value={customHeight}
+                      onChange={e => setCustomHeight(Math.max(256, Math.min(1920, parseInt(e.target.value) || 512)))}
+                      min="256"
+                      max="1920"
+                      step="8"
+                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                  </div>
+                  <div className="flex-none">
+                    <p className="text-xs text-gray-400 mb-1">Presets:</p>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setCustomWidth(1280); setCustomHeight(720); }}
+                        className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
+                        title="720p HD"
+                      >
+                        720p
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCustomWidth(1920); setCustomHeight(1080); }}
+                        className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
+                        title="1080p Full HD"
+                      >
+                        1080p
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCustomWidth(720); setCustomHeight(1280); }}
+                        className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
+                        title="TikTok/Reels"
+                      >
+                        TikTok
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex gap-2 w-full sm:w-auto">
                 {/* Clear All Storyboard button */}
                 {(editedScene.storyboard?.length || 0) > 0 && (
@@ -3692,7 +3790,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm overflow-auto">
             <MotionEditorPage
               scriptData={scriptData}
-              shotId={`shot-${editingShotIndex}`}
+              shotId={currentShot?.shot?.shot?.toString() || editingShotIndex.toString()}
               onSave={(updatedShot) => {
                 console.log('Shot updated:', updatedShot);
                 // TODO: Save updated shot data back to scriptData
@@ -4043,7 +4141,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                 }
                                 
                                 // Use continuousSceneNumber directly instead of sceneNumberMap
-                                console.log('[Psychology] Looking for snapshot:', { 
+                                console.debug('[Psychology] Looking for snapshot:', { 
                                   character: character.name, 
                                   currentSceneNumber: continuousSceneNumber, 
                                   snapshotsCount: timeline.snapshots?.length || 0,

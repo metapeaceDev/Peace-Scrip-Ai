@@ -17,6 +17,17 @@ Peace Script is a professional AI-assisted screenwriting and pre-production tool
     - **Advanced**: LoRA models for character consistency & cinematic style
     - **No Installation**: Users don't need to install anything locally
 - **Storyboard AI**: Generate visual storyboards (images and video previews) for every shot.
+- **🎬 6-Tier Video Generation System**: Intelligent fallback with custom resolution support:
+  - **Tier 1**: Gemini Veo 3.1 (720p, 30-120s, cinematic quality) ✅ Production Ready
+  - **Tier 2a**: AnimateDiff v3 (512x512 fixed, $0.17/video) ⚠️ Limited
+  - **Tier 2b**: SVD 1.1 (1024x576 fixed, $0.20/video) ✅ Working
+  - **🆕 Tier 2c**: Hotshot-XL (Custom resolution, $0.018/video) ⭐ **90% CHEAPER!**
+  - **🆕 Tier 2d**: LTX-Video (Up to 720x1280, $0.045/video) ⭐ **HIGH QUALITY**
+  - **Tier 3/4**: ComfyUI Backend (Unlimited, self-hosted) 🚀 Ready
+  - **🎯 Custom Aspect Ratios**: 16:9, 9:16 (TikTok), 1:1 (Instagram), 4:3, Custom
+  - **Auto Fallback**: Automatically tries all tiers if one fails
+  - **Manual Selection**: Choose specific tier for each shot
+  - See [CUSTOM_RESOLUTION_GUIDE.md](./docs/CUSTOM_RESOLUTION_GUIDE.md) for details
 - **Cloud Storage**: Firebase Storage for large media files (34+ MB supported).
 - **Offline Support**: Works offline using IndexedDB, syncs when online.
 
@@ -63,11 +74,17 @@ Peace Script AI offers flexible pricing tiers for every creator:
 
 ### AI Providers
 
+**Text & Image Generation:**
 - Google Gemini 2.5 Flash (text generation)
 - Google Gemini 2.5/2.0 Flash Image (image generation)
 - Stable Diffusion XL via Pollinations.ai (fallback)
-- ComfyUI Backend Service (advanced generation)
-- Google Veo 3.1 (video generation)
+- ComfyUI Backend Service (advanced generation with LoRA)
+
+**Video Generation (3-Tier System):**
+- **Tier 1**: Google Veo 3.1 (720p, 30-120s, production quality) ✅ WORKING
+- **Tier 2**: ComfyUI + AnimateDiff v3 (512x512, 3s, fast) 🚀 READY
+- **Tier 3**: ComfyUI + SVD 1.1 (1024x576, 3s, high quality) 🚀 READY
+- **Fallback Chain**: Automatic tier switching for maximum reliability
 
 ## 📦 Getting Started
 
@@ -101,18 +118,47 @@ VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 # Gemini AI
 VITE_GEMINI_API_KEY=your_gemini_api_key
 
-# ComfyUI Local/Cloud Configuration
+# 🆕 Replicate API (Quick Start - Recommended!)
+# Get your API key from: https://replicate.com/account/api-tokens
+# Tier 2: AnimateDiff v3 (~$0.17/video)
+# Tier 3: SVD 1.1 (~$0.20/video)
+VITE_REPLICATE_API_KEY=your_replicate_api_key_here
+
+# ComfyUI Self-Hosted (Advanced - Optional)
 VITE_COMFYUI_SERVICE_URL=http://localhost:8000
-VITE_USE_COMFYUI_BACKEND=true
+VITE_USE_COMFYUI_BACKEND=false
 
 # Cloud Rendering Options (Optional)
 VITE_COMFYUI_CLOUD_URL=https://your-cloud-function.cloudfunctions.net/comfyui
-VITE_COLAB_TUNNEL_URL=https://xxxx.ngrok-free.app  # Google Colab Pro+ (แนะนำ!)
+VITE_COLAB_TUNNEL_URL=https://xxxx.ngrok-free.app
 VITE_RUNPOD_URL=https://api.runpod.ai/v2/YOUR_ENDPOINT_ID
-VITE_REPLICATE_URL=https://api.replicate.com
 ```
 
-### 4. Setup Cloud Rendering (Optional - แต่คุ้มมาก!)
+### 4. Video Generation Setup (Choose One)
+
+**Option A: Quick Start with Replicate (5 minutes) ⭐ RECOMMENDED**
+
+1. Sign up at https://replicate.com
+2. Get API key from https://replicate.com/account/api-tokens
+3. Add to `.env.local`:
+   ```env
+   VITE_REPLICATE_API_KEY=r8_xxxxxxxxxxxxx
+   ```
+4. Done! Start generating videos.
+
+📖 Full guide: [REPLICATE_SETUP.md](./REPLICATE_SETUP.md)
+
+**Option B: Self-Hosted ComfyUI (30 minutes - Advanced)**
+
+Deploy to RunPod/Cloud with full control:
+- Download ~20GB models
+- Setup FastAPI backend
+- Configure GPU instance
+
+📖 Full guide: [COMFYUI_BACKEND_DEPLOYMENT.md](./COMFYUI_BACKEND_DEPLOYMENT.md)  
+🚀 One-click script: [runpod-setup.sh](./comfyui-backend/runpod-setup.sh)
+
+### 5. Setup Cloud Rendering (Optional - แต่คุ้มมาก!)
 
 **🎓 Google Colab Pro+ Users** (ถ้าคุณจ่ายแล้ว ใช้ให้คุ้ม!):
 
@@ -362,10 +408,25 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 ## 📚 Documentation
 
-- **Main Documentation**: This README
+**Main Guides:**
+- **Getting Started**: This README
 - **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
+- **System Analysis**: [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md)
+
+**Video Generation (New!):**
+- **Quick Start**: [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) - Deploy in 5-30 minutes
+- **Full Guide**: [COMFYUI_BACKEND_DEPLOYMENT.md](COMFYUI_BACKEND_DEPLOYMENT.md) - Complete deployment
+- **Environment Setup**: [ENV_UPDATE_GUIDE.md](ENV_UPDATE_GUIDE.md) - Frontend configuration
+- **Testing Procedures**: [TESTING_GUIDE.md](TESTING_GUIDE.md) - Complete test guide
+- **Implementation Summary**: [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - Overview
+
+**Image Generation:**
 - **ComfyUI Setup**: [COMFYUI_SETUP.md](COMFYUI_SETUP.md) | [Quick Start](COMFYUI_QUICKSTART.md)
-- **Additional Docs**: [docs/](docs/) folder
+- **Colab Guide**: [COLAB_SETUP_GUIDE.md](COLAB_SETUP_GUIDE.md)
+
+**Additional Documentation:**
+- **Pricing Strategy**: [PRICING_STRATEGY.md](PRICING_STRATEGY.md)
+- **Cost Optimization**: [COST_OPTIMIZATION_ROADMAP.md](COST_OPTIMIZATION_ROADMAP.md)
 - **Full Documentation Index**: [docs/README.md](docs/README.md)
 
 ## 📧 Contact

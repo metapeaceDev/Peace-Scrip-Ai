@@ -12,6 +12,12 @@ import { hasAccessToModel, deductCredits } from './userStore';
 import { checkQuota, recordUsage } from './subscriptionManager';
 import { auth } from '../config/firebase';
 import { loadRenderSettings } from './deviceManager';
+import {
+  generateAnimateDiffVideo,
+  generateSVDVideo,
+  generateHotshotXL,
+  generateLTXVideo,
+} from './replicateService';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -3472,6 +3478,10 @@ export async function generateStoryboardVideo(
     fps?: number;
     duration?: number;
     motionEdit?: MotionEdit; // 🆕 NEW: Motion Editor support
+    // 🆕 Resolution & Aspect Ratio Control
+    aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | 'custom';
+    width?: number;
+    height?: number;
   }
 ): Promise<string> {
   try {
@@ -3548,20 +3558,21 @@ export async function generateStoryboardVideo(
   - Character Energy: ${options.character.emotionalState?.energyLevel || 50}`);
     }
 
-    // 0. Check Subscription Access
-    if (preferredModel !== 'auto') {
-      if (!hasAccessToModel(preferredModel, 'video')) {
-        throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
-      }
-    }
+    // 1. Handle User Selection - Try Veo first for 'auto' mode
+    if (preferredModel === 'gemini-veo' || preferredModel === 'auto') {
+      try {
+        // 0. Check Subscription Access for Veo (moved inside try-catch for fallback)
+        if (preferredModel === 'gemini-veo') {
+          if (!hasAccessToModel(preferredModel, 'video')) {
+            throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
+          }
+        }
+        
+        // Try Tier 1: Gemini Veo 3.1 (best quality, limited quota)
+        console.log('🎬 Tier 1: Trying Gemini Veo 3.1...');
 
-    // 1. Handle User Selection
-    if (preferredModel === 'gemini-veo' || (preferredModel === 'auto' && !COMFYUI_ENABLED)) {
-      // Try Tier 1: Gemini Veo 3.1 (best quality, limited quota)
-      console.log('🎬 Tier 1: Trying Gemini Veo 3.1...');
-
-      // Check credits for paid model
-      const modelConfig = VIDEO_MODELS_CONFIG.PAID.GEMINI_VEO;
+        // Check credits for paid model
+        const modelConfig = VIDEO_MODELS_CONFIG.PAID.GEMINI_VEO;
 
       const model = 'veo-3.1-fast-generate-preview';
       type VeoParams = {
@@ -3613,9 +3624,155 @@ export async function generateStoryboardVideo(
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'PLACEHOLDER_KEY';
       console.log('✅ Tier 1 Success: Gemini Veo 3.1');
       return `${videoUri}&key=${apiKey}`;
+      
+      } catch (veoError: unknown) {
+        const err = veoError as { message?: string };
+        console.error('❌ Tier 1 (Veo) failed:', err);
+        if (preferredModel === 'gemini-veo') throw veoError; // Don't fallback if manually selected
+        // Continue to Tier 2 fallback for 'auto' mode
+      }
     }
 
-    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff' || (preferredModel === 'auto' && COMFYUI_ENABLED)) {
+    // 🆕 NEW TIER 2: Replicate (Quick Start - No Deployment)
+    if (preferredModel === 'replicate-animatediff' || preferredModel === 'replicate-svd' || preferredModel === 'auto') {
+      try {
+        const useReplicateApiKey = import.meta.env.VITE_REPLICATE_API_KEY;
+        
+        if (useReplicateApiKey) {
+          console.log('🎬 Tier 2 (Replicate): Attempting cloud generation...');
+          
+          // 🆕 PRIORITY: Try LTX-Video FIRST (high quality, custom resolution)
+          try {
+            console.log('🎬 Tier 2a: Trying Replicate LTX-Video (High Quality Priority)...');
+            
+            const videoUrl = await generateLTXVideo(
+              enhancedPrompt,
+              base64Image,
+              {
+                numFrames: finalFrameCount || 25,
+                fps: finalFPS || 8,
+                guidanceScale: 3.0,
+                numInferenceSteps: 30,
+                aspectRatio: options?.aspectRatio || '16:9',
+                width: options?.width,
+                height: options?.height,
+              },
+              onProgress
+            );
+            
+            console.log('✅ Tier 2a Success: Replicate LTX-Video (High Quality)');
+            return videoUrl;
+          } catch (ltxError: unknown) {
+            const err = ltxError as { message?: string };
+            console.error('❌ Tier 2a (Replicate LTX-Video) failed:', err);
+            console.log('⏭️ Falling back to Tier 2b: Hotshot-XL...');
+          }
+          
+          // Try Hotshot-XL as second fallback (cheaper, still good quality)
+          try {
+            console.log('🎬 Tier 2b: Trying Replicate Hotshot-XL (Fast & Cheap Fallback)...');
+            
+            const videoUrl = await generateHotshotXL(
+              enhancedPrompt,
+              base64Image,
+              {
+                numFrames: finalFrameCount || 16,
+                fps: finalFPS || 8,
+                guidanceScale: 7.5,
+                numInferenceSteps: 30,
+                aspectRatio: options?.aspectRatio || '16:9',
+                width: options?.width,
+                height: options?.height,
+              },
+              onProgress
+            );
+            
+            console.log('✅ Tier 2b Success: Replicate Hotshot-XL');
+            return videoUrl;
+          } catch (hotshotError: unknown) {
+            const err = hotshotError as { message?: string };
+            console.error('❌ Tier 2b (Replicate Hotshot-XL) failed:', err);
+            console.log('⏭️ Falling back to Tier 2c: AnimateDiff...');
+          }
+          
+          // Try AnimateDiff third (works with or without image)
+          if (preferredModel !== 'replicate-svd') {
+            try {
+              // Check subscription access for AnimateDiff
+              if (preferredModel === 'replicate-animatediff') {
+                if (!hasAccessToModel(preferredModel, 'video')) {
+                  throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
+                }
+              }
+              
+              console.log('🎬 Tier 2c: Trying Replicate AnimateDiff v3...');
+              const videoUrl = await generateAnimateDiffVideo(
+                enhancedPrompt,
+                base64Image,
+                {
+                  numFrames: finalFrameCount || 16,
+                  fps: finalFPS || 8,
+                  guidanceScale: 7.5,
+                  numInferenceSteps: 25,
+                },
+                onProgress
+              );
+              
+              console.log('✅ Tier 2c Success: Replicate AnimateDiff');
+              return videoUrl;
+            } catch (animateError: unknown) {
+              const err = animateError as { message?: string };
+              console.error('❌ Tier 2c (Replicate AnimateDiff) failed:', err);
+              if (preferredModel === 'replicate-animatediff') throw animateError;
+            }
+          }
+          
+          // Try SVD if image is available (last Replicate fallback)
+          if (base64Image) {
+            try {
+              // Check subscription access for SVD
+              if (preferredModel === 'replicate-svd') {
+                if (!hasAccessToModel(preferredModel, 'video')) {
+                  throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
+                }
+              }
+              
+              console.log('🎬 Tier 2d: Trying Replicate SVD (Image-to-Video)...');
+              
+              // Convert motion strength to SVD motion_bucket_id (1-255)
+              const motionBucketId = Math.round((finalMotionStrength || 0.7) * 180) + 50;
+              
+              const videoUrl = await generateSVDVideo(
+                base64Image,
+                {
+                  numFrames: finalFrameCount || 14,
+                  fps: finalFPS || 6,
+                  motionBucketId: motionBucketId,
+                  condAug: 0.02,
+                },
+                onProgress
+              );
+              
+              console.log('✅ Tier 2d Success: Replicate SVD');
+              return videoUrl;
+            } catch (svdError: unknown) {
+              const err = svdError as { message?: string };
+              console.error('❌ Tier 2d (Replicate SVD) failed:', err);
+              if (preferredModel === 'replicate-svd') throw svdError;
+            }
+          }
+        } else {
+          console.log('⏭️ Skipping Replicate (no API key) - falling back to ComfyUI...');
+        }
+      } catch (replicateError: unknown) {
+        const err = replicateError as { message?: string };
+        console.error('❌ Tier 2 (Replicate) failed:', err);
+        if (preferredModel.startsWith('replicate-')) throw replicateError;
+      }
+    }
+
+    // Tier 3: ComfyUI Backend (Self-hosted or Cloud)
+    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff' || preferredModel === 'auto') {
       // Try Tier 2: ComfyUI + AnimateDiff or SVD (if enabled)
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
