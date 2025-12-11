@@ -3218,7 +3218,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   // 🎯 Main Tab Navigation (Step5 Level)
   const [mainTab, setMainTab] = useState<'sceneDesign' | 'simulation' | 'motionEditor'>('sceneDesign');
   const [editingShotIndex, setEditingShotIndex] = useState<number | null>(0); // Auto-select first shot
-  const [currentShotMotion, setCurrentShotMotion] = useState<MotionEdit | null>(null);
   const [showMotionEditorModal, setShowMotionEditorModal] = useState(false); // 🎬 Modal for full Motion Editor
   
   // 🔄 Helper: Convert shot to MotionEdit format
@@ -3305,9 +3304,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         }
       };
     });
-    
-    // Update current motion state
-    setCurrentShotMotion(updatedMotion);
   }, [onRegisterUndo, setScriptData]);
   
   // ⌨️ Keyboard shortcuts for main tabs
@@ -3768,7 +3764,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
   return (
     <div className="p-6 animate-fade-in pb-24">
-      {/* 🎬 Professional Motion Editor Modal */}
+      {/* 🎬 Advanced Motion Editor Modal - Full-featured editor with timeline */}
       {showMotionEditorModal && editingShotIndex !== null && (() => {
         // Get current shot data
         const allShots: Array<{ shot: any; sceneTitle: string; sceneIndex: number; shotIndex: number }> = [];
@@ -4466,8 +4462,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       {mainTab === 'motionEditor' && (
         <div className="p-6 bg-gray-900/30 rounded-lg border border-gray-700 min-h-[600px]">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-green-400 mb-2">🎬 Professional Motion Editor</h2>
-            <p className="text-gray-400 text-sm">Cinematic camera controls for all shots</p>
+            <h2 className="text-2xl font-bold text-green-400 mb-2">🎬 Motion Editor</h2>
+            <p className="text-gray-400 text-sm">Professional cinematic camera controls for all shots</p>
           </div>
 
           {(() => {
@@ -4487,48 +4483,46 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
             return allShots.length > 0 ? (
               <>
-                {/* Shot Selector - Compact Top Bar */}
-                <div className="mb-4 flex items-center gap-4">
-                  <h3 className="text-sm font-semibold text-gray-400">
-                    Shot: {editingShotIndex !== null ? editingShotIndex + 1 : 1} / {allShots.length}
-                  </h3>
-                  <div className="flex-1 flex gap-2 overflow-x-auto pb-2">
-                    {allShots.map((item, globalIdx) => (
+                {/* 🎯 Shot Navigation Bar - Single unified selector */}
+                <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-green-400">
+                      📍 Shot {editingShotIndex !== null ? editingShotIndex + 1 : 1} of {allShots.length}
+                    </h3>
+                    <div className="flex gap-2">
                       <button
-                        key={globalIdx}
                         type="button"
                         onClick={() => {
-                          setEditingShotIndex(globalIdx);
-                          setCurrentShotMotion(DEFAULT_MOTION_EDIT);
+                          const newIdx = Math.max(0, (editingShotIndex ?? 0) - 1);
+                          setEditingShotIndex(newIdx);
                         }}
-                        className={`flex-shrink-0 w-10 h-10 rounded-lg font-bold text-xs transition-all ${
-                          editingShotIndex === globalIdx
-                            ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
-                            : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
-                        }`}
-                        title={`${item.sceneTitle} - Shot ${item.shotIndex + 1}`}
+                        disabled={editingShotIndex === 0}
+                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       >
-                        {globalIdx + 1}
+                        ← Previous
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
+                          setEditingShotIndex(newIdx);
+                        }}
+                        disabled={editingShotIndex === allShots.length - 1}
+                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Next →
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Shot Selector - Compact Top Bar */}
-                <div className="mb-4 flex items-center gap-4">
-                  <h3 className="text-sm font-semibold text-gray-400">
-                    Shot: {editingShotIndex !== null ? editingShotIndex + 1 : 1} / {allShots.length}
-                  </h3>
-                  <div className="flex-1 flex gap-2 overflow-x-auto pb-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
                     {allShots.map((item, globalIdx) => (
                       <button
                         key={globalIdx}
                         type="button"
                         onClick={() => {
                           setEditingShotIndex(globalIdx);
-                          setCurrentShotMotion(DEFAULT_MOTION_EDIT);
                         }}
-                        className={`flex-shrink-0 w-10 h-10 rounded-lg font-bold text-xs transition-all ${
+                        className={`flex-shrink-0 w-12 h-12 rounded-lg font-bold text-sm transition-all ${
                           editingShotIndex === globalIdx
                             ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
                             : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
@@ -4544,47 +4538,25 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                 {/* Always show MotionEditor for current shot */}
                 {allShots[editingShotIndex ?? 0] && (
                   <div className="border-t border-gray-700 pt-6">
+                    {/* Header with Advanced Editor button */}
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-green-400">
                         {allShots[editingShotIndex ?? 0].sceneTitle} - Shot {(editingShotIndex ?? 0) + 1}
                       </h3>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowMotionEditorModal(true)}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center gap-2"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                          Open Professional Motion Editor
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newIdx = Math.max(0, (editingShotIndex ?? 0) - 1);
-                            setEditingShotIndex(newIdx);
-                            setCurrentShotMotion(DEFAULT_MOTION_EDIT);
-                          }}
-                          disabled={editingShotIndex === 0}
-                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          ← Prev
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
-                            setEditingShotIndex(newIdx);
-                            setCurrentShotMotion(DEFAULT_MOTION_EDIT);
-                          }}
-                          disabled={editingShotIndex === allShots.length - 1}
-                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          Next →
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowMotionEditorModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center gap-2"
+                        title="Full-featured motion editor with timeline, keyframes, and camera controls"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        🎬 Open Advanced Motion Editor
+                      </button>
                     </div>
+
+                    {/* Shot Info */}
                     <div className="p-4 bg-gray-800/50 rounded-lg mb-4">
                       <p className="text-gray-400 text-sm mb-2">
                         <strong>Description:</strong> {allShots[editingShotIndex ?? 0].shot.description}
@@ -4596,20 +4568,118 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         <div><strong>Equipment:</strong> {allShots[editingShotIndex ?? 0].shot.equipment}</div>
                       </div>
                     </div>
+
+                    {/* 🎨 Preview & Generate Section */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      {/* Image Preview */}
+                      <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                        <h4 className="text-lg font-bold text-blue-400 mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Image Preview
+                        </h4>
+                        {(() => {
+                          const currentShot = allShots[editingShotIndex ?? 0];
+                          const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+                          const storyboardItem = sceneData?.storyboard?.find(s => s.shot === currentShot.shot.shot);
+                          
+                          return (
+                            <>
+                              {storyboardItem?.image ? (
+                                <div className="mb-3">
+                                  <img 
+                                    src={storyboardItem.image} 
+                                    alt={`Shot ${currentShot.shot.shot} preview`}
+                                    className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="mb-3 h-48 bg-gray-900/50 border border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                                  <p className="text-gray-500 text-sm">No image generated yet</p>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setMainTab('sceneDesign')}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
+                                title="Go to Scene Design tab to generate images"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                🎨 Generate in Scene Design
+                              </button>
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Video Preview */}
+                      <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                        <h4 className="text-lg font-bold text-purple-400 mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Video Preview
+                        </h4>
+                        {(() => {
+                          const currentShot = allShots[editingShotIndex ?? 0];
+                          const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+                          const storyboardItem = sceneData?.storyboard?.find(s => s.shot === currentShot.shot.shot);
+                          
+                          return (
+                            <>
+                              {storyboardItem?.video ? (
+                                <div className="mb-3">
+                                  <video 
+                                    src={storyboardItem.video}
+                                    controls
+                                    className="w-full h-48 object-cover rounded-lg border border-gray-600 bg-black"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="mb-3 h-48 bg-gray-900/50 border border-dashed border-gray-600 rounded-lg flex items-center justify-center">
+                                  <p className="text-gray-500 text-sm">No video generated yet</p>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setMainTab('sceneDesign')}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
+                                title="Go to Scene Design tab to generate videos"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                🎥 Generate in Scene Design
+                              </button>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                     
-                    {/* 🎬 Professional Motion Editor Component */}
-                    <MotionEditor
-                      initialMotionEdit={convertShotToMotionEdit(allShots[editingShotIndex ?? 0].shot)}
-                      onMotionChange={(updatedMotion) => {
-                        const idx = editingShotIndex ?? 0;
-                        handleMotionChange(
-                          allShots[idx].sceneTitle,
-                          allShots[idx].sceneIndex,
-                          allShots[idx].shotIndex,
-                          updatedMotion
-                        );
-                      }}
-                    />
+                    {/* ⚡ Quick Motion Edit - Inline Editor */}
+                    <div className="border-t border-gray-700 pt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <h4 className="text-lg font-bold text-green-400">⚡ Quick Motion Edit</h4>
+                        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">Basic camera controls</span>
+                      </div>
+                      <MotionEditor
+                        initialMotionEdit={convertShotToMotionEdit(allShots[editingShotIndex ?? 0].shot)}
+                        onMotionChange={(updatedMotion) => {
+                          const idx = editingShotIndex ?? 0;
+                          handleMotionChange(
+                            allShots[idx].sceneTitle,
+                            allShots[idx].sceneIndex,
+                            allShots[idx].shotIndex,
+                            updatedMotion
+                          );
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </>
