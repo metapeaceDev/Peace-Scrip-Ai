@@ -89,6 +89,8 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
     fieldLabel: string;
   }>({ isOpen: false, fieldName: null, fieldLabel: '' });
   const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set());
+  const [isReading, setIsReading] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ [e.target.name]: e.target.value });
@@ -96,6 +98,69 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
   
   const handleTimelineChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ timeline: { ...scriptData.timeline, [e.target.name]: e.target.value } });
+  };
+
+  const handleReadStory = () => {
+    if (isReading) {
+      // Stop reading
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+      setIsPaused(false);
+      return;
+    }
+
+    if (isPaused) {
+      // Resume reading
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+      return;
+    }
+
+    // Start reading
+    const isThai = scriptData.language === 'Thai';
+    const textToRead = [
+      scriptData.title ? `${isThai ? 'ชื่อเรื่อง' : 'Title'}: ${scriptData.title}` : '',
+      scriptData.bigIdea ? `${isThai ? 'แนวคิดหลัก' : 'Big Idea'}: ${scriptData.bigIdea}` : '',
+      scriptData.premise ? `${isThai ? 'พื้นฐานเรื่อง' : 'Premise'}: ${scriptData.premise}` : '',
+      scriptData.theme ? `${isThai ? 'ธีม' : 'Theme'}: ${scriptData.theme}` : '',
+      scriptData.logLine ? `${isThai ? 'ล็อกไลน์' : 'Log Line'}: ${scriptData.logLine}` : '',
+      scriptData.synopsis ? `${isThai ? 'เรื่องย่อ' : 'Synopsis'}: ${scriptData.synopsis}` : '',
+    ].filter(text => text).join('. ');
+
+    if (!textToRead) {
+      alert(isThai ? 'ไม่มีเนื้อหาให้อ่าน กรุณากด Generate AI ก่อน' : 'No content to read. Please generate content first.');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = isThai ? 'th-TH' : 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = () => {
+      setIsReading(true);
+      setIsPaused(false);
+    };
+
+    utterance.onend = () => {
+      setIsReading(false);
+      setIsPaused(false);
+    };
+
+    utterance.onerror = () => {
+      setIsReading(false);
+      setIsPaused(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handlePauseReading = () => {
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+    }
   };
 
   const handleFocus = () => {
@@ -333,6 +398,54 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
             </div>
             <div className="mt-3 text-xs text-gray-500 text-center">
               From Step 1: Genre, story line to be told
+            </div>
+            
+            {/* Voice Reading Button */}
+            <div className="mt-4">
+              <button
+                onClick={isReading && !isPaused ? handlePauseReading : handleReadStory}
+                className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+                  isReading
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg'
+                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg'
+                }`}
+                title={isReading ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Read Story Aloud'}
+              >
+                {isReading && !isPaused ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Pause Reading</span>
+                  </>
+                ) : isPaused ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Resume Reading</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                    </svg>
+                    <span>🔊 Read Story</span>
+                  </>
+                )}
+              </button>
+              {isReading && (
+                <button
+                  onClick={handleReadStory}
+                  className="w-full mt-2 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded border border-red-500/30 hover:border-red-500/50 transition-all text-sm font-medium"
+                >
+                  ⏹ Stop Reading
+                </button>
+              )}
+              <p className="mt-2 text-xs text-gray-500 text-center">
+                {scriptData.language === 'Thai' ? 'อ่านเนื้อหาเรื่องทั้งหมดให้ฟัง' : 'Read entire story aloud'}
+              </p>
             </div>
           </div>
         </div>
