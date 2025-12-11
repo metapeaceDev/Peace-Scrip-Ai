@@ -160,28 +160,77 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
     
     // Get available voices and select the best Thai voice
     const voices = window.speechSynthesis.getVoices();
+    console.log('🔊 Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+    
     if (isThai) {
-      // Try to find a good Thai voice
-      const thaiVoice = voices.find(voice => 
-        voice.lang === 'th-TH' || voice.lang.startsWith('th')
+      // Priority: Find Thai voices in order of preference
+      const thaiVoices = voices.filter(voice => 
+        voice.lang === 'th-TH' || 
+        voice.lang.startsWith('th') || 
+        voice.name.toLowerCase().includes('thai')
       );
-      if (thaiVoice) {
-        utterance.voice = thaiVoice;
+      
+      console.log('🇹🇭 Thai voices found:', thaiVoices.map(v => v.name));
+      
+      // Prefer female voices (usually clearer)
+      const femaleThaiVoice = thaiVoices.find(voice => 
+        voice.name.toLowerCase().includes('female') ||
+        voice.name.toLowerCase().includes('kanya') ||
+        voice.name.toLowerCase().includes('siri')
+      );
+      
+      if (femaleThaiVoice) {
+        utterance.voice = femaleThaiVoice;
+        console.log('✅ Selected voice:', femaleThaiVoice.name);
+      } else if (thaiVoices.length > 0) {
+        utterance.voice = thaiVoices[0];
+        console.log('✅ Selected voice:', thaiVoices[0].name);
+      } else {
+        console.warn('⚠️ No Thai voice found, using default');
       }
+      
       utterance.lang = 'th-TH';
     } else {
-      // Try to find a good English voice
-      const enVoice = voices.find(voice => 
+      // English voices
+      const enVoices = voices.filter(voice => 
         voice.lang === 'en-US' || voice.lang.startsWith('en')
       );
-      if (enVoice) {
-        utterance.voice = enVoice;
+      
+      const femaleEnVoice = enVoices.find(voice => 
+        voice.name.toLowerCase().includes('female') ||
+        voice.name.toLowerCase().includes('samantha') ||
+        voice.name.toLowerCase().includes('victoria')
+      );
+      
+      if (femaleEnVoice) {
+        utterance.voice = femaleEnVoice;
+      } else if (enVoices.length > 0) {
+        utterance.voice = enVoices[0];
       }
+      
       utterance.lang = 'en-US';
     }
     
-    utterance.rate = 0.95; // Slightly slower for better clarity
-    utterance.pitch = 1.0;
+    // Adjust voice characteristics based on genre
+    const genre = scriptData.mainGenre?.toLowerCase() || '';
+    
+    if (genre.includes('action') || genre.includes('thriller')) {
+      utterance.rate = 1.0; // Faster for action
+      utterance.pitch = 0.95; // Slightly lower pitch
+    } else if (genre.includes('romance') || genre.includes('drama')) {
+      utterance.rate = 0.85; // Slower, more emotional
+      utterance.pitch = 1.05; // Slightly higher, softer
+    } else if (genre.includes('horror') || genre.includes('mystery')) {
+      utterance.rate = 0.8; // Slow and suspenseful
+      utterance.pitch = 0.9; // Lower, darker tone
+    } else if (genre.includes('comedy')) {
+      utterance.rate = 1.05; // Upbeat, energetic
+      utterance.pitch = 1.1; // Higher, cheerful
+    } else {
+      utterance.rate = 0.95; // Default: slightly slower for clarity
+      utterance.pitch = 1.0;
+    }
+    
     utterance.volume = 1.0;
 
     utterance.onstart = () => {
