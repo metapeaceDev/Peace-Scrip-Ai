@@ -30,13 +30,33 @@ interface MotionEditorProps {
   initialMotionEdit?: MotionEdit;
   onMotionChange: (motion: MotionEdit) => void;
   aiSuggestions?: CinematicSuggestions;
+  shotData?: any; // Shot data from scene (description, shotSize, movement, cast, costume, set)
+  sceneTitle?: string;
+  shotNumber?: number;
+  // 🎯 NEW: Rich context data for AI generation
+  propList?: { propArt: string; sceneSetDetails: string }[];
+  sceneDetails?: {
+    characters: string[];
+    location: string;
+    situations: { description: string; characterThoughts: string; dialogue: any[] }[];
+    moodTone: string;
+  };
+  characterPsychology?: any; // Psychology timeline data for the character
+  allCharacters?: Character[]; // All characters for context
 }
 
 export const MotionEditor: React.FC<MotionEditorProps> = ({
   character,
   initialMotionEdit,
   onMotionChange,
-  aiSuggestions
+  aiSuggestions,
+  shotData,
+  sceneTitle,
+  shotNumber,
+  propList,
+  sceneDetails,
+  characterPsychology,
+  allCharacters
 }) => {
   const [motionEdit, setMotionEdit] = useState<MotionEdit>(
     initialMotionEdit || DEFAULT_MOTION_EDIT
@@ -44,6 +64,7 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
   const [useAI, setUseAI] = useState(true);
   const [activePanel, setActivePanel] = useState<number>(0);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // 📊 Analytics State
   const [analytics, setAnalytics] = useState({
@@ -54,6 +75,305 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
     panelSwitches: 0,
     totalEdits: 0
   });
+
+  // 🤖 AI Director - Generate missing fields with RICH CONTEXT
+  const generateMissingFields = async () => {
+    if (!shotData || isGenerating) return;
+    
+    setIsGenerating(true);
+    try {
+      const missingFields = [];
+      
+      // Check which fields are empty
+      if (!motionEdit.shot_preview_generator_panel.structure) missingFields.push('structure');
+      if (!motionEdit.shot_preview_generator_panel.voiceover) missingFields.push('voiceover');
+      if (!motionEdit.frame_control.foreground) missingFields.push('foreground');
+      if (!motionEdit.frame_control.background) missingFields.push('background');
+      if (!motionEdit.lighting_design.description) missingFields.push('lighting');
+      if (!motionEdit.sounds.description) missingFields.push('sound');
+      
+      if (missingFields.length === 0) {
+        alert('✅ All fields are already filled!');
+        return;
+      }
+      
+      // 🎯 Generate AI suggestions with FULL CONTEXT from Shot List, Prop List, Psychology, Timeline, Scene Details
+      const aiGenerated = {
+        structure: generateStructure(),
+        voiceover: generateVoiceover(),
+        foreground: generateForeground(shotData),
+        background: generateBackground(shotData),
+        lighting: generateLighting(shotData),
+        sound: generateSound(shotData)
+      };
+      
+      // Update motion edit with AI suggestions
+      setMotionEdit(prev => ({
+        ...prev,
+        shot_preview_generator_panel: {
+          ...prev.shot_preview_generator_panel,
+          structure: prev.shot_preview_generator_panel.structure || aiGenerated.structure,
+          voiceover: prev.shot_preview_generator_panel.voiceover || aiGenerated.voiceover
+        },
+        frame_control: {
+          ...prev.frame_control,
+          foreground: prev.frame_control.foreground || aiGenerated.foreground,
+          background: prev.frame_control.background || aiGenerated.background
+        },
+        lighting_design: {
+          ...prev.lighting_design,
+          description: prev.lighting_design.description || aiGenerated.lighting
+        },
+        sounds: {
+          ...prev.sounds,
+          description: prev.sounds.description || aiGenerated.sound
+        }
+      }));
+      
+      trackAnalytics('ai_accepted');
+      
+      // 📊 Show detailed generation report
+      const report = `✨ AI Director generated ${missingFields.length} fields:\n\n` +
+        `📋 Context Used:\n` +
+        `• Shot: ${shotData.shotSize} - ${shotData.movement}\n` +
+        `• Scene: ${sceneTitle || 'Unknown'}\n` +
+        `• Location: ${sceneDetails?.location || 'N/A'}\n` +
+        `• Mood: ${sceneDetails?.moodTone || 'N/A'}\n` +
+        `• Props: ${propList?.length || 0} items\n` +
+        `• Characters: ${sceneDetails?.characters?.length || 0}\n\n` +
+        `✅ Generated Fields: ${missingFields.join(', ')}`;
+      
+      alert(report);
+    } catch (error) {
+      console.error('AI generation error:', error);
+      alert('❌ AI Director encountered an error. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  // 🎭 Generate Structure based on cast and characters
+  const generateStructure = (): string => {
+    if (shotData.cast) {
+      return shotData.cast;
+    } else if (sceneDetails?.characters && sceneDetails.characters.length > 0) {
+      return sceneDetails.characters.join(', ');
+    } else if (character?.name) {
+      return character.name;
+    }
+    return 'Main character';
+  };
+  
+  // 🗣️ Generate Voiceover from situation descriptions
+  const generateVoiceover = (): string => {
+    if (sceneDetails?.situations && sceneDetails.situations.length > 0) {
+      const thoughts = sceneDetails.situations[0].characterThoughts;
+      if (thoughts) return thoughts;
+      
+      const dialogues = sceneDetails.situations[0].dialogue;
+      if (dialogues && dialogues.length > 0) {
+        return dialogues[0].text || shotData.description;
+      }
+    }
+    return shotData.description || 'Scene narration';
+  };
+  
+  // 🎯 Enhanced AI Generation Functions using ALL available context
+  const generateForeground = (shot: any): string => {
+    const shotSize = shot.shotSize || 'Medium Shot';
+    let foreground = '';
+    
+    // Base on shot size
+    if (shotSize.includes('Close') || shotSize.includes('CU')) {
+      foreground = 'Subtle depth elements in soft focus';
+    } else if (shotSize.includes('Wide') || shotSize.includes('LS') || shotSize.includes('EST')) {
+      foreground = 'Environmental elements framing the scene';
+    } else {
+      foreground = 'Natural foreground elements adding depth';
+    }
+    
+    // 📦 Enhance with Prop List details
+    if (propList && propList.length > 0) {
+      const props = propList[0];
+      if (props.propArt) {
+        foreground += `, ${props.propArt.split(',')[0] || 'props'} in foreground`;
+      }
+    }
+    
+    // 🎭 Enhance with Scene mood
+    if (sceneDetails?.moodTone) {
+      const mood = sceneDetails.moodTone.toLowerCase();
+      if (mood.includes('tense') || mood.includes('suspense')) {
+        foreground += ', creating tension with strategic shadows';
+      } else if (mood.includes('peaceful') || mood.includes('calm')) {
+        foreground += ', soft natural elements for tranquility';
+      }
+    }
+    
+    return foreground;
+  };
+  
+  const generateBackground = (shot: any): string => {
+    const perspective = shot.perspective || 'Neutral';
+    let background = '';
+    
+    // Base on perspective
+    if (perspective.includes('High')) {
+      background = 'Expansive background visible from elevated angle';
+    } else if (perspective.includes('Low') || perspective.includes('Worm')) {
+      background = 'Dramatic sky or ceiling dominating background';
+    } else {
+      background = 'Well-composed background providing context';
+    }
+    
+    // 📍 Enhance with Scene Location
+    if (sceneDetails?.location) {
+      const location = sceneDetails.location;
+      if (location.includes('INT')) {
+        // Interior scene
+        if (propList && propList[0]?.sceneSetDetails) {
+          background = `${propList[0].sceneSetDetails} in background`;
+        } else {
+          background += `, interior ${location.split('.')[1] || 'room'} details`;
+        }
+      } else if (location.includes('EXT')) {
+        // Exterior scene
+        background += `, outdoor ${location.split('.')[1] || 'environment'}`;
+        if (location.includes('DAY')) {
+          background += ' with natural daylight atmosphere';
+        } else if (location.includes('NIGHT')) {
+          background += ' with night ambiance';
+        }
+      }
+    }
+    
+    // 🎨 Enhance with Set Details from Shot
+    if (shot.set) {
+      background += `, ${shot.set}`;
+    }
+    
+    return background;
+  };
+  
+  const generateLighting = (shot: any): string => {
+    const shotSize = shot.shotSize || 'Medium Shot';
+    let lighting = '';
+    
+    // Base on shot size
+    if (shotSize.includes('Close') || shotSize.includes('CU')) {
+      lighting = 'Soft directional lighting emphasizing facial features';
+    } else if (shotSize.includes('Wide') || shotSize.includes('LS') || shotSize.includes('EST')) {
+      lighting = 'Natural ambient lighting establishing the environment';
+    } else {
+      lighting = 'Balanced three-point lighting with natural shadows';
+    }
+    
+    // 🌅 Enhance with Time of Day from Location
+    if (sceneDetails?.location) {
+      const loc = sceneDetails.location.toUpperCase();
+      if (loc.includes('DAY') || loc.includes('MORNING')) {
+        lighting += ', warm daylight color temperature (5500K)';
+      } else if (loc.includes('NIGHT') || loc.includes('EVENING')) {
+        lighting += ', cool night lighting (3200K) with practical lights';
+      } else if (loc.includes('DAWN') || loc.includes('DUSK')) {
+        lighting += ', golden hour warm tones (3500K)';
+      }
+    }
+    
+    // 🎭 Enhance with Scene Mood
+    if (sceneDetails?.moodTone) {
+      const mood = sceneDetails.moodTone.toLowerCase();
+      if (mood.includes('tense') || mood.includes('dark') || mood.includes('suspense')) {
+        lighting += ', high contrast with dramatic shadows';
+      } else if (mood.includes('happy') || mood.includes('joyful') || mood.includes('light')) {
+        lighting += ', bright and evenly distributed';
+      } else if (mood.includes('sad') || mood.includes('melancholy')) {
+        lighting += ', low-key with soft shadows';
+      } else if (mood.includes('romantic') || mood.includes('intimate')) {
+        lighting += ', warm soft key with gentle fill';
+      }
+    }
+    
+    // 🧠 Enhance with Character Psychology
+    if (characterPsychology && character) {
+      const defilements = character.internal?.defilement;
+      if (defilements) {
+        const anger = defilements['โทสะ (Dosa - Anger)'] || 0;
+        const confusion = defilements['โมหะ (Moha - Delusion)'] || 0;
+        if (anger > 60) lighting += ', intense red-tinted practicals for inner turmoil';
+        if (confusion > 60) lighting += ', diffused hazy atmosphere for mental state';
+      }
+    }
+    
+    return lighting;
+  };
+  
+  const generateSound = (shot: any): string => {
+    const movement = shot.movement || 'Static';
+    let sound = '';
+    
+    // Base on camera movement
+    if (movement === 'Handheld') {
+      sound = 'Raw, immersive ambient sounds with subtle movement rustles';
+    } else if (movement.includes('Dolly') || movement.includes('Track')) {
+      sound = 'Smooth ambient sounds with gradual spatial audio shifts';
+    } else if (movement.includes('Pan') || movement.includes('Tilt')) {
+      sound = 'Directional ambient sound following camera movement';
+    } else {
+      sound = 'Clear ambient atmosphere with appropriate environmental sounds';
+    }
+    
+    // 📍 Enhance with Location Environment
+    if (sceneDetails?.location) {
+      const loc = sceneDetails.location.toUpperCase();
+      if (loc.includes('OFFICE') || loc.includes('ROOM')) {
+        sound += ', keyboard typing, air conditioner hum';
+      } else if (loc.includes('OUTDOOR') || loc.includes('PARK') || loc.includes('EXT')) {
+        sound += ', birds chirping, wind rustling leaves, distant traffic';
+      } else if (loc.includes('RESTAURANT') || loc.includes('CAFE')) {
+        sound += ', crowd ambience, dishes clattering, background conversations';
+      } else if (loc.includes('STREET') || loc.includes('CITY')) {
+        sound += ', urban traffic, footsteps, city ambience';
+      } else if (loc.includes('BEACH') || loc.includes('OCEAN')) {
+        sound += ', waves crashing, seagulls, wind';
+      }
+    }
+    
+    // 🎬 Enhance with Scene Situation Actions
+    if (sceneDetails?.situations && sceneDetails.situations.length > 0) {
+      const situation = sceneDetails.situations[0].description.toLowerCase();
+      if (situation.includes('fight') || situation.includes('action')) {
+        sound += ', impact sounds, movement SFX';
+      } else if (situation.includes('talk') || situation.includes('conversation')) {
+        sound += ', clear dialogue space with minimal reverb';
+      } else if (situation.includes('walk') || situation.includes('running')) {
+        sound += ', footstep details matching surface';
+      } else if (situation.includes('car') || situation.includes('vehicle')) {
+        sound += ', engine sounds, road noise';
+      }
+    }
+    
+    // 📦 Enhance with Prop List
+    if (propList && propList.length > 0 && propList[0].propArt) {
+      const props = propList[0].propArt.toLowerCase();
+      if (props.includes('phone')) sound += ', phone notification tones';
+      if (props.includes('door')) sound += ', door opening/closing';
+      if (props.includes('glass') || props.includes('cup')) sound += ', glass/ceramic handling';
+      if (props.includes('paper') || props.includes('book')) sound += ', paper rustling';
+    }
+    
+    // 🎭 Enhance with Mood for soundscape
+    if (sceneDetails?.moodTone) {
+      const mood = sceneDetails.moodTone.toLowerCase();
+      if (mood.includes('tense') || mood.includes('suspense')) {
+        sound += ', subtle tension drones';
+      } else if (mood.includes('peaceful')) {
+        sound += ', gentle calming tones';
+      }
+    }
+    
+    return sound;
+  };
 
   // Track analytics
   const trackAnalytics = (action: string) => {
@@ -215,6 +535,31 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
           >
             {useAI ? '🤖 AI Director' : '✋ Manual Control'}
           </button>
+          
+          {/* 🎯 Generate All Fields Button - New AI Director Feature */}
+          {useAI && (
+            <button
+              onClick={generateMissingFields}
+              disabled={isGenerating}
+              className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                isGenerating
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg'
+              }`}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <span>✨</span>
+                  <span>Generate All</span>
+                </>
+              )}
+            </button>
+          )}
           
           {useAI && aiSuggestions && (
             <div className="text-xs text-gray-400">

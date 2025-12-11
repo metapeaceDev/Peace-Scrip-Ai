@@ -3229,14 +3229,30 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     equipment: string;
     durationSec: number;
     focalLength?: string;
+    shot?: number;
   }): MotionEdit => {
     if (!shot) return DEFAULT_MOTION_EDIT;
+    
+    // Map shotSize to ShotType
+    const getShotType = (size: string): any => {
+      const sizeMap: Record<string, string> = {
+        'Wide Shot': 'Wide Shot',
+        'Medium Shot': 'Medium Shot',
+        'Close-up': 'Close-up',
+        'Extreme Close-up': 'Extreme Close-up',
+        'Over-the-Shoulder': 'Over-the-Shoulder',
+        'Two Shot': 'Two Shot',
+        'Full Shot': 'Wide Shot',
+        'Medium Close-up': 'Close-up'
+      };
+      return sizeMap[size] || 'Medium Shot';
+    };
     
     return {
       shot_preview_generator_panel: {
         structure: '',
         prompt: shot.description || '',
-        shot_type: 'Medium Shot',
+        shot_type: getShotType(shot.shotSize),
         voiceover: ''
       },
       camera_control: {
@@ -3248,7 +3264,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       },
       frame_control: {
         foreground: '',
-        object: '',
+        object: shot.description || '',
         background: ''
       },
       lighting_design: {
@@ -3766,15 +3782,21 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     <div className="p-6 animate-fade-in pb-24">
       {/* 🎬 Advanced Motion Editor Modal - Full-featured editor with timeline */}
       {showMotionEditorModal && editingShotIndex !== null && (() => {
-        // Get current shot data
-        const allShots: Array<{ shot: any; sceneTitle: string; sceneIndex: number; shotIndex: number }> = [];
+        // Get current shot data with FULL CONTEXT
+        const allShots: Array<{ 
+          shot: any; 
+          sceneTitle: string; 
+          sceneIndex: number; 
+          shotIndex: number;
+          sceneData: GeneratedScene;
+        }> = [];
         scriptData.structure.forEach((point) => {
           const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
           Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
             const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
             if (sceneData?.shotList) {
               sceneData.shotList.forEach((shot, shotIndex) => {
-                allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex });
+                allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex, sceneData });
               });
             }
           });
@@ -4467,15 +4489,21 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           </div>
 
           {(() => {
-            // Collect all shots from all scenes
-            const allShots: Array<{ shot: any; sceneTitle: string; sceneIndex: number; shotIndex: number }> = [];
+            // Collect all shots from all scenes with FULL CONTEXT
+            const allShots: Array<{ 
+              shot: any; 
+              sceneTitle: string; 
+              sceneIndex: number; 
+              shotIndex: number;
+              sceneData: GeneratedScene; // 🎯 NEW: Full scene data for AI context
+            }> = [];
             scriptData.structure.forEach((point) => {
               const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
               Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
                 const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
                 if (sceneData?.shotList) {
                   sceneData.shotList.forEach((shot, shotIndex) => {
-                    allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex });
+                    allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex, sceneData });
                   });
                 }
               });
@@ -4669,6 +4697,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                       </div>
                       <MotionEditor
                         initialMotionEdit={convertShotToMotionEdit(allShots[editingShotIndex ?? 0].shot)}
+                        shotData={allShots[editingShotIndex ?? 0].shot}
+                        sceneTitle={allShots[editingShotIndex ?? 0].sceneTitle}
+                        shotNumber={(editingShotIndex ?? 0) + 1}
+                        propList={allShots[editingShotIndex ?? 0].sceneData.propList}
+                        sceneDetails={allShots[editingShotIndex ?? 0].sceneData.sceneDesign}
+                        characterPsychology={scriptData.psychologyTimelines}
+                        allCharacters={scriptData.characters}
                         onMotionChange={(updatedMotion) => {
                           const idx = editingShotIndex ?? 0;
                           handleMotionChange(
