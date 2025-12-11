@@ -4483,61 +4483,9 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
             return allShots.length > 0 ? (
               <>
-                {/* 🎯 Shot Navigation Bar - Single unified selector */}
-                <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-green-400">
-                      📍 Shot {editingShotIndex !== null ? editingShotIndex + 1 : 1} of {allShots.length}
-                    </h3>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newIdx = Math.max(0, (editingShotIndex ?? 0) - 1);
-                          setEditingShotIndex(newIdx);
-                        }}
-                        disabled={editingShotIndex === 0}
-                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        ← Previous
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
-                          setEditingShotIndex(newIdx);
-                        }}
-                        disabled={editingShotIndex === allShots.length - 1}
-                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {allShots.map((item, globalIdx) => (
-                      <button
-                        key={globalIdx}
-                        type="button"
-                        onClick={() => {
-                          setEditingShotIndex(globalIdx);
-                        }}
-                        className={`flex-shrink-0 w-12 h-12 rounded-lg font-bold text-sm transition-all ${
-                          editingShotIndex === globalIdx
-                            ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
-                            : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
-                        }`}
-                        title={`${item.sceneTitle} - Shot ${item.shotIndex + 1}`}
-                      >
-                        {globalIdx + 1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Always show MotionEditor for current shot */}
                 {allShots[editingShotIndex ?? 0] && (
-                  <div className="border-t border-gray-700 pt-6">
+                  <div>
                     {/* Header with Advanced Editor button */}
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-green-400">
@@ -4658,6 +4606,58 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                             </>
                           );
                         })()}
+                      </div>
+                    </div>
+
+                    {/* 🎯 Shot Navigation Bar - Below Preview for Easy Access */}
+                    <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-bold text-green-400">
+                          📍 Shot {editingShotIndex !== null ? editingShotIndex + 1 : 1} of {allShots.length}
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newIdx = Math.max(0, (editingShotIndex ?? 0) - 1);
+                              setEditingShotIndex(newIdx);
+                            }}
+                            disabled={editingShotIndex === 0}
+                            className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            ← Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
+                              setEditingShotIndex(newIdx);
+                            }}
+                            disabled={editingShotIndex === allShots.length - 1}
+                            className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            Next →
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {allShots.map((item, globalIdx) => (
+                          <button
+                            key={globalIdx}
+                            type="button"
+                            onClick={() => {
+                              setEditingShotIndex(globalIdx);
+                            }}
+                            className={`flex-shrink-0 w-12 h-12 rounded-lg font-bold text-sm transition-all ${
+                              editingShotIndex === globalIdx
+                                ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-lg scale-110 ring-2 ring-green-400'
+                                : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:scale-105'
+                            }`}
+                            title={`${item.sceneTitle} - Shot ${item.shotIndex + 1}`}
+                          >
+                            {globalIdx + 1}
+                          </button>
+                        ))}
                       </div>
                     </div>
                     
