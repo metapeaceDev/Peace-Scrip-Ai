@@ -507,15 +507,15 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
           {/* 📊 Analytics Display */}
           {analytics.totalEdits > 0 && (
             <div className="flex items-center gap-3 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700">
-              <div className="text-xs">
+              <div className="text-xs" title="Total number of field edits you've made">
                 <span className="text-gray-500">Edits: </span>
                 <span className="text-cyan-400 font-bold">{analytics.totalEdits}</span>
               </div>
-              <div className="text-xs">
+              <div className="text-xs" title="Number of times AI Director auto-generated content">
                 <span className="text-gray-500">AI: </span>
                 <span className="text-purple-400 font-bold">{analytics.aiSuggestionAccepted}</span>
               </div>
-              <div className="text-xs">
+              <div className="text-xs" title="Number of times you manually edited AI suggestions">
                 <span className="text-gray-500">Manual: </span>
                 <span className="text-green-400 font-bold">{analytics.manualOverrides}</span>
               </div>
@@ -527,6 +527,7 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
               setUseAI(!useAI);
               trackAnalytics(useAI ? 'manual_override' : 'ai_accepted');
             }}
+            title={useAI ? 'AI Director ON: Tracks AI-generated content. Click to switch to Manual mode' : 'Manual Control ON: All edits are manual. Click to enable AI Director'}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${
               useAI 
                 ? 'bg-purple-600 hover:bg-purple-700 text-white' 
@@ -541,6 +542,7 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
             <button
               onClick={generateMissingFields}
               disabled={isGenerating}
+              title="Auto-fill ALL empty fields using Shot List, Props, Scene Details, and Psychology data"
               className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
                 isGenerating
                   ? 'bg-gray-600 text-gray-400 cursor-not-allowed'

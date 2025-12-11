@@ -3220,6 +3220,130 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [editingShotIndex, setEditingShotIndex] = useState<number | null>(0); // Auto-select first shot
   const [showMotionEditorModal, setShowMotionEditorModal] = useState(false); // 🎬 Modal for full Motion Editor
   
+  // 🎬 Motion Editor - Local state for image/video generation
+  const [motionEditorGeneratingImage, setMotionEditorGeneratingImage] = useState(false);
+  const [motionEditorGeneratingVideo, setMotionEditorGeneratingVideo] = useState(false);
+  const [motionEditorProgress, setMotionEditorProgress] = useState(0);
+  
+  // 🎬 Motion Editor - Generate Image Handler
+  const handleMotionEditorGenerateImage = async (currentShot: any, sceneData: GeneratedScene) => {
+    if (!currentShot || motionEditorGeneratingImage) return;
+    if (onRegisterUndo) onRegisterUndo();
+    
+    const shotNumber = currentShot.shot.shot;
+    setMotionEditorGeneratingImage(true);
+    setMotionEditorProgress(0);
+    
+    try {
+      // Build simple prompt from shot description
+      const shotDesc = currentShot.shot.description || '';
+      const location = sceneData.sceneDesign.location || '';
+      const style = CHARACTER_IMAGE_STYLES[0] || 'Cinematic';
+      const prompt = `Cinematic shot: ${shotDesc}. Location: ${location}. ${currentShot.shot.shotSize}. ${style}.`;
+      
+      const sceneCharacterNames = sceneData.sceneDesign?.characters || [];
+      const sceneCharacters: Character[] = scriptData.characters.filter((c: Character) =>
+        sceneCharacterNames.includes(c.name)
+      );
+      
+      const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p => setMotionEditorProgress(p));
+      
+      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || {};
+      const newItem = { ...oldStoryboardItem, shot: shotNumber, image: base64Image };
+      const updatedStoryboard = [
+        ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        newItem,
+      ];
+      
+      const updatedScene = { ...sceneData, storyboard: updatedStoryboard };
+      
+      // Update scriptData
+      setScriptData(prev => {
+        const scenes = prev.generatedScenes[currentShot.sceneTitle] || [];
+        const updatedScenes = [...scenes];
+        updatedScenes[currentShot.sceneIndex] = updatedScene;
+        return {
+          ...prev,
+          generatedScenes: {
+            ...prev.generatedScenes,
+            [currentShot.sceneTitle]: updatedScenes,
+          },
+        };
+      });
+    } catch (error) {
+      alert('Failed to generate image. Please try again.');
+      console.error(error);
+    } finally {
+      setMotionEditorGeneratingImage(false);
+      setMotionEditorProgress(0);
+    }
+  };
+  
+  // 🎥 Motion Editor - Generate Video Handler
+  const handleMotionEditorGenerateVideo = async (currentShot: any, sceneData: GeneratedScene) => {
+    if (!currentShot || motionEditorGeneratingVideo) return;
+    if (onRegisterUndo) onRegisterUndo();
+    
+    const shotNumber = currentShot.shot.shot;
+    setMotionEditorGeneratingVideo(true);
+    setMotionEditorProgress(0);
+    
+    try {
+      // Build video prompt
+      const shotDesc = currentShot.shot.description || '';
+      const movement = currentShot.shot.movement || 'Static';
+      const duration = currentShot.shot.durationSec || 3;
+      const prompt = `Cinematic video: ${shotDesc}. Camera: ${movement}. Duration: ${duration}s. ${currentShot.shot.shotSize}.`;
+      
+      // Use existing image if available
+      const existingImage = sceneData.storyboard?.find(s => s.shot === shotNumber)?.image;
+      
+      const videoUri = await generateStoryboardVideo(
+        prompt,
+        existingImage,
+        p => setMotionEditorProgress(p),
+        'auto', // Use auto model selection
+        {
+          character: scriptData.characters[0],
+          currentScene: sceneData,
+          shotData: currentShot.shot,
+          aspectRatio: '16:9',
+          width: undefined,
+          height: undefined,
+        }
+      );
+      
+      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || { shot: shotNumber, image: '' };
+      const newItem = { ...oldStoryboardItem, shot: shotNumber, image: oldStoryboardItem.image || '', video: videoUri };
+      const updatedStoryboard = [
+        ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        newItem,
+      ];
+      
+      const updatedScene = { ...sceneData, storyboard: updatedStoryboard };
+      
+      // Update scriptData
+      setScriptData(prev => {
+        const scenes = prev.generatedScenes[currentShot.sceneTitle] || [];
+        const updatedScenes = [...scenes];
+        updatedScenes[currentShot.sceneIndex] = updatedScene;
+        return {
+          ...prev,
+          generatedScenes: {
+            ...prev.generatedScenes,
+            [currentShot.sceneTitle]: updatedScenes,
+          },
+        };
+      });
+    } catch (error) {
+      alert('Failed to generate video. Please try again.');
+      console.error(error);
+    } finally {
+      setMotionEditorGeneratingVideo(false);
+      setMotionEditorProgress(0);
+    }
+  };
+  
   // 🔄 Helper: Convert shot to MotionEdit format
   const convertShotToMotionEdit = (shot: {
     description: string;
@@ -4577,14 +4701,32 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                               )}
                               <button
                                 type="button"
-                                onClick={() => setMainTab('sceneDesign')}
-                                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
-                                title="Go to Scene Design tab to generate images"
+                                onClick={async () => {
+                                  const currentShot = allShots[editingShotIndex ?? 0];
+                                  if (!currentShot) return;
+                                  
+                                  const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+                                  if (!sceneData) return;
+                                  
+                                  await handleMotionEditorGenerateImage(currentShot, sceneData);
+                                }}
+                                disabled={motionEditorGeneratingImage}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate storyboard image for this shot using AI"
                               >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                🎨 Generate in Scene Design
+                                {motionEditorGeneratingImage ? (
+                                  <>
+                                    <div className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Generating... {motionEditorProgress}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    🎨 Generate Image
+                                  </>
+                                )}
                               </button>
                             </>
                           );
@@ -4621,15 +4763,33 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                               )}
                               <button
                                 type="button"
-                                onClick={() => setMainTab('sceneDesign')}
-                                className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
-                                title="Go to Scene Design tab to generate videos"
+                                onClick={async () => {
+                                  const currentShot = allShots[editingShotIndex ?? 0];
+                                  if (!currentShot) return;
+                                  
+                                  const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+                                  if (!sceneData) return;
+                                  
+                                  await handleMotionEditorGenerateVideo(currentShot, sceneData);
+                                }}
+                                disabled={motionEditorGeneratingVideo}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate video for this shot using AI"
                               >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                🎥 Generate in Scene Design
+                                {motionEditorGeneratingVideo ? (
+                                  <>
+                                    <div className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Generating...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    🎥 Generate Video
+                                  </>
+                                )}
                               </button>
                             </>
                           );
