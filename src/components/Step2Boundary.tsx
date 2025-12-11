@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
+import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 
 interface Step2BoundaryProps {
   scriptData: ScriptData;
@@ -23,10 +24,71 @@ const InputField: React.FC<{ label: string; name: string; value: string; onChang
   </div>
 );
 
+const InputFieldWithRegenerate: React.FC<{
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  isTextArea?: boolean;
+  placeholder?: string;
+  onFocus?: () => void;
+  onRegenerate: () => void;
+  isGenerating?: boolean;
+  showRegenerate?: boolean;
+}> = ({ label, name, value, onChange, isTextArea = false, placeholder, onFocus, onRegenerate, isGenerating = false, showRegenerate = true }) => (
+  <div>
+    <div className="flex items-center justify-between mb-2">
+      <label htmlFor={name} className="block text-sm font-medium text-gray-300">{label}</label>
+      {showRegenerate && (
+        <button
+          onClick={onRegenerate}
+          disabled={isGenerating}
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Regenerate this field"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Regenerate</span>
+        </button>
+      )}
+    </div>
+    {isTextArea ? (
+      <textarea
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        rows={2}
+        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        placeholder={placeholder}
+      ></textarea>
+    ) : (
+      <input
+        type="text"
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        placeholder={placeholder}
+      />
+    )}
+  </div>
+);
+
 const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptData, nextStep, prevStep, onRegisterUndo }) => {
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regenerateModal, setRegenerateModal] = useState<{
+    isOpen: boolean;
+    fieldName: string | null;
+    fieldLabel: string;
+  }>({ isOpen: false, fieldName: null, fieldLabel: '' });
+  const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ [e.target.name]: e.target.value });
@@ -40,46 +102,144 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
     if (onRegisterUndo) onRegisterUndo();
   };
 
+  // Open regenerate modal for specific field
+  const handleRegenerateField = (fieldName: string, fieldLabel: string) => {
+    setRegenerateModal({ isOpen: true, fieldName, fieldLabel });
+  };
+
+  // Open regenerate modal for all fields
+  const handleRegenerateAll = () => {
+    setRegenerateModal({ isOpen: true, fieldName: 'all', fieldLabel: 'All Boundary Fields' });
+  };
+
+  // Handle regenerate confirmation
+  const handleRegenerateConfirm = async (mode: RegenerationMode) => {
+    if (!scriptData.mainGenre) {
+      setError(t('step2.errors.selectGenre'));
+      return;
+    }
+
+    const fieldName = regenerateModal.fieldName;
+    if (!fieldName) return;
+
+    if (onRegisterUndo) onRegisterUndo();
+    
+    // Add field to generating set
+    setGeneratingFields(prev => new Set(prev).add(fieldName));
+    if (fieldName === 'all') setIsGenerating(true);
+    setError(null);
+
+    try {
+      console.log(`🧠 Regenerating ${fieldName} with mode: ${mode}, language: ${scriptData.language}`);
+      
+      // Create context based on mode
+      let contextData = { ...scriptData };
+      
+      if (mode === 'fresh') {
+        // Fresh Start: Reset the field(s) being regenerated
+        if (fieldName === 'all') {
+          contextData = {
+            ...scriptData,
+            bigIdea: '',
+            premise: '',
+            theme: '',
+            logLine: '',
+            synopsis: '',
+            timeline: {
+              movieTiming: '',
+              seasons: '',
+              date: '',
+              social: '',
+              economist: '',
+              environment: '',
+            },
+          };
+        } else {
+          // Reset specific field
+          if (fieldName === 'timeline') {
+            contextData = {
+              ...scriptData,
+              timeline: {
+                movieTiming: '',
+                seasons: '',
+                date: '',
+                social: '',
+                economist: '',
+                environment: '',
+              },
+            };
+          } else {
+            contextData = {
+              ...scriptData,
+              [fieldName]: '',
+            };
+          }
+        }
+      }
+      // For 'refine' and 'use-edited', use current data as-is
+      
+      const result = await generateBoundary(
+        contextData, 
+        mode, 
+        fieldName === 'all' ? undefined : (fieldName as 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline')
+      );
+      
+      // Update only the requested field(s)
+      if (fieldName === 'all') {
+        updateScriptData({
+          bigIdea: result.bigIdea || scriptData.bigIdea,
+          premise: result.premise || scriptData.premise,
+          theme: result.theme || scriptData.theme,
+          logLine: result.logLine || scriptData.logLine,
+          synopsis: result.synopsis || scriptData.synopsis,
+          timeline: {
+            movieTiming: result.timeline?.movieTiming || scriptData.timeline.movieTiming,
+            seasons: result.timeline?.seasons || scriptData.timeline.seasons,
+            date: result.timeline?.date || scriptData.timeline.date,
+            social: result.timeline?.social || scriptData.timeline.social,
+            economist: result.timeline?.economist || scriptData.timeline.economist,
+            environment: result.timeline?.environment || scriptData.timeline.environment,
+          }
+        });
+      } else if (fieldName === 'timeline') {
+        updateScriptData({
+          timeline: {
+            movieTiming: result.timeline?.movieTiming || scriptData.timeline.movieTiming,
+            seasons: result.timeline?.seasons || scriptData.timeline.seasons,
+            date: result.timeline?.date || scriptData.timeline.date,
+            social: result.timeline?.social || scriptData.timeline.social,
+            economist: result.timeline?.economist || scriptData.timeline.economist,
+            environment: result.timeline?.environment || scriptData.timeline.environment,
+          }
+        });
+      } else {
+        updateScriptData({
+          [fieldName]: (result as any)[fieldName] || (scriptData as any)[fieldName],
+        });
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error(`Failed to regenerate ${fieldName}:`, err);
+      setError(t('step2.errors.generateFailed'));
+    } finally {
+      setGeneratingFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fieldName);
+        return newSet;
+      });
+      if (fieldName === 'all') setIsGenerating(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!scriptData.mainGenre) {
       setError(t('step2.errors.selectGenre'));
       return;
     }
 
-    if (onRegisterUndo) onRegisterUndo();
-    setIsGenerating(true);
-    setError(null);
-
-    try {      
-      console.log(`🧠 Generating Boundary with language: ${scriptData.language}`);
-      
-      const result = await generateBoundary(scriptData);
-      
-      updateScriptData({
-        // Keep user's original title - don't let AI change it
-        // title: result.title || scriptData.title,
-        bigIdea: result.bigIdea || scriptData.bigIdea,
-        premise: result.premise || scriptData.premise,
-        theme: result.theme || scriptData.theme,
-        logLine: result.logLine || scriptData.logLine,
-        synopsis: result.synopsis || scriptData.synopsis,
-        timeline: {
-          movieTiming: result.timeline?.movieTiming || scriptData.timeline.movieTiming,
-          seasons: result.timeline?.seasons || scriptData.timeline.seasons,
-          date: result.timeline?.date || scriptData.timeline.date,
-          social: result.timeline?.social || scriptData.timeline.social,
-          economist: result.timeline?.economist || scriptData.timeline.economist,
-          environment: result.timeline?.environment || scriptData.timeline.environment,
-        }
-      });
-      
-      setError(null);
-    } catch (err) {
-      console.error('Failed to generate boundary:', err);
-      setError(t('step2.errors.generateFailed'));
-    } finally {
-      setIsGenerating(false);
-    }
+    // Open regenerate modal for all fields
+    handleRegenerateAll();
   };
 
   return (
@@ -181,21 +341,54 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
         <div className="lg:col-span-2 space-y-6">
           <InputField label={t('step2.fields.title')} name="title" value={scriptData.title} onChange={handleChange} onFocus={handleFocus} />
           
-          <InputField label={t('step2.fields.bigIdea')} name="bigIdea" value={scriptData.bigIdea} onChange={handleChange} isTextArea placeholder={t('step2.fields.bigIdeaPlaceholder')} onFocus={handleFocus} />
+          <InputFieldWithRegenerate
+            label={t('step2.fields.bigIdea')}
+            name="bigIdea"
+            value={scriptData.bigIdea}
+            onChange={handleChange}
+            isTextArea
+            placeholder={t('step2.fields.bigIdeaPlaceholder')}
+            onFocus={handleFocus}
+            onRegenerate={() => handleRegenerateField('bigIdea', 'Big Idea')}
+            isGenerating={generatingFields.has('bigIdea')}
+          />
           
-          <InputField label={t('step2.fields.premise')} name="premise" value={scriptData.premise} onChange={handleChange} isTextArea placeholder={t('step2.fields.premisePlaceholder')} onFocus={handleFocus} />
+          <InputFieldWithRegenerate
+            label={t('step2.fields.premise')}
+            name="premise"
+            value={scriptData.premise}
+            onChange={handleChange}
+            isTextArea
+            placeholder={t('step2.fields.premisePlaceholder')}
+            onFocus={handleFocus}
+            onRegenerate={() => handleRegenerateField('premise', 'Premise')}
+            isGenerating={generatingFields.has('premise')}
+          />
           
           {/* ⭐ THEME - MOST IMPORTANT (Minimal Design) */}
           <div className="relative">
             <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
             <div className="pl-4">
-              <label htmlFor="theme" className="block text-sm font-bold text-amber-400 mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                {t('step2.fields.theme')}
-                <span className="text-xs font-normal text-amber-500/60">(หัวใจของเรื่อง)</span>
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="theme" className="block text-sm font-bold text-amber-400 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {t('step2.fields.theme')}
+                  <span className="text-xs font-normal text-amber-500/60">(หัวใจของเรื่อง)</span>
+                </label>
+                <button
+                  onClick={() => handleRegenerateField('theme', 'Theme')}
+                  disabled={generatingFields.has('theme')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 rounded border border-amber-500/30 hover:border-amber-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Regenerate Theme"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Regenerate</span>
+                </button>
+              </div>
               <textarea 
                 id="theme" 
                 name="theme" 
@@ -212,18 +405,42 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
             </div>
           </div>
           
-          <InputField label={t('step2.fields.logLine')} name="logLine" value={scriptData.logLine} onChange={handleChange} isTextArea placeholder={t('step2.fields.logLinePlaceholder')} onFocus={handleFocus} />
+          <InputFieldWithRegenerate
+            label={t('step2.fields.logLine')}
+            name="logLine"
+            value={scriptData.logLine}
+            onChange={handleChange}
+            isTextArea
+            placeholder={t('step2.fields.logLinePlaceholder')}
+            onFocus={handleFocus}
+            onRegenerate={() => handleRegenerateField('logLine', 'Log Line')}
+            isGenerating={generatingFields.has('logLine')}
+            showRegenerate={true}
+          />
         </div>
       </div>
 
       {/* 📅 Timeline Section */}
       <div className="mb-6 p-6 bg-gray-800/30 border border-gray-700 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
-          <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          {t('step2.fields.timeline')}
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+            <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {t('step2.fields.timeline')}
+          </h3>
+          <button
+            onClick={() => handleRegenerateField('timeline', 'Timeline')}
+            disabled={generatingFields.has('timeline')}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Regenerate Timeline"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Regenerate</span>
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField label={t('step2.fields.movieTiming')} name="movieTiming" value={scriptData.timeline.movieTiming} onChange={handleTimelineChange} onFocus={handleFocus} />
           <InputField label={t('step2.fields.seasons')} name="seasons" value={scriptData.timeline.seasons} onChange={handleTimelineChange} onFocus={handleFocus} />
@@ -236,12 +453,25 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
 
       {/* 📖 Synopsis Section - Beautiful Reading Format */}
       <div className="mb-6 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-lg">
-        <h3 className="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
-          <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          Synopsis
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-200 flex items-center gap-2">
+            <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            Synopsis
+          </h3>
+          <button
+            onClick={() => handleRegenerateField('synopsis', 'Synopsis')}
+            disabled={generatingFields.has('synopsis')}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Regenerate Synopsis"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Regenerate</span>
+          </button>
+        </div>
         
         <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-5">
           {scriptData.synopsis ? (
@@ -296,6 +526,21 @@ const Step2Boundary: React.FC<Step2BoundaryProps> = ({ scriptData, updateScriptD
           {t('step2.actions.next')}
         </button>
       </div>
+
+      {/* Regenerate Options Modal */}
+      <RegenerateOptionsModal
+        isOpen={regenerateModal.isOpen}
+        onClose={() => setRegenerateModal({ isOpen: false, fieldName: null, fieldLabel: '' })}
+        onConfirm={handleRegenerateConfirm}
+        sceneName={regenerateModal.fieldLabel}
+        hasEdits={
+          regenerateModal.fieldName === 'all'
+            ? !!(scriptData.bigIdea || scriptData.premise || scriptData.theme || scriptData.logLine || scriptData.synopsis)
+            : regenerateModal.fieldName === 'timeline'
+              ? !!(scriptData.timeline.movieTiming || scriptData.timeline.seasons || scriptData.timeline.date || scriptData.timeline.social || scriptData.timeline.economist || scriptData.timeline.environment)
+              : !!(scriptData as any)[regenerateModal.fieldName || '']
+        }
+      />
     </div>
   );
 };

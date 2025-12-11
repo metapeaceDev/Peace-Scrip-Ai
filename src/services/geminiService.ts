@@ -3906,19 +3906,47 @@ export async function generateMoviePoster(
  * Generate story boundary from Step 1 data (genre, type)
  * Creates: title, bigIdea, premise, theme, logLine, timeline
  */
-export async function generateBoundary(scriptData: ScriptData): Promise<Partial<ScriptData>> {
-  console.log(`🧠 Generating Boundary. Language: ${scriptData.language}`);
+export async function generateBoundary(
+  scriptData: ScriptData,
+  mode: 'fresh' | 'refine' | 'use-edited' = 'fresh',
+  fieldName?: 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline'
+): Promise<Partial<ScriptData>> {
+  console.log(`🧠 Generating Boundary. Language: ${scriptData.language}, Mode: ${mode}, Field: ${fieldName || 'all'}`);
   try {
     const isThai = scriptData.language === 'Thai';
     const langInstruction = isThai
       ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY (ภาษาไทยเท่านั้น). Even if the input context is in English, you MUST translate and expand the concepts into Thai. Do not output English text for values. Only JSON keys should be English.'
       : 'Output in English.';
 
+    // Mode-specific context
+    let modeInstruction = '';
+    if (mode === 'fresh') {
+      modeInstruction = '\n**REGENERATION MODE: Fresh Start**\nGenerate completely new content without referencing existing data. Create original ideas.';
+    } else if (mode === 'refine') {
+      const currentValue = fieldName 
+        ? (fieldName === 'timeline' ? JSON.stringify(scriptData.timeline) : scriptData[fieldName as keyof ScriptData])
+        : JSON.stringify({bigIdea: scriptData.bigIdea, premise: scriptData.premise, theme: scriptData.theme, logLine: scriptData.logLine, synopsis: scriptData.synopsis, timeline: scriptData.timeline});
+      modeInstruction = `\n**REGENERATION MODE: Refine Existing**\nImprove and enhance the existing content while keeping its core structure and ideas:\n${fieldName ? `- Current ${fieldName}: ${currentValue || 'Not set'}` : `- Current Data: ${currentValue}`}`;
+    } else if (mode === 'use-edited') {
+      const currentValue = fieldName 
+        ? (fieldName === 'timeline' ? JSON.stringify(scriptData.timeline) : scriptData[fieldName as keyof ScriptData])
+        : JSON.stringify({bigIdea: scriptData.bigIdea, premise: scriptData.premise, theme: scriptData.theme, logLine: scriptData.logLine, synopsis: scriptData.synopsis, timeline: scriptData.timeline});
+      modeInstruction = `\n**REGENERATION MODE: Use Edited Data**\nBuild upon user's edits and expand naturally:\n${fieldName ? `- User's Edit for ${fieldName}: ${currentValue || 'Not set'}` : `- User's Edits: ${currentValue}`}`;
+    }
+
+    // Field-specific prompt or full prompt
+    let fieldSpecificPrompt = '';
+    if (fieldName) {
+      fieldSpecificPrompt = `\n**FIELD-SPECIFIC GENERATION**\nOnly generate the "${fieldName}" field. Use existing data as context but focus on creating excellent content for this specific field.`;
+    }
+
     const prompt = `You are an expert Hollywood scriptwriter and story consultant. Based on the following story foundation, create a comprehensive boundary (framework) for the story.
 
 **Language Requirement:**
 ${langInstruction}
 ${isThai ? '⚠️ IMPORTANT: The user wants the result in THAI. Ignore the language of the input context and generate the output in THAI.' : ''}
+${modeInstruction}
+${fieldSpecificPrompt}
 
 **Story Foundation from Step 1:**
 - **Title (USER PROVIDED - DO NOT CHANGE)**: ${scriptData.title || 'Untitled'}
