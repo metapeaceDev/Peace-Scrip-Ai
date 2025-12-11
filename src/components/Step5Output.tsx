@@ -3953,7 +3953,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode);
           }
         }}
-        sceneName={regenerateModal.plotPoint ? 
+        contentType="scenes"
+        contentName={regenerateModal.plotPoint ? 
           (scriptData.generatedScenes[regenerateModal.plotPoint.title]?.[regenerateModal.sceneIndex]?.sceneDesign?.sceneName || 
            `${regenerateModal.plotPoint.title} - Scene ${regenerateModal.sceneIndex + 1}`) :
           'Unknown Scene'
