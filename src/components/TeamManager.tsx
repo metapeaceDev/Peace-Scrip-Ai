@@ -327,13 +327,12 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-2">
                   อีเมล <span className="text-red-400">*</span>
-                  <span className="ml-2 text-gray-500 font-normal">(ต้องมี @ และ domain)</span>
                 </label>
                 <input
                   type="email"
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="เช่น: somchai@gmail.com"
+                  placeholder="somchai@gmail.com"
                   disabled={isInviting}
                   required
                   className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
@@ -379,18 +378,6 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                   </>
                 )}
               </button>
-            </div>
-            
-            <div className="mt-4 p-3 bg-cyan-900/20 border border-cyan-700/30 rounded-lg">
-              <p className="text-xs text-cyan-300 flex items-start gap-2">
-                <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  <strong>หมายเหตุ:</strong> อีเมลต้องมีรูปแบบที่ถูกต้อง (เช่น user@gmail.com) 
-                  <br/>ทีมจะถูกบันทึกทันทีและส่งคำเชิญผ่านระบบ Firestore
-                </span>
-              </p>
             </div>
           </div>
 

@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ProjectMetadata, ProjectType } from '../../types';
 import { PROJECT_TYPES } from '../../constants';
 import ComfyUIStatus from './ComfyUIStatus';
 import InvitationsModal from './InvitationsModal';
+import { teamCollaborationService } from '../services/teamCollaborationService';
+import { auth } from '../config/firebase';
 
 interface StudioProps {
   projects: ProjectMetadata[];
@@ -25,16 +27,36 @@ const Studio: React.FC<StudioProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInvitationsOpen, setIsInvitationsOpen] = useState(false);
+  const [invitationCount, setInvitationCount] = useState(0);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<ProjectType>('Movie');
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load invitation count on mount and when modal closes
+  useEffect(() => {
+    loadInvitationCount();
+  }, []);
+
+  const loadInvitationCount = async () => {
+    try {
+      const userEmail = auth.currentUser?.email;
+      if (!userEmail) return;
+
+      const invitations = await teamCollaborationService.getPendingInvitations(userEmail);
+      setInvitationCount(invitations.length);
+    } catch (error) {
+      console.error('Error loading invitation count:', error);
+    }
+  };
 
   const handleInvitationAccepted = () => {
     // Refresh projects list when invitation is accepted
     if (onRefreshProjects) {
       onRefreshProjects();
     }
+    // Reload invitation count
+    loadInvitationCount();
   };
 
   const handleCreate = () => {
@@ -83,8 +105,11 @@ const Studio: React.FC<StudioProps> = ({
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => setIsInvitationsOpen(true)}
-              className="flex items-center gap-2 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg border border-purple-600 transition-all shadow-md text-sm"
+              onClick={() => {
+                setIsInvitationsOpen(true);
+                loadInvitationCount(); // Refresh count when opening
+              }}
+              className="relative flex items-center gap-2 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg border border-purple-600 transition-all shadow-md text-sm"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -95,6 +120,11 @@ const Studio: React.FC<StudioProps> = ({
                 />
               </svg>
               คำเชิญ
+              {invitationCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                  {invitationCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -354,7 +384,10 @@ const Studio: React.FC<StudioProps> = ({
       {/* Invitations Modal */}
       <InvitationsModal
         isOpen={isInvitationsOpen}
-        onClose={() => setIsInvitationsOpen(false)}
+        onClose={() => {
+          setIsInvitationsOpen(false);
+          loadInvitationCount(); // Refresh count when closing
+        }}
         onInvitationAccepted={handleInvitationAccepted}
       />
     </div>

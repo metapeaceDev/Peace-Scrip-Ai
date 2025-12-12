@@ -102,8 +102,8 @@ class TeamCollaborationService {
 
       console.log('✅ Invitation saved to Firestore:', invitationId);
 
-      // TODO: ส่งอีเมลแจ้งเตือน (Phase 2)
-      // await this.sendInvitationEmail(invitation);
+      // สร้าง notification สำหรับ invitee
+      await this.createInvitationNotification(invitation);
 
       return invitation;
     } catch (error) {
@@ -397,6 +397,38 @@ class TeamCollaborationService {
     } catch (error) {
       console.error('❌ Error updating collaborator role:', error);
       throw error;
+    }
+  }
+
+  /**
+   * สร้าง notification สำหรับ invitee
+   */
+  private async createInvitationNotification(invitation: ProjectInvitation): Promise<void> {
+    try {
+      // สร้าง notification document
+      const notificationId = `${invitation.id}_notification`;
+      const notification = {
+        id: notificationId,
+        type: 'project_invitation',
+        recipientEmail: invitation.inviteeEmail,
+        title: `คำเชิญเข้าร่วมโปรเจ็ค: ${invitation.projectTitle}`,
+        message: `${invitation.inviterName} เชิญคุณเข้าร่วมโปรเจ็ค "${invitation.projectTitle}" ในฐานะ ${invitation.role}`,
+        invitationId: invitation.id,
+        projectId: invitation.projectId,
+        read: false,
+        createdAt: Timestamp.now(),
+      };
+
+      // บันทึก notification
+      await setDoc(doc(db, 'notifications', notificationId), notification);
+
+      console.log('✅ Notification created for:', invitation.inviteeEmail);
+
+      // TODO: ส่งอีเมลแจ้งเตือนด้วย (ถ้ามี email service)
+      // await this.sendEmailNotification(invitation);
+    } catch (error) {
+      console.error('⚠️ Warning: Could not create notification:', error);
+      // ไม่ throw error เพราะ notification เป็นส่วนเสริม
     }
   }
 }
