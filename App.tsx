@@ -1270,6 +1270,7 @@ function App() {
           onDeleteProject={handleDeleteProject}
           onImportProject={handleImportProject}
           onExportProject={handleExportProjectFromStudio}
+          onRefreshProjects={loadCloudProjects}
         />
       </>
     );

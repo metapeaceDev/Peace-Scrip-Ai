@@ -141,28 +141,91 @@ class FirestoreService {
   }
 
   /**
-   * Get all projects for a user
+   * Get all projects for a user (owned + shared)
    */
   async getUserProjects(userId: string) {
     try {
-      const q = query(
+      // Get owned projects
+      const ownedQuery = query(
         collection(db, this.PROJECTS_COLLECTION),
         where('userId', '==', userId),
         orderBy('updatedAt', 'desc')
       );
 
-      const querySnapshot = await getDocs(q);
+      const ownedSnapshot = await getDocs(ownedQuery);
       const projects: ScriptProject[] = [];
 
-      querySnapshot.forEach(doc => {
+      ownedSnapshot.forEach(doc => {
         const data = doc.data();
         projects.push({
           id: doc.id,
           ...data,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
-        } as ScriptProject);
+          isOwner: true, // Mark as owner
+        } as unknown as ScriptProject);
       });
+
+      console.log(`📂 Found ${projects.length} owned projects`);
+
+      // Get shared project IDs from user document
+      try {
+        const userRef = doc(db, this.USERS_COLLECTION, userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const sharedProjectIds = userData.sharedProjects || [];
+          
+          console.log(`🔗 Found ${sharedProjectIds.length} shared projects`);
+
+          // Fetch each shared project
+          for (const projectId of sharedProjectIds) {
+            try {
+              const projectRef = doc(db, this.PROJECTS_COLLECTION, projectId);
+              const projectDoc = await getDoc(projectRef);
+              
+              if (projectDoc.exists()) {
+                const data = projectDoc.data();
+                
+                // Get collaborator role
+                const collaboratorRef = doc(
+                  db,
+                  this.PROJECTS_COLLECTION,
+                  projectId,
+                  'collaborators',
+                  userId
+                );
+                const collaboratorDoc = await getDoc(collaboratorRef);
+                const role = collaboratorDoc.exists() 
+                  ? collaboratorDoc.data().role 
+                  : 'viewer';
+
+                projects.push({
+                  id: projectDoc.id,
+                  ...data,
+                  createdAt: data.createdAt?.toDate() || new Date(),
+                  updatedAt: data.updatedAt?.toDate() || new Date(),
+                  isOwner: false, // Mark as shared
+                  collaboratorRole: role,
+                } as unknown as ScriptProject);
+              }
+            } catch (error) {
+              console.error(`❌ Error loading shared project ${projectId}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading shared projects:', error);
+        // Continue with owned projects only
+      }
+
+      console.log(`✅ Total projects: ${projects.length}`);
+
+      // Sort all projects by updatedAt
+      projects.sort((a, b) => 
+        (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0)
+      );
 
       return {
         success: true,

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ProjectMetadata, ProjectType } from '../../types';
 import { PROJECT_TYPES } from '../../constants';
 import ComfyUIStatus from './ComfyUIStatus';
+import InvitationsModal from './InvitationsModal';
 
 interface StudioProps {
   projects: ProjectMetadata[];
@@ -10,6 +11,7 @@ interface StudioProps {
   onDeleteProject: (id: string) => void;
   onImportProject: (file: File) => void;
   onExportProject: (id: string) => void;
+  onRefreshProjects?: () => void; // Add callback for refreshing projects
 }
 
 const Studio: React.FC<StudioProps> = ({
@@ -19,12 +21,21 @@ const Studio: React.FC<StudioProps> = ({
   onDeleteProject,
   onImportProject,
   onExportProject,
+  onRefreshProjects,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInvitationsOpen, setIsInvitationsOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<ProjectType>('Movie');
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleInvitationAccepted = () => {
+    // Refresh projects list when invitation is accepted
+    if (onRefreshProjects) {
+      onRefreshProjects();
+    }
+  };
 
   const handleCreate = () => {
     if (!newTitle.trim()) {
@@ -71,6 +82,20 @@ const Studio: React.FC<StudioProps> = ({
             </div>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => setIsInvitationsOpen(true)}
+              className="flex items-center gap-2 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg border border-purple-600 transition-all shadow-md text-sm"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+              คำเชิญ
+            </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-lg border border-gray-700 transition-all shadow-md text-sm"
@@ -325,6 +350,13 @@ const Studio: React.FC<StudioProps> = ({
           </div>
         </div>
       )}
+
+      {/* Invitations Modal */}
+      <InvitationsModal
+        isOpen={isInvitationsOpen}
+        onClose={() => setIsInvitationsOpen(false)}
+        onInvitationAccepted={handleInvitationAccepted}
+      />
     </div>
   );
 };

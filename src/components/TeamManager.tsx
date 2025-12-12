@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScriptData, TeamMember } from '../../types';
 import { TEAM_ROLES } from '../../constants';
 import { RevenueManagementPage } from './RevenueManagementPage';
+import { teamCollaborationService, CollaboratorRole } from '../services/teamCollaborationService';
+import { auth } from '../config/firebase';
 
 interface TeamManagerProps {
   scriptData: ScriptData;
@@ -14,25 +16,110 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
   const [newRole, setNewRole] = useState(TEAM_ROLES[0]);
   const [newEmail, setNewEmail] = useState('');
   const [showRevenueManagement, setShowRevenueManagement] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
 
-  const handleAddMember = () => {
-    if (!newName.trim()) return;
+  useEffect(() => {
+    // Auto-hide status message after 5 seconds
+    if (inviteStatus.type) {
+      const timer = setTimeout(() => {
+        setInviteStatus({ type: null, message: '' });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [inviteStatus]);
 
-    const newMember: TeamMember = {
-      id: Date.now().toString(),
-      name: newName,
-      role: newRole,
-      email: newEmail,
-    };
+  const handleAddMember = async () => {
+    if (!newName.trim() || !newEmail.trim()) {
+      setInviteStatus({
+        type: 'error',
+        message: 'กรุณากรอกชื่อและอีเมล',
+      });
+      return;
+    }
 
-    setScriptData(prev => ({
-      ...prev,
-      team: [...(prev.team || []), newMember],
-    }));
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      setInviteStatus({
+        type: 'error',
+        message: 'รูปแบบอีเมลไม่ถูกต้อง',
+      });
+      return;
+    }
 
-    setNewName('');
-    setNewRole(TEAM_ROLES[0]);
-    setNewEmail('');
+    setIsInviting(true);
+    setInviteStatus({ type: null, message: '' });
+
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('กรุณาเข้าสู่ระบบก่อน');
+      }
+
+      // เพิ่มสมาชิกใน local state ก่อน (แสดงใน UI ทันที)
+      const newMember: TeamMember = {
+        id: Date.now().toString(),
+        name: newName,
+        role: newRole,
+        email: newEmail,
+      };
+
+      setScriptData(prev => ({
+        ...prev,
+        team: [...(prev.team || []), newMember],
+      }));
+
+      // แปลง role เป็น CollaboratorRole
+      let collaboratorRole: CollaboratorRole = 'editor';
+      if (newRole.includes('ผู้กำกับ') || newRole.includes('Director')) {
+        collaboratorRole = 'editor';
+      } else if (newRole.includes('นักเขียน') || newRole.includes('Writer')) {
+        collaboratorRole = 'editor';
+      } else {
+        collaboratorRole = 'viewer';
+      }
+
+      // ส่งคำเชิญผ่าน Firestore
+      await teamCollaborationService.inviteCollaborator(
+        scriptData.id || 'temp-project',
+        scriptData.title || 'Untitled Project',
+        currentUser.uid,
+        currentUser.displayName || 'Unknown User',
+        currentUser.email || '',
+        newEmail,
+        newName,
+        collaboratorRole,
+        `คุณได้รับเชิญให้เข้าร่วมโปรเจ็ค "${scriptData.title || 'Untitled Project'}" ในฐานะ ${newRole}`
+      );
+
+      setInviteStatus({
+        type: 'success',
+        message: `✅ ส่งคำเชิญไปยัง ${newEmail} เรียบร้อยแล้ว! ทีมจะได้รับอีเมลแจ้งเตือน`,
+      });
+
+      // ล้างฟอร์ม
+      setNewName('');
+      setNewRole(TEAM_ROLES[0]);
+      setNewEmail('');
+    } catch (error) {
+      console.error('❌ Error inviting member:', error);
+      setInviteStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการส่งคำเชิญ',
+      });
+
+      // ลบสมาชิกที่เพิ่มไปชั่วคราว
+      setScriptData(prev => ({
+        ...prev,
+        team: prev.team.filter(m => m.email !== newEmail),
+      }));
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleRemoveMember = (id: string) => {
@@ -101,6 +188,20 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
 
           <div className="p-6 bg-gray-900/50 border-b border-gray-700">
             <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Add Crew Member</h3>
+            
+            {/* Status Message */}
+            {inviteStatus.type && (
+              <div
+                className={`mb-4 p-3 rounded-lg border ${
+                  inviteStatus.type === 'success'
+                    ? 'bg-green-900/30 border-green-600 text-green-400'
+                    : 'bg-red-900/30 border-red-600 text-red-400'
+                }`}
+              >
+                <p className="text-sm">{inviteStatus.message}</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-4">
                 <input
@@ -108,14 +209,16 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="Full Name"
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  disabled={isInviting}
+                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
                 />
               </div>
               <div className="md:col-span-4">
                 <select
                   value={newRole}
                   onChange={e => setNewRole(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  disabled={isInviting}
+                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
                 >
                   {TEAM_ROLES.map(role => (
                     <option key={role} value={role}>
@@ -129,19 +232,49 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                   type="email"
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="Email (Optional)"
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  placeholder="Email (Required)"
+                  disabled={isInviting}
+                  required
+                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
                 />
               </div>
               <div className="md:col-span-1">
                 <button
                   onClick={handleAddMember}
-                  className="w-full h-full bg-cyan-600 hover:bg-cyan-700 text-white rounded font-bold flex items-center justify-center transition-colors"
+                  disabled={isInviting}
+                  className="w-full h-full bg-cyan-600 hover:bg-cyan-700 text-white rounded font-bold flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  +
+                  {isInviting ? (
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  ) : (
+                    '+'
+                  )}
                 </button>
               </div>
             </div>
+            
+            <p className="mt-2 text-xs text-gray-500">
+              💡 ทีมจะได้รับอีเมลแจ้งเตือนและสามารถเข้าดูโปรเจ็คได้ทันทีหลังจากยอมรับคำเชิญ
+            </p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
@@ -163,7 +296,12 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                         {member.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <h4 className="font-bold text-white">{member.name}</h4>
+                        <h4 className="font-bold text-white flex items-center gap-2">
+                          {member.name}
+                          <span className="px-2 py-0.5 bg-yellow-900/40 border border-yellow-600/50 text-yellow-400 text-xs rounded">
+                            📨 Pending Invitation
+                          </span>
+                        </h4>
                         <p className="text-xs text-cyan-400">{member.role}</p>
                       </div>
                     </div>
@@ -176,6 +314,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                       <button
                         onClick={() => handleRemoveMember(member.id)}
                         className="text-gray-500 hover:text-red-400 transition-colors"
+                        title="ยกเลิกคำเชิญ"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
