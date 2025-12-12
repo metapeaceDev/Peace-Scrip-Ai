@@ -101,7 +101,27 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     const saved = localStorage.getItem('ttsSettings');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        
+        // Validate: If engine requires API key but key is missing, fall back to browser
+        if (parsed.engine === 'google' && !parsed.googleApiKey) {
+          console.warn('⚠️ Google TTS selected but no API key - falling back to browser');
+          parsed.engine = 'browser';
+        }
+        if (parsed.engine === 'azure' && (!parsed.azureApiKey || !parsed.azureRegion)) {
+          console.warn('⚠️ Azure TTS selected but no API key/region - falling back to browser');
+          parsed.engine = 'browser';
+        }
+        if (parsed.engine === 'pythainlp' && !parsed.pythainlpEndpoint) {
+          console.warn('⚠️ PyThaiNLP TTS selected but no endpoint - falling back to browser');
+          parsed.engine = 'browser';
+        }
+        if (parsed.engine === 'aws') {
+          console.warn('⚠️ AWS Polly is disabled - falling back to browser');
+          parsed.engine = 'browser';
+        }
+        
+        return parsed;
       } catch (e) {
         console.error('Failed to parse TTS settings:', e);
       }
@@ -211,8 +231,29 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
 
   // TTS Settings handlers
   const handleSaveTtsSettings = (settings: TTSSettings) => {
-    setTtsSettings(settings);
-    localStorage.setItem('ttsSettings', JSON.stringify(settings));
+    // Validate before saving
+    let validatedSettings = { ...settings };
+    
+    // If engine requires API key but key is missing, fall back to browser
+    if (settings.engine === 'google' && !settings.googleApiKey) {
+      alert('⚠️ Google TTS requires API key. Falling back to Browser TTS.');
+      validatedSettings.engine = 'browser';
+    }
+    if (settings.engine === 'azure' && (!settings.azureApiKey || !settings.azureRegion)) {
+      alert('⚠️ Azure TTS requires API key and region. Falling back to Browser TTS.');
+      validatedSettings.engine = 'browser';
+    }
+    if (settings.engine === 'pythainlp' && !settings.pythainlpEndpoint) {
+      alert('⚠️ PyThaiNLP TTS requires endpoint URL. Falling back to Browser TTS.');
+      validatedSettings.engine = 'browser';
+    }
+    if (settings.engine === 'aws') {
+      alert('⚠️ AWS Polly is disabled for security. Falling back to Browser TTS.');
+      validatedSettings.engine = 'browser';
+    }
+    
+    setTtsSettings(validatedSettings);
+    localStorage.setItem('ttsSettings', JSON.stringify(validatedSettings));
     setTtsSettingsOpen(false);
   };
 
