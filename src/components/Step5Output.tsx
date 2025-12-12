@@ -3722,6 +3722,133 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     document.body.removeChild(link);
   };
 
+  const downloadScreenplayPDF = () => {
+    // Generate screenplay HTML for PDF
+    const text = generateScreenplayText(scriptData);
+    
+    // Create HTML content styled like a screenplay
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${scriptData.title} - Screenplay</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 1in 1.5in;
+    }
+    body {
+      font-family: 'Courier', 'Courier New', monospace;
+      font-size: 12pt;
+      line-height: 1.5;
+      max-width: 6in;
+      margin: 0 auto;
+      padding: 1in 0;
+    }
+    .title-page {
+      text-align: center;
+      page-break-after: always;
+      padding-top: 3in;
+    }
+    .title {
+      font-size: 18pt;
+      font-weight: bold;
+      margin-bottom: 1em;
+      text-transform: uppercase;
+    }
+    .author {
+      font-size: 12pt;
+      margin: 1em 0;
+    }
+    .info {
+      font-size: 10pt;
+      margin-top: 2em;
+      text-align: left;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .scene-heading {
+      font-weight: bold;
+      margin-top: 2em;
+      margin-bottom: 1em;
+      text-transform: uppercase;
+    }
+    .action {
+      margin: 1em 0;
+      white-space: pre-wrap;
+    }
+    .character {
+      margin-top: 1em;
+      margin-left: 2in;
+      text-transform: uppercase;
+    }
+    .dialogue {
+      margin-left: 1.5in;
+      margin-right: 1in;
+      margin-bottom: 1em;
+      white-space: pre-wrap;
+    }
+    .parenthetical {
+      margin-left: 1.8in;
+      margin-right: 1.2in;
+    }
+    @media print {
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="title-page">
+    <div class="title">${scriptData.title}</div>
+    <div class="author">by<br>Peace Script AI</div>
+    <div class="info">
+      <p><strong>Genre:</strong> ${scriptData.mainGenre}</p>
+      <p><strong>Logline:</strong> ${scriptData.logLine}</p>
+    </div>
+  </div>
+
+  ${scriptData.structure.map(point => {
+    const scenes = scriptData.generatedScenes[point.title] || [];
+    return scenes.map(scene => {
+      const location = (scene.sceneDesign.location || 'INT. UNKNOWN - DAY').toUpperCase();
+      
+      return `
+  <div class="scene-heading">${location}</div>
+  
+  ${scene.sceneDesign.situations.map(sit => `
+    <div class="action">${sit.description}</div>
+    
+    ${sit.dialogue.map(d => `
+      <div class="character">${d.character.toUpperCase()}</div>
+      <div class="dialogue">${d.dialogue}</div>
+    `).join('')}
+  `).join('')}
+      `;
+    }).join('');
+  }).join('')}
+
+</body>
+</html>
+    `;
+    
+    // Create blob and download as HTML (user can print to PDF from browser)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${scriptData.title.replace(/\s+/g, '_')}_Screenplay.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show instructions
+    setTimeout(() => {
+      alert('📄 ไฟล์ HTML ถูกดาวน์โหลดแล้ว!\n\n💡 วิธีแปลงเป็น PDF:\n1. เปิดไฟล์ HTML ในเบราว์เซอร์\n2. กด Ctrl+P (Windows) หรือ Cmd+P (Mac)\n3. เลือก "Save as PDF"\n4. กด Save');
+    }, 500);
+  };
+
   const handleSceneUpdate = (
     pointTitle: string,
     sceneIndex: number,
@@ -4028,12 +4155,21 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
                 <button 
                   onClick={() => {
-                    alert(t('step5.export.pdfNote'));
+                    downloadScreenplayPDF();
                     setIsExportMenuOpen(false);
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
                 >
-                  {t('step5.export.pdfComingSoon')}
+                  📄 Screenplay (PDF/HTML)
+                </button>
+                <button 
+                  onClick={() => {
+                    downloadScreenplay();
+                    setIsExportMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                >
+                  📝 Screenplay (TXT)
                 </button>
                 <button 
                   onClick={() => {
@@ -4043,15 +4179,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
                 >
                   🎬 Export as Final Draft (.fdx)
-                </button>
-                <button 
-                  onClick={() => {
-                    downloadScreenplay();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
-                >
-                  📝 Export as Text (.txt)
                 </button>
                 <button 
                   onClick={() => {
