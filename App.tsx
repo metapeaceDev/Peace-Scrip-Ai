@@ -39,6 +39,8 @@ import { checkAllRequiredModels } from './src/services/loraInstaller';
 import { getCurrentLanguage, type Language } from './src/i18n';
 import { getProviderConfig, saveProviderConfig } from './src/services/providerConfigStore';
 import type { ProviderMode, ModelPreference } from './src/services/providerConfigStore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from './src/config/firebase';
 
 interface SimpleUser {
   uid: string;
@@ -315,6 +317,11 @@ function App() {
   const [isDirty, setIsDirty] = useState(false);
   const lastSavedDataRef = useRef<string | null>(null);
 
+  // Real-time sync state
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [updateNotificationMessage, setUpdateNotificationMessage] = useState('');
+  const realtimeUnsubscribeRef = useRef<(() => void) | null>(null);
+
   const [history, setHistory] = useState<ScriptData[]>([]);
   const [redoStack, setRedoStack] = useState<ScriptData[]>([]);
 
@@ -579,6 +586,78 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOfflineMode, currentUser]); // isAuthenticated ไม่จำเป็นเพราะเช็คผ่าน currentUser แล้ว
+
+  // Real-time sync listener
+  useEffect(() => {
+    // Only set up listener if:
+    // 1. User is authenticated
+    // 2. Not in offline mode
+    // 3. A project is currently open
+    if (!currentUser || isOfflineMode || !currentProjectId) {
+      // Clean up existing listener if conditions no longer met
+      if (realtimeUnsubscribeRef.current) {
+        console.log('🔌 Unsubscribing from real-time updates');
+        realtimeUnsubscribeRef.current();
+        realtimeUnsubscribeRef.current = null;
+      }
+      return;
+    }
+
+    console.log('🔗 Setting up real-time listener for project:', currentProjectId);
+
+    const projectRef = doc(db, 'projects', currentProjectId);
+    
+    const unsubscribe = onSnapshot(
+      projectRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          console.log('⚠️ Project document no longer exists');
+          return;
+        }
+
+        const updatedData = snapshot.data();
+        const updatedBy = updatedData.updatedBy;
+        
+        // Only update if change was made by someone else
+        if (updatedBy && updatedBy !== currentUser.uid) {
+          console.log('🔄 Real-time update detected from another user');
+          
+          // Sanitize and update script data
+          const sanitized = sanitizeScriptData(updatedData);
+          
+          // Update state
+          setScriptData(sanitized);
+          lastSavedDataRef.current = JSON.stringify(sanitized);
+          
+          // Show notification
+          setUpdateNotificationMessage('โปรเจ็คถูกอัปเดตโดยสมาชิกในทีม');
+          setShowUpdateNotification(true);
+          
+          // Auto-hide notification after 5 seconds
+          setTimeout(() => {
+            setShowUpdateNotification(false);
+          }, 5000);
+        } else if (updatedBy === currentUser.uid) {
+          console.log('ℹ️ Update was made by current user, skipping notification');
+        }
+      },
+      (error) => {
+        console.error('❌ Real-time listener error:', error);
+      }
+    );
+
+    // Store unsubscribe function
+    realtimeUnsubscribeRef.current = unsubscribe;
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      console.log('🧹 Cleaning up real-time listener');
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current();
+        realtimeUnsubscribeRef.current = null;
+      }
+    };
+  }, [currentUser, isOfflineMode, currentProjectId]);
 
   const handleLoginSuccess = async (user: SimpleUser) => {
     console.log('🔐 Login Success:', user.email);
@@ -911,8 +990,12 @@ function App() {
           // Offline mode: use IndexedDB
           await api.updateProject(data.id, data);
         } else if (currentUser) {
-          // Online mode: use Firestore
-          await firestoreService.updateProject(data.id, data);
+          // Online mode: use Firestore with updatedBy field
+          const dataWithUpdatedBy = {
+            ...data,
+            updatedBy: currentUser.uid, // Track who made the update
+          };
+          await firestoreService.updateProject(data.id, dataWithUpdatedBy);
         } else {
           return false; // No user, can't save
         }
@@ -1494,6 +1577,32 @@ function App() {
             {saveFeedback}
           </div>
         )}
+
+        {/* Real-time Update Notification */}
+        {showUpdateNotification && (
+          <div className="fixed top-20 right-8 z-50 animate-slide-in-right">
+            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-4 rounded-lg shadow-2xl border border-cyan-400/30 flex items-center gap-3 min-w-[320px]">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm">อัปเดตแบบเรียลไทม์</p>
+                <p className="text-xs text-cyan-100 mt-0.5">{updateNotificationMessage}</p>
+              </div>
+              <button
+                onClick={() => setShowUpdateNotification(false)}
+                className="flex-shrink-0 text-white/80 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {isTeamManagerOpen && (
           <TeamManager
             scriptData={scriptData}
