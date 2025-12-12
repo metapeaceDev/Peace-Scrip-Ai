@@ -47,7 +47,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     if (!emailRegex.test(newEmail)) {
       setInviteStatus({
         type: 'error',
-        message: 'รูปแบบอีเมลไม่ถูกต้อง',
+        message: `❌ รูปแบบอีเมลไม่ถูกต้อง - ต้องมี @ และ domain (เช่น ${newEmail.includes('@') ? newEmail : newEmail + '@gmail.com'})`,
       });
       return;
     }
@@ -288,23 +288,32 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div className="md:col-span-4">
+            <div className="space-y-4">
+              {/* Name Input */}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  ชื่อสมาชิก <span className="text-red-400">*</span>
+                </label>
                 <input
                   type="text"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="Full Name"
+                  placeholder="เช่น: สมชาย ใจดี"
                   disabled={isInviting}
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
                 />
               </div>
-              <div className="md:col-span-4">
+
+              {/* Role Select */}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  ตำแหน่ง <span className="text-red-400">*</span>
+                </label>
                 <select
                   value={newRole}
                   onChange={e => setNewRole(e.target.value)}
                   disabled={isInviting}
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
                 >
                   {TEAM_ROLES.map(role => (
                     <option key={role} value={role}>
@@ -313,24 +322,32 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                   ))}
                 </select>
               </div>
-              <div className="md:col-span-3">
+
+              {/* Email Input */}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">
+                  อีเมล <span className="text-red-400">*</span>
+                  <span className="ml-2 text-gray-500 font-normal">(ต้องมี @ และ domain)</span>
+                </label>
                 <input
                   type="email"
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="Email (Required)"
+                  placeholder="เช่น: somchai@gmail.com"
                   disabled={isInviting}
                   required
-                  className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none disabled:opacity-50"
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
                 />
               </div>
-              <div className="md:col-span-1">
-                <button
-                  onClick={handleAddMember}
-                  disabled={isInviting}
-                  className="w-full h-full bg-cyan-600 hover:bg-cyan-700 text-white rounded font-bold flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isInviting ? (
+
+              {/* Add Button */}
+              <button
+                onClick={handleAddMember}
+                disabled={isInviting || !newName.trim() || !newEmail.trim()}
+                className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-bold py-3 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+              >
+                {isInviting ? (
+                  <>
                     <svg
                       className="animate-spin h-5 w-5"
                       xmlns="http://www.w3.org/2000/svg"
@@ -351,16 +368,30 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                  ) : (
-                    '+'
-                  )}
-                </button>
-              </div>
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>เพิ่มสมาชิกทีม</span>
+                  </>
+                )}
+              </button>
             </div>
             
-            <p className="mt-2 text-xs text-gray-500">
-              💡 ทีมจะถูกบันทึกทันทีและส่งคำเชิญผ่านระบบ Firestore (ไม่จำเป็นต้องรอ auto-save)
-            </p>
+            <div className="mt-4 p-3 bg-cyan-900/20 border border-cyan-700/30 rounded-lg">
+              <p className="text-xs text-cyan-300 flex items-start gap-2">
+                <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  <strong>หมายเหตุ:</strong> อีเมลต้องมีรูปแบบที่ถูกต้อง (เช่น user@gmail.com) 
+                  <br/>ทีมจะถูกบันทึกทันทีและส่งคำเชิญผ่านระบบ Firestore
+                </span>
+              </p>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
