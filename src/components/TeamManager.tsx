@@ -139,12 +139,23 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         team: scriptData.team.filter(m => m.id !== id),
       };
 
+      console.log('🗑️ DEBUG: Removing team member:', {
+        memberName: memberToRemove.name,
+        beforeCount: scriptData.team.length,
+        afterCount: updatedScriptData.team.length,
+        remainingTeam: updatedScriptData.team.map(m => m.name),
+      });
+
       setScriptData(updatedScriptData);
 
       // บันทึกทันที (save to Firestore/localStorage)
       if (onSaveProject) {
         console.log('💾 Saving project after removing team member...');
+        const saveStartTime = performance.now();
         await onSaveProject(updatedScriptData);
+        console.log(`✅ Save completed in ${(performance.now() - saveStartTime).toFixed(0)}ms`);
+      } else {
+        console.warn('⚠️ onSaveProject is not provided!');
       }
 
       // ยกเลิก invitation ใน Firestore (ถ้ามี)

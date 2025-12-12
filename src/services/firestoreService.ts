@@ -285,6 +285,10 @@ class FirestoreService {
         const text = new TextDecoder().decode(bytes);
         const fullData = JSON.parse(text);
         console.log(`⏱️ Parsed in ${(performance.now() - parseStart).toFixed(0)}ms`);
+        console.log('🔍 DEBUG: Team data loaded:', {
+          teamCount: fullData.team?.length || 0,
+          teamMembers: fullData.team?.map((m: any) => m.name) || [],
+        });
         console.log(`✅ Total time: ${(performance.now() - startTime).toFixed(0)}ms`);
 
         return {
@@ -354,14 +358,22 @@ class FirestoreService {
       } else {
         // New format - update Storage file
         console.log('📤 Updating project in Storage...');
+        console.log('📝 Team data in updates:', updates.team); // DEBUG: Check team data
 
         const storageRef = ref(storage, metadata.storagePath);
         const jsonString = JSON.stringify(updates);
         const fileSize = new Blob([jsonString]).size;
 
+        console.log('💾 Uploading to Storage...', {
+          teamCount: updates.team?.length || 0,
+          fileSize: (fileSize / 1024).toFixed(2) + ' KB',
+        });
+
         await uploadString(storageRef, jsonString, 'raw', {
           contentType: 'application/json',
         });
+
+        console.log('✅ Storage upload complete');
 
         // Upload poster image to Storage if it's base64 (convert to URL)
         let posterImageURL = metadata.posterImage; // Keep existing if not updating
