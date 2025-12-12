@@ -4,6 +4,8 @@ import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
+import { TTSSettingsModal, type TTSSettings } from './TTSSettingsModal';
+import { ttsService } from '../services/ttsService';
 
 interface Step2StoryScopeProps {
   scriptData: ScriptData;
@@ -91,6 +93,26 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
   const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set());
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  
+  // TTS Settings
+  const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
+  const [ttsSettings, setTtsSettings] = useState<TTSSettings>(() => {
+    // Load from localStorage
+    const saved = localStorage.getItem('ttsSettings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse TTS settings:', e);
+      }
+    }
+    return {
+      engine: 'browser',
+      rate: 0.9,
+      pitch: 1.0,
+      volume: 1.0,
+    };
+  });
 
   // Load voices on mount to avoid speech synthesis issues
   useEffect(() => {
@@ -109,7 +131,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
 
     // Cleanup: cancel any ongoing speech when component unmounts
     return () => {
-      window.speechSynthesis.cancel();
+      ttsService.stop();
     };
   }, []);
 
@@ -121,71 +143,43 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     updateScriptData({ timeline: { ...scriptData.timeline, [e.target.name]: e.target.value } });
   };
 
-  const handleReadStory = () => {
+  const handleReadStory = async () => {
     if (isReading) {
       // Stop reading completely
-      window.speechSynthesis.cancel();
+      ttsService.stop();
       setIsReading(false);
       setIsPaused(false);
       return;
     }
 
     if (isPaused) {
-      // Resume reading
-      window.speechSynthesis.resume();
+      // Resume reading (only works with browser TTS)
+      ttsService.resume();
       setIsPaused(false);
       return;
     }
 
-    // Cancel any existing speech before starting new one
-    window.speechSynthesis.cancel();
-
-    // Start reading
+    // Build story content
     const isThai = scriptData.language === 'Thai';
-    
-    // Build text segments with proper pauses for natural rhythm
-    const segments: Array<{label: string; content: string}> = [];
+    const segments: string[] = [];
     
     if (scriptData.title) {
-      segments.push({
-        label: isThai ? 'ชื่อเรื่อง' : 'Title',
-        content: scriptData.title
-      });
+      segments.push(`${isThai ? 'ชื่อเรื่อง' : 'Title'}: ${scriptData.title}`);
     }
-    
     if (scriptData.bigIdea) {
-      segments.push({
-        label: isThai ? 'แนวคิดหลัก' : 'Big Idea',
-        content: scriptData.bigIdea
-      });
+      segments.push(`${isThai ? 'แนวคิดหลัก' : 'Big Idea'}: ${scriptData.bigIdea}`);
     }
-    
     if (scriptData.premise) {
-      segments.push({
-        label: isThai ? 'พื้นฐานเรื่อง' : 'Premise',
-        content: scriptData.premise
-      });
+      segments.push(`${isThai ? 'พื้นฐานเรื่อง' : 'Premise'}: ${scriptData.premise}`);
     }
-    
     if (scriptData.theme) {
-      segments.push({
-        label: isThai ? 'ธีม' : 'Theme',
-        content: scriptData.theme
-      });
+      segments.push(`${isThai ? 'ธีม' : 'Theme'}: ${scriptData.theme}`);
     }
-    
     if (scriptData.logLine) {
-      segments.push({
-        label: isThai ? 'ล็อกไลน์' : 'Log Line',
-        content: scriptData.logLine
-      });
+      segments.push(`${isThai ? 'ล็อกไลน์' : 'Log Line'}: ${scriptData.logLine}`);
     }
-    
     if (scriptData.synopsis) {
-      segments.push({
-        label: isThai ? 'เรื่องย่อ' : 'Synopsis',
-        content: scriptData.synopsis
-      });
+      segments.push(`${isThai ? 'เรื่องย่อ' : 'Synopsis'}: ${scriptData.synopsis}`);
     }
 
     if (segments.length === 0) {
@@ -193,142 +187,41 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       return;
     }
 
-    // Get and validate voices
-    const voices = window.speechSynthesis.getVoices();
-    console.log('🔊 Total available voices:', voices.length);
-    console.log('📋 All voices:', voices.map(v => `${v.name} (${v.lang})`));
-    
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-    
-    if (isThai) {
-      // Find ALL Thai voices with detailed logging
-      const thaiVoices = voices.filter(voice => {
-        const langMatch = voice.lang === 'th-TH' || voice.lang === 'th' || voice.lang.startsWith('th-');
-        const nameMatch = voice.name.toLowerCase().includes('thai');
-        return langMatch || nameMatch;
-      });
-      
-      console.log('🇹🇭 Thai voices found:', thaiVoices.length);
-      thaiVoices.forEach(v => console.log(`  - ${v.name} (${v.lang}) ${v.localService ? '[Local]' : '[Remote]'}`));
-      
-      // Priority selection for Thai voices
-      selectedVoice = 
-        // 1. Try Kanya (common Thai female voice on iOS/macOS)
-        thaiVoices.find(v => v.name.toLowerCase().includes('kanya')) ||
-        // 2. Try any female Thai voice
-        thaiVoices.find(v => v.name.toLowerCase().includes('female')) ||
-        // 3. Try Siri Thai
-        thaiVoices.find(v => v.name.toLowerCase().includes('siri') && v.lang.startsWith('th')) ||
-        // 4. Try any local Thai voice
-        thaiVoices.find(v => v.localService) ||
-        // 5. Use first available Thai voice
-        thaiVoices[0];
-      
-      if (selectedVoice) {
-        console.log('✅ Selected Thai voice:', selectedVoice.name, `(${selectedVoice.lang})`);
-      } else {
-        console.error('❌ No Thai voice available! Will use system default.');
-        console.log('💡 Suggestion: Install Thai language pack in System Preferences > Accessibility > Spoken Content');
-      }
-    } else {
-      // English voice selection
-      const enVoices = voices.filter(voice => 
-        voice.lang === 'en-US' || voice.lang.startsWith('en-')
-      );
-      
-      selectedVoice = 
-        enVoices.find(v => v.name.toLowerCase().includes('samantha')) ||
-        enVoices.find(v => v.name.toLowerCase().includes('victoria')) ||
-        enVoices.find(v => v.name.toLowerCase().includes('female')) ||
-        enVoices[0];
-      
-      if (selectedVoice) {
-        console.log('✅ Selected English voice:', selectedVoice.name);
-      }
+    const fullText = segments.join('. ');
+
+    try {
+      setIsReading(true);
+      setIsPaused(false);
+      await ttsService.speak(fullText, ttsSettings);
+      setIsReading(false);
+    } catch (error) {
+      console.error('❌ TTS Error:', error);
+      setIsReading(false);
+      setIsPaused(false);
+      alert(`TTS Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    // Configure voice parameters based on genre
-    const genre = scriptData.mainGenre?.toLowerCase() || '';
-    let rate = 0.9; // Default: slightly slower for clarity
-    let pitch = 1.0;
-    
-    if (genre.includes('action') || genre.includes('thriller')) {
-      rate = 0.95; // Moderate pace for action
-      pitch = 1.0;
-    } else if (genre.includes('romance') || genre.includes('drama')) {
-      rate = 0.85; // Slower, more emotional
-      pitch = 1.05; // Slightly higher, softer
-    } else if (genre.includes('horror') || genre.includes('mystery')) {
-      rate = 0.8; // Slow and suspenseful
-      pitch = 0.95; // Slightly lower, darker
-    } else if (genre.includes('comedy')) {
-      rate = 1.0; // Upbeat pace
-      pitch = 1.05; // Cheerful tone
-    }
-    
-    console.log(`🎭 Genre: ${scriptData.mainGenre}, Rate: ${rate}, Pitch: ${pitch}`);
-    
-    // Read segments sequentially with natural pauses
-    let currentSegmentIndex = 0;
-    
-    const speakSegment = () => {
-      if (currentSegmentIndex >= segments.length) {
-        setIsReading(false);
-        setIsPaused(false);
-        console.log('✅ Finished reading all segments');
-        return;
-      }
-      
-      const segment = segments[currentSegmentIndex];
-      
-      // Create text with natural punctuation for better rhythm
-      const textWithPause = `${segment.label}. ${segment.content}. `;
-      
-      const utterance = new SpeechSynthesisUtterance(textWithPause);
-      utterance.lang = isThai ? 'th-TH' : 'en-US';
-      
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      
-      utterance.rate = rate;
-      utterance.pitch = pitch;
-      utterance.volume = 1.0;
-      
-      utterance.onstart = () => {
-        if (currentSegmentIndex === 0) {
-          setIsReading(true);
-          setIsPaused(false);
-        }
-        console.log(`🔊 Speaking segment ${currentSegmentIndex + 1}/${segments.length}: ${segment.label}`);
-      };
-      
-      utterance.onend = () => {
-        console.log(`✓ Completed: ${segment.label}`);
-        currentSegmentIndex++;
-        // Small delay between segments for natural rhythm
-        setTimeout(speakSegment, 300);
-      };
-      
-      utterance.onerror = (event) => {
-        console.error(`❌ Error in segment ${currentSegmentIndex}:`, event);
-        setIsReading(false);
-        setIsPaused(false);
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    };
-    
-    // Start reading the first segment after a small delay
-    setTimeout(() => {
-      speakSegment();
-    }, 100);
   };
 
   const handlePauseReading = () => {
-    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-      window.speechSynthesis.pause();
+    if (isReading && !isPaused) {
+      ttsService.pause();
       setIsPaused(true);
+    }
+  };
+
+  // TTS Settings handlers
+  const handleSaveTtsSettings = (settings: TTSSettings) => {
+    setTtsSettings(settings);
+    localStorage.setItem('ttsSettings', JSON.stringify(settings));
+    setTtsSettingsOpen(false);
+  };
+
+  const handlePreviewTts = async (text: string, settings: TTSSettings) => {
+    try {
+      await ttsService.speak(text, settings);
+    } catch (error) {
+      console.error('❌ Preview TTS Error:', error);
+      alert(`Preview Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -571,6 +464,19 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             
             {/* Voice Reading Button */}
             <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-300">🔊 Voice Reading</span>
+                <button
+                  onClick={() => setTtsSettingsOpen(true)}
+                  className="p-2 bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-cyan-400 rounded-lg transition-all"
+                  title="TTS Settings"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              </div>
               <button
                 onClick={isReading && !isPaused ? handlePauseReading : handleReadStory}
                 className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
@@ -600,7 +506,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
                     </svg>
-                    <span>🔊 Read Story</span>
+                    <span>Read Story</span>
                   </>
                 )}
               </button>
@@ -613,7 +519,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                 </button>
               )}
               <p className="mt-2 text-xs text-gray-500 text-center">
-                {scriptData.language === 'Thai' ? 'อ่านเนื้อหาเรื่องทั้งหมดให้ฟัง' : 'Read entire story aloud'}
+                {ttsSettings.engine === 'browser' ? 'Using Browser TTS' : `Using ${ttsSettings.engine.toUpperCase()} TTS`}
               </p>
             </div>
           </div>
@@ -823,8 +729,18 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
               : !!(scriptData as any)[regenerateModal.fieldName || '']
         }
       />
+
+      {/* TTS Settings Modal */}
+      <TTSSettingsModal
+        isOpen={ttsSettingsOpen}
+        onClose={() => setTtsSettingsOpen(false)}
+        currentSettings={ttsSettings}
+        onSave={handleSaveTtsSettings}
+        onPreview={handlePreviewTts}
+      />
     </div>
   );
 };
 
 export default Step2StoryScope;
+
