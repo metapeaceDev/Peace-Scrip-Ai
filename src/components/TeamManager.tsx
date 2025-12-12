@@ -25,6 +25,10 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     message: string;
   }>({ type: null, message: '' });
   const [savingRoleFor, setSavingRoleFor] = useState<string | null>(null); // Track which member's role is being saved
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    memberId: string;
+    newRole: CollaboratorRole;
+  } | null>(null); // Track pending role change for confirmation
 
   useEffect(() => {
     // Auto-hide status message after 5 seconds
@@ -213,7 +217,16 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     }
   };
 
-  const handleRoleChange = async (memberId: string, newRole: CollaboratorRole) => {
+  const handleRoleChange = (memberId: string, newRole: CollaboratorRole) => {
+    // Set pending role change for confirmation
+    setPendingRoleChange({ memberId, newRole });
+  };
+
+  const confirmRoleChange = async () => {
+    if (!pendingRoleChange) return;
+
+    const { memberId, newRole } = pendingRoleChange;
+
     try {
       const member = scriptData.team.find(m => m.id === memberId);
       if (!member) return;
@@ -227,6 +240,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         if (!currentUser) {
           alert('กรุณาเข้าสู่ระบบก่อน');
           setSavingRoleFor(null);
+          setPendingRoleChange(null);
           return;
         }
 
@@ -238,6 +252,44 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         );
 
         console.log(`✅ Role updated: ${member.name} → ${newRole}`);
+
+        // Send notifications
+        try {
+          // Notify admin who made the change
+          await teamCollaborationService.createNotification(
+            currentUser.uid,
+            'role_changed',
+            'เปลี่ยนสิทธิ์สมาชิกสำเร็จ',
+            `คุณเปลี่ยนสิทธิ์ของ ${member.name} เป็น ${getRoleLabel(newRole)}`,
+            {
+              projectId: scriptData.id,
+              memberId: member.id,
+              memberName: member.name,
+              newRole: newRole,
+            }
+          );
+
+          // Notify the user whose role was changed
+          if (member.id !== currentUser.uid) {
+            await teamCollaborationService.createNotification(
+              member.id,
+              'role_changed',
+              'สิทธิ์ของคุณถูกเปลี่ยน',
+              `สิทธิ์ของคุณในโปรเจ็กต์ "${scriptData.title || 'โปรเจ็กต์'}" ถูกเปลี่ยนเป็น ${getRoleLabel(newRole)}`,
+              {
+                projectId: scriptData.id,
+                oldRole: member.accessRole,
+                newRole: newRole,
+                changedBy: currentUser.uid,
+              }
+            );
+          }
+
+          console.log('✅ Notifications sent');
+        } catch (notifError) {
+          console.error('⚠️ Error sending notifications:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
       }
 
       // Update local state
@@ -265,16 +317,22 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         message: `✅ บันทึกแล้ว: เปลี่ยนสิทธิ์ของ ${member.name} เป็น ${getRoleLabel(newRole)}`,
       });
 
-      // Clear saving state
+      // Clear states
       setSavingRoleFor(null);
+      setPendingRoleChange(null);
     } catch (error) {
       console.error('❌ Error changing role:', error);
       setSavingRoleFor(null);
+      setPendingRoleChange(null);
       setInviteStatus({
         type: 'error',
         message: 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์',
       });
     }
+  };
+
+  const cancelRoleChange = () => {
+    setPendingRoleChange(null);
   };
 
   // Helper function to get role label
@@ -561,7 +619,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    บันทึกอัตโนมัติเมื่อเปลี่ยน
+                                    กดเลือกสิทธิ์ จากนั้นยืนยันการเปลี่ยน
                                   </p>
                                 </div>
                               )}
@@ -607,6 +665,87 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
           projectId={scriptData.id || 'default'}
           projectTitle={scriptData.title || 'Untitled Project'}
         />
+      )}
+
+      {/* Role Change Confirmation Dialog */}
+      {pendingRoleChange && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 max-w-md w-full animate-fade-in">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                ยืนยันการเปลี่ยนสิทธิ์
+              </h3>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5">
+              {(() => {
+                const member = scriptData.team.find(m => m.id === pendingRoleChange.memberId);
+                if (!member) return null;
+
+                const oldRole = member.accessRole || 'editor';
+                const newRole = pendingRoleChange.newRole;
+
+                return (
+                  <div className="space-y-4">
+                    <p className="text-gray-300 text-sm">
+                      คุณต้องการเปลี่ยนสิทธิ์การเข้าถึงของสมาชิกใช่หรือไม่?
+                    </p>
+
+                    <div className="bg-gray-900/50 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-sm">
+                          {member.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-white text-sm">{member.name}</p>
+                          <p className="text-xs text-gray-400">{member.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm">
+                        <RoleBadge role={oldRole} size="sm" />
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        <RoleBadge role={newRole} size="sm" />
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
+                      <p className="text-xs text-blue-300 flex items-start gap-2">
+                        <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>ระบบจะส่งการแจ้งเตือนไปยังคุณและสมาชิกที่ถูกเปลี่ยนสิทธิ์</span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-900/50 rounded-b-xl flex items-center justify-end gap-3">
+              <button
+                onClick={cancelRoleChange}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all text-sm font-medium"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmRoleChange}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg transition-all text-sm font-bold shadow-lg shadow-cyan-600/20"
+              >
+                ยืนยันการเปลี่ยนสิทธิ์
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

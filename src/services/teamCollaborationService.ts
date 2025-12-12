@@ -490,19 +490,54 @@ class TeamCollaborationService {
       console.log('New Role:', newRole);
       console.log('Updated by:', updatedBy);
 
-      // อัพเดทใน collaborators collection
+      // อัพเดทใน collaborators collection (ใช้ email เป็น key)
       const collaboratorId = `${projectId}_${memberEmail}`;
       const collaboratorRef = doc(db, 'collaborators', collaboratorId);
       
+      // ตรวจสอบว่า document มีอยู่จริง
+      const collaboratorDoc = await getDoc(collaboratorRef);
+      if (!collaboratorDoc.exists()) {
+        console.error('❌ Collaborator not found:', collaboratorId);
+        throw new Error('Collaborator not found');
+      }
+
       await updateDoc(collaboratorRef, {
         role: newRole,
         updatedAt: Timestamp.now(),
         updatedBy: updatedBy,
       });
 
-      console.log('✅ Member role updated successfully');
+      console.log('✅ Member role updated successfully in Firestore');
     } catch (error) {
       console.error('❌ Error updating member role:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * สร้าง notification สำหรับ user
+   */
+  async createNotification(
+    userId: string,
+    type: 'role_changed' | 'project_updated' | 'invitation',
+    title: string,
+    message: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const notificationRef = doc(collection(db, 'notifications'));
+      await setDoc(notificationRef, {
+        userId,
+        type,
+        title,
+        message,
+        metadata: metadata || {},
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+      console.log('✅ Notification created for user:', userId);
+    } catch (error) {
+      console.error('❌ Error creating notification:', error);
       throw error;
     }
   }
