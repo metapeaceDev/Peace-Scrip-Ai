@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export type TTSEngine = 'browser' | 'google' | 'azure' | 'aws' | 'pythainlp';
+export type TTSEngine = 'browser' | 'google' | 'azure' | 'aws' | 'gtts' | 'pythainlp';
 
 export interface TTSSettings {
   engine: TTSEngine;
@@ -58,6 +58,13 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
       description: 'ฟรี ใช้เสียงในตัว Browser (คุณภาพขึ้นกับระบบ)',
       cost: '💚 ฟรี',
       quality: '⭐⭐⭐ ปานกลาง',
+      needsApi: false,
+    },
+    gtts: {
+      name: 'Google TTS (Free)',
+      description: '🎉 ฟรี! ไม่ต้อง API Key - เสียงไทยคุณภาพดี',
+      cost: '💚 ฟรี 100%',
+      quality: '⭐⭐⭐⭐ ดีมาก',
       needsApi: false,
     },
     google: {

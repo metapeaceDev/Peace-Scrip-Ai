@@ -27,6 +27,8 @@ export class TTSService {
     switch (settings.engine) {
       case 'browser':
         return this.speakBrowser(text, settings);
+      case 'gtts':
+        return this.speakGTTS(text, settings);
       case 'google':
         return this.speakGoogle(text, settings);
       case 'azure':
@@ -108,6 +110,87 @@ export class TTSService {
 
       window.speechSynthesis.speak(utterance);
     });
+  }
+
+  /**
+   * Google TTS (Free) - Using unofficial gTTS API
+   * No API key required!
+   */
+  private async speakGTTS(text: string, settings: TTSSettings): Promise<void> {
+    console.log('🌐 Using Google TTS (Free)...');
+    console.log('📝 Text length:', text.length, 'characters');
+
+    try {
+      // Split into chunks (gTTS has limits)
+      const maxChars = 200; // Keep it small for better reliability
+      const chunks: string[] = [];
+      
+      if (text.length > maxChars) {
+        console.log('📦 Splitting text into chunks...');
+        let remaining = text;
+        while (remaining.length > 0) {
+          let chunk = remaining.substring(0, maxChars);
+          // Try to break at sentence end or space
+          const lastPeriod = chunk.lastIndexOf('. ');
+          const lastSpace = chunk.lastIndexOf(' ');
+          const breakPoint = Math.max(lastPeriod, lastSpace);
+          
+          if (breakPoint > maxChars * 0.5 && remaining.length > maxChars) {
+            chunk = remaining.substring(0, breakPoint + 1);
+          }
+          
+          chunks.push(chunk.trim());
+          remaining = remaining.substring(chunk.length).trim();
+        }
+        console.log(`📦 Split into ${chunks.length} chunks`);
+      } else {
+        chunks.push(text);
+      }
+
+      // Process each chunk
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        console.log(`🎵 Processing chunk ${i + 1}/${chunks.length}...`);
+
+        // Use Google Translate TTS endpoint (unofficial but free)
+        const encodedText = encodeURIComponent(chunk);
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodedText}`;
+
+        const audio = new Audio(audioUrl);
+        audio.volume = settings.volume;
+        // Note: rate and pitch can't be controlled with this method
+        
+        await new Promise<void>((resolve, reject) => {
+          audio.onended = () => {
+            console.log(`✅ Chunk ${i + 1}/${chunks.length} completed`);
+            resolve();
+          };
+          audio.onerror = (e) => {
+            console.error('❌ Audio playback failed:', e);
+            reject(new Error('Audio playback failed. Check internet connection.'));
+          };
+          audio.play().catch((err) => {
+            console.error('❌ Play failed:', err);
+            reject(new Error('Failed to play audio. Browser may have blocked autoplay.'));
+          });
+        });
+
+        // Small delay between chunks
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+      }
+
+      console.log('✅ All chunks completed successfully');
+    } catch (error) {
+      console.error('❌ gTTS error:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('internet')) {
+          throw new Error('Cannot connect to Google TTS. Please check your internet connection.');
+        }
+      }
+      throw error;
+    }
   }
 
   /**
