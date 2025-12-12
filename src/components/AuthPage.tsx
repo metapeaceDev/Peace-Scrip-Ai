@@ -73,15 +73,31 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setError('');
     setResetSuccess(false);
+
+    // Validate email before sending
+    if (!resetEmail || !resetEmail.trim()) {
+      setError('กรุณากรอกอีเมล');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      setError('รูปแบบอีเมลไม่ถูกต้อง');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await firebaseAuth.resetPassword(resetEmail);
+      console.log('Attempting to send password reset email...');
+      await firebaseAuth.resetPassword(resetEmail.trim());
+      console.log('Password reset email sent successfully!');
       setResetSuccess(true);
       setResetEmail('');
     } catch (err: unknown) {
-      console.error(err);
-      setError((err as Error).message || 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน');
+      console.error('Password reset failed:', err);
+      const errorMessage = (err as Error).message || 'เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่อีกครั้ง';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

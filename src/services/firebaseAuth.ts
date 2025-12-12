@@ -206,11 +206,38 @@ class FirebaseAuthService {
    */
   async resetPassword(email: string) {
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Validate email format
+      if (!email || !email.trim()) {
+        throw new Error('กรุณากรอกอีเมล');
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('รูปแบบอีเมลไม่ถูกต้อง');
+      }
+
+      // Configure action code settings for Thai language
+      const actionCodeSettings = {
+        url: window.location.origin + '/login',
+        handleCodeInApp: false,
+      };
+
+      console.log('Sending password reset email to:', email);
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      console.log('Password reset email sent successfully');
+      
       return { success: true };
     } catch (error: any) {
       console.error('Password reset error:', error);
-      throw new Error(this.getErrorMessage(error.code));
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      
+      // Handle specific Firebase errors
+      if (error.code) {
+        throw new Error(this.getErrorMessage(error.code));
+      }
+      
+      throw new Error(error.message || 'เกิดข้อผิดพลาดในการส่งอีเมล');
     }
   }
 
