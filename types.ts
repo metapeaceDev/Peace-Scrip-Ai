@@ -230,7 +230,52 @@ export interface TeamMember {
   role: string;
   email?: string;
   revenueShare?: number; // Revenue allocation in THB
+  accessRole?: 'owner' | 'admin' | 'editor' | 'viewer'; // Role-based access control
+  permissions?: TeamMemberPermissions; // Detailed permissions
+  invitedBy?: string; // User ID who invited this member
+  joinedAt?: Date; // When they joined the project
 }
+
+export interface TeamMemberPermissions {
+  canEdit: boolean; // Can modify script content
+  canDelete: boolean; // Can delete scenes/characters
+  canInvite: boolean; // Can invite other members
+  canManageTeam: boolean; // Can change member roles/remove members
+  canExport: boolean; // Can export screenplay
+  canManagePayments: boolean; // Can manage revenue/payments
+  canViewAnalytics: boolean; // Can view project analytics
+}
+
+// Role permission presets
+export const ROLE_PERMISSIONS: Record<'admin' | 'editor' | 'viewer', TeamMemberPermissions> = {
+  admin: {
+    canEdit: true,
+    canDelete: true,
+    canInvite: true,
+    canManageTeam: true,
+    canExport: true,
+    canManagePayments: true,
+    canViewAnalytics: true,
+  },
+  editor: {
+    canEdit: true,
+    canDelete: false,
+    canInvite: false,
+    canManageTeam: false,
+    canExport: true,
+    canManagePayments: false,
+    canViewAnalytics: true,
+  },
+  viewer: {
+    canEdit: false,
+    canDelete: false,
+    canInvite: false,
+    canManageTeam: false,
+    canExport: false,
+    canManagePayments: false,
+    canViewAnalytics: false,
+  },
+};
 
 export interface Payment {
   id: string;

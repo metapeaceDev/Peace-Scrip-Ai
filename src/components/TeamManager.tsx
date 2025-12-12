@@ -4,6 +4,7 @@ import { TEAM_ROLES } from '../../constants';
 import { RevenueManagementPage } from './RevenueManagementPage';
 import { teamCollaborationService, CollaboratorRole } from '../services/teamCollaborationService';
 import { auth } from '../config/firebase';
+import { RoleSelector, RoleBadge } from './RoleManagement';
 
 interface TeamManagerProps {
   scriptData: ScriptData;
@@ -16,6 +17,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState(TEAM_ROLES[0]);
   const [newEmail, setNewEmail] = useState('');
+  const [newAccessRole, setNewAccessRole] = useState<CollaboratorRole>('editor'); // New: Access role
   const [showRevenueManagement, setShowRevenueManagement] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<{
@@ -67,6 +69,9 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         name: newName,
         role: newRole,
         email: newEmail,
+        accessRole: newAccessRole, // เพิ่ม access role
+        joinedAt: new Date(),
+        invitedBy: currentUser.uid,
       };
 
       const updatedScriptData = {
@@ -78,6 +83,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         memberName: newName,
         memberEmail: newEmail,
         memberRole: newRole,
+        accessRole: newAccessRole,
         beforeCount: scriptData.team?.length || 0,
         afterCount: updatedScriptData.team.length,
       });
@@ -99,16 +105,6 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         console.warn('⚠️ onSaveProject is not provided!');
       }
 
-      // แปลง role เป็น CollaboratorRole
-      let collaboratorRole: CollaboratorRole = 'editor';
-      if (newRole.includes('ผู้กำกับ') || newRole.includes('Director')) {
-        collaboratorRole = 'editor';
-      } else if (newRole.includes('นักเขียน') || newRole.includes('Writer')) {
-        collaboratorRole = 'editor';
-      } else {
-        collaboratorRole = 'viewer';
-      }
-
       // ส่งคำเชิญผ่าน Firestore (ไม่ critical - ถ้าล้มเหลวก็ไม่ต้องลบทีม)
       try {
         await teamCollaborationService.inviteCollaborator(
@@ -119,8 +115,8 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
           currentUser.email || '',
           newEmail,
           newName,
-          collaboratorRole,
-          `คุณได้รับเชิญให้เข้าร่วมโปรเจ็ค "${scriptData.title || 'Untitled Project'}" ในฐานะ ${newRole}`
+          newAccessRole, // ใช้ access role ที่เลือก
+          `คุณได้รับเชิญให้เข้าร่วมโปรเจ็ค "${scriptData.title || 'Untitled Project'}" ในฐานะ ${newRole} (สิทธิ์: ${newAccessRole})`
         );
 
         setInviteStatus({
@@ -136,14 +132,16 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
       }
 
       // ล้างฟอร์ม
+      // ล้างฟอร์ม
       setNewName('');
       setNewRole(TEAM_ROLES[0]);
       setNewEmail('');
-    } catch (error) {
-      console.error('❌ Error adding member:', error);
+      setNewAccessRole('editor'); // รีเซ็ต access role
+    } catch (err) {
+      console.error('❌ Error adding member:', err);
       setInviteStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเพิ่มทีม',
+        message: err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเพิ่มทีม',
       });
 
       // ลบสมาชิกที่เพิ่มไปชั่วคราว (ถ้า save ล้มเหลว)
@@ -339,6 +337,16 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                 />
               </div>
 
+              {/* Access Role Selector */}
+              <div>
+                <RoleSelector
+                  currentRole={newAccessRole}
+                  onChange={setNewAccessRole}
+                  disabled={isInviting}
+                  showPermissions={true}
+                />
+              </div>
+
               {/* Add Button */}
               <button
                 onClick={handleAddMember}
@@ -408,7 +416,15 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                             </span>
                           )}
                         </h4>
-                        <p className="text-xs text-cyan-400">{member.role}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-cyan-400">{member.role}</p>
+                          {member.accessRole && (
+                            <RoleBadge role={member.accessRole} size="sm" />
+                          )}
+                        </div>
+                        {member.email && (
+                          <p className="text-xs text-gray-500 mt-0.5">{member.email}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">

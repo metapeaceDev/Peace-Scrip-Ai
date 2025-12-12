@@ -19,9 +19,50 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import type { TeamMemberPermissions } from '../../types';
 
-export type CollaboratorRole = 'owner' | 'editor' | 'viewer';
+export type CollaboratorRole = 'owner' | 'admin' | 'editor' | 'viewer';
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected';
+
+// Role permission definitions
+export const ROLE_PERMISSIONS: Record<CollaboratorRole, TeamMemberPermissions> = {
+  owner: {
+    canEdit: true,
+    canDelete: true,
+    canInvite: true,
+    canManageTeam: true,
+    canExport: true,
+    canManagePayments: true,
+    canViewAnalytics: true,
+  },
+  admin: {
+    canEdit: true,
+    canDelete: true,
+    canInvite: true,
+    canManageTeam: true,
+    canExport: true,
+    canManagePayments: true,
+    canViewAnalytics: true,
+  },
+  editor: {
+    canEdit: true,
+    canDelete: false,
+    canInvite: false,
+    canManageTeam: false,
+    canExport: true,
+    canManagePayments: false,
+    canViewAnalytics: true,
+  },
+  viewer: {
+    canEdit: false,
+    canDelete: false,
+    canInvite: false,
+    canManageTeam: false,
+    canExport: false,
+    canManagePayments: false,
+    canViewAnalytics: false,
+  },
+};
 
 export interface ProjectCollaborator {
   userId: string;
@@ -430,6 +471,135 @@ class TeamCollaborationService {
     } catch (error) {
       console.error('⚠️ Warning: Could not create notification:', error);
       // ไม่ throw error เพราะ notification เป็นส่วนเสริม
+    }
+  }
+
+  /**
+   * อัพเดท role ของสมาชิกในทีม
+   */
+  async updateMemberRole(
+    projectId: string,
+    memberEmail: string,
+    newRole: CollaboratorRole,
+    updatedBy: string
+  ): Promise<void> {
+    try {
+      console.log('🔄 Updating member role...');
+      console.log('Project:', projectId);
+      console.log('Member:', memberEmail);
+      console.log('New Role:', newRole);
+      console.log('Updated by:', updatedBy);
+
+      // อัพเดทใน collaborators collection
+      const collaboratorId = `${projectId}_${memberEmail}`;
+      const collaboratorRef = doc(db, 'collaborators', collaboratorId);
+      
+      await updateDoc(collaboratorRef, {
+        role: newRole,
+        updatedAt: Timestamp.now(),
+        updatedBy: updatedBy,
+      });
+
+      console.log('✅ Member role updated successfully');
+    } catch (error) {
+      console.error('❌ Error updating member role:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ตรวจสอบ permission ของ user สำหรับ action ที่ต้องการทำ
+   */
+  async checkPermission(
+    projectId: string,
+    userId: string,
+    permission: keyof TeamMemberPermissions
+  ): Promise<boolean> {
+    try {
+      // ดึงข้อมูล collaborator
+      const collaborator = await this.getCollaboratorRole(projectId, userId);
+      
+      if (!collaborator) {
+        return false; // ไม่ใช่สมาชิกของโปรเจ็ค
+      }
+
+      // ตรวจสอบ permission จาก role
+      const permissions = ROLE_PERMISSIONS[collaborator.role];
+      return permissions[permission] || false;
+    } catch (error) {
+      console.error('❌ Error checking permission:', error);
+      return false;
+    }
+  }
+
+  /**
+   * ดึงข้อมูล role ของ collaborator
+   */
+  async getCollaboratorRole(
+    projectId: string,
+    userIdOrEmail: string
+  ): Promise<ProjectCollaborator | null> {
+    try {
+      // ลองค้นหาโดยใช้ userId ก่อน
+      let collaboratorId = `${projectId}_${userIdOrEmail}`;
+      let collaboratorDoc = await getDoc(doc(db, 'collaborators', collaboratorId));
+
+      if (!collaboratorDoc.exists()) {
+        // ถ้าไม่เจอ ลองค้นหาทุก collaborators ของโปรเจ็คนี้
+        const q = query(
+          collection(db, 'collaborators'),
+          where('projectId', '==', projectId)
+        );
+        
+        const snapshot = await getDocs(q);
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          if (data.userId === userIdOrEmail || data.email === userIdOrEmail) {
+            return {
+              userId: data.userId,
+              email: data.email,
+              name: data.name,
+              role: data.role,
+              addedAt: data.addedAt?.toDate() || new Date(),
+              addedBy: data.addedBy,
+            };
+          }
+        }
+        return null;
+      }
+
+      const data = collaboratorDoc.data();
+      return {
+        userId: data.userId,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        addedAt: data.addedAt?.toDate() || new Date(),
+        addedBy: data.addedBy,
+      };
+    } catch (error) {
+      console.error('❌ Error getting collaborator role:', error);
+      return null;
+    }
+  }
+
+  /**
+   * ดึง permissions ทั้งหมดสำหรับ role
+   */
+  getRolePermissions(role: CollaboratorRole): TeamMemberPermissions {
+    return ROLE_PERMISSIONS[role];
+  }
+
+  /**
+   * ตรวจสอบว่า user เป็น owner หรือ admin หรือไม่
+   */
+  async isAdminOrOwner(projectId: string, userId: string): Promise<boolean> {
+    try {
+      const collaborator = await this.getCollaboratorRole(projectId, userId);
+      return collaborator?.role === 'owner' || collaborator?.role === 'admin';
+    } catch (error) {
+      console.error('❌ Error checking admin status:', error);
+      return false;
     }
   }
 
