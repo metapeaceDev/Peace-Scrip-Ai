@@ -30,25 +30,11 @@ service cloud.firestore {
     function hasPermission(projectId, permission) {
       let collaboratorId = projectId + '_' + request.auth.uid;
       let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
-      
-      if (collaborator == null) {
-        return false;
-      }
-      
-      let role = collaborator.data.role;
+      let role = collaborator != null ? collaborator.data.role : 'none';
       
       // Owner and Admin have all permissions
-      if (role == 'owner' || role == 'admin') {
-        return true;
-      }
-      
-      // Editor permissions
-      if (role == 'editor') {
-        return permission in ['canEdit', 'canExport', 'canViewAnalytics'];
-      }
-      
-      // Viewer has no edit permissions
-      return false;
+      return role == 'owner' || role == 'admin' || 
+             (role == 'editor' && (permission == 'canEdit' || permission == 'canExport' || permission == 'canViewAnalytics'));
     }
     
     // Users collection - users can only read/write their own data

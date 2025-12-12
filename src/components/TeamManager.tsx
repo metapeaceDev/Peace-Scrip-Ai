@@ -274,9 +274,10 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-xl w-full max-w-2xl border border-gray-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
+        <div className="bg-gray-800 rounded-xl w-full max-w-3xl border border-gray-700 shadow-2xl flex flex-col max-h-[90vh]">
+          {/* Header - Fixed */}
+          <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <span className="p-2 bg-cyan-900/50 rounded-lg text-cyan-400">
                 <svg
@@ -329,23 +330,26 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
             </div>
           </div>
 
-          <div className="p-6 bg-gray-900/50 border-b border-gray-700">
-            <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Add Crew Member</h3>
-            
-            {/* Status Message */}
-            {inviteStatus.type && (
-              <div
-                className={`mb-4 p-3 rounded-lg border ${
-                  inviteStatus.type === 'success'
-                    ? 'bg-green-900/30 border-green-600 text-green-400'
-                    : 'bg-red-900/30 border-red-600 text-red-400'
-                }`}
-              >
-                <p className="text-sm">{inviteStatus.message}</p>
-              </div>
-            )}
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Add Member Form */}
+            <div className="p-6 bg-gray-900/50 border-b border-gray-700">
+              <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Add Crew Member</h3>
+              
+              {/* Status Message */}
+              {inviteStatus.type && (
+                <div
+                  className={`mb-4 p-3 rounded-lg border ${
+                    inviteStatus.type === 'success'
+                      ? 'bg-green-900/30 border-green-600 text-green-400'
+                      : 'bg-red-900/30 border-red-600 text-red-400'
+                  }`}
+                >
+                  <p className="text-sm">{inviteStatus.message}</p>
+                </div>
+              )}
 
-            <div className="space-y-4">
+              <div className="space-y-4">
               {/* Name Input */}
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-2">
@@ -448,87 +452,106 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">
-              Current Team ({scriptData.team?.length || 0})
-            </h3>
+            {/* Current Team List */}
+            <div className="p-6">
+              <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center justify-between">
+                <span>Current Team</span>
+                <span className="px-3 py-1 bg-cyan-900/50 text-cyan-400 rounded-full text-xs font-bold">
+                  {scriptData.team?.length || 0} Members
+                </span>
+              </h3>
 
-            {!scriptData.team || scriptData.team.length === 0 ? (
-              <p className="text-center text-gray-500 italic py-8">No team members added yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {scriptData.team.map(member => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-800 to-blue-900 flex items-center justify-center text-white font-bold text-sm">
-                        {member.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-white flex items-center gap-2">
-                          {member.name}
-                          {member.email && (
-                            <span className="px-2 py-0.5 bg-green-900/40 border border-green-600/50 text-green-400 text-xs rounded">
-                              ✅ Saved
-                            </span>
-                          )}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-cyan-400">{member.role}</p>
-                          {member.accessRole && (
-                            <RoleBadge role={member.accessRole} size="sm" />
-                          )}
-                        </div>
-                        {member.email && (
-                          <>
-                            <p className="text-xs text-gray-500 mt-0.5">{member.email}</p>
-                            {/* Role Change Dropdown - Only for members with email */}
-                            <div className="mt-2">
-                              <select
-                                value={member.accessRole || 'editor'}
-                                onChange={(e) => handleRoleChange(member.id, e.target.value as CollaboratorRole)}
-                                className="text-xs bg-gray-900 border border-gray-600 rounded px-2 py-1 text-gray-300 hover:border-cyan-500 transition-colors"
-                              >
-                                <option value="admin">👑 ผู้ดูแล (Admin)</option>
-                                <option value="editor">✏️ แก้ไข (Editor)</option>
-                                <option value="viewer">👁️ อ่านอย่างเดียว (Viewer)</option>
-                              </select>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {member.email && (
-                        <span className="text-xs text-gray-500 hidden sm:inline">
-                          {member.email}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="text-gray-500 hover:text-red-400 transition-colors"
-                        title="ยกเลิกคำเชิญ"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                    </div>
+              {!scriptData.team || scriptData.team.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-700/50 mb-4">
+                    <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="text-gray-500 italic text-sm">ยังไม่มีสมาชิกในทีม</p>
+                  <p className="text-gray-600 text-xs mt-1">เริ่มเพิ่มสมาชิกด้านบนเพื่อสร้างทีมผลิต</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {scriptData.team.map(member => (
+                    <div
+                      key={member.id}
+                      className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-cyan-600/50 transition-all"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Avatar */}
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-base shadow-lg">
+                          {member.name.substring(0, 2).toUpperCase()}
+                        </div>
+
+                        {/* Member Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-white text-base flex items-center gap-2 flex-wrap">
+                                {member.name}
+                                {member.email && (
+                                  <span className="px-2 py-0.5 bg-green-900/40 border border-green-600/50 text-green-400 text-xs rounded flex-shrink-0">
+                                    ✅ Invited
+                                  </span>
+                                )}
+                              </h4>
+                              
+                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                <span className="text-xs text-cyan-400 font-medium">{member.role}</span>
+                                {member.accessRole && (
+                                  <RoleBadge role={member.accessRole} size="sm" />
+                                )}
+                              </div>
+
+                              {member.email && (
+                                <p className="text-xs text-gray-400 mt-1.5 truncate">{member.email}</p>
+                              )}
+
+                              {/* Role Change Dropdown - Only for invited members */}
+                              {member.email && (
+                                <div className="mt-3">
+                                  <label className="block text-xs text-gray-500 mb-1.5">เปลี่ยนสิทธิ์การเข้าถึง:</label>
+                                  <select
+                                    value={member.accessRole || 'editor'}
+                                    onChange={(e) => handleRoleChange(member.id, e.target.value as CollaboratorRole)}
+                                    className="text-sm bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-gray-300 hover:border-cyan-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all outline-none w-full max-w-xs"
+                                  >
+                                    <option value="admin">👑 ผู้ดูแล (Admin) - ทุกสิทธิ์</option>
+                                    <option value="editor">✏️ แก้ไข (Editor) - แก้ไข + ส่งออก</option>
+                                    <option value="viewer">👁️ ดูอย่างเดียว (Viewer) - อ่านอย่างเดียว</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => handleRemoveMember(member.id)}
+                              className="flex-shrink-0 text-gray-500 hover:text-red-400 hover:bg-red-900/20 p-2 rounded-lg transition-all"
+                              title="ลบสมาชิก"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
