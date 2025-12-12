@@ -16,6 +16,7 @@ import {
   Timestamp,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -430,6 +431,71 @@ class TeamCollaborationService {
       console.error('⚠️ Warning: Could not create notification:', error);
       // ไม่ throw error เพราะ notification เป็นส่วนเสริม
     }
+  }
+
+  /**
+   * Subscribe to real-time invitation updates
+   * ติดตาม invitation แบบ real-time และ callback เมื่อมีการเปลี่ยนแปลง
+   */
+  subscribeToInvitations(
+    userEmail: string,
+    callback: (count: number, latestInvitation?: ProjectInvitation) => void
+  ): () => void {
+    console.log('🔔 Subscribing to invitations for:', userEmail);
+
+    // สร้าง query สำหรับ invitations ของ user
+    const q = query(
+      collection(db, 'projectInvitations'),
+      where('inviteeEmail', '==', userEmail),
+      where('status', '==', 'pending')
+    );
+
+    // ติดตาม real-time changes
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const invitations: ProjectInvitation[] = [];
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          invitations.push({
+            id: doc.id,
+            projectId: data.projectId,
+            projectTitle: data.projectTitle,
+            inviterUserId: data.inviterUserId,
+            inviterName: data.inviterName,
+            inviterEmail: data.inviterEmail,
+            inviteeEmail: data.inviteeEmail,
+            inviteeName: data.inviteeName,
+            role: data.role,
+            status: data.status,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            respondedAt: data.respondedAt?.toDate(),
+            message: data.message,
+          });
+        });
+
+        // เรียง invitation ตาม createdAt (ใหม่สุดก่อน)
+        invitations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+        const count = invitations.length;
+        const latest = invitations[0];
+
+        console.log(`🔔 Real-time update: ${count} pending invitation(s)`);
+        if (latest) {
+          console.log(`   Latest: ${latest.projectTitle} from ${latest.inviterName}`);
+        }
+
+        // Callback with count and latest invitation
+        callback(count, latest);
+      },
+      (error) => {
+        console.error('❌ Error in invitation subscription:', error);
+      }
+    );
+
+    // Return unsubscribe function
+    return unsubscribe;
   }
 }
 
