@@ -10,6 +10,7 @@ import {
   getRedirectResult,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User,
   updateProfile
 } from 'firebase/auth';
@@ -201,6 +202,19 @@ class FirebaseAuthService {
   }
 
   /**
+   * Send password reset email
+   */
+  async resetPassword(email: string) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      throw new Error(this.getErrorMessage(error.code));
+    }
+  }
+
+  /**
    * Get user-friendly error messages
    */
   private getErrorMessage(errorCode: string): string {
@@ -211,7 +225,7 @@ class FirebaseAuthService {
       'auth/operation-not-allowed': 'การดำเนินการนี้ไม่ได้รับอนุญาต',
       'auth/weak-password': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
       'auth/user-disabled': 'บัญชีนี้ถูกระงับ',
-      'auth/user-not-found': 'ไม่พบผู้ใช้นี้',
+      'auth/user-not-found': 'ไม่พบอีเมลนี้ในระบบ',
       'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
       'auth/popup-closed-by-user': 'ปิดหน้าต่าง login',
       'auth/cancelled-popup-request': 'ยกเลิกการ login',
