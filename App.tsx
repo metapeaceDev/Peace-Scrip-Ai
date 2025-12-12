@@ -1499,6 +1499,7 @@ function App() {
             scriptData={scriptData}
             setScriptData={setScriptData}
             onClose={() => setIsTeamManagerOpen(false)}
+            onSaveProject={saveCurrentProject}
           />
         )}
 

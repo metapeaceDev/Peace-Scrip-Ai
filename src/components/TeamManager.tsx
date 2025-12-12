@@ -9,9 +9,10 @@ interface TeamManagerProps {
   scriptData: ScriptData;
   setScriptData: React.Dispatch<React.SetStateAction<ScriptData>>;
   onClose: () => void;
+  onSaveProject?: (data: ScriptData) => Promise<boolean>; // Add save callback
 }
 
-const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, onClose }) => {
+const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, onClose, onSaveProject }) => {
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState(TEAM_ROLES[0]);
   const [newEmail, setNewEmail] = useState('');
@@ -122,11 +123,52 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     }
   };
 
-  const handleRemoveMember = (id: string) => {
-    setScriptData(prev => ({
-      ...prev,
-      team: prev.team.filter(m => m.id !== id),
-    }));
+  const handleRemoveMember = async (id: string) => {
+    try {
+      const memberToRemove = scriptData.team.find(m => m.id === id);
+      if (!memberToRemove) return;
+
+      // ยืนยันการลบ
+      if (!confirm(`ต้องการลบ ${memberToRemove.name} ออกจากทีมหรือไม่?`)) {
+        return;
+      }
+
+      // ลบจาก local state
+      const updatedScriptData = {
+        ...scriptData,
+        team: scriptData.team.filter(m => m.id !== id),
+      };
+
+      setScriptData(updatedScriptData);
+
+      // บันทึกทันที (save to Firestore/localStorage)
+      if (onSaveProject) {
+        console.log('💾 Saving project after removing team member...');
+        await onSaveProject(updatedScriptData);
+      }
+
+      // ยกเลิก invitation ใน Firestore (ถ้ามี)
+      if (memberToRemove.email && scriptData.id) {
+        try {
+          // ค้นหา pending invitation
+          const invitations = await teamCollaborationService.getPendingInvitations(memberToRemove.email);
+          const projectInvitation = invitations.find(inv => inv.projectId === scriptData.id);
+          
+          if (projectInvitation) {
+            console.log('🗑️ Cancelling invitation:', projectInvitation.id);
+            await teamCollaborationService.rejectInvitation(projectInvitation.id);
+          }
+        } catch (error) {
+          console.error('❌ Error cancelling invitation:', error);
+          // ไม่ throw error เพราะอาจยังไม่มี invitation ใน Firestore
+        }
+      }
+
+      console.log('✅ Member removed from team and saved');
+    } catch (error) {
+      console.error('❌ Error removing member:', error);
+      alert('เกิดข้อผิดพลาดในการลบสมาชิก');
+    }
   };
 
   return (
