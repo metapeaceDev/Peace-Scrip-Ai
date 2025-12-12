@@ -231,6 +231,9 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
       const member = scriptData.team.find(m => m.id === memberId);
       if (!member) return;
 
+      // Store old role before changing (with fallback to 'editor')
+      const oldRole = member.accessRole || 'editor';
+
       // Set saving state
       setSavingRoleFor(memberId);
 
@@ -253,43 +256,50 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
 
         console.log(`✅ Role updated: ${member.name} → ${newRole}`);
 
-        // Send notifications
-        try {
-          // Notify admin who made the change
-          await teamCollaborationService.createNotification(
-            currentUser.uid,
-            'role_changed',
-            'เปลี่ยนสิทธิ์สมาชิกสำเร็จ',
-            `คุณเปลี่ยนสิทธิ์ของ ${member.name} เป็น ${getRoleLabel(newRole)}`,
-            {
-              projectId: scriptData.id,
-              memberId: member.id,
-              memberName: member.name,
-              newRole: newRole,
-            }
-          );
+        // ✅ Close dialog immediately after Firestore update succeeds
+        setPendingRoleChange(null);
+        setSavingRoleFor(null);
 
-          // Notify the user whose role was changed
-          if (member.id !== currentUser.uid) {
+        // Send notifications (don't wait - run in background)
+        (async () => {
+          try {
+            // Notify admin who made the change
             await teamCollaborationService.createNotification(
-              member.id,
+              currentUser.uid,
               'role_changed',
-              'สิทธิ์ของคุณถูกเปลี่ยน',
-              `สิทธิ์ของคุณในโปรเจ็กต์ "${scriptData.title || 'โปรเจ็กต์'}" ถูกเปลี่ยนเป็น ${getRoleLabel(newRole)}`,
+              'เปลี่ยนสิทธิ์สมาชิกสำเร็จ',
+              `คุณเปลี่ยนสิทธิ์ของ ${member.name} เป็น ${getRoleLabel(newRole)}`,
               {
                 projectId: scriptData.id,
-                oldRole: member.accessRole,
+                memberId: member.id,
+                memberName: member.name,
+                oldRole: oldRole, // ✅ Use stored oldRole
                 newRole: newRole,
-                changedBy: currentUser.uid,
               }
             );
-          }
 
-          console.log('✅ Notifications sent');
-        } catch (notifError) {
-          console.error('⚠️ Error sending notifications:', notifError);
-          // Don't fail the whole operation if notification fails
-        }
+            // Notify the user whose role was changed
+            if (member.id !== currentUser.uid) {
+              await teamCollaborationService.createNotification(
+                member.id,
+                'role_changed',
+                'สิทธิ์ของคุณถูกเปลี่ยน',
+                `สิทธิ์ของคุณในโปรเจ็กต์ "${scriptData.title || 'โปรเจ็กต์'}" ถูกเปลี่ยนเป็น ${getRoleLabel(newRole)}`,
+                {
+                  projectId: scriptData.id,
+                  oldRole: oldRole, // ✅ Use stored oldRole
+                  newRole: newRole,
+                  changedBy: currentUser.uid,
+                }
+              );
+            }
+
+            console.log('✅ Notifications sent');
+          } catch (notifError) {
+            console.error('⚠️ Error sending notifications:', notifError);
+            // Don't fail the whole operation if notification fails
+          }
+        })();
       }
 
       // Update local state
@@ -306,10 +316,11 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
 
       setScriptData(updatedScriptData);
 
-      // Save project
-      if (onSaveProject) {
-        await onSaveProject(updatedScriptData);
-      }
+      // ⚡ Don't save project immediately - let auto-save handle it
+      // This avoids uploading 23MB poster multiple times
+      // if (onSaveProject) {
+      //   await onSaveProject(updatedScriptData);
+      // }
 
       // Show success message
       setInviteStatus({
@@ -317,9 +328,6 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         message: `✅ บันทึกแล้ว: เปลี่ยนสิทธิ์ของ ${member.name} เป็น ${getRoleLabel(newRole)}`,
       });
 
-      // Clear states
-      setSavingRoleFor(null);
-      setPendingRoleChange(null);
     } catch (error) {
       console.error('❌ Error changing role:', error);
       setSavingRoleFor(null);
