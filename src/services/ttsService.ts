@@ -113,7 +113,7 @@ export class TTSService {
   }
 
   /**
-   * Google TTS (Free) - Using unofficial gTTS API
+   * Google TTS (Free) - Using unofficial gTTS API with CORS proxy
    * No API key required!
    */
   private async speakGTTS(text: string, settings: TTSSettings): Promise<void> {
@@ -147,35 +147,91 @@ export class TTSService {
         chunks.push(text);
       }
 
-      // Process each chunk
+      // Process each chunk with fallback endpoints
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         console.log(`🎵 Processing chunk ${i + 1}/${chunks.length}...`);
 
-        // Use Google Translate TTS endpoint (unofficial but free)
         const encodedText = encodeURIComponent(chunk);
-        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodedText}`;
-
-        const audio = new Audio(audioUrl);
-        audio.volume = settings.volume;
-        // Note: rate and pitch can't be controlled with this method
         
-        await new Promise<void>((resolve, reject) => {
-          audio.onended = () => {
-            console.log(`✅ Chunk ${i + 1}/${chunks.length} completed`);
-            resolve();
-          };
-          audio.onerror = (e) => {
-            console.error('❌ Audio playback failed:', e);
-            reject(new Error('Audio playback failed. Check internet connection.'));
-          };
-          audio.play().catch((err) => {
-            console.error('❌ Play failed:', err);
-            reject(new Error('Failed to play audio. Browser may have blocked autoplay.'));
-          });
-        });
+        // Try multiple endpoints (CORS proxies) in order
+        const endpoints = [
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodedText}`)}`,
+          `https://corsproxy.io/?${encodeURIComponent(`https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodedText}`)}`,
+          `https://translate.google.com/translate_tts?ie=UTF-8&tl=th&client=tw-ob&q=${encodedText}` // Direct (may not work)
+        ];
 
-        // Small delay between chunks
+        let success = false;
+        let lastError: Error | null = null;
+
+        for (const audioUrl of endpoints) {
+          try {
+            console.log(`🔗 Trying endpoint...`);
+            
+            const audio = new Audio();
+            audio.volume = settings.volume;
+            audio.crossOrigin = 'anonymous';
+            
+            await new Promise<void>((resolve, reject) => {
+              let settled = false;
+              
+              const cleanup = () => {
+                audio.onended = null;
+                audio.onerror = null;
+              };
+              
+              audio.onended = () => {
+                if (!settled) {
+                  settled = true;
+                  cleanup();
+                  console.log(`✅ Chunk ${i + 1}/${chunks.length} completed`);
+                  resolve();
+                }
+              };
+              
+              audio.onerror = (_e) => {
+                if (!settled) {
+                  settled = true;
+                  cleanup();
+                  reject(new Error('Audio load failed'));
+                }
+              };
+              
+              audio.src = audioUrl;
+              audio.load();
+              
+              audio.play().catch((err) => {
+                if (!settled) {
+                  settled = true;
+                  cleanup();
+                  reject(err);
+                }
+              });
+              
+              // 10 second timeout
+              setTimeout(() => {
+                if (!settled) {
+                  settled = true;
+                  cleanup();
+                  reject(new Error('Timeout'));
+                }
+              }, 10000);
+            });
+
+            success = true;
+            break; // Success!
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            console.warn(`⚠️ Endpoint failed, trying next...`);
+            continue;
+          }
+        }
+
+        if (!success) {
+          throw new Error(`All endpoints failed. Last error: ${lastError?.message}`);
+        }
+
+        // Pause between chunks
         if (i < chunks.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 400));
         }
@@ -184,12 +240,7 @@ export class TTSService {
       console.log('✅ All chunks completed successfully');
     } catch (error) {
       console.error('❌ gTTS error:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('network') || error.message.includes('internet')) {
-          throw new Error('Cannot connect to Google TTS. Please check your internet connection.');
-        }
-      }
-      throw error;
+      throw new Error('Google TTS (Free) is temporarily unavailable. Please use Browser TTS or a paid service instead.');
     }
   }
 
