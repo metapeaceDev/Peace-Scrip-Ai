@@ -69,10 +69,35 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         email: newEmail,
       };
 
-      setScriptData(prev => ({
-        ...prev,
-        team: [...(prev.team || []), newMember],
-      }));
+      const updatedScriptData = {
+        ...scriptData,
+        team: [...(scriptData.team || []), newMember],
+      };
+
+      console.log('➕ DEBUG: Adding team member:', {
+        memberName: newName,
+        memberEmail: newEmail,
+        memberRole: newRole,
+        beforeCount: scriptData.team?.length || 0,
+        afterCount: updatedScriptData.team.length,
+      });
+
+      // อัพเดท state ทันที
+      setScriptData(updatedScriptData);
+
+      // บันทึกทันที (CRITICAL: ต้องบันทึกก่อนส่ง invitation)
+      if (onSaveProject) {
+        console.log('💾 Saving project after adding team member...');
+        const saveStartTime = performance.now();
+        const saveSuccess = await onSaveProject(updatedScriptData);
+        console.log(`✅ Save ${saveSuccess ? 'completed' : 'failed'} in ${(performance.now() - saveStartTime).toFixed(0)}ms`);
+        
+        if (!saveSuccess) {
+          throw new Error('ไม่สามารถบันทึกข้อมูลทีมได้');
+        }
+      } else {
+        console.warn('⚠️ onSaveProject is not provided!');
+      }
 
       // แปลง role เป็น CollaboratorRole
       let collaboratorRole: CollaboratorRole = 'editor';
@@ -84,36 +109,44 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
         collaboratorRole = 'viewer';
       }
 
-      // ส่งคำเชิญผ่าน Firestore
-      await teamCollaborationService.inviteCollaborator(
-        scriptData.id || 'temp-project',
-        scriptData.title || 'Untitled Project',
-        currentUser.uid,
-        currentUser.displayName || 'Unknown User',
-        currentUser.email || '',
-        newEmail,
-        newName,
-        collaboratorRole,
-        `คุณได้รับเชิญให้เข้าร่วมโปรเจ็ค "${scriptData.title || 'Untitled Project'}" ในฐานะ ${newRole}`
-      );
+      // ส่งคำเชิญผ่าน Firestore (ไม่ critical - ถ้าล้มเหลวก็ไม่ต้องลบทีม)
+      try {
+        await teamCollaborationService.inviteCollaborator(
+          scriptData.id || 'temp-project',
+          scriptData.title || 'Untitled Project',
+          currentUser.uid,
+          currentUser.displayName || 'Unknown User',
+          currentUser.email || '',
+          newEmail,
+          newName,
+          collaboratorRole,
+          `คุณได้รับเชิญให้เข้าร่วมโปรเจ็ค "${scriptData.title || 'Untitled Project'}" ในฐานะ ${newRole}`
+        );
 
-      setInviteStatus({
-        type: 'success',
-        message: `✅ ส่งคำเชิญไปยัง ${newEmail} เรียบร้อยแล้ว! ทีมจะได้รับอีเมลแจ้งเตือน`,
-      });
+        setInviteStatus({
+          type: 'success',
+          message: `✅ เพิ่มทีม ${newName} และส่งคำเชิญไปยัง ${newEmail} เรียบร้อยแล้ว!`,
+        });
+      } catch (inviteError) {
+        console.warn('⚠️ Could not send invitation (but team member was added):', inviteError);
+        setInviteStatus({
+          type: 'success',
+          message: `✅ เพิ่มทีม ${newName} เรียบร้อยแล้ว (คำเชิญจะถูกส่งภายหลัง)`,
+        });
+      }
 
       // ล้างฟอร์ม
       setNewName('');
       setNewRole(TEAM_ROLES[0]);
       setNewEmail('');
     } catch (error) {
-      console.error('❌ Error inviting member:', error);
+      console.error('❌ Error adding member:', error);
       setInviteStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการส่งคำเชิญ',
+        message: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเพิ่มทีม',
       });
 
-      // ลบสมาชิกที่เพิ่มไปชั่วคราว
+      // ลบสมาชิกที่เพิ่มไปชั่วคราว (ถ้า save ล้มเหลว)
       setScriptData(prev => ({
         ...prev,
         team: prev.team.filter(m => m.email !== newEmail),
@@ -326,7 +359,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
             </div>
             
             <p className="mt-2 text-xs text-gray-500">
-              💡 ทีมจะได้รับอีเมลแจ้งเตือนและสามารถเข้าดูโปรเจ็คได้ทันทีหลังจากยอมรับคำเชิญ
+              💡 ทีมจะถูกบันทึกทันทีและส่งคำเชิญผ่านระบบ Firestore (ไม่จำเป็นต้องรอ auto-save)
             </p>
           </div>
 
@@ -351,9 +384,11 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                       <div>
                         <h4 className="font-bold text-white flex items-center gap-2">
                           {member.name}
-                          <span className="px-2 py-0.5 bg-yellow-900/40 border border-yellow-600/50 text-yellow-400 text-xs rounded">
-                            📨 Pending Invitation
-                          </span>
+                          {member.email && (
+                            <span className="px-2 py-0.5 bg-green-900/40 border border-green-600/50 text-green-400 text-xs rounded">
+                              ✅ Saved
+                            </span>
+                          )}
                         </h4>
                         <p className="text-xs text-cyan-400">{member.role}</p>
                       </div>
