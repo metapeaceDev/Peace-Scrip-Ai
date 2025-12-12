@@ -202,7 +202,6 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
           }
         } catch (error) {
           console.error('❌ Error cancelling invitation:', error);
-          // ไม่ throw error เพราะอาจยังไม่มี invitation ใน Firestore
         }
       }
 
@@ -210,6 +209,66 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     } catch (error) {
       console.error('❌ Error removing member:', error);
       alert('เกิดข้อผิดพลาดในการลบสมาชิก');
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, newRole: CollaboratorRole) => {
+    try {
+      const member = scriptData.team.find(m => m.id === memberId);
+      if (!member) return;
+
+      // ยืนยันการเปลี่ยน role
+      if (!confirm(`ต้องการเปลี่ยนสิทธิ์ของ ${member.name} เป็น ${newRole} หรือไม่?`)) {
+        return;
+      }
+
+      // Update in Firestore
+      if (scriptData.id && member.email) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          alert('กรุณาเข้าสู่ระบบก่อน');
+          return;
+        }
+
+        await teamCollaborationService.updateMemberRole(
+          scriptData.id,
+          member.email,
+          newRole,
+          currentUser.uid
+        );
+
+        console.log(`✅ Role updated: ${member.name} → ${newRole}`);
+      }
+
+      // Update local state
+      const updatedTeam = scriptData.team.map(m =>
+        m.id === memberId
+          ? { ...m, accessRole: newRole }
+          : m
+      );
+
+      const updatedScriptData = {
+        ...scriptData,
+        team: updatedTeam,
+      };
+
+      setScriptData(updatedScriptData);
+
+      // Save project
+      if (onSaveProject) {
+        await onSaveProject(updatedScriptData);
+      }
+
+      setInviteStatus({
+        type: 'success',
+        message: `เปลี่ยนสิทธิ์ของ ${member.name} เป็น ${newRole} แล้ว`,
+      });
+    } catch (error) {
+      console.error('❌ Error changing role:', error);
+      setInviteStatus({
+        type: 'error',
+        message: 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์',
+      });
     }
   };
 
@@ -407,7 +466,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-800 to-blue-900 flex items-center justify-center text-white font-bold text-sm">
                         {member.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-bold text-white flex items-center gap-2">
                           {member.name}
                           {member.email && (
@@ -423,7 +482,21 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
                           )}
                         </div>
                         {member.email && (
-                          <p className="text-xs text-gray-500 mt-0.5">{member.email}</p>
+                          <>
+                            <p className="text-xs text-gray-500 mt-0.5">{member.email}</p>
+                            {/* Role Change Dropdown - Only for members with email */}
+                            <div className="mt-2">
+                              <select
+                                value={member.accessRole || 'editor'}
+                                onChange={(e) => handleRoleChange(member.id, e.target.value as CollaboratorRole)}
+                                className="text-xs bg-gray-900 border border-gray-600 rounded px-2 py-1 text-gray-300 hover:border-cyan-500 transition-colors"
+                              >
+                                <option value="admin">👑 ผู้ดูแล (Admin)</option>
+                                <option value="editor">✏️ แก้ไข (Editor)</option>
+                                <option value="viewer">👁️ อ่านอย่างเดียว (Viewer)</option>
+                              </select>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>

@@ -14,6 +14,8 @@ import { MotionEditor } from './MotionEditor';
 import type { MotionEdit } from '../types/motionEdit';
 import { DEFAULT_MOTION_EDIT } from '../types/motionEdit';
 import MotionEditorPage from '../pages/MotionEditorPage';
+import { PermissionGuard } from './RoleManagement';
+import type { CollaboratorRole } from '../services/teamCollaborationService';
 
 interface Step5OutputProps {
   scriptData: ScriptData;
@@ -29,6 +31,7 @@ interface Step5OutputProps {
   ) => void;
   returnToScene?: { pointTitle: string; sceneIndex: number } | null;
   onResetReturnToScene?: () => void;
+  userRole?: CollaboratorRole; // User's role for permission checking
 }
 
 // --- Constants for Shot List Dropdowns ---
@@ -3192,6 +3195,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   onNavigateToCharacter,
   returnToScene,
   onResetReturnToScene,
+  userRole = 'editor', // Default to editor if not specified
 }) => {
   // i18n
   const { t } = useTranslation();
@@ -4102,27 +4106,29 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         </div>
 
         <div className="flex gap-3">
-          {!allDone && (
-            <button
-              onClick={handleGenerateAll}
-              disabled={isLoading}
-              className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-500 hover:to-green-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+          <PermissionGuard permission="canEdit" userRole={userRole}>
+            {!allDone && (
+              <button
+                onClick={handleGenerateAll}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-500 hover:to-green-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {isLoading ? t('step5.buttons.generating') : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
-            </button>
-          )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {isLoading ? t('step5.buttons.generating') : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
+              </button>
+            )}
+          </PermissionGuard>
           
           <button
             onClick={() => setShowPreview(!showPreview)}
@@ -4131,76 +4137,78 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             {showPreview ? t('step5.buttons.hidePreview') : t('step5.buttons.showPreview')}
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
-            >
-              <span>{t('step5.buttons.export')}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+          <PermissionGuard permission="canExport" userRole={userRole}>
+            <div className="relative">
+              <button
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-2 rounded-lg shadow-lg transition-all flex items-center gap-2 font-bold"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+                <span>{t('step5.buttons.export')}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
 
-            {isExportMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                <button 
-                  onClick={() => {
-                    downloadScreenplayPDF();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
-                >
-                  📄 Screenplay (PDF/HTML)
-                </button>
-                <button 
-                  onClick={() => {
-                    downloadScreenplay();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
-                >
-                  📝 Screenplay (TXT)
-                </button>
-                <button 
-                  onClick={() => {
-                    alert(t('step5.export.finalDraftNote'));
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
-                >
-                  🎬 Export as Final Draft (.fdx)
-                </button>
-                <button 
-                  onClick={() => {
-                    downloadShotList();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
-                >
-                  📊 Export Shot List (.csv)
-                </button>
-                <button 
-                  onClick={() => {
-                    downloadStoryboard();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm"
-                >
-                  🎨 Export Storyboard (.html)
-                </button>
-              </div>
-            )}
-          </div>
+              {isExportMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <button 
+                    onClick={() => {
+                      downloadScreenplayPDF();
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                  >
+                    📄 Screenplay (PDF/HTML)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      downloadScreenplay();
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                  >
+                    📝 Screenplay (TXT)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      alert(t('step5.export.finalDraftNote'));
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                  >
+                    🎬 Export as Final Draft (.fdx)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      downloadShotList();
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
+                  >
+                    📊 Export Shot List (.csv)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      downloadStoryboard();
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm"
+                  >
+                    🎨 Export Storyboard (.html)
+                  </button>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
         </div>
       </div>
 

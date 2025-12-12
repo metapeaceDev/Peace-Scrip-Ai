@@ -222,6 +222,8 @@ export interface ProjectMetadata {
   type: ProjectType;
   lastModified: number;
   posterImage?: string; // New field for project thumbnail/poster
+  userId?: string; // Owner user ID for permission checking
+  userRole?: 'owner' | 'admin' | 'editor' | 'viewer'; // Current user's role in this project
 }
 
 export interface TeamMember {

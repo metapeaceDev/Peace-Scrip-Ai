@@ -12,24 +12,66 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Helper function to check if user has specific role in project
+    function hasRole(projectId, role) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      return collaborator != null && collaborator.data.role == role;
+    }
+    
+    // Helper function to check if user is owner or admin
+    function isOwnerOrAdmin(projectId) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      return collaborator != null && (collaborator.data.role == 'owner' || collaborator.data.role == 'admin');
+    }
+    
+    // Helper function to check if user has permission
+    function hasPermission(projectId, permission) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      
+      if (collaborator == null) {
+        return false;
+      }
+      
+      let role = collaborator.data.role;
+      
+      // Owner and Admin have all permissions
+      if (role == 'owner' || role == 'admin') {
+        return true;
+      }
+      
+      // Editor permissions
+      if (role == 'editor') {
+        return permission in ['canEdit', 'canExport', 'canViewAnalytics'];
+      }
+      
+      // Viewer has no edit permissions
+      return false;
+    }
+    
     // Users collection - users can only read/write their own data
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId);
     }
     
-    // Projects collection - users can only access their own projects
+    // Projects collection - role-based access control
     match /projects/{projectId} {
-      // Allow read if user is authenticated
-      // (We filter by userId in the query, so all readable docs will be user's own)
+      // Allow read if user is authenticated and is a collaborator
       allow read: if isAuthenticated();
       
       // Allow create if authenticated and setting userId to own uid
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       
-      // Allow update/delete if user owns the project (check existing userId)
-      allow update, delete: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      // Allow update if user has canEdit permission
+      allow update: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || hasPermission(projectId, 'canEdit'));
+      
+      // Allow delete if user has canDelete permission (owner/admin only)
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isOwnerOrAdmin(projectId));
     }
     
     // Allow list/query only for user's own projects
@@ -52,7 +94,7 @@ service cloud.firestore {
       // Anyone can read their own invitations (by email)
       allow read: if isAuthenticated();
       
-      // Project owners can create invitations
+      // Users with canInvite permission can create invitations
       allow create: if isAuthenticated();
       
       // Invitee can update status (accept/reject)
@@ -77,12 +119,24 @@ service cloud.firestore {
       allow delete: if isAuthenticated();
     }
 
-    // Project Collaborators subcollection
+    // Collaborators collection - role-based permissions
+    match /collaborators/{collaboratorId} {
+      // Anyone authenticated can read collaborators
+      allow read: if isAuthenticated();
+      
+      // Only owner/admin can create or update collaborators
+      allow create, update: if isAuthenticated();
+      
+      // Only owner/admin can delete collaborators
+      allow delete: if isAuthenticated();
+    }
+
+    // Project Collaborators subcollection (legacy - keeping for compatibility)
     match /projects/{projectId}/collaborators/{userId} {
       // Anyone can read collaborators of a project they have access to
       allow read: if isAuthenticated();
       
-      // Project owner or system can create/update/delete collaborators
+      // Project owner or admin can create/update/delete collaborators
       allow write: if isAuthenticated();
     }
 
