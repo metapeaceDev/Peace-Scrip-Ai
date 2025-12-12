@@ -39,8 +39,15 @@ service cloud.firestore {
     
     // Users collection - users can only read/write their own data
     match /users/{userId} {
+      // Allow read own document
       allow read: if isOwner(userId);
+      
+      // Allow write own document
       allow write: if isOwner(userId);
+      
+      // Allow query by email (needed for team collaboration)
+      // Only authenticated users can query to find userId from email
+      allow list: if isAuthenticated();
     }
     
     // Projects collection - role-based access control
