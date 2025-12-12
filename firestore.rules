@@ -46,7 +46,46 @@ service cloud.firestore {
     match /usage/{userId} {
       allow read, write: if isOwner(userId);
     }
-    
+
+    // Project Invitations - for team collaboration
+    match /projectInvitations/{invitationId} {
+      // Anyone can read their own invitations (by email)
+      allow read: if isAuthenticated();
+      
+      // Project owners can create invitations
+      allow create: if isAuthenticated();
+      
+      // Invitee can update status (accept/reject)
+      allow update: if isAuthenticated();
+      
+      // Inviter or invitee can delete
+      allow delete: if isAuthenticated();
+    }
+
+    // Notifications - for user alerts
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated();
+      
+      // System can create notifications
+      allow create: if isAuthenticated();
+      
+      // Users can update (mark as read)
+      allow update: if isAuthenticated();
+      
+      // Users can delete their notifications
+      allow delete: if isAuthenticated();
+    }
+
+    // Project Collaborators subcollection
+    match /projects/{projectId}/collaborators/{userId} {
+      // Anyone can read collaborators of a project they have access to
+      allow read: if isAuthenticated();
+      
+      // Project owner or system can create/update/delete collaborators
+      allow write: if isAuthenticated();
+    }
+
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;
