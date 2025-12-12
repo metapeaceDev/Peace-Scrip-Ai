@@ -490,15 +490,27 @@ class TeamCollaborationService {
       console.log('New Role:', newRole);
       console.log('Updated by:', updatedBy);
 
-      // อัพเดทใน collaborators collection (ใช้ email เป็น key)
-      const collaboratorId = `${projectId}_${memberEmail}`;
-      const collaboratorRef = doc(db, 'collaborators', collaboratorId);
+      // หา userId จาก email ก่อน
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', memberEmail));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        console.error('❌ User not found with email:', memberEmail);
+        throw new Error('User not found');
+      }
+
+      const userId = querySnapshot.docs[0].id;
+      console.log('✅ Found userId:', userId);
+
+      // อัพเดทใน subcollection (วิธีที่ถูกต้อง)
+      const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
       
       // ตรวจสอบว่า document มีอยู่จริง
       const collaboratorDoc = await getDoc(collaboratorRef);
       if (!collaboratorDoc.exists()) {
-        console.error('❌ Collaborator not found:', collaboratorId);
-        throw new Error('Collaborator not found');
+        console.error('❌ Collaborator not found in subcollection:', userId);
+        throw new Error('Collaborator not found in project');
       }
 
       await updateDoc(collaboratorRef, {
@@ -506,6 +518,22 @@ class TeamCollaborationService {
         updatedAt: Timestamp.now(),
         updatedBy: updatedBy,
       });
+
+      console.log('✅ Member role updated successfully in subcollection');
+
+      // อัพเดทใน top-level collection ด้วย (ถ้ามี - legacy support)
+      const legacyCollaboratorId = `${projectId}_${memberEmail}`;
+      const legacyCollaboratorRef = doc(db, 'collaborators', legacyCollaboratorId);
+      const legacyDoc = await getDoc(legacyCollaboratorRef);
+      
+      if (legacyDoc.exists()) {
+        await updateDoc(legacyCollaboratorRef, {
+          role: newRole,
+          updatedAt: Timestamp.now(),
+          updatedBy: updatedBy,
+        });
+        console.log('✅ Legacy collaborator record also updated');
+      }
 
       console.log('✅ Member role updated successfully in Firestore');
     } catch (error) {
