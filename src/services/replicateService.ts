@@ -144,6 +144,7 @@ async function waitForPrediction(
   const startTime = Date.now();
   const pollInterval = 2000; // 2 seconds
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     // Check timeout
     if (Date.now() - startTime > timeoutMs) {

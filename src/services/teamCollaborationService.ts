@@ -604,8 +604,8 @@ class TeamCollaborationService {
   ): Promise<ProjectCollaborator | null> {
     try {
       // ลองค้นหาโดยใช้ userId ก่อน
-      let collaboratorId = `${projectId}_${userIdOrEmail}`;
-      let collaboratorDoc = await getDoc(doc(db, 'collaborators', collaboratorId));
+      const collaboratorId = `${projectId}_${userIdOrEmail}`;
+      const collaboratorDoc = await getDoc(doc(db, 'collaborators', collaboratorId));
 
       if (!collaboratorDoc.exists()) {
         // ถ้าไม่เจอ ลองค้นหาทุก collaborators ของโปรเจ็คนี้

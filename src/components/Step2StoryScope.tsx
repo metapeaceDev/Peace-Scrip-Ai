@@ -232,7 +232,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
   // TTS Settings handlers
   const handleSaveTtsSettings = (settings: TTSSettings) => {
     // Validate before saving
-    let validatedSettings = { ...settings };
+    const validatedSettings = { ...settings };
     
     // If engine requires API key but key is missing, fall back to browser
     if (settings.engine === 'google' && !settings.googleApiKey) {
@@ -758,7 +758,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
               <svg className="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-sm">Click "Generate AI" button to create synopsis</p>
+              <p className="text-sm">Click &quot;Generate AI&quot; button to create synopsis</p>
               <p className="text-xs mt-2 text-gray-600">Synopsis will be generated from Title, Big Idea, Premise, Theme, Log Line, and Timeline</p>
             </div>
           )}

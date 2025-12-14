@@ -25,6 +25,24 @@ import {
 } from '../types/motionEdit';
 import type { Character } from '../../types';
 
+interface PropListItem {
+  propArt: string;
+  sceneSetDetails: string;
+}
+
+interface SceneDetailsSituation {
+  description: string;
+  characterThoughts: string;
+  dialogue: any[];
+}
+
+interface SceneDetailsType {
+  characters: string[];
+  location: string;
+  situations: SceneDetailsSituation[];
+  moodTone: string;
+}
+
 interface MotionEditorProps {
   character?: Character;
   initialMotionEdit?: MotionEdit;
@@ -34,13 +52,8 @@ interface MotionEditorProps {
   sceneTitle?: string;
   shotNumber?: number;
   // 🎯 NEW: Rich context data for AI generation
-  propList?: { propArt: string; sceneSetDetails: string }[];
-  sceneDetails?: {
-    characters: string[];
-    location: string;
-    situations: { description: string; characterThoughts: string; dialogue: any[] }[];
-    moodTone: string;
-  };
+  propList?: PropListItem[];
+  sceneDetails?: SceneDetailsType;
   characterPsychology?: any; // Psychology timeline data for the character
   allCharacters?: Character[]; // All characters for context
 }
@@ -412,6 +425,7 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
     if (useAI && aiSuggestions) {
       applyAISuggestions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useAI, aiSuggestions]);
 
   const applyAISuggestions = () => {
