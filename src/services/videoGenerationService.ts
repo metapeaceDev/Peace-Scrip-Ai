@@ -13,7 +13,8 @@
  */
 
 import { generateStoryboardVideo } from './geminiService';
-import type { GeneratedScene } from '../../types';
+import { updateEmotionalState } from './psychologyCalculator';
+import type { GeneratedScene, Character } from '../../types';
 
 // Flexible Shot interface for video generation
 export interface VideoShot {
@@ -55,6 +56,10 @@ export interface VideoGenerationOptions {
     loraPath?: string;  // Custom LoRA model path
     loraStrength?: number;  // 0-1 (default: 0.8)
   };
+  
+  // 🆕 BUDDHIST PSYCHOLOGY INTEGRATION: Character & Scene Context
+  character?: Character;  // Character with emotional state and psychology
+  currentScene?: GeneratedScene;  // Scene context for emotion tracking
 }
 
 export interface VideoGenerationProgress {
@@ -124,9 +129,9 @@ export async function extractLastFrame(videoUrl: string): Promise<string> {
   });
 }
 
-/**
- * Generate video for a single shot
- */ideos: {
+export interface BatchVideoResult {
+  success: boolean;
+  videos: {
     shotId: string;
     videoUrl: string;
     duration: number;
@@ -194,6 +199,14 @@ export async function generateShotVideo(
       console.log(`👤 Character consistency enabled: LoRA=${options.characterReference.loraPath}`);
     }
 
+    // 🆕 BUDDHIST PSYCHOLOGY: Pass character and scene context
+    if (options.character) {
+      generationOptions.character = options.character;
+      generationOptions.currentScene = options.currentScene;
+      generationOptions.shotData = shot;
+      console.log(`🧠 Psychology-driven motion: ${options.character.emotionalState?.currentMood || 'neutral'} mood, energy ${options.character.emotionalState?.energyLevel || 50}`);
+    }
+
     // Generate video using existing generateStoryboardVideo function
     const videoUrl = await generateStoryboardVideo(
       prompt,
@@ -231,6 +244,9 @@ export async function generateSceneVideos(
 
   // 🆕 Track last video URL for sequential generation
   let lastVideoUrl: string | undefined;
+  
+  // 🆕 Track character emotional state across shots
+  let currentCharacter = options.character;
 
   for (let i = 0; i < shots.length; i++) {
     const shot = shots[i];
@@ -245,15 +261,26 @@ export async function generateSceneVideos(
           status: 'generating',
         });
       }
+      
+      // 🆕 EMOTION CONTINUITY: Update character emotional state for this shot
+      if (currentCharacter && options.currentScene) {
+        currentCharacter = updateEmotionalState(
+          currentCharacter,
+          `scene-${scene.sceneNumber}-shot-${i + 1}`
+        );
+        console.log(`🎭 Shot ${i + 1} emotion: ${currentCharacter.emotionalState?.currentMood} (energy: ${currentCharacter.emotionalState?.energyLevel})`);
+      }
 
       // Find corresponding storyboard image for this shot
       const storyboardImage = scene.storyboard?.[i]?.image;
 
       // 🆕 SEQUENTIAL GENERATION: Use last video for continuity
-      const shotOptions = {
+      const shotOptions: VideoGenerationOptions = {
         ...options,
         previousVideo: i > 0 ? lastVideoUrl : undefined,  // Use previous shot's video
         transitionType: options.transitionType || 'smooth',  // Default to smooth transitions
+        character: currentCharacter,  // ✅ Pass updated character
+        currentScene: options.currentScene,  // ✅ Pass scene context
       };
 
       // Generate video for this shot
