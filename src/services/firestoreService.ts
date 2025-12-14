@@ -332,7 +332,7 @@ class FirestoreService {
   /**
    * Update a project (Storage-based)
    */
-  async updateProject(projectId: string, updates: any) {
+  async updateProject(projectId: string, updates: any, updatedBy?: string) {
     // Accept any to handle both ScriptProject and ScriptData
     try {
       const docRef = doc(db, this.PROJECTS_COLLECTION, projectId);
@@ -413,6 +413,17 @@ class FirestoreService {
           updatedAt: serverTimestamp(),
         };
 
+        // Add updatedBy for real-time sync tracking
+        if (updatedBy) {
+          metadataUpdates.updatedBy = updatedBy;
+        }
+
+        // Add team count for change detection
+        if (updates.team) {
+          metadataUpdates.teamMemberCount = updates.team.length;
+          metadataUpdates.lastTeamUpdate = serverTimestamp();
+        }
+
         // Only include posterImage if it's defined
         if (posterImageURL !== undefined) {
           metadataUpdates.posterImage = posterImageURL;
@@ -420,7 +431,10 @@ class FirestoreService {
 
         await updateDoc(docRef, metadataUpdates);
 
-        console.log('✅ Project updated');
+        console.log('✅ Project updated', {
+          teamCount: updates.team?.length,
+          updatedBy: updatedBy || 'unknown',
+        });
       }
 
       return {

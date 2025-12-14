@@ -609,7 +609,7 @@ function App() {
     
     const unsubscribe = onSnapshot(
       projectRef,
-      (snapshot) => {
+      async (snapshot) => {
         if (!snapshot.exists()) {
           console.log('⚠️ Project document no longer exists');
           return;
@@ -620,14 +620,43 @@ function App() {
         
         // Only update if change was made by someone else
         if (updatedBy && updatedBy !== currentUser.uid) {
-          console.log('🔄 Real-time update detected from another user');
+          console.log('🔄 Real-time update detected from another user', {
+            updatedBy,
+            currentUser: currentUser.uid,
+            hasTeamUpdate: !!updatedData.lastTeamUpdate,
+            teamCount: updatedData.teamMemberCount,
+          });
           
-          // Sanitize and update script data
-          const sanitized = sanitizeScriptData(updatedData);
-          
-          // Update state
-          setScriptData(sanitized);
-          lastSavedDataRef.current = JSON.stringify(sanitized);
+          // If this is a Storage-based project, reload full data from Storage
+          if (updatedData.storagePath) {
+            console.log('📥 Reloading full project data from Storage...');
+            try {
+              const result = await firestoreService.getProject(currentProjectId);
+              if (result.success && result.project) {
+                const sanitized = sanitizeScriptData(result.project);
+                
+                // Update state
+                setScriptData(sanitized);
+                lastSavedDataRef.current = JSON.stringify(sanitized);
+                
+                console.log('✅ Project reloaded from Storage', {
+                  teamCount: sanitized.team?.length || 0,
+                  teamMembers: sanitized.team?.map((m: { name: string }) => m.name) || [],
+                });
+              }
+            } catch (error) {
+              console.error('❌ Failed to reload project from Storage:', error);
+              // Fallback to metadata
+              const sanitized = sanitizeScriptData(updatedData);
+              setScriptData(sanitized);
+              lastSavedDataRef.current = JSON.stringify(sanitized);
+            }
+          } else {
+            // Old format - use metadata directly
+            const sanitized = sanitizeScriptData(updatedData);
+            setScriptData(sanitized);
+            lastSavedDataRef.current = JSON.stringify(sanitized);
+          }
           
           // Show notification
           setUpdateNotificationMessage('โปรเจ็คถูกอัปเดตโดยสมาชิกในทีม');
@@ -995,7 +1024,7 @@ function App() {
             ...data,
             updatedBy: currentUser.uid, // Track who made the update
           };
-          await firestoreService.updateProject(data.id, dataWithUpdatedBy);
+          await firestoreService.updateProject(data.id, dataWithUpdatedBy, currentUser.uid);
         } else {
           return false; // No user, can't save
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { ScriptData, Character, GeneratedScene, DialectType, AccentType, FormalityLevel, SpeechPersonality } from '../../types';
 import { useTranslation } from './LanguageSwitcher';
+import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 import {
   generateCharacterDetails,
   fillMissingCharacterDetails,
@@ -101,6 +102,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // i18n helper (for legacy code compatibility)
   const legacyT = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
+
+  // Regenerate Modal State
+  const [regenerateModal, setRegenerateModal] = useState<{
+    isOpen: boolean;
+  }>({ isOpen: false });
+
+  // Character Details Modal State
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+  }>({ isOpen: false });
 
   const [activeCharIndex, setActiveCharIndex] = useState(0);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
@@ -335,13 +346,22 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   };
 
   const handleGenerateClick = async () => {
+    // Open modal to choose regeneration mode
+    setDetailsModal({ isOpen: true });
+  };
+
+  // Handle character details generation with mode
+  const handleGenerateDetailsConfirm = async (mode: RegenerationMode) => {
     if (onRegisterUndo) onRegisterUndo();
     setIsLoading(true);
     setError(null);
     try {
       let updatedCharacter: Character;
 
-      if (fillEmptyOnly) {
+      // Mode: fresh = complete regeneration, refine/use-edited = fill missing only
+      const shouldFillOnly = mode !== 'fresh';
+
+      if (shouldFillOnly) {
         updatedCharacter = await fillMissingCharacterDetails(activeCharacter, scriptData.language);
       } else {
         const aiCharacterData = await generateCharacterDetails(
@@ -385,45 +405,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // Generate ALL characters from Story (Step 1-2)
   const handleGenerateAllCharacters = async () => {
+    // Open modal to choose regeneration mode
+    setRegenerateModal({ isOpen: true });
+  };
+
+  // Handle modal confirmation
+  const handleRegenerateConfirm = async (mode: RegenerationMode) => {
     const hasExistingCharacters = characters.length > 0 && characters.some(
       char => char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
     );
 
-    // Determine mode based on checkbox
-    const mode: 'replace' | 'add' = keepExistingCharacters ? 'add' : 'replace';
-
-    // Confirmation dialogs
-    if (keepExistingCharacters && hasExistingCharacters) {
-      // ADD MODE: Keep existing + analyze to create compatible new characters
-      const confirmAdd = confirm(
-        `🎭 ${legacyT('สร้างตัวละครเพิ่มเติม', 'Generate Additional Characters')}\n\n` +
-          `${legacyT('AI จะวิเคราะห์:', 'AI will analyze:')}\n` +
-          `• ${legacyT('ตัวละครเดิม', 'Existing characters')}: ${characters.length} ${legacyT('ตัว', 'characters')}\n` +
-          `• ${legacyT('ข้อมูลจาก Step 1-3', 'Data from Step 1-3')}\n\n` +
-          `${legacyT('เพื่อสร้างตัวละครใหม่ที่สอดคล้องกับเรื่องและตัวเดิม', 'To create new characters that complement the story and existing cast')}\n\n` +
-          `${legacyT('ดำเนินการต่อ?', 'Continue?')}`
-      );
-      if (!confirmAdd) return;
-    } else if (!keepExistingCharacters && hasExistingCharacters) {
-      // REPLACE MODE: Delete all and create new
-      const confirmReplace = confirm(
-        `⚠️ ${legacyT('สร้างใหม่ทั้งหมด', 'Replace All Characters')}\n\n` +
-          `${legacyT('ตัวละครเดิมทั้งหมด', 'All existing characters')} (${characters.length} ${legacyT('ตัว', 'characters')}) ${legacyT('จะถูกลบ', 'will be deleted')}\n` +
-          `${legacyT('และสร้างชุดใหม่ทั้งหมดจาก Step 1-2', 'and a new cast will be created from Step 1-2')}\n\n` +
-          `${legacyT('แน่ใจหรือไม่?', 'Are you sure?')}`
-      );
-      if (!confirmReplace) return;
-    } else {
-      // No existing characters, create new
-      const confirmCreate = confirm(
-        `🎭 ${legacyT('สร้างตัวละครทั้งหมดจากเรื่องของคุณ?', 'Generate all characters from your story?')}\n\n` +
-          `${legacyT('AI จะวิเคราะห์เรื่องของคุณและสร้างตัวละครที่เหมาะสมอัตโนมัติ:', 'AI will analyze your story and automatically create appropriate characters:')}\n` +
-          `• ${legacyT('ชื่อเรื่อง', 'Title')}: ${scriptData.title || 'Untitled'}\n` +
-          `• ${legacyT('แนว', 'Genre')}: ${scriptData.mainGenre}\n` +
-          `• ${legacyT('เนื้อเรื่อง', 'Story')}: ${(scriptData.premise || scriptData.bigIdea || '').substring(0, 80)}...`
-      );
-      if (!confirmCreate) return;
-    }
+    // Map RegenerationMode to add/replace mode
+    // Fresh Start = replace all
+    // Refine/Use-Edited = add to existing
+    const generationMode: 'replace' | 'add' = mode === 'fresh' ? 'replace' : 'add';
 
     if (onRegisterUndo) onRegisterUndo();
     setIsLoading(true);
@@ -432,11 +427,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
     try {
       setProgress(20);
-      console.log(`🎭 Generating characters from story data (Mode: ${mode})...`);
+      console.log(`🎭 Generating characters from story data (Mode: ${generationMode}, RegenerationMode: ${mode})...`);
 
       let newCharacters: Character[];
 
-      if (mode === 'add' && hasExistingCharacters) {
+      if (generationMode === 'add' && hasExistingCharacters) {
         // Import the new function for intelligent character generation
         const { generateCompatibleCharacters } = await import('../services/geminiService');
         newCharacters = await generateCompatibleCharacters(scriptData, characters);
@@ -448,7 +443,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       setProgress(80);
 
-      if (mode === 'add') {
+      if (generationMode === 'add') {
         // ADD MODE: Keep existing + add new
         const combinedCharacters = [...characters, ...newCharacters];
         setScriptData(prev => ({ ...prev, characters: combinedCharacters }));
@@ -2868,6 +2863,26 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           Next Step
         </button>
       </div>
+
+      {/* Regenerate Options Modal */}
+      <RegenerateOptionsModal
+        isOpen={regenerateModal.isOpen}
+        onClose={() => setRegenerateModal({ isOpen: false })}
+        onConfirm={handleRegenerateConfirm}
+        sceneName="All Characters"
+        hasEdits={characters.length > 0 && characters.some(
+          char => char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
+        )}
+      />
+
+      {/* Character Details Modal */}
+      <RegenerateOptionsModal
+        isOpen={detailsModal.isOpen}
+        onClose={() => setDetailsModal({ isOpen: false })}
+        onConfirm={handleGenerateDetailsConfirm}
+        sceneName="Character Details"
+        hasEdits={!!(activeCharacter.description || activeCharacter.external['Physical Characteristics'] || activeCharacter.physical['Facial characteristics'])}
+      />
     </div>
   );
 };

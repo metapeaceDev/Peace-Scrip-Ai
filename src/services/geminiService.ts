@@ -4046,7 +4046,39 @@ Generate a complete story boundary with the following elements, BASED ON THE USE
 
 5. **Log Line**: A one-sentence pitch that encapsulates the premise and hints at the theme, hooking the audience with the central conflict
 
-6. **Timeline**: Complete timeline context including:
+6. **Synopsis**: A comprehensive 3-Act structure summary of the complete story arc
+   
+   **CRITICAL FORMAT REQUIREMENT:**
+   You MUST structure the synopsis in 3 clearly separated acts using this EXACT format:
+   
+   ACT 1 (Setup):
+   [2-3 sentences describing the ordinary world, inciting incident, and protagonist's initial state]
+   
+   ACT 2 (Confrontation):
+   [3-4 sentences covering the rising action, major obstacles, midpoint twist, and protagonist's struggles]
+   
+   ACT 3 (Resolution):
+   [2-3 sentences showing the climax, resolution, and how the theme is proven through the protagonist's transformation]
+   
+   **Content Guidelines:**
+   - ACT 1: Introduce protagonist, their world, the inciting incident, and their initial belief/flaw
+   - ACT 2: Show escalating challenges, internal/external conflicts, major setbacks, and the point of no return
+   - ACT 3: Climax where theme is tested, resolution of conflict, and protagonist's transformation complete
+   - Each act should flow naturally into the next
+   - End with emotional/thematic resonance aligned with the Theme
+   - Total length: 150-250 words
+   
+   **Example Structure (Thai):**
+   ACT 1 (Setup):
+   [ตัวละครหลักในโลกปกติของพวกเขา] [เหตุการณ์กระตุ้นเกิดขึ้น] [พวกเขาตัดสินใจก้าวเข้าสู่การผจญภัย]
+   
+   ACT 2 (Confrontation):
+   [พวกเขาเผชิญกับอุปสรรคแรก] [ความขัดแย้งทวีความรุนแรง] [จุดกึ่งกลาง - การเปิดเผยที่สำคัญ] [ความมืดมิดที่สุด/วิกฤตครั้งใหญ่]
+   
+   ACT 3 (Resolution):
+   [การเผชิญหน้าครั้งสุดท้าย] [ธีมถูกพิสูจน์ผ่านการเลือกของตัวละคร] [การเปลี่ยนแปลงและความสมหวัง]
+
+7. **Timeline**: Complete timeline context including:
    - movieTiming: MUST be a NUMBER in minutes ONLY (e.g., "120 นาที" for Thai or "120 minutes" for English). For series, estimate total runtime.
    - seasons: What season(s) the story spans
    - date: MUST be CALENDAR DATES with START and END dates (e.g., "1 มกราคม 2567 - 15 มกราคม 2567" for Thai or "January 1, 2024 - January 15, 2024" for English). NOT descriptive text. Use actual day/month/year format.
@@ -4070,6 +4102,7 @@ Return ONLY a valid JSON object with this exact structure:
   "premise": "...",
   "theme": "...",
   "logLine": "...",
+  "synopsis": "...",
   "timeline": {
     "movieTiming": "120 นาที",
     "seasons": "...",
@@ -4234,12 +4267,27 @@ function getTypeGuidelines(type: string): string {
  * Creates: 9 Plot Points with descriptions based on genre, characters, and boundary
  * Also suggests optimal scene count per point (1-10 scenes)
  */
-export async function generateStructure(scriptData: ScriptData): Promise<Partial<ScriptData>> {
+export async function generateStructure(
+  scriptData: ScriptData, 
+  mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
+): Promise<Partial<ScriptData>> {
   try {
     const langInstruction =
       scriptData.language === 'Thai'
         ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All descriptions MUST be in Thai. Do not use English for content, only for JSON keys.'
         : 'Output in English.';
+
+    // Mode-specific instructions
+    let modeInstruction = '';
+    if (mode === 'fresh') {
+      modeInstruction = '\n**REGENERATION MODE: Fresh Start**\nCreate completely new plot point descriptions without referencing existing ones. Be original and creative.';
+    } else if (mode === 'refine') {
+      const existingDescriptions = scriptData.structure.map(p => `${p.title}: ${p.description || 'Not set'}`).join('\n');
+      modeInstruction = `\n**REGENERATION MODE: Refine Existing**\nImprove the quality while keeping core structure:\n${existingDescriptions}`;
+    } else if (mode === 'use-edited') {
+      const existingDescriptions = scriptData.structure.map(p => `${p.title}: ${p.description || 'Not set'}`).join('\n');
+      modeInstruction = `\n**REGENERATION MODE: Use Edited Data**\nBuild upon user's edits:\n${existingDescriptions}`;
+    }
 
     const charactersInfo = scriptData.characters
       .map(
@@ -4249,6 +4297,8 @@ export async function generateStructure(scriptData: ScriptData): Promise<Partial
       .join('\n');
 
     const prompt = `You are an expert Hollywood story structure consultant. Based on the following story elements, create detailed Plot Point descriptions following the 9-Point Three-Act Structure.
+
+${modeInstruction}
 
 **Story Elements:**
 - Genre: ${scriptData.mainGenre}
@@ -4354,3 +4404,145 @@ IMPORTANT:
     throw new Error('Failed to generate structure from AI.');
   }
 }
+
+/**
+ * Generate or regenerate a single Plot Point
+ * @param scriptData - The current script data
+ * @param plotPointIndex - Index of the plot point to regenerate (0-11)
+ * @param mode - Regeneration mode (fresh, refine, use-edited)
+ * @returns Updated plot point description
+ */
+export async function generateSinglePlotPoint(
+  scriptData: ScriptData,
+  plotPointIndex: number,
+  mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
+): Promise<{ description: string; sceneCount?: number }> {
+  try {
+    const plotPoint = scriptData.structure[plotPointIndex];
+    if (!plotPoint) {
+      throw new Error(`Invalid plot point index: ${plotPointIndex}`);
+    }
+
+    const langInstruction =
+      scriptData.language === 'Thai'
+        ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All descriptions MUST be in Thai. Do not use English for content, only for JSON keys.'
+        : 'Output in English.';
+
+    // Mode-specific instructions
+    let modeInstruction = '';
+    if (mode === 'fresh') {
+      modeInstruction = `\n**REGENERATION MODE: Fresh Start**\nCreate a completely new description for "${plotPoint.title}" without referencing existing content. Be original and creative.`;
+    } else if (mode === 'refine') {
+      modeInstruction = `\n**REGENERATION MODE: Refine Existing**\nImprove the quality of this plot point while keeping the core idea:\nCurrent: ${plotPoint.description || 'Not set'}`;
+    } else if (mode === 'use-edited') {
+      modeInstruction = `\n**REGENERATION MODE: Use Edited Data**\nBuild upon user's edits for this plot point:\nCurrent: ${plotPoint.description || 'Not set'}`;
+    }
+
+    // Context from other plot points (for continuity)
+    const previousPoint = plotPointIndex > 0 ? scriptData.structure[plotPointIndex - 1] : null;
+    const nextPoint = plotPointIndex < scriptData.structure.length - 1 ? scriptData.structure[plotPointIndex + 1] : null;
+
+    const contextInfo = [];
+    if (previousPoint) {
+      contextInfo.push(`Previous (${previousPoint.title}): ${previousPoint.description || 'Not set'}`);
+    }
+    if (nextPoint) {
+      contextInfo.push(`Next (${nextPoint.title}): ${nextPoint.description || 'Not set'}`);
+    }
+
+    const charactersInfo = scriptData.characters
+      .map(
+        c =>
+          `- ${c.name} (${c.role}): ${c.description || c.goals?.objective || 'Character in the story'}`
+      )
+      .join('\n');
+
+    const prompt = `You are an expert Hollywood story structure consultant. Regenerate the description for this specific Plot Point.
+
+${modeInstruction}
+
+**Story Context:**
+- Genre: ${scriptData.mainGenre}
+- Type: ${scriptData.projectType}
+- Title: ${scriptData.title || 'Untitled'}
+- Log Line: ${scriptData.logLine || 'Not provided'}
+- Big Idea: ${scriptData.bigIdea || 'Not provided'}
+- Premise: ${scriptData.premise || 'Not provided'}
+- Theme: ${scriptData.theme || 'Not provided'}
+
+**Characters:**
+${charactersInfo || 'No characters defined yet'}
+
+**Plot Point to Regenerate:**
+**${plotPoint.title}** (Act ${plotPoint.act})
+
+**Plot Point Context:**
+${contextInfo.length > 0 ? contextInfo.join('\n') : 'This is the first or last plot point'}
+
+**Plot Point Definition:**
+${getPlotPointDefinition(plotPoint.title)}
+
+**Genre-Specific Guidelines:**
+${getGenreGuidelines(scriptData.mainGenre)}
+
+**Your Task:**
+Create a compelling, specific description for "${plotPoint.title}" that:
+- Fits within the overall story arc
+- Connects smoothly with previous and next plot points
+- Matches the genre conventions
+- Is 2-4 sentences long
+- Shows clear cause-and-effect
+- ${mode === 'refine' ? 'Improves quality while maintaining core concept' : mode === 'use-edited' ? 'Builds upon user edits' : 'Offers fresh creative direction'}
+
+Also suggest the optimal number of scenes (1-10) for this plot point based on:
+- Story pacing and importance
+- Genre conventions
+- Emotional impact requirements
+
+**Language Instruction:**
+${langInstruction}
+
+Return ONLY a valid JSON object:
+{
+  "description": "Your detailed plot point description here...",
+  "sceneCount": 3
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.9,
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text);
+    const result = JSON.parse(text);
+
+    console.log(`✅ Generated single plot point (${plotPoint.title}):`, result);
+    return result;
+  } catch (error) {
+    console.error('Error generating single plot point:', error);
+    throw new Error('Failed to generate plot point from AI.');
+  }
+}
+
+/**
+ * Get definition for specific plot point
+ */
+function getPlotPointDefinition(title: string): string {
+  const definitions: Record<string, string> = {
+    'Equilibrium': 'The ordinary world, protagonist\'s life before the adventure begins',
+    'Inciting Incident': 'The event that disrupts the ordinary world and starts the story',
+    'Turning Point': 'The protagonist commits to the journey/goal, life changes irreversibly',
+    'Act Break': 'Entering the new world, facing initial conflicts',
+    'Rising Action': 'Complications mount, problems get worse despite efforts',
+    'Crisis': 'The biggest obstacle, preventing the character from reaching the goal',
+    'Falling Action': 'The lowest point, protagonist reflects and finds the ultimate solution',
+    'Climax': 'The final confrontation, the protagonist\'s biggest challenge',
+    'Ending': 'The resolution, how the protagonist and world have changed',
+  };
+  return definitions[title] || 'A critical point in the story structure';
+}
+

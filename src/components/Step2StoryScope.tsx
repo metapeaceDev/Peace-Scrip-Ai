@@ -704,10 +704,54 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
         
         <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-5">
           {scriptData.synopsis ? (
-            <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-justify">
-                {scriptData.synopsis}
-              </p>
+            <div className="prose prose-invert max-w-none space-y-4">
+              {/* Parse and display synopsis with 3-Act structure */}
+              {(() => {
+                const acts = scriptData.synopsis.split(/ACT [123]/i);
+                const hasActStructure = scriptData.synopsis.match(/ACT [123]/i);
+                
+                if (hasActStructure) {
+                  // Display with 3-Act structure
+                  const actMatches = scriptData.synopsis.matchAll(/ACT ([123])\s*\(([^)]+)\):\s*([^A]*?)(?=ACT [123]|$)/gi);
+                  const parsedActs = Array.from(actMatches);
+                  
+                  if (parsedActs.length > 0) {
+                    return parsedActs.map((match, index) => {
+                      const actNumber = match[1];
+                      const actName = match[2].trim();
+                      const actContent = match[3].trim();
+                      
+                      const actColors = [
+                        { bg: 'bg-cyan-900/20', border: 'border-cyan-500/30', text: 'text-cyan-400', icon: '🎬' },
+                        { bg: 'bg-purple-900/20', border: 'border-purple-500/30', text: 'text-purple-400', icon: '⚡' },
+                        { bg: 'bg-green-900/20', border: 'border-green-500/30', text: 'text-green-400', icon: '🎯' }
+                      ];
+                      const color = actColors[parseInt(actNumber) - 1] || actColors[0];
+                      
+                      return (
+                        <div key={index} className={`border-l-4 ${color.border} ${color.bg} pl-4 pr-3 py-3 rounded-r`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">{color.icon}</span>
+                            <h4 className={`font-bold ${color.text} text-sm uppercase tracking-wide`}>
+                              ACT {actNumber}: {actName}
+                            </h4>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-justify">
+                            {actContent}
+                          </p>
+                        </div>
+                      );
+                    });
+                  }
+                }
+                
+                // Fallback: Display as single paragraph if no ACT structure detected
+                return (
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-justify">
+                    {scriptData.synopsis}
+                  </p>
+                );
+              })()}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">

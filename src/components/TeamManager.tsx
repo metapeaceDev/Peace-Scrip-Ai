@@ -29,6 +29,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
     memberId: string;
     newRole: CollaboratorRole;
   } | null>(null); // Track pending role change for confirmation
+  const [activeTab, setActiveTab] = useState<'add' | 'team'>('add'); // Tab state
 
   useEffect(() => {
     // Auto-hide status message after 5 seconds
@@ -128,12 +129,18 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
           type: 'success',
           message: `✅ เพิ่มทีม ${newName} และส่งคำเชิญไปยัง ${newEmail} เรียบร้อยแล้ว!`,
         });
+
+        // Auto-switch to team tab after success
+        setTimeout(() => setActiveTab('team'), 1000);
       } catch (inviteError) {
         console.warn('⚠️ Could not send invitation (but team member was added):', inviteError);
         setInviteStatus({
           type: 'success',
           message: `✅ เพิ่มทีม ${newName} เรียบร้อยแล้ว (คำเชิญจะถูกส่งภายหลัง)`,
         });
+
+        // Auto-switch to team tab after success
+        setTimeout(() => setActiveTab('team'), 1000);
       }
 
       // ล้างฟอร์ม
@@ -412,254 +419,321 @@ const TeamManager: React.FC<TeamManagerProps> = ({ scriptData, setScriptData, on
             </div>
           </div>
 
-          {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto">
-            {/* Add Member Form */}
-            <div className="p-6 bg-gray-900/50 border-b border-gray-700">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Add Crew Member</h3>
-              
-              {/* Status Message */}
-              {inviteStatus.type && (
-                <div
-                  className={`mb-4 p-3 rounded-lg border ${
-                    inviteStatus.type === 'success'
-                      ? 'bg-green-900/30 border-green-600 text-green-400'
-                      : 'bg-red-900/30 border-red-600 text-red-400'
-                  }`}
-                >
-                  <p className="text-sm">{inviteStatus.message}</p>
-                </div>
-              )}
-
-              <div className="space-y-4">
-              {/* Name Input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  ชื่อสมาชิก <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  placeholder="เช่น: สมชาย ใจดี"
-                  disabled={isInviting}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
-                />
-              </div>
-
-              {/* Role Select */}
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  ตำแหน่ง <span className="text-red-400">*</span>
-                </label>
-                <select
-                  value={newRole}
-                  onChange={e => setNewRole(e.target.value)}
-                  disabled={isInviting}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
-                >
-                  {TEAM_ROLES.map(role => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Email Input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  อีเมล <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={e => setNewEmail(e.target.value)}
-                  placeholder="somchai@gmail.com"
-                  disabled={isInviting}
-                  required
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
-                />
-              </div>
-
-              {/* Access Role Selector */}
-              <div>
-                <RoleSelector
-                  currentRole={newAccessRole}
-                  onChange={setNewAccessRole}
-                  disabled={isInviting}
-                  showPermissions={true}
-                />
-              </div>
-
-              {/* Add Button */}
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-700 bg-gray-900/30 flex-shrink-0">
+            <div className="flex">
               <button
-                onClick={handleAddMember}
-                disabled={isInviting || !newName.trim() || !newEmail.trim()}
-                className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-bold py-3 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                onClick={() => setActiveTab('add')}
+                className={`flex-1 px-6 py-4 text-sm font-bold transition-all relative ${
+                  activeTab === 'add'
+                    ? 'text-cyan-400 bg-gray-900/50'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-900/30'
+                }`}
               >
-                {isInviting ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>กำลังบันทึก...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>เพิ่มสมาชิกทีม</span>
-                  </>
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                  <span>เพิ่มสมาชิกทีม</span>
+                </div>
+                {activeTab === 'add' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('team')}
+                className={`flex-1 px-6 py-4 text-sm font-bold transition-all relative ${
+                  activeTab === 'team'
+                    ? 'text-cyan-400 bg-gray-900/50'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-900/30'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Current Team</span>
+                  <span className="ml-1 px-2 py-0.5 bg-cyan-900/50 text-cyan-400 rounded-full text-xs font-bold">
+                    {scriptData.team?.length || 0}
+                  </span>
+                </div>
+                {activeTab === 'team' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
                 )}
               </button>
             </div>
           </div>
 
-            {/* Current Team List */}
-            <div className="p-6">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center justify-between">
-                <span>Current Team</span>
-                <span className="px-3 py-1 bg-cyan-900/50 text-cyan-400 rounded-full text-xs font-bold">
-                  {scriptData.team?.length || 0} Members
-                </span>
-              </h3>
-
-              {!scriptData.team || scriptData.team.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-700/50 mb-4">
-                    <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Add Member Tab */}
+            {activeTab === 'add' && (
+              <div className="p-6">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-6 p-4 bg-cyan-900/20 border border-cyan-600/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-bold text-cyan-400 mb-1">เพิ่มสมาชิกทีมผลิต</h4>
+                        <p className="text-xs text-cyan-300/80">กรอกข้อมูลสมาชิกใหม่ พร้อมกำหนดบทบาทและสิทธิ์การเข้าถึงโปรเจ็ค</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-gray-500 italic text-sm">ยังไม่มีสมาชิกในทีม</p>
-                  <p className="text-gray-600 text-xs mt-1">เริ่มเพิ่มสมาชิกด้านบนเพื่อสร้างทีมผลิต</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {scriptData.team.map(member => (
+
+                  {/* Status Message */}
+                  {inviteStatus.type && (
                     <div
-                      key={member.id}
-                      className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-cyan-600/50 transition-all"
+                      className={`mb-6 p-4 rounded-lg border ${
+                        inviteStatus.type === 'success'
+                          ? 'bg-green-900/30 border-green-600 text-green-400'
+                          : 'bg-red-900/30 border-red-600 text-red-400'
+                      }`}
                     >
-                      <div className="flex items-start gap-4">
-                        {/* Avatar */}
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-base shadow-lg">
-                          {member.name.substring(0, 2).toUpperCase()}
-                        </div>
+                      <p className="text-sm font-medium">{inviteStatus.message}</p>
+                    </div>
+                  )}
 
-                        {/* Member Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-white text-base flex items-center gap-2 flex-wrap">
-                                {member.name}
-                                {member.email && (
-                                  <span className="px-2 py-0.5 bg-green-900/40 border border-green-600/50 text-green-400 text-xs rounded flex-shrink-0">
-                                    ✅ Invited
+                  <div className="space-y-5">
+                    {/* Name Input */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">
+                        ชื่อสมาชิก <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        placeholder="เช่น: สมชาย ใจดี"
+                        disabled={isInviting}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
+                      />
+                    </div>
+
+                    {/* Role Select */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">
+                        ตำแหน่ง <span className="text-red-400">*</span>
+                      </label>
+                      <select
+                        value={newRole}
+                        onChange={e => setNewRole(e.target.value)}
+                        disabled={isInviting}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
+                      >
+                        {TEAM_ROLES.map(role => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Email Input */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">
+                        อีเมล <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        placeholder="somchai@gmail.com"
+                        disabled={isInviting}
+                        required
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none disabled:opacity-50 transition-all"
+                      />
+                    </div>
+
+                    {/* Access Role Selector */}
+                    <div>
+                      <RoleSelector
+                        currentRole={newAccessRole}
+                        onChange={setNewAccessRole}
+                        disabled={isInviting}
+                        showPermissions={true}
+                      />
+                    </div>
+
+                    {/* Add Button */}
+                    <button
+                      onClick={handleAddMember}
+                      disabled={isInviting || !newName.trim() || !newEmail.trim()}
+                      className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-bold py-3.5 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {isInviting ? (
+                        <>
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          <span>กำลังบันทึก...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span>เพิ่มสมาชิกทีม</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Current Team Tab */}
+            {activeTab === 'team' && (
+              <div className="p-6">
+                {!scriptData.team || scriptData.team.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-700/50 to-gray-800/50 mb-6 shadow-lg">
+                      <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-400 mb-2">ยังไม่มีสมาชิกในทีม</h3>
+                    <p className="text-gray-500 text-sm mb-6">เริ่มต้นสร้างทีมผลิตของคุณ</p>
+                    <button
+                      onClick={() => setActiveTab('add')}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      เพิ่มสมาชิกทีม
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {scriptData.team.map(member => (
+                      <div
+                        key={member.id}
+                        className="bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl border border-gray-700 hover:border-cyan-600/50 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-xl ring-4 ring-gray-800">
+                            {member.name.substring(0, 2).toUpperCase()}
+                          </div>
+
+                          {/* Member Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-2">
+                                  <h4 className="font-bold text-white text-lg">
+                                    {member.name}
+                                  </h4>
+                                  {member.email && (
+                                    <span className="px-2.5 py-1 bg-green-900/40 border border-green-600/50 text-green-400 text-xs rounded-md flex-shrink-0 font-medium">
+                                      ✅ Invited
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className="px-3 py-1 bg-blue-900/40 text-blue-300 text-sm font-semibold rounded-lg border border-blue-600/30">
+                                    {member.role}
                                   </span>
-                                )}
-                              </h4>
-                              
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span className="text-xs text-cyan-400 font-medium">{member.role}</span>
-                                {member.accessRole && (
-                                  <RoleBadge role={member.accessRole} size="sm" />
-                                )}
-                              </div>
+                                  {member.accessRole && (
+                                    <RoleBadge role={member.accessRole} size="md" />
+                                  )}
+                                </div>
 
-                              {member.email && (
-                                <p className="text-xs text-gray-400 mt-1.5 truncate">{member.email}</p>
-                              )}
+                                {member.email && (
+                                  <p className="text-sm text-gray-400 mb-3 flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    {member.email}
+                                  </p>
+                                )}
 
-                              {/* Role Change Dropdown - Only for invited members */}
-                              {member.email && (
-                                <div className="mt-3">
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <label className="block text-xs text-gray-500">เปลี่ยนสิทธิ์การเข้าถึง:</label>
-                                    {savingRoleFor === member.id && (
-                                      <span className="text-xs text-cyan-400 flex items-center gap-1">
-                                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        กำลังบันทึก...
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="relative">
+                                {/* Role Change Dropdown - Only for invited members */}
+                                {member.email && (
+                                  <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <label className="block text-sm font-semibold text-gray-300">
+                                        เปลี่ยนสิทธิ์การเข้าถึง:
+                                      </label>
+                                      {savingRoleFor === member.id && (
+                                        <span className="text-xs text-cyan-400 flex items-center gap-1.5 font-medium">
+                                          <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                          กำลังบันทึก...
+                                        </span>
+                                      )}
+                                    </div>
                                     <select
                                       value={member.accessRole || 'editor'}
                                       onChange={(e) => handleRoleChange(member.id, e.target.value as CollaboratorRole)}
                                       disabled={savingRoleFor === member.id}
-                                      className="text-sm bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-gray-300 hover:border-cyan-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all outline-none w-full max-w-xs disabled:opacity-50 disabled:cursor-wait pr-10"
+                                      className="w-full text-sm bg-gray-800 border border-gray-600 rounded-lg px-4 py-2.5 text-gray-200 hover:border-cyan-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all outline-none disabled:opacity-50 disabled:cursor-wait"
                                     >
                                       <option value="admin">👑 ผู้ดูแล (Admin) - ทุกสิทธิ์</option>
                                       <option value="editor">✏️ แก้ไข (Editor) - แก้ไข + ส่งออก</option>
                                       <option value="viewer">👁️ ดูอย่างเดียว (Viewer) - อ่านอย่างเดียว</option>
                                     </select>
-                                    {/* Auto-save indicator */}
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1.5">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                       </svg>
-                                    </div>
+                                      กดเลือกสิทธิ์ จากนั้นยืนยันการเปลี่ยน
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    กดเลือกสิทธิ์ จากนั้นยืนยันการเปลี่ยน
-                                  </p>
-                                </div>
-                              )}
-                            </div>
+                                )}
+                              </div>
 
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => handleRemoveMember(member.id)}
-                              className="flex-shrink-0 text-gray-500 hover:text-red-400 hover:bg-red-900/20 p-2 rounded-lg transition-all"
-                              title="ลบสมาชิก"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
+                              {/* Delete Button */}
+                              <button
+                                onClick={() => handleRemoveMember(member.id)}
+                                className="flex-shrink-0 text-gray-500 hover:text-red-400 hover:bg-red-900/30 p-2.5 rounded-lg transition-all border border-transparent hover:border-red-600/50"
+                                title="ลบสมาชิก"
                               >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </button>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { ScriptData } from '../../types';
-import { generateStructure } from '../services/geminiService';
+import { generateStructure, generateSinglePlotPoint } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
+import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 
 interface Step4StructureProps {
   scriptData: ScriptData;
@@ -21,6 +22,17 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Story Structure Modal State
+  const [structureModal, setStructureModal] = useState<{
+    isOpen: boolean;
+  }>({ isOpen: false });
+
+  // Individual Plot Point Modal State
+  const [plotPointModal, setPlotPointModal] = useState<{
+    isOpen: boolean;
+    plotPointIndex: number | null;
+  }>({ isOpen: false, plotPointIndex: null });
 
   const handleDescriptionChange = (index: number, value: string) => {
     const newStructure = [...scriptData.structure];
@@ -45,6 +57,63 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
   };
 
   const handleGenerateStructure = async () => {
+    // Open modal to choose regeneration mode
+    setStructureModal({ isOpen: true });
+  };
+
+  // Handle opening individual plot point modal
+  const handleRegeneratePlotPoint = (globalIndex: number) => {
+    setPlotPointModal({ isOpen: true, plotPointIndex: globalIndex });
+  };
+
+  // Handle individual plot point regeneration with mode
+  const handleRegeneratePlotPointConfirm = async (mode: RegenerationMode) => {
+    const index = plotPointModal.plotPointIndex;
+    if (index === null) return;
+
+    if (onRegisterUndo) onRegisterUndo();
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      console.log(`🌐 [Step4] Regenerating Plot Point ${index} with mode: ${mode}`);
+      const result = await generateSinglePlotPoint(scriptData, index, mode);
+      
+      if (result.description) {
+        const newStructure = [...scriptData.structure];
+        newStructure[index] = {
+          ...newStructure[index],
+          description: result.description,
+        };
+
+        // Update scene count if provided
+        const updates: any = { structure: newStructure };
+        if (result.sceneCount) {
+          const plotPointTitle = scriptData.structure[index].title;
+          updates.scenesPerPoint = {
+            ...scriptData.scenesPerPoint,
+            [plotPointTitle]: result.sceneCount,
+          };
+        }
+
+        setScriptData(prev => ({
+          ...prev,
+          ...updates,
+        }));
+      }
+
+      setPlotPointModal({ isOpen: false, plotPointIndex: null });
+      setError(null);
+    } catch (err) {
+      console.error('Failed to regenerate plot point:', err);
+      setError(t('step4.errors.generateFailed'));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle structure generation with mode
+  const handleGenerateStructureConfirm = async (mode: RegenerationMode) => {
     if (!scriptData.mainGenre) {
       setError(t('step4.errors.selectGenre'));
       return;
@@ -55,8 +124,8 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
     setError(null);
 
     try {
-      console.log(`🌐 [Step4] Generating Structure with project language: ${scriptData.language}`);
-      const result = await generateStructure(scriptData);
+      console.log(`🌐 [Step4] Generating Structure with mode: ${mode}, language: ${scriptData.language}`);
+      const result = await generateStructure(scriptData, mode);
 
       if (result.structure) {
         setScriptData(prev => ({
@@ -234,7 +303,33 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                           <span className="text-cyan-400">{globalIndex + 1}.</span>
                           {point.title}
                         </h4>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          {/* Regenerate Plot Point Button */}
+                          <button
+                            onClick={() => handleRegeneratePlotPoint(globalIndex)}
+                            disabled={isGenerating}
+                            className={`px-3 py-1.5 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm ${
+                              isGenerating
+                                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg'
+                            }`}
+                            title={`Regenerate ${point.title}`}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>Regenerate</span>
+                          </button>
+                          <div className="flex items-center gap-2">
                           <label
                             htmlFor={`scene-count-${globalIndex}`}
                             className="text-sm text-gray-400"
@@ -255,6 +350,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                               </option>
                             ))}
                           </select>
+                          </div>
                         </div>
                       </div>
                       <textarea
@@ -287,6 +383,26 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
           {t('step4.actions.next')}
         </button>
       </div>
+
+      {/* Story Structure Modal */}
+      <RegenerateOptionsModal
+        isOpen={structureModal.isOpen}
+        onClose={() => setStructureModal({ isOpen: false })}
+        onConfirm={handleGenerateStructureConfirm}
+        sceneName="Story Structure"
+        hasEdits={scriptData.structure.some(point => point.description && point.description.trim() !== '')}
+      />
+
+      {/* Individual Plot Point Modal */}
+      {plotPointModal.plotPointIndex !== null && (
+        <RegenerateOptionsModal
+          isOpen={plotPointModal.isOpen}
+          onClose={() => setPlotPointModal({ isOpen: false, plotPointIndex: null })}
+          onConfirm={handleRegeneratePlotPointConfirm}
+          sceneName={`Plot Point: ${scriptData.structure[plotPointModal.plotPointIndex]?.title || ''}`}
+          hasEdits={scriptData.structure[plotPointModal.plotPointIndex]?.description?.trim() !== ''}
+        />
+      )}
     </div>
   );
 };
