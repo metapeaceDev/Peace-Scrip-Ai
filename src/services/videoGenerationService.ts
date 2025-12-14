@@ -43,6 +43,18 @@ export interface VideoGenerationOptions {
   duration?: number;
   frameCount?: number;
   motionStrength?: number;
+  
+  // 🆕 VIDEO EXTENSION: Sequential Generation Support
+  previousVideo?: string;  // URL of previous video for seamless continuation
+  endFrameInfluence?: number;  // 0-1, strength of last frame influence (default: 0.7)
+  transitionType?: 'seamless' | 'smooth' | 'creative';  // Transition style
+  
+  // 🆕 CHARACTER CONSISTENCY: Face ID & LoRA Support
+  characterReference?: {
+    faceImage?: string;  // Face reference image (base64 or URL)
+    loraPath?: string;  // Custom LoRA model path
+    loraStrength?: number;  // 0-1 (default: 0.8)
+  };
 }
 
 export interface VideoGenerationProgress {
@@ -54,9 +66,67 @@ export interface VideoGenerationProgress {
   error?: string;
 }
 
-export interface BatchVideoResult {
-  success: boolean;
-  videos: {
+/**
+ * Extract last frame from video URL as base64 image
+ * Used for seamless video-to-video generation
+ * 
+ * @param videoUrl - URL of the video to extract from
+ * @returns Base64 encoded PNG image of the last frame
+ */
+export async function extractLastFrame(videoUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.src = videoUrl;
+    video.muted = true;
+    
+    video.onloadedmetadata = () => {
+      // Seek to last frame (0.1s before end to ensure valid frame)
+      video.currentTime = Math.max(0, video.duration - 0.1);
+    };
+    
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Failed to get canvas context');
+        }
+        
+        // Draw last frame
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to base64 (without data URL prefix)
+        const dataUrl = canvas.toDataURL('image/png');
+        const base64 = dataUrl.split(',')[1];
+        
+        console.log(`✅ Extracted last frame: ${canvas.width}x${canvas.height}`);
+        resolve(base64);
+      } catch (error) {
+        reject(error);
+      } finally {
+        // Cleanup
+        video.remove();
+      }
+    };
+    
+    video.onerror = (error) => {
+      reject(new Error(`Failed to load video: ${error}`));
+    };
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      reject(new Error('Video frame extraction timed out'));
+    }, 10000);
+  });
+}
+
+/**
+ * Generate video for a single shot
+ */ideos: {
     shotId: string;
     videoUrl: string;
     duration: number;
@@ -78,23 +148,59 @@ export async function generateShotVideo(
   try {
     console.log(`🎬 Generating video for shot: ${shot.shotType || shot.shotSize || 'Unknown'}`);
 
+    // 🆕 SEQUENTIAL GENERATION: Extract last frame from previous video
+    let initImage = baseImage;
+    if (options.previousVideo && !baseImage) {
+      console.log('🔗 Sequential generation: Extracting last frame from previous video...');
+      try {
+        initImage = await extractLastFrame(options.previousVideo);
+        console.log('✅ Last frame extracted successfully for seamless continuation');
+      } catch (error) {
+        console.warn('⚠️ Failed to extract last frame, generating without init image:', error);
+        // Continue without init image
+      }
+    }
+
     // Build comprehensive prompt from shot details
     const prompt = buildVideoPrompt(shot);
 
     // Get duration (support both duration and durationSec fields)
     const duration = options.duration || shot.duration || shot.durationSec || 3;
 
+    // 🆕 Adjust generation parameters for sequential continuity
+    const generationOptions: Record<string, unknown> = {
+      fps: options.fps || 24,
+      duration: duration,
+      motionStrength: options.motionStrength || 0.7,
+    };
+
+    // 🆕 If using previous video, adjust for better continuity
+    if (options.previousVideo && initImage) {
+      // Lower motion strength for smoother transition
+      if (options.transitionType === 'seamless') {
+        generationOptions.motionStrength = 0.5;  // Subtle motion
+      } else if (options.transitionType === 'smooth') {
+        generationOptions.motionStrength = 0.6;  // Moderate motion
+      }
+      // 'creative' uses default 0.7
+      
+      console.log(`🎨 Continuity mode: ${options.transitionType || 'smooth'}, motion: ${generationOptions.motionStrength}`);
+    }
+
+    // 🆕 Pass character consistency options
+    if (options.characterReference) {
+      generationOptions.lora = options.characterReference.loraPath;
+      generationOptions.loraStrength = options.characterReference.loraStrength || 0.8;
+      console.log(`👤 Character consistency enabled: LoRA=${options.characterReference.loraPath}`);
+    }
+
     // Generate video using existing generateStoryboardVideo function
     const videoUrl = await generateStoryboardVideo(
       prompt,
-      baseImage,
+      initImage,
       onProgress,
       options.preferredModel || 'auto',
-      {
-        fps: options.fps || 24,
-        duration: duration,
-        motionStrength: options.motionStrength || 0.7,
-      }
+      generationOptions
     );
 
     console.log(`✅ Video generated successfully for shot`);
@@ -123,6 +229,9 @@ export async function generateSceneVideos(
   const shots = scene.shotList || [];
   console.log(`🎬 Starting batch video generation for ${shots.length} shots`);
 
+  // 🆕 Track last video URL for sequential generation
+  let lastVideoUrl: string | undefined;
+
   for (let i = 0; i < shots.length; i++) {
     const shot = shots[i];
 
@@ -140,11 +249,18 @@ export async function generateSceneVideos(
       // Find corresponding storyboard image for this shot
       const storyboardImage = scene.storyboard?.[i]?.image;
 
+      // 🆕 SEQUENTIAL GENERATION: Use last video for continuity
+      const shotOptions = {
+        ...options,
+        previousVideo: i > 0 ? lastVideoUrl : undefined,  // Use previous shot's video
+        transitionType: options.transitionType || 'smooth',  // Default to smooth transitions
+      };
+
       // Generate video for this shot
       const videoUrl = await generateShotVideo(
         shot,
         storyboardImage,
-        options,
+        shotOptions,  // ✅ Pass options with previousVideo
         (progress) => {
           if (onProgress) {
             onProgress({
@@ -156,6 +272,9 @@ export async function generateSceneVideos(
           }
         }
       );
+
+      // 🆕 Store video URL for next shot
+      lastVideoUrl = videoUrl;
 
       // Store result
       results.videos.push({
@@ -212,6 +331,10 @@ export async function generateSceneVideos(
   console.log(
     `✅ Batch generation complete: ${results.videos.length - results.failedCount}/${shots.length} successful`
   );
+
+  if (lastVideoUrl) {
+    console.log(`🔗 Sequential generation used ${shots.length - 1} frame transitions`);
+  }
 
   return results;
 }

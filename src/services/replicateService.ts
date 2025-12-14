@@ -143,6 +143,7 @@ async function waitForPrediction(
   const apiKey = getReplicateApiKey();
   const startTime = Date.now();
   const pollInterval = 2000; // 2 seconds
+  let lastProgress = 0; // ✅ Track last progress to ensure monotonic updates
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -170,7 +171,12 @@ async function waitForPrediction(
       const elapsed = Date.now() - startTime;
       const estimatedTotal = 45000; // 45s average
       const progress = Math.min((elapsed / estimatedTotal) * 100, 95);
-      onProgress(progress);
+      
+      // ✅ MONOTONIC FIX: Only update if progress increased
+      if (progress > lastProgress) {
+        lastProgress = progress;
+        onProgress(lastProgress);
+      }
     }
 
     // Check if done
