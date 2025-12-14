@@ -1,0 +1,544 @@
+import React, { useState, useEffect, useRef } from 'react';
+import type { ScriptData } from '../../types';
+import { GENRES } from '../../constants';
+import { generateFullScriptOutline, generateMoviePoster, generateTitle } from '../services/geminiService';
+import { useTranslation } from '../components/LanguageSwitcher';
+
+interface Step1GenreProps {
+  scriptData: ScriptData;
+  updateScriptData: (data: Partial<ScriptData>) => void;
+  nextStep: () => void;
+  setScriptData: React.Dispatch<React.SetStateAction<ScriptData>>;
+  setCurrentStep: (step: number) => void;
+  onRegisterUndo?: () => void;
+}
+
+const Step1Genre: React.FC<Step1GenreProps> = ({
+  scriptData,
+  updateScriptData,
+  nextStep,
+  setScriptData,
+  setCurrentStep,
+  onRegisterUndo,
+}) => {
+  const { t } = useTranslation();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  // Poster Editor State
+  const [posterPrompt, setPosterPrompt] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-update prompt when title or genre changes
+  useEffect(() => {
+    if (scriptData.title) {
+      const parts = [
+        `Movie Poster for "${scriptData.title}".`,
+        `Genre: ${scriptData.mainGenre}.`,
+      ];
+
+      // Add secondary genres
+      const secondaryGenres = scriptData.secondaryGenres?.filter(g => g && g !== scriptData.mainGenre);
+      if (secondaryGenres && secondaryGenres.length > 0) {
+        parts.push(`${secondaryGenres.join(', ')}.`);
+      }
+
+      // Add story elements if available
+      if (scriptData.premise) {
+        parts.push(`Story: ${scriptData.premise.substring(0, 100)}.`);
+      } else if (scriptData.logLine) {
+        parts.push(`${scriptData.logLine}.`);
+      }
+
+      // Add main character if available
+      const mainCharacter = scriptData.characters?.find(c => c.role === 'Protagonist');
+      if (mainCharacter?.name) {
+        parts.push(`Featuring ${mainCharacter.name}.`);
+      }
+
+      parts.push('Style: Cinematic, High Contrast, Dramatic, 4K Resolution.');
+
+      setPosterPrompt(parts.join(' '));
+    }
+  }, [scriptData.title, scriptData.mainGenre, scriptData.secondaryGenres, scriptData.premise, scriptData.logLine, scriptData.characters]);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onRegisterUndo) onRegisterUndo();
+    updateScriptData({ [e.target.name]: e.target.value });
+  };
+
+  const handleSecondaryGenreChange = (index: number, value: string) => {
+    if (onRegisterUndo) onRegisterUndo();
+    const newSecondaryGenres = [...scriptData.secondaryGenres];
+    newSecondaryGenres[index] = value;
+    updateScriptData({ secondaryGenres: newSecondaryGenres });
+  };
+
+  const handleAutoGenerate = async () => {
+    if (onRegisterUndo) onRegisterUndo();
+    setIsGenerating(true);
+    setError(null);
+    try {
+      
+      const generatedData = await generateFullScriptOutline(
+        scriptData.title,
+        scriptData.mainGenre,
+        scriptData.secondaryGenres,
+        scriptData.language
+      );
+
+      setScriptData(prev => {
+        const newCharacters = [...prev.characters];
+        if (newCharacters[0] && generatedData.characters?.[0]?.goals) {
+          newCharacters[0] = { ...newCharacters[0], goals: generatedData.characters[0].goals };
+        }
+
+        return {
+          ...prev,
+          ...generatedData,
+          characters: newCharacters,
+        };
+      });
+
+      setCurrentStep(5);
+    } catch (e: unknown) {
+      setError((e as Error).message || t('step1.errors.autoGenerateError'));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGeneratePoster = async () => {
+    if (!scriptData.title) {
+      alert(t('step1.poster.enterTitle'));
+      return;
+    }
+    if (onRegisterUndo) onRegisterUndo();
+    setIsGeneratingPoster(true);
+    setProgress(0);
+    try {
+      // Pass the user's custom prompt (or the default one) to the service
+      const posterBase64 = await generateMoviePoster(scriptData, posterPrompt, p => setProgress(p));
+      updateScriptData({ posterImage: posterBase64 });
+    } catch (error) {
+      alert('Failed to generate poster.');
+      console.error(error);
+    } finally {
+      setIsGeneratingPoster(false);
+      setProgress(0);
+    }
+  };
+
+  const handleGenerateTitle = async () => {
+    if (onRegisterUndo) onRegisterUndo();
+    setIsGeneratingTitle(true);
+    setError(null);
+    try {
+      const newTitle = await generateTitle(scriptData);
+      updateScriptData({ title: newTitle });
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+      setError(t('step1.errors.failedTitle'));
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
+  const handleUploadPoster = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (onRegisterUndo) onRegisterUndo();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateScriptData({ posterImage: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDownloadPoster = () => {
+    if (!scriptData.posterImage) return;
+
+    const link = document.createElement('a');
+    link.href = scriptData.posterImage;
+    link.download = `${scriptData.title.replace(/\s+/g, '_')}_Poster.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const resetPrompt = () => {
+    if (onRegisterUndo) onRegisterUndo(); // Not stricly script data, but UI state
+    const newPrompt = `Movie Poster for "${scriptData.title}". Genre: ${scriptData.mainGenre}. Style: Cinematic, High Contrast, 4K Resolution. Visuals: Dramatic lighting, central character focus.`;
+    setPosterPrompt(newPrompt);
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-cyan-400 mb-6">
+        {t('step1.title')}
+      </h2>
+
+      {/* Project Poster Section - Redesigned */}
+      <div className="mb-8 bg-gray-800/80 p-6 rounded-xl border border-gray-700 shadow-xl">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Left Column: Image Area */}
+          <div className="flex flex-col gap-4 items-center md:items-start shrink-0">
+            <div className="w-56 h-[298px] bg-gray-900 rounded-lg shadow-2xl flex items-center justify-center border-2 border-gray-700 overflow-hidden relative group">
+              {scriptData.posterImage ? (
+                <img
+                  src={scriptData.posterImage}
+                  alt="Movie Poster"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700"
+                />
+              ) : (
+                <div className="text-center p-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 text-gray-700 mx-auto mb-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="text-xs text-gray-600 font-medium">{t('step1.poster.noPoster')}</span>
+                </div>
+              )}
+
+              {/* Loading Overlay */}
+              {isGeneratingPoster && (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10">
+                  <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <span className="text-cyan-400 text-xs font-bold animate-pulse">
+                    {t('step1.poster.generating')}
+                  </span>
+                  {progress > 0 && (
+                    <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-400 transition-all duration-300 ease-out"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                  {progress > 0 && (
+                    <span className="text-cyan-400 text-[10px] mt-1">{Math.round(progress)}%</span>
+                  )}
+                </div>
+              )}
+
+              {/* Image Actions Overlay (Hover) */}
+              {scriptData.posterImage && !isGeneratingPoster && (
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleDownloadPoster}
+                    className="p-2 bg-gray-800 hover:bg-cyan-600 text-white rounded-full transition-colors shadow-lg"
+                    title="Download Poster"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Action Bar under image */}
+            <div className="flex gap-2 w-full justify-center">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-gray-700 hover:bg-gray-600 text-gray-300 p-2 rounded-lg text-xs font-bold flex-1 flex items-center justify-center gap-1 transition-colors"
+                title="Upload Custom Poster"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {t('step1.poster.upload')}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleUploadPoster}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Right Column: Controls & Prompt */}
+          <div className="flex-1 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                {t('step1.poster.title')}
+                <span className="text-xs bg-cyan-900/50 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50">
+                  {t('step1.poster.subtitle')}
+                </span>
+              </h3>
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed">
+                {t('step1.poster.description')} &quot;{scriptData.title || 'Your Project'}&quot;.
+                {t('step1.poster.customizePrompt')}
+              </p>
+            </div>
+
+            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 flex-1 flex flex-col">
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-bold text-cyan-500 uppercase tracking-wider">
+                  {t('step1.poster.promptLabel')}
+                </label>
+                <button
+                  onClick={resetPrompt}
+                  className="text-[10px] text-gray-500 hover:text-white underline"
+                  title="Reset to default based on current title/genre"
+                >
+                  {t('step1.poster.autoFill')}
+                </button>
+              </div>
+              <textarea
+                value={posterPrompt}
+                onChange={e => setPosterPrompt(e.target.value)}
+                onFocus={() => onRegisterUndo?.()} // Snapshot text state on focus
+                className="w-full bg-gray-800 border border-gray-600 rounded-md p-3 text-sm text-gray-200 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-none flex-1 min-h-[100px]"
+                placeholder={t('step1.poster.promptPlaceholder')}
+              />
+              <button
+                onClick={handleGeneratePoster}
+                disabled={isGeneratingPoster || !scriptData.title}
+                className="mt-4 w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg shadow-cyan-900/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                {isGeneratingPoster ? (
+                  t('step1.poster.generating')
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 group-hover:scale-110 transition-transform"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {scriptData.posterImage ? t('step1.poster.regenerate') : t('step1.poster.generate')}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+            {t('step1.fields.title')}
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={scriptData.title}
+              onChange={e => updateScriptData({ title: e.target.value })}
+              onFocus={() => onRegisterUndo?.()} // Snapshot text state
+              className="flex-1 bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+              placeholder={t('step1.fields.titlePlaceholder')}
+            />
+            <button
+              onClick={handleGenerateTitle}
+              disabled={isGeneratingTitle}
+              className={`px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
+                isGeneratingTitle
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
+              }`}
+              title="Generate creative title from genres"
+            >
+              {isGeneratingTitle ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  {t('step1.fields.generatingTitle')}
+                </>
+              ) : (
+                <>✨ {t('step1.fields.generateTitle')}</>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* PROJECT LANGUAGE SELECTOR - MOVED HERE (REMOVED FROM PREVIOUS POSITION) */}
+
+        <div>
+          <label htmlFor="mainGenre" className="block text-sm font-medium text-gray-300 mb-2">
+            {t('step1.fields.mainGenre')}
+          </label>
+          <select
+            id="mainGenre"
+            name="mainGenre"
+            value={scriptData.mainGenre}
+            onChange={handleSelectChange}
+            disabled={isGenerating}
+            className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+          >
+            {GENRES.map(genre => (
+              <option key={genre} value={genre}>
+                {genre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="secondaryGenre1"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
+              {t('step1.fields.secondaryGenre1')}
+            </label>
+            <select
+              id="secondaryGenre1"
+              value={scriptData.secondaryGenres[0]}
+              onChange={e => handleSecondaryGenreChange(0, e.target.value)}
+              disabled={isGenerating}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+            >
+              {GENRES.map(genre => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="secondaryGenre2"
+              className="block text-sm font-medium text-gray-300 mb-2"
+            >
+              {t('step1.fields.secondaryGenre2')}
+            </label>
+            <select
+              id="secondaryGenre2"
+              value={scriptData.secondaryGenres[1] || GENRES[2]}
+              onChange={e => handleSecondaryGenreChange(1, e.target.value)}
+              disabled={isGenerating}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+            >
+              {GENRES.map(genre => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* PROJECT LANGUAGE SELECTOR - MOVED TO END */}
+        <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500/50 rounded-xl p-4">
+          <label htmlFor="projectLanguage" className="block text-sm font-medium text-purple-300 mb-2">
+            {t('step1.fields.projectLanguage')}
+          </label>
+          <select
+            id="projectLanguage"
+            name="language"
+            value={scriptData.language}
+            onChange={handleSelectChange}
+            disabled={isGenerating}
+            className="w-full bg-gray-700 border-2 border-purple-500/50 rounded-md py-2 px-3 text-white focus:ring-purple-500 focus:border-purple-500"
+          >
+            <option value="Thai">🇹🇭 ภาษาไทย</option>
+            <option value="English">🇬🇧 English</option>
+          </select>
+        </div>
+      </div>
+      <div className="mt-8 border-t border-gray-700 pt-6">
+        <p className="text-center text-gray-400 mb-4">{t('step1.actions.choosePath')}</p>
+        {error && <p className="text-red-400 mt-2 mb-4 text-sm text-center">{error}</p>}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+          <button
+            onClick={nextStep}
+            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+          >
+            {t('step1.actions.startManually')}
+          </button>
+          <span className="text-gray-500">{t('step1.actions.or')}</span>
+          {isGenerating ? (
+            <button
+              onClick={() => setIsGenerating(false)}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {t('step1.actions.stopReset')}
+            </button>
+          ) : (
+            <button
+              onClick={handleAutoGenerate}
+              className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center"
+            >
+              {t('step1.actions.autoGenerate')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Step1Genre;

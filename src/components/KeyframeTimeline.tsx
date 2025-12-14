@@ -340,12 +340,12 @@ export default function KeyframeTimeline({
          */
 
         .keyframe-timeline {
-          background: rgba(15, 23, 42, 0.8);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 16px;
-          padding: 20px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 8px;
+          padding: 8px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         /* Header */
@@ -353,18 +353,18 @@ export default function KeyframeTimeline({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 20px;
+          margin-bottom: 8px;
         }
 
         .header-left {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 6px;
         }
 
         .header-icon {
-          font-size: 24px;
-          filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+          font-size: 16px;
+          filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
         }
 
         @keyframes pulse {
@@ -373,18 +373,18 @@ export default function KeyframeTimeline({
         }
 
         .timeline-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: rgba(255, 255, 255, 0.95);
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.8);
           margin: 0;
         }
 
         .keyframe-count {
-          padding: 4px 12px;
-          background: rgba(245, 158, 11, 0.2);
-          border: 1px solid rgba(245, 158, 11, 0.3);
-          border-radius: 12px;
-          font-size: 12px;
+          padding: 2px 6px;
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.2);
+          border-radius: 6px;
+          font-size: 10px;
           color: #f59e0b;
           font-weight: 600;
         }
@@ -392,18 +392,18 @@ export default function KeyframeTimeline({
         .header-right {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
         }
 
         .btn-control,
         .btn-add-keyframe,
         .btn-zoom {
-          padding: 8px 14px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 16px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 12px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -423,44 +423,44 @@ export default function KeyframeTimeline({
         }
 
         .btn-add-keyframe {
-          font-size: 13px;
+          font-size: 10px;
           font-weight: 600;
-          padding: 8px 16px;
+          padding: 4px 8px;
         }
 
         .zoom-controls {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 4px 8px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
+          gap: 3px;
+          padding: 2px 4px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 4px;
         }
 
         .zoom-label {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.7);
-          min-width: 50px;
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.6);
+          min-width: 35px;
           text-align: center;
         }
 
         .btn-zoom {
-          padding: 4px 8px;
-          font-size: 14px;
+          padding: 2px 6px;
+          font-size: 11px;
         }
 
         /* Timeline Canvas */
         .timeline-canvas {
           position: relative;
-          height: 120px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
+          height: 70px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 6px;
           cursor: crosshair;
           overflow-x: auto;
           overflow-y: hidden;
-          margin-bottom: 16px;
+          margin-bottom: 8px;
         }
 
         /* Time Markers */
@@ -483,19 +483,19 @@ export default function KeyframeTimeline({
         }
 
         .marker-label {
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.5);
-          padding: 4px 8px;
-          background: rgba(0, 0, 0, 0.5);
-          border-radius: 4px;
-          margin-top: 4px;
+          font-size: 8px;
+          color: rgba(255, 255, 255, 0.4);
+          padding: 2px 4px;
+          background: rgba(0, 0, 0, 0.4);
+          border-radius: 3px;
+          margin-top: 2px;
         }
 
         .marker-line {
           width: 1px;
           flex: 1;
-          background: rgba(255, 255, 255, 0.2);
-          margin-top: 4px;
+          background: rgba(255, 255, 255, 0.15);
+          margin-top: 2px;
         }
 
         /* Keyframes */
@@ -521,21 +521,21 @@ export default function KeyframeTimeline({
 
         .keyframe.selected .keyframe-diamond {
           color: #f59e0b;
-          text-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
-          font-size: 28px;
+          text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+          font-size: 18px;
         }
 
         .keyframe-diamond {
-          font-size: 24px;
+          font-size: 16px;
           color: #3b82f6;
-          text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+          text-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
           transition: all 0.2s ease;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
         }
 
         .keyframe:hover .keyframe-diamond {
-          font-size: 28px;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+          font-size: 18px;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
         }
 
         .keyframe-time {
@@ -543,27 +543,27 @@ export default function KeyframeTimeline({
           top: 100%;
           left: 50%;
           transform: translateX(-50%);
-          margin-top: 8px;
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.7);
-          background: rgba(0, 0, 0, 0.7);
-          padding: 2px 6px;
-          border-radius: 4px;
+          margin-top: 4px;
+          font-size: 8px;
+          color: rgba(255, 255, 255, 0.6);
+          background: rgba(0, 0, 0, 0.6);
+          padding: 1px 4px;
+          border-radius: 3px;
           white-space: nowrap;
           pointer-events: none;
         }
 
         .btn-delete-keyframe {
           position: absolute;
-          top: -10px;
-          right: -10px;
-          width: 20px;
-          height: 20px;
+          top: -8px;
+          right: -8px;
+          width: 16px;
+          height: 16px;
           background: rgba(239, 68, 68, 0.9);
           border: 1px solid rgba(255, 255, 255, 0.3);
           border-radius: 50%;
           color: white;
-          font-size: 14px;
+          font-size: 11px;
           font-weight: 700;
           cursor: pointer;
           display: flex;
@@ -590,16 +590,16 @@ export default function KeyframeTimeline({
         }
 
         .indicator-head {
-          width: 12px;
-          height: 12px;
+          width: 8px;
+          height: 8px;
           background: #ef4444;
-          border: 2px solid white;
+          border: 1px solid white;
           border-radius: 50%;
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+          box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
         }
 
         .indicator-line {
@@ -614,19 +614,19 @@ export default function KeyframeTimeline({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 8px;
         }
 
         .time-display,
         .keyframe-info {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          font-size: 13px;
+          gap: 4px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 4px;
+          font-size: 10px;
         }
 
         .time-label,
@@ -646,12 +646,12 @@ export default function KeyframeTimeline({
         }
 
         .interpolation-select {
-          padding: 4px 8px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 6px;
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 12px;
+          padding: 2px 6px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 9px;
           cursor: pointer;
           outline: none;
           transition: all 0.2s ease;

@@ -1,0 +1,119 @@
+# 📦 Files Required for Production Deployment
+
+## ✅ Essential Files (Must Include)
+
+### Core Application
+- package.json
+- package-lock.json
+- tsconfig.json
+- tsconfig.node.json
+- vite.config.ts
+- index.html
+- .gitignore
+
+### Source Code
+- src/ (entire directory)
+  - components/
+  - services/
+  - i18n/
+  - All TypeScript/TSX files
+
+### Configuration Templates
+- .env.example
+- .env.template
+
+### Documentation (Production)
+- README.md
+- DEPLOYMENT.md
+- SECURITY.md
+- FINAL_SUMMARY.md
+- IMPLEMENTATION_SUMMARY.md
+
+---
+
+## ❌ Files to Exclude from Deployment
+
+### Build Artifacts
+- node_modules/
+- dist/
+- dist-ssr/
+- build/
+- .cache/
+
+### Environment Files (Contains Secrets)
+- .env
+- .env.local
+- .env.production
+- *.backup
+- *.bak
+
+### Development Files
+- .DS_Store
+- .vscode/
+- .idea/
+- *.log
+- npm-debug.log*
+
+### Temporary Files
+- *.tmp
+- *.temp
+- .firebase/
+
+### Service Account Keys (CRITICAL)
+- service-account.json
+- serviceAccountKey.json
+- firebase-adminsdk-*.json
+
+---
+
+## 📁 Deployment Build Process
+
+### Step 1: Clean Build
+```bash
+rm -rf node_modules dist
+npm install
+npm run build
+```
+
+### Step 2: Files in dist/ folder
+After build, dist/ contains:
+- index.html
+- assets/*.js (bundled JavaScript)
+- assets/*.css (bundled CSS)
+- Static assets
+
+### Step 3: Deploy dist/ folder
+Upload only the dist/ folder to:
+- Firebase Hosting
+- Netlify
+- Vercel
+- GitHub Pages
+
+---
+
+## 🔐 Environment Variables for Production
+
+Required environment variables (set in hosting platform):
+- VITE_FIREBASE_API_KEY
+- VITE_FIREBASE_AUTH_DOMAIN
+- VITE_FIREBASE_PROJECT_ID
+- VITE_FIREBASE_STORAGE_BUCKET
+- VITE_FIREBASE_MESSAGING_SENDER_ID
+- VITE_FIREBASE_APP_ID
+- VITE_GEMINI_API_KEY
+
+---
+
+## ✅ Pre-Deployment Checklist
+
+- [ ] Build successful (npm run build)
+- [ ] No errors in build output
+- [ ] Environment variables configured
+- [ ] .gitignore excludes sensitive files
+- [ ] README.md updated
+- [ ] DEPLOYMENT.md reviewed
+- [ ] Security best practices followed
+
+---
+
+**Note**: Only deploy the dist/ folder after successful build. Never commit .env files or service account keys to Git!

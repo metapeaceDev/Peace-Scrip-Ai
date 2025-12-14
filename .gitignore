@@ -1,0 +1,69 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Environment files
+*.local
+.env
+.env.local
+.env.production
+
+# Firebase service accounts (CRITICAL - Contains private keys!)
+**/service-account.json
+**/serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Debug and utility scripts with API keys
+debug-sync.html
+disable-comfyui.sh
+enable-comfyui.sh
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.backup-*
+
+# Git planning files
+.gitcommit_plan.md
+
+# Firebase cache
+.firebase/hosting.*.cache
+
+# Duplicate folders (keep only src/ versions)
+/services
+/components
+
+# Planning documents (optional)
+/planning_documents
+thai-tts-development/
+.env.test

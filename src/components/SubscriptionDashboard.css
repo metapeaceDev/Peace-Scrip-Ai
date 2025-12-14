@@ -1,0 +1,419 @@
+/* Subscription Dashboard Styles */
+
+.subscription-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.subscription-loading,
+.subscription-error {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+/* Current Plan Header */
+.current-plan-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.plan-badge {
+  font-size: 2rem;
+}
+
+.tier-label {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tier-free {
+  background: #95a5a6;
+}
+
+.tier-basic {
+  background: #3498db;
+}
+
+.tier-pro {
+  background: #9b59b6;
+}
+
+.tier-enterprise {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.current-plan-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.upgrade-btn-header {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.upgrade-btn-header:hover {
+  transform: scale(1.05);
+}
+
+/* Credits Section */
+.credits-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.reset-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.credits-bar-container {
+  height: 30px;
+  background: #ecf0f1;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.credits-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  transition: width 0.5s ease;
+}
+
+.credits-bar.warning {
+  background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+}
+
+.credits-text {
+  text-align: center;
+  color: #34495e;
+  font-weight: 500;
+}
+
+/* Usage Grid */
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.usage-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.usage-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.usage-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.usage-label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.usage-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+}
+
+.usage-value .unlimited {
+  color: #27ae60;
+  font-size: 1.1rem;
+}
+
+.usage-value .separator {
+  margin: 0 0.3rem;
+  color: #bdc3c7;
+}
+
+.usage-value .max {
+  color: #7f8c8d;
+  font-size: 1rem;
+}
+
+.usage-bar-mini {
+  height: 6px;
+  background: #ecf0f1;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.usage-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.usage-bar-fill.warning {
+  background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* Features Section */
+.features-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.features-section h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.features-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.feature-item {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 1200px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #2c3e50;
+}
+
+.modal-header button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.modal-header button:hover {
+  background: #ecf0f1;
+}
+
+/* Plans Grid */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.plan-card {
+  position: relative;
+  background: white;
+  border: 2px solid #ecf0f1;
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+
+.plan-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.plan-card.recommended {
+  border-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+}
+
+.plan-card.current {
+  border-color: #27ae60;
+  background: #f0fff4;
+}
+
+.recommended-badge,
+.current-badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recommended-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.current-badge {
+  background: #27ae60;
+  color: white;
+}
+
+.plan-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+}
+
+.plan-price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 1.5rem;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.plan-features li {
+  padding: 0.5rem 0;
+  color: #34495e;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.plan-features li:last-child {
+  border-bottom: none;
+}
+
+.select-plan-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.select-plan-btn:hover {
+  transform: scale(1.02);
+}
+
+.plan-card.current .select-plan-btn {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .subscription-dashboard {
+    padding: 1rem;
+  }
+
+  .current-plan-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .usage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    padding: 1rem;
+  }
+}

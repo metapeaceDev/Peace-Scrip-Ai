@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Psychology Component Test</title>
+    <script type="module">
+        // ทดสอบว่า modules โหลดได้หรือไม่
+        console.log('🧪 Starting Psychology Component Test...');
+        
+        // ตรวจสอบว่า dev server ทำงาน
+        fetch('http://localhost:5173')
+            .then(() => console.log('✅ Dev server is running'))
+            .catch(() => console.error('❌ Dev server is NOT running'));
+        
+        // ตรวจสอบว่าไฟล์โหลดได้
+        const filesToCheck = [
+            '/src/components/PsychologyDisplay.tsx',
+            '/src/components/PsychologyTestPanel.tsx',
+            '/src/components/CharacterComparison.tsx',
+            '/src/services/psychologyCalculator.ts'
+        ];
+        
+        console.log('\n📁 Checking if files are accessible...');
+        filesToCheck.forEach(file => {
+            fetch(`http://localhost:5173${file}`)
+                .then(res => {
+                    if (res.ok) {
+                        console.log(`✅ ${file}`);
+                    } else {
+                        console.log(`❌ ${file} - Status: ${res.status}`);
+                    }
+                })
+                .catch(() => console.log(`❌ ${file} - Failed to load`));
+        });
+        
+        // Auto-redirect หลัง 3 วินาที
+        setTimeout(() => {
+            console.log('\n🔄 Redirecting to main app...');
+            window.location.href = 'http://localhost:5173';
+        }, 3000);
+    </script>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 40px;
+            font-size: 14px;
+        }
+        h1 {
+            color: #00ffff;
+        }
+        .box {
+            background: #1a1a1a;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .warn {
+            color: #ffff00;
+        }
+        .error {
+            color: #ff0000;
+        }
+        code {
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>�� Psychology Component Test Page</h1>
+    
+    <div class="box">
+        <h2>✅ This page confirms:</h2>
+        <ul>
+            <li>Dev server is accessible at <code>http://localhost:5173</code></li>
+            <li>Test file can be loaded</li>
+            <li>Browser can execute JavaScript</li>
+        </ul>
+    </div>
+    
+    <div class="box warn">
+        <h2>⚠️ Important:</h2>
+        <p>Check the Browser Console (Press F12) to see file loading results.</p>
+        <p>This page will auto-redirect to the main app in 3 seconds...</p>
+    </div>
+    
+    <div class="box">
+        <h2>🎯 What to do next:</h2>
+        <ol>
+            <li>Open Browser Console (F12)</li>
+            <li>Check for ✅ or ❌ messages</li>
+            <li>Wait for auto-redirect to http://localhost:5173</li>
+            <li>Go to Step 3 → Internal Tab</li>
+            <li>Look for Psychology Display component</li>
+        </ol>
+    </div>
+    
+    <div class="box error">
+        <h2>🚨 If you still don't see Psychology Display:</h2>
+        <p>1. Clear browser cache completely</p>
+        <p>2. Open Incognito/Private window</p>
+        <p>3. Go directly to: <code>http://localhost:5173</code></p>
+        <p>4. Hard refresh: <code>Cmd+Shift+R</code> (Mac) or <code>Ctrl+Shift+R</code> (Windows)</p>
+    </div>
+</body>
+</html>

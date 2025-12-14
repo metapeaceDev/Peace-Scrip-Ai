@@ -1,0 +1,173 @@
+/* Quota Widget - Compact Display */
+
+/* Slide down animation for dropdown */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out forwards;
+}
+
+.quota-widget {
+  background: white;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  transition: all 0.3s ease;
+}
+
+.quota-widget.low {
+  border: 2px solid #f39c12;
+  background: #fef5e7;
+}
+
+.quota-widget.very-low {
+  border: 2px solid #e74c3c;
+  background: #fce1dd;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(231, 76, 60, 0.4);
+  }
+}
+
+.quota-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tier-badge-mini {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+.tier-badge-mini.tier-free {
+  background: #95a5a6;
+}
+
+.tier-badge-mini.tier-basic {
+  background: #3498db;
+}
+
+.tier-badge-mini.tier-pro {
+  background: #9b59b6;
+}
+
+.tier-badge-mini.tier-enterprise {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.quota-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.credits-count {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.credits-label {
+  font-size: 0.7rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.unlimited-badge {
+  color: #27ae60;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.quota-bar-mini-widget {
+  height: 4px;
+  background: #ecf0f1;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.quota-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+  transition: width 0.5s ease, background 0.3s ease;
+}
+
+.quota-fill.low {
+  background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+}
+
+.quota-fill.very-low {
+  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.upgrade-btn-mini {
+  width: 100%;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.upgrade-btn-mini:hover {
+  transform: scale(1.02);
+}
+
+.quota-widget.very-low .upgrade-btn-mini {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  animation: pulse-button 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-button {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .quota-widget {
+    min-width: 150px;
+  }
+
+  .credits-count {
+    font-size: 0.9rem;
+  }
+
+  .credits-label {
+    font-size: 0.65rem;
+  }
+}

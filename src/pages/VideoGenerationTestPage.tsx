@@ -13,13 +13,13 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Film, Play, Download, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import {
   generateShotVideo,
   generateSceneVideos,
   type VideoGenerationOptions,
   type VideoGenerationProgress,
 } from '../services/videoGenerationService';
+import type { GeneratedScene } from '../../types';
 
 // Simplified Shot type for testing
 interface Shot {
@@ -36,20 +36,6 @@ interface Shot {
   cast?: string;
   set?: string;
   costume?: string;
-}
-
-// Simplified GeneratedScene type for testing
-interface GeneratedScene {
-  id?: string;
-  sceneNumber?: number;
-  title?: string;
-  emotionalTone?: string;
-  setting?: string;
-  timeOfDay?: string;
-  weatherAtmosphere?: string;
-  shotList?: Shot[];
-  dialogue?: unknown[];
-  storyboard?: { shot: number; image: string; video?: string }[];
 }
 
 export default function VideoGenerationTestPage() {
@@ -75,48 +61,67 @@ export default function VideoGenerationTestPage() {
     costume: 'Traditional Theravada Buddhist robes',
   });
 
-  // Sample test scene with multiple shots
+  // Sample test scene with multiple shots (using proper GeneratedScene type)
   const [testScene] = useState<GeneratedScene>({
-    id: 'test-scene-001',
-    title: 'Opening Meditation Scene',
-    emotionalTone: 'Peaceful, Contemplative',
-    setting: 'Temple Garden at Dawn',
-    timeOfDay: 'Early Morning',
-    weatherAtmosphere: 'Clear sky with soft morning mist',
+    sceneNumber: 1,
+    sceneDesign: {
+      sceneName: 'Opening Meditation Scene',
+      characters: ['Buddhist Monk'],
+      location: 'Temple Garden at Dawn',
+      situations: [],
+      moodTone: 'Peaceful, Contemplative',
+    },
     shotList: [
       {
-        shotId: 'shot-001',
-        shotType: 'Wide Shot',
-        angle: 'High Angle',
+        scene: 'Scene 1',
+        shot: 1,
+        shotSize: 'Wide Shot',
+        perspective: 'High Angle',
         movement: 'Slow Pan Right',
-        lighting: 'Soft Dawn Light',
+        lightingDesign: 'Soft Dawn Light',
         description: 'Establishing shot of ancient temple surrounded by mist',
-        duration: 4,
+        durationSec: 4,
         set: 'Temple exterior',
+        equipment: 'Drone',
+        focalLength: '24mm',
+        aspectRatio: '16:9',
+        colorTemperature: '5600K',
       },
       {
-        shotId: 'shot-002',
-        shotType: 'Medium Shot',
-        angle: 'Eye Level',
+        scene: 'Scene 1',
+        shot: 2,
+        shotSize: 'Medium Shot',
+        perspective: 'Eye Level',
         movement: 'Static',
-        lighting: 'Natural Soft Light',
+        lightingDesign: 'Natural Soft Light',
         description: 'Monk walking slowly through temple garden path',
-        duration: 3,
+        durationSec: 3,
         cast: 'Buddhist monk',
         set: 'Garden pathway',
+        equipment: 'Steadicam',
+        focalLength: '50mm',
+        aspectRatio: '16:9',
+        colorTemperature: '5200K',
       },
       {
-        shotId: 'shot-003',
-        shotType: 'Close-Up',
-        angle: 'Low Angle',
+        scene: 'Scene 1',
+        shot: 3,
+        shotSize: 'Close-Up',
+        perspective: 'Low Angle',
         movement: 'Slow Zoom In',
-        lighting: 'Golden Hour',
+        lightingDesign: 'Golden Hour',
         description: 'Lotus flower blooming in morning light',
-        duration: 3,
+        durationSec: 3,
         set: 'Temple pond',
+        equipment: 'Macro Lens',
+        focalLength: '100mm',
+        aspectRatio: '16:9',
+        colorTemperature: '4800K',
       },
     ],
-    dialogue: [],
+    storyboard: [],
+    propList: [],
+    breakdown: { part1: [], part2: [], part3: [] },
   });
 
   const handleSingleShotTest = useCallback(async () => {
@@ -147,9 +152,10 @@ export default function VideoGenerationTestPage() {
       setVideoUrl(url);
       setProgress(100);
       console.log('✅ Single shot test completed successfully!');
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('❌ Single shot test failed:', err);
-      setError(err.message || 'Unknown error occurred');
+      setError(errorMessage);
       setProgress(0);
     } finally {
       setIsGenerating(false);
@@ -179,9 +185,10 @@ export default function VideoGenerationTestPage() {
       });
 
       console.log('✅ Batch test completed successfully!');
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('❌ Batch test failed:', err);
-      setError(err.message || 'Unknown error occurred');
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -193,7 +200,14 @@ export default function VideoGenerationTestPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <Film className="w-10 h-10 text-purple-400" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-10 h-10 text-purple-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+            </svg>
             <h1 className="text-4xl font-bold text-white">
               Video Generation Test Suite
             </h1>
@@ -259,12 +273,42 @@ export default function VideoGenerationTestPage() {
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <svg
+                    className="w-5 h-5 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
                   Generating Video... {progress}%
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                   Generate Video
                 </>
               )}
@@ -295,7 +339,18 @@ export default function VideoGenerationTestPage() {
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <svg
+                    className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                   <div>
                     <h3 className="text-red-400 font-semibold mb-1">Error</h3>
                     <p className="text-red-300 text-sm">{error}</p>
@@ -309,7 +364,9 @@ export default function VideoGenerationTestPage() {
               <div className="mt-6 bg-gray-900/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle2 className="w-5 h-5" />
+                    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
                     <span className="font-semibold">Video Generated Successfully!</span>
                   </div>
                   <a
@@ -317,7 +374,9 @@ export default function VideoGenerationTestPage() {
                     download="generated-video.mp4"
                     className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors text-white text-sm"
                   >
-                    <Download className="w-4 h-4" />
+                    <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
                     Download
                   </a>
                 </div>
@@ -341,28 +400,35 @@ export default function VideoGenerationTestPage() {
             </h2>
 
             <div className="space-y-3 mb-6">
-              {testScene.shotList?.map((shot: Shot, idx: number) => (
+              {testScene.shotList?.map((shot, idx: number) => (
                 <div
-                  key={shot.shotId}
+                  key={`shot-${idx}`}
                   className="bg-gray-900/50 rounded-lg p-4 border border-gray-700"
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-white font-medium">
-                        Shot {idx + 1}: {shot.shotType}
+                        Shot {idx + 1}: {shot.shotSize}
                       </h3>
                       <p className="text-gray-400 text-sm mt-1">{shot.description}</p>
                     </div>
                     {batchProgress[idx] && (
                       <div className="flex items-center gap-2">
                         {batchProgress[idx].status === 'generating' && (
-                          <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                          <svg className="w-4 h-4 animate-spin text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
                         )}
                         {batchProgress[idx].status === 'completed' && (
-                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          <svg className="w-4 h-4 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
                         )}
                         {batchProgress[idx].status === 'failed' && (
-                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <svg className="w-4 h-4 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                         )}
                         <span className="text-sm text-gray-400">
                           {batchProgress[idx].currentProgress}%
@@ -390,13 +456,18 @@ export default function VideoGenerationTestPage() {
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <svg className="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                   Generating {batchProgress.length} / {testScene.shotList?.length || 0}{' '}
                   Videos...
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>
                   Generate All Videos
                 </>
               )}
@@ -405,7 +476,9 @@ export default function VideoGenerationTestPage() {
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
                   <div>
                     <h3 className="text-red-400 font-semibold mb-1">Batch Error</h3>
                     <p className="text-red-300 text-sm">{error}</p>

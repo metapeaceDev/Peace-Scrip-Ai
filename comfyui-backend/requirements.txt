@@ -1,0 +1,26 @@
+# ComfyUI Backend Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Data Validation
+pydantic==2.5.0
+
+# Firebase Authentication (optional)
+firebase-admin==6.2.0
+
+# Async Support
+aiofiles==23.2.1
+
+# Job Queue (optional - for production)
+# redis==5.0.1
+# celery==5.3.4
+
+# Image/Video Processing
+Pillow==10.1.0
+
+# Utilities
+python-dotenv==1.0.0

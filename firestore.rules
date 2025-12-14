@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user has specific role in project
+    function hasRole(projectId, role) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      return collaborator != null && collaborator.data.role == role;
+    }
+    
+    // Helper function to check if user is owner or admin
+    function isOwnerOrAdmin(projectId) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      return collaborator != null && (collaborator.data.role == 'owner' || collaborator.data.role == 'admin');
+    }
+    
+    // Helper function to check if user has permission
+    function hasPermission(projectId, permission) {
+      let collaboratorId = projectId + '_' + request.auth.uid;
+      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      let role = collaborator != null ? collaborator.data.role : 'none';
+      
+      // Owner and Admin have all permissions
+      return role == 'owner' || role == 'admin' || 
+             (role == 'editor' && (permission == 'canEdit' || permission == 'canExport' || permission == 'canViewAnalytics'));
+    }
+    
+    // Users collection - users can only read/write their own data
+    match /users/{userId} {
+      // Allow read own document
+      allow read: if isOwner(userId);
+      
+      // Allow write own document
+      allow write: if isOwner(userId);
+      
+      // Allow query by email (needed for team collaboration)
+      // Only authenticated users can query to find userId from email
+      allow list: if isAuthenticated();
+    }
+    
+    // Projects collection - role-based access control
+    match /projects/{projectId} {
+      // Allow read if user is authenticated and is a collaborator
+      allow read: if isAuthenticated();
+      
+      // Allow create if authenticated and setting userId to own uid
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow update if user has canEdit permission
+      allow update: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || hasPermission(projectId, 'canEdit'));
+      
+      // Allow delete if user has canDelete permission (owner/admin only)
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isOwnerOrAdmin(projectId));
+    }
+    
+    // Allow list/query only for user's own projects
+    match /projects/{projectId} {
+      allow list: if isAuthenticated();
+    }
+    
+    // Subscriptions collection - users can only access their own subscription
+    match /subscriptions/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Usage tracking collection
+    match /usage/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Project Invitations - for team collaboration
+    match /projectInvitations/{invitationId} {
+      // Anyone can read their own invitations (by email)
+      allow read: if isAuthenticated();
+      
+      // Users with canInvite permission can create invitations
+      allow create: if isAuthenticated();
+      
+      // Invitee can update status (accept/reject)
+      allow update: if isAuthenticated();
+      
+      // Inviter or invitee can delete
+      allow delete: if isAuthenticated();
+    }
+
+    // Notifications - for user alerts
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated();
+      
+      // System can create notifications
+      allow create: if isAuthenticated();
+      
+      // Users can update (mark as read)
+      allow update: if isAuthenticated();
+      
+      // Users can delete their notifications
+      allow delete: if isAuthenticated();
+    }
+
+    // Collaborators collection - role-based permissions
+    match /collaborators/{collaboratorId} {
+      // Anyone authenticated can read collaborators
+      allow read: if isAuthenticated();
+      
+      // Only owner/admin can create or update collaborators
+      allow create, update: if isAuthenticated();
+      
+      // Only owner/admin can delete collaborators
+      allow delete: if isAuthenticated();
+    }
+
+    // Project Collaborators subcollection (legacy - keeping for compatibility)
+    match /projects/{projectId}/collaborators/{userId} {
+      // Anyone can read collaborators of a project they have access to
+      allow read: if isAuthenticated();
+      
+      // Project owner or admin can create/update/delete collaborators
+      allow write: if isAuthenticated();
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

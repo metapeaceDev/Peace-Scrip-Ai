@@ -1,0 +1,7 @@
+{
+  "name": " Peace Script Basic V1",
+  "description": "A multi-step web application to help screenwriters generate a detailed movie script outline, from genre and character creation to scene-by-scene breakdowns, using AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

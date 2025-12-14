@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="256" fill="#000000"/>
+  
+  <!-- Left eye -->
+  <ellipse cx="165" cy="190" rx="75" ry="110" fill="#ffffff"/>
+  
+  <!-- Right eye -->
+  <ellipse cx="347" cy="190" rx="75" ry="110" fill="#ffffff"/>
+  
+  <!-- Nose -->
+  <circle cx="256" cy="360" r="40" fill="#ffffff"/>
+</svg>

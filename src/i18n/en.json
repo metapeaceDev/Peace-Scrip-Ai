@@ -1,0 +1,588 @@
+{
+  "common": {
+    "appName": "Peace Script",
+    "slogan": "AI-Powered Screenwriting Studio",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "or": "OR",
+    "upload": "Upload",
+    "download": "Download",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "generating": "Generating...",
+    "stop": "Stop",
+    "reset": "Reset"
+  },
+
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember Me",
+    "welcomeBack": "Welcome Back!",
+    "createAccount": "Create New Account"
+  },
+
+  "pricing": {
+    "title": "Pricing Plans",
+    "subtitle": "Choose the plan that fits you",
+    "free": "Free",
+    "basic": "Basic",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "earlyBird": "Early Bird 50% OFF!",
+    "saveTwoMonths": "Save 2 Months",
+    "features": "Features",
+    "compare": "Compare Plans",
+    "faq": "Frequently Asked Questions"
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "yourProjects": "Your Projects",
+    "recentActivity": "Recent Activity",
+    "statistics": "Statistics",
+    "usage": "Usage"
+  },
+
+  "analytics": {
+    "title": "Usage Dashboard",
+    "credits": "Credits",
+    "storage": "Storage",
+    "projects": "Projects",
+    "characters": "Characters",
+    "scenes": "Scenes",
+    "usedOf": "used of",
+    "unlimited": "Unlimited",
+    "images": "Images",
+    "videos": "Videos",
+    "apiCalls": "API Calls",
+    "generated": "Generated",
+    "failed": "Failed",
+    "totalDuration": "Total Duration",
+    "averagePerDay": "Average per Day",
+    "successRate": "Success Rate",
+    "exportData": "Export Data",
+    "timeRange": {
+      "7days": "Last 7 Days",
+      "30days": "Last 30 Days",
+      "all": "All Time"
+    },
+    "costSavings": {
+      "title": "You saved",
+      "thisMonth": "this month!",
+      "fromFreeProviders": "from using Free Providers"
+    },
+    "upgradePrompt": {
+      "title": "You're almost out of resources!",
+      "subtitle": "Consider upgrading?",
+      "action": "Upgrade Now"
+    }
+  },
+
+  "referral": {
+    "title": "Referral Program",
+    "subtitle": "Refer friends, earn 50 credits each",
+    "yourCode": "Your Referral Code",
+    "totalReferrals": "Total Referrals",
+    "successfulReferrals": "Successful",
+    "creditsEarned": "Credits Earned",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "shareTwitter": "Share on Twitter",
+    "shareEmail": "Share via Email",
+    "createCustomCode": "Create Custom Code",
+    "customCodePlaceholder": "e.g. PEACE2024",
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": "Share Your Code",
+      "step1Desc": "Send your referral link or code to friends via social media, email, or other channels",
+      "step2": "Friends Sign Up",
+      "step2Desc": "When friends sign up with your code, they get 50 free credits instantly",
+      "step3": "You Get Credits",
+      "step3Desc": "You receive 50 credits to your account immediately. No limits - refer as many as you want!"
+    },
+    "tips": {
+      "title": "Tips to Increase Referrals",
+      "tip1": "Share your creations made with Peace Script on social media",
+      "tip2": "Talk about the benefits you get (time saving, creativity boost)",
+      "tip3": "Recommend to screenwriters, directors, actors, or film students",
+      "tip4": "Use an easy-to-remember code like your name or team name"
+    }
+  },
+
+  "payment": {
+    "title": "Payment",
+    "orderSummary": "Order Summary",
+    "package": "Package",
+    "billingCycle": "Billing Cycle",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "price": "Price",
+    "discount": "Discount",
+    "total": "Total",
+    "promoCode": "Promo Code",
+    "applyPromo": "Apply",
+    "removePromo": "Remove",
+    "paymentMethod": "Payment Method",
+    "creditCard": "Credit/Debit Card",
+    "promptPay": "PromptPay",
+    "processing": "Processing...",
+    "payNow": "Pay Now",
+    "securePayment": "Secure payment encrypted with SSL"
+  },
+
+  "studio": {
+    "step1": "Genre",
+    "step2": "Story Scope",
+    "step3": "Characters",
+    "step4": "Story Structure",
+    "step5": "Output",
+    "mainGenre": "Main Genre",
+    "secondaryGenres": "Secondary Genres",
+    "selectGenre": "Select Genre",
+    "projectName": "Project Name",
+    "createProject": "Create Project"
+  },
+
+  "step1": {
+    "title": "STEP 1: Genre, story line to be told",
+    "subtitle": "Choose main and secondary genres for your story",
+    "poster": {
+      "title": "Project Poster Art",
+      "subtitle": "AI Powered",
+      "noPoster": "No Poster",
+      "description": "Generate a cinematic poster for",
+      "customizePrompt": "The AI uses your genre and title to create a unique visual identity. You can customize the prompt below to refine the style, mood, or composition.",
+      "promptLabel": "AI Generation Prompt",
+      "promptPlaceholder": "Describe the visual style, characters, and mood of the poster...",
+      "autoFill": "Auto-Fill Prompt",
+      "upload": "Upload",
+      "download": "Download Poster",
+      "uploadCustom": "Upload Custom Poster",
+      "generate": "Generate Poster",
+      "regenerate": "Regenerate Poster",
+      "generating": "Designing...",
+      "enterTitle": "Please enter a title first"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter your movie title",
+      "generateTitle": "Generate Title",
+      "generatingTitle": "Generating...",
+      "mainGenre": "1.1 Main story line",
+      "secondaryGenre1": "1.2 Secondary story line 1",
+      "secondaryGenre2": "1.3 Secondary story line 2",
+      "projectLanguage": "🌐 Project Content Language"
+    },
+    "actions": {
+      "choosePath": "Choose your path:",
+      "startManually": "Start Manually (Step-by-Step)",
+      "autoGenerate": "Auto-Generate Full Script",
+      "stopReset": "Stop / Reset",
+      "or": "OR"
+    },
+    "errors": {
+      "failedTitle": "❌ Failed to generate title. Please try again.",
+      "autoGenerateError": "An unexpected error occurred during auto-generation."
+    }
+  },
+
+  "step2": {
+    "title": "STEP 2: Creating a boundary for the story",
+    "subtitle": "Define the scope and fundamental details of your story",
+    "generateButton": "✨ Generate",
+    "generating": "Generating...",
+    "selectGenreFirst": "Please select Genre in Step 1 first",
+    "fields": {
+      "title": "Title",
+      "bigIdea": "Big idea",
+      "bigIdeaPlaceholder": "What will happen if... or is the story of...",
+      "premise": "Premise",
+      "premisePlaceholder": "What is this movie going to tell?",
+      "theme": "Theme",
+      "themePlaceholder": "This tale teaches that...",
+      "logLine": "Log line",
+      "logLinePlaceholder": "A logical way of thinking to support the Theme.",
+      "timeline": "Timeline",
+      "movieTiming": "Movie Timing",
+      "seasons": "Timeline Seasons in Movies",
+      "date": "Timeline Date, month, year",
+      "social": "Social Timelines",
+      "economist": "Economist Timeline",
+      "environment": "Timeline Environment"
+    },
+    "aiAnalyzing": "🎬 AI is analyzing and creating story boundary...",
+    "aiDetails": {
+      "analyzingGenre": "Analyzing Genre:",
+      "analyzingType": "Analyzing Type:",
+      "creating": "Creating Title, Big Idea, Premise, Theme, Log Line and Timeline"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next Step"
+    },
+    "errors": {
+      "selectGenre": "⚠️ Please select Genre in Step 1 first",
+      "generateFailed": "❌ Generation failed. Please try again"
+    }
+  },
+
+  "step3": {
+    "title": "STEP 3: Character Creation",
+    "subtitle": "Define the cast of your story. Add protagonists, antagonists, and supporting characters.",
+    "returnNotice": "Editing from Scene Design",
+    "returnButton": "Back to Scene Design",
+    "tabs": {
+      "external": "External",
+      "internal": "Internal",
+      "goals": "Goals"
+    },
+    "externalTabs": {
+      "info": "Information",
+      "physical": "Physical",
+      "speech": "🗣️ Speech Pattern",
+      "costume": "Costume & Fashion"
+    },
+    "internalTabs": {
+      "consciousness": "Consciousness",
+      "subconscious": "Subconscious"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. John Doe",
+      "role": "Role / Type",
+      "description": "Character Description & Role",
+      "descriptionPlaceholder": "e.g., A grizzled detective on the edge, haunted by his past...",
+      "imageStyle": "IMAGE STYLE",
+      "aiModel": "AI Model",
+      "generationMode": "Generation Mode",
+      "faceIdentity": "Face Identity (Master)",
+      "costumeRef": "Costume Reference"
+    },
+    "buttons": {
+      "addCharacter": "+ Add Character",
+      "deleteCharacter": "Delete Character",
+      "genButton": "Gen",
+      "genButtonFillEmpty": "Auto-Fill",
+      "generating": "Generating...",
+      "fillEmptyOnly": "Fill empty only",
+      "faceIdPortrait": "Face ID Portrait",
+      "aiPortrait": "AI Portrait",
+      "upload": "Upload",
+      "generateAll": "Generate All Characters",
+      "addMode": "+ Add (Keep Existing)",
+      "replaceMode": "⚠️ Replace All",
+      "preview": "Preview",
+      "compareCharacters": "Compare Characters",
+      "dashboard": "Dashboard",
+      "psychologyTest": "Psychology Test",
+      "psychologyTimeline": "Psychology Timeline",
+      "capturePhoto": "Capture Photo",
+      "stopCamera": "Stop Camera",
+      "uploadFace": "Upload Face",
+      "uploadOutfitStyle": "Upload Outfit Style",
+      "generateOutfit": "Generate Outfit",
+      "generateOutfitFaceId": "Generate Outfit (Face ID)",
+      "downloadOutfit": "Download",
+      "deleteOutfit": "Delete",
+      "voiceSample": "🔊 Voice Sample",
+      "voicePlaying": "🔊 Playing...",
+      "back": "Back",
+      "next": "Next"
+    },
+    "sections": {
+      "information": "Information (External)",
+      "physical": "Physical Characteristics",
+      "speechPattern": "Speech Pattern & Voice",
+      "costume": "Costume & Fashion",
+      "consciousness": "Consciousness",
+      "subconscious": "Subconscious",
+      "goals": "Goals & Motivation",
+      "fittingRoom": "Fitting Room (Newest First)"
+    },
+    "dialects": {
+      "standard": "Standard / Neutral",
+      "northern": "Northern Thai (คำเมือง)",
+      "northeastern": "Northeastern (อีสาน)",
+      "southern": "Southern Thai",
+      "urban": "Urban Bangkok",
+      "formal": "Formal / Literary",
+      "rural": "Rural / Countryside"
+    },
+    "accents": {
+      "clear": "Clear / Standard",
+      "regional": "Regional Accent",
+      "foreign": "Foreign Accent",
+      "slurred": "Slurred / Unclear"
+    },
+    "formality": {
+      "veryFormal": "Very Formal (ราชาศัพท์)",
+      "formal": "Formal",
+      "neutral": "Neutral",
+      "informal": "Informal",
+      "veryInformal": "Very Informal (สแลง)"
+    },
+    "personality": {
+      "confident": "Confident / Assertive",
+      "timid": "Timid / Hesitant",
+      "aggressive": "Aggressive / Blunt",
+      "friendly": "Friendly / Warm",
+      "sarcastic": "Sarcastic / Witty",
+      "mysterious": "Mysterious / Reserved"
+    },
+    "aiModels": {
+      "auto": "🤖 AUTO - Smart Selection",
+      "pollinations": "⚡⚡⚡ Pollinations (5-10s, Medium quality)",
+      "comfyuiSdxl": "⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)",
+      "geminiFlash": "⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)",
+      "geminiPro": "🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)",
+      "comfyuiFlux": "🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)",
+      "openaiDalle": "🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)"
+    },
+    "generationModes": {
+      "quality": "🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac",
+      "balanced": "⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended",
+      "speed": "⚡ SPEED (15 steps, 3-5 min)"
+    },
+    "messages": {
+      "uploadSuccess": "Upload successful",
+      "deleteConfirm": "⚠️ Are you sure you want to delete this character?",
+      "deleteWarning": "This action cannot be undone",
+      "noDescription": "Please enter a character description or physical details first.",
+      "noMainOutfit": "Please describe the 'Main Outfit' in the Costume section first.",
+      "faceIdDisabled": "Face ID Disabled: ComfyUI setup was skipped. Face matching will not work.",
+      "enableFaceId": "Enable Face ID"
+    },
+    "confirm": {
+      "continueAdd": "Continue?",
+      "replaceAll": "Replace All Characters",
+      "deleteAll": "All existing characters",
+      "willBeDeleted": "will be deleted",
+      "createNew": "and a new cast will be created from Step 1-2",
+      "areYouSure": "Are you sure?",
+      "generateFromStory": "Generate all characters from your story?",
+      "aiWillAnalyze": "AI will analyze your story and automatically create appropriate characters:",
+      "title": "Title",
+      "genre": "Genre",
+      "story": "Story",
+      "existing": "Existing",
+      "new": "New",
+      "total": "Total",
+      "characters": "characters",
+      "successAdd": "Successfully added characters",
+      "successCreate": "Successfully created characters",
+      "newCharacters": "New characters"
+    },
+    "errors": {
+      "generateFailed": "Failed to generate characters",
+      "imageFailed": "Failed to generate image.",
+      "costumeFailed": "Failed to generate costume image."
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next"
+    }
+  },
+
+  "step4": {
+    "title": "STEP 4: Creating chapter structure",
+    "subtitle": "Define the structure and plot points of your story",
+    "generateButton": "✨ Auto-Generate",
+    "generating": "Generating...",
+    "selectGenreFirst": "Please select Genre in Step 1 first",
+    "acts": {
+      "act1": "Act 1 - Setup & Change",
+      "act2": "Act 2 - Conflict & Crisis",
+      "act3": "Act 3 - Confrontation & Resolution"
+    },
+    "scenes": "Scenes:",
+    "placeholderDescribe": "Describe the",
+    "aiAnalyzing": "🎬 AI is creating story structure...",
+    "aiDetails": {
+      "analyzing": "Analyzing Genre and Characters from Step 1-3",
+      "creating": "Creating 9 Plot Points with 3-Act Structure"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next & Generate Output"
+    },
+    "errors": {
+      "selectGenre": "⚠️ Please select Genre in Step 1 first",
+      "generateFailed": "❌ Generation failed. Please try again"
+    }
+  },
+
+  "step5": {
+    "title": "Step 5: Production Output",
+    "subtitle": "Review generated scenes, create shot lists, and export your screenplay.",
+    "buttons": {
+      "generateAll": "Generate All Scenes",
+      "generating": "Generating...",
+      "psychologyTimeline": "Psychology Timeline",
+      "showPreview": "Show Preview",
+      "hidePreview": "Hide Preview",
+      "export": "Export",
+      "back": "Back",
+      "regenerate": "Regenerate",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "add": "Add",
+      "download": "Download",
+      "close": "Close",
+      "viewTimeline": "View Timeline",
+      "addShot": "+ Add Shot",
+      "generateStoryboard": "Generate Storyboard",
+      "generateVideo": "Generate Video"
+    },
+    "export": {
+      "pdf": "Export as PDF",
+      "pdfComingSoon": "📄 Export as PDF (Coming Soon)",
+      "finalDraft": "Export as Final Draft",
+      "finalDraftComingSoon": "📜 Export as Final Draft (Coming Soon)",
+      "text": "Export as Text",
+      "csv": "Export Shot List (CSV)",
+      "storyboard": "Export Storyboard (HTML)",
+      "pdfNote": "PDF Export is coming soon! For now, use \"Export as Text\" and convert to PDF using Google Docs or Word.",
+      "finalDraftNote": "Final Draft Export is coming soon! For now, use \"Export as Text\" and import to Final Draft manually."
+    },
+    "scene": {
+      "sceneNumber": "Scene",
+      "sceneHeader": "Scene Header",
+      "location": "Location",
+      "mood": "Mood & Tone",
+      "wardrobe": "Wardrobe Manager",
+      "cast": "Cast",
+      "situations": "Situations & Dialogue",
+      "shotList": "Shot List",
+      "storyboard": "Storyboard",
+      "intExt": "Int / Ext",
+      "timeOfDay": "Time of Day",
+      "defaultWardrobe": "Default Wardrobe",
+      "wearing": "Wearing",
+      "defaultLook": "Default Look",
+      "outfit": "Outfit",
+      "removeFromScene": "Remove from Scene",
+      "goToProfile": "Go to Profile",
+      "addCharacter": "Add Character",
+      "selectCharacter": "-- Select Character --"
+    },
+    "situation": {
+      "situation": "Situation",
+      "dialogue": "Dialogue",
+      "action": "Action",
+      "speaker": "Speaker",
+      "line": "Line",
+      "emotion": "Emotion",
+      "addSituation": "+ Add Situation",
+      "addDialogue": "+ Add Dialogue",
+      "deleteSituation": "Delete Situation",
+      "confirmDelete": "Are you sure you want to delete?",
+      "thisAction": "This action cannot be undone"
+    },
+    "shot": {
+      "shot": "Shot",
+      "cast": "Cast",
+      "costume": "Costume",
+      "set": "Set",
+      "description": "Description",
+      "duration": "Duration (sec)",
+      "shotSize": "Shot Size",
+      "perspective": "Perspective",
+      "movement": "Movement",
+      "equipment": "Equipment",
+      "focalLength": "Focal Length",
+      "aspectRatio": "Aspect Ratio",
+      "lightingDesign": "Lighting Design",
+      "colorTemperature": "Color Temperature",
+      "select": "Select..."
+    },
+    "storyboard": {
+      "panel": "Panel",
+      "generating": "Generating...",
+      "regenerate": "Regenerate",
+      "download": "Download",
+      "selectModel": "Select Model",
+      "generateAll": "Generate All",
+      "noImages": "No storyboard images yet",
+      "clickGenerate": "Click 'Generate Storyboard' to create images"
+    },
+    "video": {
+      "model": "Model",
+      "generating": "Generating video...",
+      "selectModel": "Select Video Model",
+      "noVideo": "No video yet",
+      "clickGenerate": "Click 'Generate Video' to create"
+    },
+    "messages": {
+      "allScenesGenerated": "✅ All scenes generated successfully!",
+      "generatingScenes": "Generating scenes...",
+      "sceneGenerated": "Scene generated successfully",
+      "generationFailed": "Generation failed",
+      "noScenesYet": "No scenes generated yet",
+      "clickGenerateAll": "Click 'Generate All Scenes' to start",
+      "exportSuccess": "Export successful!",
+      "copySuccess": "Copied to clipboard",
+      "downloadSuccess": "Download successful"
+    },
+    "location": {
+      "int": "INT. (Indoor)",
+      "ext": "EXT. (Outdoor)",
+      "intExt": "INT./EXT.",
+      "ie": "I/E."
+    },
+    "timeOfDay": {
+      "day": "DAY",
+      "night": "NIGHT",
+      "dawn": "DAWN",
+      "dusk": "DUSK",
+      "morning": "MORNING",
+      "evening": "EVENING",
+      "continuous": "CONTINUOUS",
+      "later": "LATER"
+    },
+    "actions": {
+      "back": "Back"
+    }
+  },
+
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "networkError": "Cannot connect. Please check your internet.",
+    "unauthorized": "You don't have permission to access this.",
+    "notFound": "Not found",
+    "limitExceeded": "Usage limit exceeded",
+    "insufficientCredits": "Insufficient credits",
+    "storageFull": "Storage full"
+  },
+
+  "notifications": {
+    "saveSuccess": "Saved successfully",
+    "deleteSuccess": "Deleted successfully",
+    "updateSuccess": "Updated successfully",
+    "copySuccess": "Copied successfully",
+    "uploadSuccess": "Uploaded successfully",
+    "exportSuccess": "Exported successfully"
+  }
+}
