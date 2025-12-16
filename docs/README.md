@@ -1,52 +1,36 @@
-# Peace Script AI - Documentation Index
+# Peace Script AI - Documentation
 
-## 📚 Core Documentation (Root Level)
+Welcome to Peace Script AI documentation!
 
-| Document                                          | Purpose                                      |
-| ------------------------------------------------- | -------------------------------------------- |
-| [README.md](../README.md)                         | Main project overview, features, quick start |
-| [CHANGELOG.md](../CHANGELOG.md)                   | Version history and release notes            |
-| [DEPLOYMENT.md](../DEPLOYMENT.md)                 | Firebase deployment guide                    |
-| [COMFYUI_SETUP.md](../COMFYUI_SETUP.md)           | ComfyUI installation instructions            |
-| [COMFYUI_QUICKSTART.md](../COMFYUI_QUICKSTART.md) | Quick ComfyUI setup guide                    |
+## 📚 Documentation Structure
 
-## 🛠️ Supporting Documentation (docs/)
+### Getting Started
+- [Installation Guide](getting-started/INSTALLATION_GUIDE.md)
+- [Quick Start](getting-started/QUICKSTART.md)
+- [Your First Project](getting-started/START_HERE.md)
 
-| Document                                             | Purpose                              |
-| ---------------------------------------------------- | ------------------------------------ |
-| [FIREBASE_SETUP_GUIDE.md](./FIREBASE_SETUP_GUIDE.md) | Detailed Firebase configuration      |
-| [TESTING.md](./TESTING.md)                           | Testing guidelines and commands      |
-| [SECURITY.md](./SECURITY.md)                         | Security policies and best practices |
-| [MONITORING.md](./MONITORING.md)                     | Application monitoring setup         |
-| [CONTRIBUTING.md](./CONTRIBUTING.md)                 | Contribution guidelines              |
+### Features
+- [Psychology Evolution System](features/PSYCHOLOGY_EVOLUTION.md)
+- [Buddhist Psychology Integration](features/BUDDHIST_PSYCHOLOGY_INTEGRATION.md)
+- [Video Generation](features/VIDEO_GENERATION_COMPLETE.md)
+- [Motion Editor](features/MOTION_EDITOR_DOCUMENTATION.md)
+- [Keyframe Timeline](features/KEYFRAME_TIMELINE_GUIDE_TH.md)
 
-## 📦 Archived Documentation (docs/archive/)
+### Deployment
+- [Deployment Guide](deployment/DEPLOYMENT.md)
+- [Firebase Setup](deployment/FIREBASE_SETUP_GUIDE.md)
+- [ComfyUI Backend](deployment/COMFYUI_BACKEND_DEPLOYMENT.md)
+- [Troubleshooting](deployment/troubleshooting.md)
 
-Historical documentation has been archived to `docs/archive/` for reference:
+### Development
+- [Development Guide](development/DEVELOPMENT.md)
+- [Testing Guide](development/TESTING_GUIDE.md)
+- [Contributing](development/CONTRIBUTING.md)
 
-- Deployment summaries and status reports
-- Project health audits
-- Provider selection docs
-- Old README versions
-- Achievement reports
+### Archive
+Historical documents and old reports can be found in the [archive](archive/) folder.
 
-**Note**: Archive files are kept for historical reference but may be outdated. Refer to core documentation for current information.
+---
 
-## 🚀 Quick Links
-
-- **Get Started**: [README.md](../README.md)
-- **Deploy to Production**: [DEPLOYMENT.md](../DEPLOYMENT.md)
-- **Setup Face ID**: [COMFYUI_SETUP.md](../COMFYUI_SETUP.md)
-- **Run Tests**: [TESTING.md](./TESTING.md)
-
-## 📝 Documentation Philosophy
-
-We maintain minimal, focused documentation:
-
-1. **README.md** - The single source of truth for project overview
-2. **DEPLOYMENT.md** - Production deployment only
-3. **COMFYUI_SETUP.md** - Critical Face ID feature setup
-4. **Supporting docs/** - Reference material for advanced topics
-5. **Archive/** - Historical records, not actively maintained
-
-This structure prevents documentation bloat while ensuring all necessary information is accessible.
+**Last Updated:** December 16, 2024  
+**Version:** 1.0

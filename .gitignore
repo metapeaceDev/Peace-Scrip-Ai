@@ -67,3 +67,4 @@ enable-comfyui.sh
 /planning_documents
 thai-tts-development/
 .env.test
+test-realtime-sync.html

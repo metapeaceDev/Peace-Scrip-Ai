@@ -49,13 +49,15 @@ peace-script-basic-v1/
 ## 🔧 การแก้ไขและปรับปรุงที่สำคัญ
 
 ### 1. **Environment Variables (CRITICAL FIX)**
+
 - ❌ **ปัญหาเดิม**: ใช้ `process.env.API_KEY` ซึ่งไม่ทำงานใน Vite
-- ✅ **การแก้ไข**: 
+- ✅ **การแก้ไข**:
   - เปลี่ยนเป็น `import.meta.env.VITE_GEMINI_API_KEY`
   - สร้าง `vite-env.d.ts` สำหรับ type definitions
   - อัปเดต `.env.local` และสร้าง `.env.example`
 
 ### 2. **TypeScript Configuration**
+
 - ❌ **ปัญหาเดิม**: `tsconfig.json` มี `include: ["src"]` แต่ไฟล์อยู่ใน root
 - ✅ **การแก้ไข**:
   - เปลี่ยน include pattern เป็น `["*.tsx", "**/*.ts", "**/*.tsx"]`
@@ -63,6 +65,7 @@ peace-script-basic-v1/
   - ปรับ strict checking (`strictNullChecks: false`, `noUnusedLocals: false`)
 
 ### 3. **Missing Files**
+
 - 🆕 **index.css**: Global styles + Tailwind directives
 - 🆕 **.env.example**: Template สำหรับ environment setup
 - 🆕 **vite-env.d.ts**: Vite environment type definitions
@@ -70,17 +73,20 @@ peace-script-basic-v1/
 - 🆕 **README_FULL.md**: Complete documentation
 
 ### 4. **Error Handling**
+
 - ✅ สร้าง `ErrorBoundary` component พร้อม UI ที่สวยงาม
 - ✅ Integrated ใน `index.tsx` wrapping `<App />`
 - ✅ แสดง error details และ stack trace
 - ✅ ปุ่ม Reload และ Clear Data
 
 ### 5. **Package Dependencies**
+
 - ❌ **ปัญหาเดิม**: `@google/genai@^0.1.1` ไม่มี version นี้
 - ✅ **การแก้ไข**: อัปเดตเป็น `@google/genai@^1.29.1`
 - ✅ ติดตั้งสำเร็จ (153 packages)
 
 ### 6. **Build System**
+
 - ✅ แก้ไข type errors ใน `constants.ts`
 - ✅ ปรับ `geminiService.ts` ให้รองรับ optional chaining
 - ✅ **Build สำเร็จ**: `dist/` folder พร้อม deploy
@@ -98,6 +104,7 @@ peace-script-basic-v1/
 ```
 
 ⚠️ **หมายเหตุ**: Bundle size ใหญ่ (530 kB) เนื่องจาก:
+
 - React + ReactDOM
 - @google/genai SDK
 - PDF.js, Mammoth.js libraries
@@ -108,6 +115,7 @@ peace-script-basic-v1/
 ## 🎯 Features ที่ทำงานได้สมบูรณ์
 
 ### Core Features
+
 - ✅ **5-Step Workflow**: Genre → Boundary → Character → Structure → Output
 - ✅ **AI Integration**: Gemini 2.5 Flash + Image + Veo Video
 - ✅ **Offline Mode**: IndexedDB storage
@@ -116,6 +124,7 @@ peace-script-basic-v1/
 - ✅ **Auto-save**: Every 2 seconds
 
 ### Character Development
+
 - ✅ AI Character Generation (profile + psychology)
 - ✅ Portrait Generation (19 art styles)
 - ✅ Costume/Outfit Collection
@@ -123,6 +132,7 @@ peace-script-basic-v1/
 - ✅ Face ID consistency
 
 ### Scene Generation
+
 - ✅ AI Scene Generation
 - ✅ Dialogue Editor (drag-and-drop)
 - ✅ Shot List (complete specifications)
@@ -130,6 +140,7 @@ peace-script-basic-v1/
 - ✅ Video Preview (Veo AI)
 
 ### Export Options
+
 - ✅ Screenplay (TXT)
 - ✅ Shot List (CSV)
 - ✅ Storyboard (HTML)
@@ -141,22 +152,26 @@ peace-script-basic-v1/
 ## ⚠️ ข้อจำกัดและข้อควรระวัง
 
 ### 1. **API Key Requirement**
+
 - 🔑 ต้องมี **Gemini API Key** (paid tier) สำหรับ:
   - Veo Video generation
   - Image generation
   - Large context processing
 
 ### 2. **Browser Compatibility**
+
 - ✅ Chrome/Edge (recommended)
 - ⚠️ Safari (may have IndexedDB issues)
 - ⚠️ Firefox (test required)
 
 ### 3. **Data Limits**
+
 - IndexedDB: ~50MB per domain (browser dependent)
 - Large projects with many images may hit limits
 - Recommended: Regular cloud backups
 
 ### 4. **TypeScript Strict Mode**
+
 - ปิด `strictNullChecks` เพื่อให้ build ผ่าน
 - ⚡ TODO: ควรแก้ไข type errors อย่างละเอียดในอนาคต
 
@@ -165,23 +180,29 @@ peace-script-basic-v1/
 ## 🚀 การใช้งาน
 
 ### Development
+
 ```bash
 npm run dev
 ```
+
 - Opens at http://localhost:5173
 - Hot reload enabled
 
 ### Production Build
+
 ```bash
 npm run build
 ```
+
 - Output: `dist/` folder
 - Ready for deployment
 
 ### Preview Build
+
 ```bash
 npm run preview
 ```
+
 - Test production build locally
 
 ---
@@ -189,11 +210,13 @@ npm run preview
 ## 📝 Environment Setup
 
 ### Required Environment Variables
+
 ```env
 VITE_GEMINI_API_KEY=your_actual_api_key_here
 ```
 
 ### Optional
+
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -215,18 +238,21 @@ VITE_API_URL=http://localhost:5000/api
 ## 🔮 Recommendations for Future
 
 ### Performance Optimization
+
 - [ ] Implement code splitting (lazy load components)
 - [ ] Reduce bundle size (tree shaking)
 - [ ] Optimize images (compression)
 - [ ] Add service worker (PWA)
 
 ### Code Quality
+
 - [ ] Fix TypeScript strict mode errors
 - [ ] Add unit tests (Jest + React Testing Library)
 - [ ] Add E2E tests (Playwright/Cypress)
 - [ ] Improve error handling (more specific errors)
 
 ### Features
+
 - [ ] Collaborative editing (WebSockets)
 - [ ] Version control (git-like for scripts)
 - [ ] Templates library (pre-made structures)
@@ -234,6 +260,7 @@ VITE_API_URL=http://localhost:5000/api
 - [ ] Multi-language support (more than Thai/English)
 
 ### UX Improvements
+
 - [ ] Keyboard shortcuts guide
 - [ ] Onboarding tutorial
 - [ ] Dark/Light theme toggle
@@ -251,7 +278,7 @@ VITE_API_URL=http://localhost:5000/api
 ✅ **Dependencies**: ติดตั้งและทำงานได้  
 ✅ **Build**: สำเร็จและพร้อม deploy  
 ✅ **Features**: ครบทุก features ตามที่ออกแบบ  
-✅ **Documentation**: มีเอกสารครบถ้วน  
+✅ **Documentation**: มีเอกสารครบถ้วน
 
 **สถานะ**: 🟢 **PRODUCTION READY**
 
