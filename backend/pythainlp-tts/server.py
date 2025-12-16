@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 PyThaiNLP TTS Server
-Free Thai Text-to-Speech service using pythainlp
+Free Thai Text-to-Speech service using gTTS
 """
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from pythainlp.util import sound
+from gtts import gTTS
 import os
 import tempfile
 import logging
@@ -68,25 +68,10 @@ def text_to_speech():
             output_path = tmp_file.name
         
         try:
-            # Generate speech using pythainlp
-            if engine.lower() == 'gtts':
-                # Using Google Text-to-Speech (free, high quality)
-                from gtts import gTTS
-                tts = gTTS(text=text, lang=lang)
-                tts.save(output_path)
-            elif engine.lower() == 'espeak':
-                # Using espeak (offline, lower quality)
-                sound.play(text, lang=lang)
-                # Note: espeak doesn't return file, would need different implementation
-                return jsonify({
-                    'success': False,
-                    'error': 'espeak engine not fully implemented yet'
-                }), 501
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': f'Unknown engine: {engine}'
-                }), 400
+            # Generate speech using gTTS (Google Text-to-Speech)
+            # Free, high quality, supports Thai language
+            tts = gTTS(text=text, lang=lang, slow=False)
+            tts.save(output_path)
             
             # Send audio file
             return send_file(
@@ -124,14 +109,6 @@ def list_voices():
                 'quality': 'high',
                 'free': True,
                 'description': 'Google Text-to-Speech (requires internet)'
-            },
-            {
-                'engine': 'espeak',
-                'name': 'eSpeak Thai',
-                'lang': 'th',
-                'quality': 'medium',
-                'free': True,
-                'description': 'Offline TTS (lower quality)'
             }
         ]
     })
