@@ -1,0 +1,24 @@
+# Voice Cloning Server Dependencies
+
+# Core Framework
+flask==3.0.0
+flask-cors==4.0.0
+gunicorn==21.2.0
+
+# Coqui TTS - Voice Cloning Engine
+TTS==0.22.0
+
+# Audio Processing
+torch==2.1.0
+torchaudio==2.1.0
+librosa==0.10.1
+soundfile==0.12.1
+pydub==0.25.1
+
+# Utilities
+python-dotenv==1.0.0
+werkzeug==3.0.0
+
+# Optional: GPU Support (CUDA)
+# For GPU acceleration, install PyTorch with CUDA:
+# pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118
