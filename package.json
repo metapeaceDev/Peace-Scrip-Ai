@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:watch": "vitest --coverage --watch",
+    "test:coverage:html": "vitest run --coverage && open coverage/index.html",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
@@ -27,10 +29,13 @@
   "dependencies": {
     "@google/genai": "^1.29.1",
     "@huggingface/inference": "^4.13.4",
+    "@stripe/stripe-js": "^8.5.3",
     "firebase": "^12.6.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.47.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "stripe": "^20.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
