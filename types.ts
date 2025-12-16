@@ -58,6 +58,8 @@ export interface Character {
     customPhrases?: string[];       // คำพูดเฉพาะตัว
     speechTics?: string[];          // ท่าทางการพูด (เช่น "เนอะ", "นะจ๊ะ")
   };
+  // NEW: Voice Cloning ID
+  voiceCloneId?: string;            // ID ของเสียงที่โคลนสำหรับตัวละคร
 }
 
 // Speech Pattern Types

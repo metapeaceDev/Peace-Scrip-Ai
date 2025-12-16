@@ -16,6 +16,7 @@ import { PsychologyDashboard } from './PsychologyDashboard';
 import { CharacterComparison } from './CharacterComparison';
 import { PsychologyTimeline } from './PsychologyTimeline';
 import { HybridTTSService } from '../services/hybridTTSService';
+import { VoiceUploadModal } from './VoiceUploadModal';
 import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
 
 interface Step3CharacterProps {
@@ -161,6 +162,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // Costume Preview State (Fitting Room)
   const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
+
+  // Voice Cloning States
+  const [isVoiceUploadModalOpen, setIsVoiceUploadModalOpen] = useState(false);
 
   // Ensure characters array is never empty for rendering
   const characters = useMemo(() =>
@@ -856,8 +860,26 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     }
   };
 
+  // Voice Upload Handler
+  const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
+    if (onRegisterUndo) onRegisterUndo();
+    updateCharacterAtIndex(activeCharIndex, { 
+      voiceCloneId: voiceId 
+    });
+    setIsVoiceUploadModalOpen(false);
+  };
+
   return (
     <div className="relative">
+      {/* Voice Upload Modal */}
+      {isVoiceUploadModalOpen && (
+        <VoiceUploadModal
+          isOpen={isVoiceUploadModalOpen}
+          onClose={() => setIsVoiceUploadModalOpen(false)}
+          onVoiceUploaded={handleVoiceUploadSuccess}
+        />
+      )}
+
       {/* --- RETURN NAVIGATION BAR (CONDITIONAL) --- */}
       {returnToStep && (
         <div className="bg-orange-900/40 border border-orange-500/50 rounded-lg p-3 mb-6 flex justify-between items-center animate-pulse">
@@ -1831,6 +1853,71 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   />
                   <div className="mt-2 text-xs text-gray-500">
                     วลีหรือประโยคที่ตัวละครชอบพูด เช่น &quot;ไปทางนั้นก็ได้นะจ๊ะ&quot; &quot;เอาล่ะๆ ไม่เป็นไรจ้า&quot;
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice Cloning Section */}
+              <div className="mt-8 p-6 bg-gradient-to-br from-purple-900/30 to-pink-900/20 rounded-lg border border-purple-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">🎙️</span>
+                    <div>
+                      <h4 className="text-lg font-bold text-purple-300">Voice Cloning</h4>
+                      <p className="text-xs text-gray-400">โคลนเสียงของคุณเป็นเสียงตัวละคร</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsVoiceUploadModalOpen(true)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <span>➕</span>
+                    <span>อัพโหลดเสียง</span>
+                  </button>
+                </div>
+
+                {activeCharacter.voiceCloneId ? (
+                  <div className="bg-gray-800/50 rounded-lg p-4 border border-purple-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-purple-600/20 rounded-full flex items-center justify-center">
+                          <span className="text-2xl">🎤</span>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            เสียงโคลนที่เลือก
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            ID: {activeCharacter.voiceCloneId.substring(0, 16)}...
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (onRegisterUndo) onRegisterUndo();
+                          updateCharacterAtIndex(activeCharIndex, { voiceCloneId: undefined });
+                        }}
+                        className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md text-xs font-medium transition-colors"
+                      >
+                        ลบเสียง
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">🎙️</div>
+                    <p className="text-sm">ยังไม่มีเสียงโคลน</p>
+                    <p className="text-xs mt-1">คลิก "อัพโหลดเสียง" เพื่อเริ่มต้น</p>
+                  </div>
+                )}
+
+                <div className="mt-4 p-3 bg-cyan-900/10 border border-cyan-700/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-cyan-400 text-sm">💡</span>
+                    <div className="text-xs text-gray-400">
+                      <strong className="text-cyan-300">คำแนะนำ:</strong> อัพโหลดไฟล์เสียงที่มีความยาว 15-20 วินาที พูดภาษาไทยชัดเจน 
+                      เพื่อผลลัพธ์ที่ดีที่สุด ระบบจะใช้เสียงนี้สร้างเสียงพูดของตัวละครโดยอัตโนมัติ
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3119,6 +3206,23 @@ ${characters.map(char => `
 </body>
 </html>
   `.trim();
+};
+
+export default Step3Character;
+      {/* Voice Upload Modal */}
+      {isVoiceUploadModalOpen && (
+        <VoiceUploadModal
+          isOpen={isVoiceUploadModalOpen}
+          onClose={() => setIsVoiceUploadModalOpen(false)}
+          onSuccess={handleVoiceUploadSuccess}
+          characterName={activeCharacter.name}
+        />
+      )}
+
+      {/* Rest of the component JSX... */}
+      {/* The existing return statement content should follow here */}
+    </div>
+  );
 };
 
 export default Step3Character;
