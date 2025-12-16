@@ -86,41 +86,55 @@ export class HybridTTSService {
     this.stats.azureRequests++;
     this.updateAvailability();
 
-    // TODO: Implement Azure TTS integration
-    // This is a placeholder - replace with actual Azure SDK calls
-    throw new Error(
-      'Azure TTS not implemented yet. Please implement Azure Speech SDK integration.'
-    );
+    // Azure Speech SDK integration
+    try {
+      const azureKey = import.meta.env.VITE_AZURE_TTS_KEY;
+      const azureRegion = import.meta.env.VITE_AZURE_TTS_REGION || 'southeastasia';
 
-    /*
-    Example Azure implementation:
-    
-    const sdk = require('microsoft-cognitiveservices-speech-sdk');
-    
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      process.env.AZURE_SPEECH_KEY,
-      process.env.AZURE_SPEECH_REGION
-    );
-    speechConfig.speechSynthesisLanguage = 'th-TH';
-    speechConfig.speechSynthesisVoiceName = 'th-TH-PremwadeeNeural';
-    
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
-    
-    return new Promise((resolve, reject) => {
-      synthesizer.speakTextAsync(
-        text,
-        result => {
-          const audioBlob = new Blob([result.audioData], { type: 'audio/wav' });
-          synthesizer.close();
-          resolve(audioBlob);
-        },
-        error => {
-          synthesizer.close();
-          reject(error);
-        }
-      );
-    });
-    */
+      if (!azureKey) {
+        throw new Error('Azure TTS API key not configured. Please set VITE_AZURE_TTS_KEY in .env');
+      }
+
+      // Dynamic import of Azure Speech SDK (browser-compatible)
+      const sdk = await import('microsoft-cognitiveservices-speech-sdk');
+
+      // Configure speech synthesis
+      const speechConfig = sdk.SpeechConfig.fromSubscription(azureKey, azureRegion);
+      speechConfig.speechSynthesisLanguage = 'th-TH';
+      speechConfig.speechSynthesisVoiceName = 'th-TH-PremwadeeNeural'; // Female voice
+      speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+
+      // Create synthesizer
+      const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+
+      // Synthesize speech
+      const audioBlob = await new Promise<Blob>((resolve, reject) => {
+        synthesizer.speakTextAsync(
+          text,
+          (result) => {
+            if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+              const audioData = result.audioData;
+              const blob = new Blob([audioData], { type: 'audio/mp3' });
+              synthesizer.close();
+              console.log('✅ Azure TTS synthesis completed');
+              resolve(blob);
+            } else {
+              synthesizer.close();
+              reject(new Error(`Azure TTS synthesis failed: ${result.errorDetails}`));
+            }
+          },
+          (error) => {
+            synthesizer.close();
+            reject(new Error(`Azure TTS error: ${error}`));
+          }
+        );
+      });
+
+      return audioBlob;
+    } catch (error) {
+      console.error('❌ Azure TTS synthesis failed:', error);
+      throw error;
+    }
   }
 
   /**

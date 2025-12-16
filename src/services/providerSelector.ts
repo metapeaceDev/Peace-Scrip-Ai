@@ -190,14 +190,22 @@ export function getRecommendedProvider(
   switch (criteria) {
     case 'speed':
       return availableProviders.sort((a, b) => {
-        const speedOrder = { fast: 0, medium: 1, slow: 2 };
-        return (speedOrder[a.speed || 'medium'] || 1) - (speedOrder[b.speed || 'medium'] || 1);
+        const speedOrder: Record<string, number> = { fast: 0, medium: 1, slow: 2 };
+        const aSpeed = a.speed || 'medium';
+        const bSpeed = b.speed || 'medium';
+        const aOrder = speedOrder[aSpeed] ?? 1;
+        const bOrder = speedOrder[bSpeed] ?? 1;
+        return aOrder - bOrder;
       })[0];
 
     case 'quality':
       return availableProviders.sort((a, b) => {
-        const qualityOrder = { excellent: 0, good: 1, fair: 2 };
-        return (qualityOrder[a.quality || 'good'] || 1) - (qualityOrder[b.quality || 'good'] || 1);
+        const qualityOrder: Record<string, number> = { excellent: 0, good: 1, fair: 2 };
+        const aQuality = a.quality || 'good';
+        const bQuality = b.quality || 'good';
+        const aOrder = qualityOrder[aQuality] ?? 1;
+        const bOrder = qualityOrder[bQuality] ?? 1;
+        return aOrder - bOrder;
       })[0];
 
     case 'balanced':

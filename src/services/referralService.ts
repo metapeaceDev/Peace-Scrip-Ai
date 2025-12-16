@@ -189,9 +189,48 @@ export function applyReferralCode(
     `✅ Referral successful: ${code.code} - Referrer: +${rewards.referrer.credits}, Referee: +${rewards.referee.credits} credits`
   );
 
-  // TODO: Actually award credits to both users via userStore or database
+  // Award credits to both users
+  awardReferralCredits(rewards).catch(error => {
+    console.error('❌ Error awarding referral credits:', error);
+  });
 
   return { success: true, rewards };
+}
+
+/**
+ * Award referral credits to both referrer and referee
+ */
+async function awardReferralCredits(rewards: ReferralReward): Promise<void> {
+  try {
+    const { doc, updateDoc, increment, Timestamp } = await import('firebase/firestore');
+    const { db } = await import('../config/firebase');
+
+    // Award credits to referrer
+    const referrerRef = doc(db, 'users', rewards.referrer.userId);
+    await updateDoc(referrerRef, {
+      'credits.available': increment(rewards.referrer.credits),
+      'credits.earned': increment(rewards.referrer.credits),
+      'credits.lastUpdated': Timestamp.now(),
+      'referral.totalEarned': increment(rewards.referrer.credits),
+    });
+
+    console.log(`💰 Awarded ${rewards.referrer.credits} credits to referrer ${rewards.referrer.userId}`);
+
+    // Award bonus credits to referee (new user)
+    const refereeRef = doc(db, 'users', rewards.referee.userId);
+    await updateDoc(refereeRef, {
+      'credits.available': increment(rewards.referee.credits),
+      'credits.bonus': increment(rewards.referee.credits),
+      'credits.lastUpdated': Timestamp.now(),
+      'referral.usedCode': true,
+      'referral.bonusReceived': rewards.referee.credits,
+    });
+
+    console.log(`🎁 Awarded ${rewards.referee.credits} bonus credits to referee ${rewards.referee.userId}`);
+  } catch (error) {
+    console.error('Error awarding credits in Firestore:', error);
+    throw error;
+  }
 }
 
 /**
@@ -319,7 +358,12 @@ export function createCustomReferralCode(
  * Share referral code via different channels
  */
 export function generateReferralLink(code: string, channel?: 'copy' | 'social' | 'email'): string {
-  const baseUrl = 'https://peacescript.ai'; // TODO: Use actual domain
+  // Use environment variable for production URL, fallback to localhost in dev
+  const baseUrl = import.meta.env.VITE_APP_URL || 
+                  (import.meta.env.PROD 
+                    ? 'https://peace-script-ai.web.app' 
+                    : 'http://localhost:5173');
+  
   const referralUrl = `${baseUrl}/signup?ref=${code.toUpperCase()}`;
 
   switch (channel) {

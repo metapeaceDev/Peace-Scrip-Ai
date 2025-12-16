@@ -601,3 +601,60 @@ class FirestoreService {
 }
 
 export const firestoreService = new FirestoreService();
+
+/**
+ * Update user subscription information
+ */
+export async function updateUserSubscription(
+  userId: string,
+  subscriptionData: {
+    tier?: string;
+    status?: 'active' | 'canceled' | 'canceling' | 'past_due';
+    billingCycle?: 'monthly' | 'yearly';
+    startDate?: Date;
+    endDate?: Date;
+    stripeSubscriptionId?: string;
+    stripeCustomerId?: string;
+    canceledAt?: Date;
+  }
+): Promise<void> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    
+    const updateData: any = {
+      'subscription.updatedAt': serverTimestamp(),
+    };
+
+    if (subscriptionData.tier !== undefined) {
+      updateData['subscription.tier'] = subscriptionData.tier;
+    }
+    if (subscriptionData.status !== undefined) {
+      updateData['subscription.status'] = subscriptionData.status;
+    }
+    if (subscriptionData.billingCycle !== undefined) {
+      updateData['subscription.billingCycle'] = subscriptionData.billingCycle;
+    }
+    if (subscriptionData.startDate !== undefined) {
+      updateData['subscription.startDate'] = Timestamp.fromDate(subscriptionData.startDate);
+    }
+    if (subscriptionData.endDate !== undefined) {
+      updateData['subscription.endDate'] = Timestamp.fromDate(subscriptionData.endDate);
+    }
+    if (subscriptionData.stripeSubscriptionId !== undefined) {
+      updateData['subscription.stripeSubscriptionId'] = subscriptionData.stripeSubscriptionId;
+    }
+    if (subscriptionData.stripeCustomerId !== undefined) {
+      updateData['subscription.stripeCustomerId'] = subscriptionData.stripeCustomerId;
+    }
+    if (subscriptionData.canceledAt !== undefined) {
+      updateData['subscription.canceledAt'] = Timestamp.fromDate(subscriptionData.canceledAt);
+    }
+
+    await updateDoc(userRef, updateData);
+    
+    console.log(`✅ Updated subscription for user ${userId}:`, subscriptionData);
+  } catch (error) {
+    console.error('Error updating user subscription:', error);
+    throw error;
+  }
+}

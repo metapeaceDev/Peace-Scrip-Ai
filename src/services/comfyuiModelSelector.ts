@@ -74,24 +74,54 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
 export type ModelPreference = 'speed' | 'balanced' | 'quality' | 'best';
 
 /**
- * Detect available VRAM (mock for now, needs actual GPU detection)
+ * Detect available VRAM via backend API or browser heuristics
  */
 export async function detectAvailableVRAM(): Promise<number> {
-  // TODO: Implement actual VRAM detection
-  // For now, return a reasonable default
+  // Try to get actual VRAM from backend API
+  try {
+    const backendUrl = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/system/gpu-info`, {
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const vramGB = data.vram_total_gb || data.vram_gb || data.memory_gb;
+      
+      if (typeof vramGB === 'number' && vramGB > 0) {
+        console.log(`🎮 Detected GPU VRAM: ${vramGB}GB`);
+        return vramGB;
+      }
+    }
+  } catch (error) {
+    // Backend not available or doesn't support GPU info
+    console.log('ℹ️ Could not detect VRAM from backend, using heuristics');
+  }
+
+  // Fallback: Try WebGPU API (if available)
+  if ('gpu' in navigator) {
+    try {
+      const adapter = await (navigator as any).gpu.requestAdapter();
+      if (adapter) {
+        const info = await adapter.requestAdapterInfo();
+        // WebGPU doesn't directly expose VRAM, but we can make educated guesses
+        console.log('🎮 WebGPU adapter detected:', info);
+      }
+    } catch (error) {
+      // WebGPU not supported or failed
+    }
+  }
   
-  // Could use navigator.gpu (WebGPU) in browser
-  // Or system info from Electron/Tauri
-  
-  // Mock detection based on common GPUs
+  // Fallback: Heuristic based on platform
   const userAgent = navigator.userAgent.toLowerCase();
   
   if (userAgent.includes('mac')) {
     // Mac typically has 8-16GB unified memory
+    // M1/M2/M3 Macs: 8GB (base), 16GB (common), 24GB+ (high-end)
     return 16;
   }
   
-  // Default to 8GB (most modern GPUs)
+  // Default to 8GB (most modern GPUs have at least this)
   return 8;
 }
 
@@ -185,12 +215,42 @@ Cost: ฿${profile.cost}/generation`;
 }
 
 /**
- * Check if model file exists
+ * Check if model file exists on backend
  */
-export async function checkModelAvailability(_checkpoint: string): Promise<boolean> {
-  // TODO: Implement actual file check
-  // For now, assume all models in MODEL_PROFILES are available
-  return true;
+export async function checkModelAvailability(checkpoint: string): Promise<boolean> {
+  try {
+    const backendUrl = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/models/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ checkpoint }),
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const isAvailable = data.available || data.exists || false;
+      
+      if (!isAvailable) {
+        console.log(`⚠️ Model not found: ${checkpoint}`);
+      }
+      
+      return isAvailable;
+    }
+  } catch (error) {
+    // Backend not available or doesn't support model check
+    console.log(`ℹ️ Could not verify model availability for: ${checkpoint}`);
+  }
+  
+  // Fallback: Assume models in MODEL_PROFILES are available
+  // This prevents blocking the UI when backend is offline
+  const isInProfiles = Object.values(MODEL_PROFILES).some(
+    profile => profile.checkpoint === checkpoint
+  );
+  
+  return isInProfiles;
 }
 
 /**

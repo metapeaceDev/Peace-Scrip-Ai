@@ -201,8 +201,19 @@ async function pollJobStatus(
 
         if (imageUrl) {
           console.log(`🌐 Image available at Storage URL: ${imageUrl}`);
-          // TODO: Download from Storage URL and convert to base64 for frontend
-          // For now, return imageData if available
+          
+          // Download from Storage URL and convert to base64
+          try {
+            const base64Data = await downloadAndConvertToBase64(imageUrl);
+            if (base64Data) {
+              console.log('✅ Converted Storage URL to base64');
+              return base64Data;
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to convert Storage URL to base64:', error);
+          }
+          
+          // Fallback to imageData or return URL
           return imageData || imageUrl;
         }
 
@@ -237,6 +248,41 @@ async function pollJobStatus(
   }
 
   throw new Error('Job timeout after 80 minutes. ComfyUI Backend may be overloaded or stuck.');
+}
+
+/**
+ * Download image from Storage URL and convert to base64
+ */
+async function downloadAndConvertToBase64(storageUrl: string): Promise<string | null> {
+  try {
+    // Download image from Storage URL
+    const response = await fetch(storageUrl, {
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.status}`);
+    }
+
+    // Get image as blob
+    const blob = await response.blob();
+    
+    // Convert blob to base64
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64);
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read blob'));
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting Storage URL to base64:', error);
+    return null;
+  }
 }
 
 /**

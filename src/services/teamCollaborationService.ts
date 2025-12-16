@@ -466,11 +466,49 @@ class TeamCollaborationService {
 
       console.log('✅ Notification created for:', invitation.inviteeEmail);
 
-      // TODO: ส่งอีเมลแจ้งเตือนด้วย (ถ้ามี email service)
-      // await this.sendEmailNotification(invitation);
+      // ส่งอีเมลแจ้งเตือน
+      await this.sendInvitationEmail(invitation);
     } catch (error) {
       console.error('⚠️ Warning: Could not create notification:', error);
       // ไม่ throw error เพราะ notification เป็นส่วนเสริม
+    }
+  }
+
+  /**
+   * ส่งอีเมลเชิญเข้าทีม
+   */
+  private async sendInvitationEmail(invitation: ProjectInvitation): Promise<void> {
+    try {
+      const { sendEmail, createTeamInvitationEmail } = await import('./emailService');
+      
+      // สร้าง invitation link
+      const appUrl = import.meta.env.VITE_APP_URL || 'https://peace-script-ai.web.app';
+      const invitationLink = `${appUrl}/invitations/${invitation.id}`;
+
+      // สร้าง email template
+      const emailTemplate = createTeamInvitationEmail({
+        inviterName: invitation.inviterName,
+        projectTitle: invitation.projectTitle,
+        role: invitation.role,
+        invitationLink,
+      });
+
+      // ส่งอีเมล
+      const success = await sendEmail({
+        to: invitation.inviteeEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      if (success) {
+        console.log(`📧 Invitation email sent to: ${invitation.inviteeEmail}`);
+      } else {
+        console.warn(`⚠️ Failed to send invitation email to: ${invitation.inviteeEmail}`);
+      }
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+      // ไม่ throw error - email เป็น optional feature
     }
   }
 
