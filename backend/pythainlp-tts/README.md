@@ -45,11 +45,13 @@ docker-compose up
 ## API Endpoints
 
 ### Health Check
+
 ```bash
 GET /health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -59,6 +61,7 @@ Response:
 ```
 
 ### Text-to-Speech
+
 ```bash
 POST /tts
 Content-Type: application/json
@@ -73,11 +76,13 @@ Content-Type: application/json
 Response: MP3 audio file
 
 ### List Voices
+
 ```bash
 GET /voices
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -105,8 +110,8 @@ const response = await fetch('http://localhost:8000/tts', {
   },
   body: JSON.stringify({
     text: 'สวัสดีครับ',
-    engine: 'gTTS'
-  })
+    engine: 'gTTS',
+  }),
 });
 
 const audioBlob = await response.blob();
@@ -150,11 +155,14 @@ gunicorn -w 4 -b 0.0.0.0:8000 server:app
 ## Troubleshooting
 
 ### Issue: "gTTS requires internet"
+
 - Solution: gTTS uses Google's TTS service, internet required
 - Alternative: Use offline TTS (espeak) - lower quality
 
 ### Issue: "Port 8000 already in use"
+
 - Solution: Change PORT in .env or kill existing process
+
 ```bash
 lsof -ti:8000 | xargs kill -9
 ```

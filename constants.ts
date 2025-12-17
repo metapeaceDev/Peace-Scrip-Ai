@@ -478,3 +478,53 @@ export const PERSONALITY_LABELS = {
   intellectual: 'ปัญญาชน (Intellectual)',
 };
 
+// Voice Cloning Configuration
+export const VOICE_CLONING_CONFIG = {
+  // Server endpoint
+  ENDPOINT: import.meta.env.VITE_VOICE_CLONING_ENDPOINT || 'http://localhost:8001',
+  
+  // Model info
+  MODEL_NAME: 'XTTS-v2',
+  MODEL_SIZE: '1.8GB',
+  
+  // Requirements
+  MIN_AUDIO_DURATION: 6, // seconds
+  MAX_AUDIO_DURATION: 30, // seconds
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  
+  // Supported formats
+  SUPPORTED_FORMATS: ['wav', 'mp3', 'ogg', 'flac', 'webm'],
+  
+  // Supported languages
+  SUPPORTED_LANGUAGES: [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'pl', name: 'Polish' },
+    { code: 'tr', name: 'Turkish' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'nl', name: 'Dutch' },
+    { code: 'cs', name: 'Czech' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'zh-cn', name: 'Chinese' },
+    { code: 'hu', name: 'Hungarian' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'hi', name: 'Hindi' },
+  ],
+  
+  // Default settings
+  DEFAULT_LANGUAGE: 'en',
+  DEFAULT_TEMPERATURE: 0.75,
+  
+  // Audio quality
+  SAMPLE_RATE: 24000, // 24kHz
+  BIT_DEPTH: 16,
+  
+  // Generation
+  ESTIMATED_GENERATION_TIME: 12, // seconds average
+};
+

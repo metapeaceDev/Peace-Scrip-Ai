@@ -102,7 +102,8 @@ export class HybridTTSService {
       const speechConfig = sdk.SpeechConfig.fromSubscription(azureKey, azureRegion);
       speechConfig.speechSynthesisLanguage = 'th-TH';
       speechConfig.speechSynthesisVoiceName = 'th-TH-PremwadeeNeural'; // Female voice
-      speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+      speechConfig.speechSynthesisOutputFormat =
+        sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
 
       // Create synthesizer
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
@@ -111,7 +112,7 @@ export class HybridTTSService {
       const audioBlob = await new Promise<Blob>((resolve, reject) => {
         synthesizer.speakTextAsync(
           text,
-          (result) => {
+          result => {
             if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
               const audioData = result.audioData;
               const blob = new Blob([audioData], { type: 'audio/mp3' });
@@ -123,7 +124,7 @@ export class HybridTTSService {
               reject(new Error(`Azure TTS synthesis failed: ${result.errorDetails}`));
             }
           },
-          (error) => {
+          error => {
             synthesizer.close();
             reject(new Error(`Azure TTS error: ${error}`));
           }

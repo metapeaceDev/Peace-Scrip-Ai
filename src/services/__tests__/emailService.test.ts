@@ -14,27 +14,27 @@ vi.mock('../config/firebase', () => ({
 describe('emailService - Module Structure', () => {
   it('should export EmailTemplate interface', async () => {
     const module = await import('../emailService');
-    
+
     const mockTemplate: typeof module.EmailTemplate = {
       subject: 'Test Email',
       html: '<p>Hello</p>',
       text: 'Hello',
     } as any;
-    
+
     expect(mockTemplate.subject).toBe('Test Email');
     expect(mockTemplate.html).toContain('<p>');
   });
 
   it('should export EmailNotification interface', async () => {
     const module = await import('../emailService');
-    
+
     const mockNotification: typeof module.EmailNotification = {
       to: 'user@example.com',
       from: 'noreply@example.com',
       subject: 'Test',
       html: '<p>Test</p>',
     } as any;
-    
+
     expect(mockNotification.to).toBe('user@example.com');
   });
 });
@@ -76,7 +76,7 @@ describe('emailService - Email Configuration', () => {
 
   it('should support multiple providers', () => {
     const providers = ['sendgrid', 'ses', 'firebase'];
-    
+
     providers.forEach(provider => {
       expect(['sendgrid', 'ses', 'firebase']).toContain(provider);
     });
@@ -85,29 +85,20 @@ describe('emailService - Email Configuration', () => {
 
 describe('emailService - Email Validation', () => {
   it('should validate email format', () => {
-    const validEmails = [
-      'user@example.com',
-      'test.user@domain.co.th',
-      'admin+tag@company.com',
-    ];
-    
+    const validEmails = ['user@example.com', 'test.user@domain.co.th', 'admin+tag@company.com'];
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     validEmails.forEach(email => {
       expect(emailRegex.test(email)).toBe(true);
     });
   });
 
   it('should reject invalid email formats', () => {
-    const invalidEmails = [
-      'notanemail',
-      '@example.com',
-      'user@',
-      'user @example.com',
-    ];
-    
+    const invalidEmails = ['notanemail', '@example.com', 'user@', 'user @example.com'];
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     invalidEmails.forEach(email => {
       expect(emailRegex.test(email)).toBe(false);
     });
@@ -118,7 +109,7 @@ describe('emailService - HTML Processing', () => {
   it('should strip HTML tags', () => {
     const html = '<p>Hello <strong>World</strong></p>';
     const text = html.replace(/<[^>]*>/g, '');
-    
+
     expect(text).toBe('Hello World');
     expect(text).not.toContain('<');
   });
@@ -126,14 +117,14 @@ describe('emailService - HTML Processing', () => {
   it('should handle empty HTML', () => {
     const html = '';
     const text = html.replace(/<[^>]*>/g, '');
-    
+
     expect(text).toBe('');
   });
 
   it('should preserve text content', () => {
     const html = '<div>Line 1<br>Line 2</div>';
     const text = html.replace(/<[^>]*>/g, '');
-    
+
     expect(text).toContain('Line 1');
     expect(text).toContain('Line 2');
   });
@@ -146,7 +137,7 @@ describe('emailService - Template Generation', () => {
       html: '<p>Join our team</p>',
       text: 'Join our team',
     };
-    
+
     expect(template.subject).toContain('invited');
     expect(template.html).toBeDefined();
     expect(template.text).toBeDefined();
@@ -158,7 +149,7 @@ describe('emailService - Template Generation', () => {
       html: '<p>Thank you for your payment</p>',
       text: 'Thank you for your payment',
     };
-    
+
     expect(template.subject).toContain('Payment');
     expect(template.html).toContain('payment');
   });
@@ -169,7 +160,7 @@ describe('emailService - Template Generation', () => {
       html: '<p>Welcome!</p>',
       text: 'Welcome!',
     };
-    
+
     expect(template.subject).toContain('Welcome');
   });
 });
@@ -181,7 +172,7 @@ describe('emailService - Error Handling', () => {
       subject: 'Test',
       html: '<p>Test</p>',
     };
-    
+
     expect(notification.to.length).toBe(0);
   });
 
@@ -191,14 +182,14 @@ describe('emailService - Error Handling', () => {
       subject: '',
       html: '<p>Test</p>',
     };
-    
+
     expect(notification.subject.length).toBe(0);
   });
 
   it('should provide fallback for missing text', () => {
     const html = '<p>Hello World</p>';
     const fallbackText = html.replace(/<[^>]*>/g, '');
-    
+
     expect(fallbackText).toBe('Hello World');
   });
 });
@@ -206,25 +197,21 @@ describe('emailService - Error Handling', () => {
 describe('emailService - Edge Cases', () => {
   it('should handle very long subject lines', () => {
     const longSubject = 'A'.repeat(1000);
-    
+
     expect(longSubject.length).toBe(1000);
     expect(typeof longSubject).toBe('string');
   });
 
   it('should handle special characters in subject', () => {
     const specialSubject = 'Test™️ with émojis 🎬 and <special> chars';
-    
+
     expect(specialSubject).toContain('™️');
     expect(specialSubject).toContain('🎬');
   });
 
   it('should handle multiple recipients', () => {
-    const recipients = [
-      'user1@example.com',
-      'user2@example.com',
-      'user3@example.com',
-    ];
-    
+    const recipients = ['user1@example.com', 'user2@example.com', 'user3@example.com'];
+
     recipients.forEach(email => {
       expect(email).toContain('@');
     });
@@ -232,7 +219,7 @@ describe('emailService - Edge Cases', () => {
 
   it('should handle HTML with inline styles', () => {
     const html = '<div style="color: red;">Styled content</div>';
-    
+
     expect(html).toContain('style=');
     expect(html).toContain('color');
   });
@@ -257,10 +244,10 @@ describe('emailService - Provider Selection', () => {
   it('should handle unknown provider', () => {
     const unknownProvider = 'unknown';
     const fallback = 'firebase';
-    const selected = ['sendgrid', 'ses', 'firebase'].includes(unknownProvider) 
-      ? unknownProvider 
+    const selected = ['sendgrid', 'ses', 'firebase'].includes(unknownProvider)
+      ? unknownProvider
       : fallback;
-    
+
     expect(selected).toBe('firebase');
   });
 });
@@ -273,7 +260,7 @@ describe('emailService - Notification Types', () => {
       teamName: 'My Team',
       inviterName: 'John Doe',
     };
-    
+
     expect(notification.type).toBe('team-invitation');
     expect(notification.teamName).toBeDefined();
   });
@@ -285,7 +272,7 @@ describe('emailService - Notification Types', () => {
       projectName: 'My Project',
       updateType: 'completed',
     };
-    
+
     expect(notification.type).toBe('project-update');
     expect(notification.projectName).toBeDefined();
   });
@@ -297,7 +284,7 @@ describe('emailService - Notification Types', () => {
       amount: 99.99,
       currency: 'USD',
     };
-    
+
     expect(notification.type).toBe('payment-receipt');
     expect(notification.amount).toBeGreaterThan(0);
   });
@@ -307,7 +294,7 @@ describe('emailService - Batch Operations', () => {
   it('should handle sending to multiple recipients', () => {
     const recipients = ['user1@example.com', 'user2@example.com'];
     const batchSize = recipients.length;
-    
+
     expect(batchSize).toBe(2);
   });
 
@@ -315,7 +302,7 @@ describe('emailService - Batch Operations', () => {
     const maxBatchSize = 100;
     const recipients = Array.from({ length: 150 }, (_, i) => `user${i}@example.com`);
     const batches = Math.ceil(recipients.length / maxBatchSize);
-    
+
     expect(batches).toBe(2);
   });
 });
@@ -324,7 +311,7 @@ describe('emailService - Rate Limiting', () => {
   it('should respect rate limits', () => {
     const maxEmailsPerMinute = 100;
     const sentEmails = 50;
-    
+
     expect(sentEmails).toBeLessThan(maxEmailsPerMinute);
   });
 
@@ -332,7 +319,7 @@ describe('emailService - Rate Limiting', () => {
     const emailsToSend = 10;
     const rateLimit = 5; // emails per second
     const delay = 1000 / rateLimit; // ms between emails
-    
+
     expect(delay).toBe(200);
   });
 });
@@ -345,11 +332,11 @@ describe('emailService - Integration Scenarios', () => {
       subject: 'Test Email',
       html: '<p>Test</p>',
     };
-    
+
     // 2. Validate
     expect(notification.to).toContain('@');
     expect(notification.subject.length).toBeGreaterThan(0);
-    
+
     // 3. Generate text fallback
     const text = notification.html.replace(/<[^>]*>/g, '');
     expect(text).toBe('Test');
@@ -362,7 +349,7 @@ describe('emailService - Integration Scenarios', () => {
       status: 'sent',
       timestamp: new Date(),
     };
-    
+
     expect(emailLog.status).toBe('sent');
     expect(emailLog.timestamp).toBeInstanceOf(Date);
   });

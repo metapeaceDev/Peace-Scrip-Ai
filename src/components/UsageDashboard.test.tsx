@@ -11,7 +11,9 @@ describe('UsageDashboard', () => {
     it('should render dashboard header', () => {
       render(<UsageDashboard />);
       expect(screen.getByText('📊 Usage Dashboard')).toBeInTheDocument();
-      expect(screen.getByText('ติดตามค่าใช้จ่ายและการประหยัดจาก AI Generation')).toBeInTheDocument();
+      expect(
+        screen.getByText('ติดตามค่าใช้จ่ายและการประหยัดจาก AI Generation')
+      ).toBeInTheDocument();
     });
 
     it('should render time range selector buttons', () => {
@@ -66,32 +68,32 @@ describe('UsageDashboard', () => {
   describe('Time Range Selection', () => {
     it('should switch to week view when clicking week button', () => {
       render(<UsageDashboard />);
-      
+
       const weekButton = screen.getByRole('button', { name: 'สัปดาห์นี้' });
       fireEvent.click(weekButton);
-      
+
       expect(weekButton).toHaveClass('active');
     });
 
     it('should switch to all time view when clicking all button', () => {
       render(<UsageDashboard />);
-      
+
       const allButton = screen.getByRole('button', { name: 'ทั้งหมด' });
       fireEvent.click(allButton);
-      
+
       expect(allButton).toHaveClass('active');
     });
 
     it('should remove active class from previous selection', () => {
       render(<UsageDashboard />);
-      
+
       const monthButton = screen.getByRole('button', { name: 'เดือนนี้' });
       const weekButton = screen.getByRole('button', { name: 'สัปดาห์นี้' });
-      
+
       expect(monthButton).toHaveClass('active');
-      
+
       fireEvent.click(weekButton);
-      
+
       expect(weekButton).toHaveClass('active');
       expect(monthButton).not.toHaveClass('active');
     });
@@ -131,7 +133,7 @@ describe('UsageDashboard', () => {
       render(<UsageDashboard />);
       const metricCards = document.querySelectorAll('.metric-card');
       expect(metricCards.length).toBe(4);
-      
+
       expect(metricCards[0].querySelector('.metric-icon')?.textContent).toBe('📁');
       expect(metricCards[1].querySelector('.metric-icon')?.textContent).toBe('💰');
       expect(metricCards[2].querySelector('.metric-icon')?.textContent).toBe('⚠️');
@@ -228,7 +230,7 @@ describe('UsageDashboard', () => {
     it('should apply border color based on provider type', () => {
       render(<UsageDashboard />);
       const providerCards = document.querySelectorAll('.provider-card') as NodeListOf<HTMLElement>;
-      
+
       expect(providerCards[0].style.borderColor).toBe('rgb(59, 130, 246)'); // blue for cloud
       expect(providerCards[1].style.borderColor).toBe('rgb(16, 185, 129)'); // green for open-source
       expect(providerCards[2].style.borderColor).toBe('rgb(139, 92, 246)'); // purple for hybrid
@@ -517,27 +519,21 @@ describe('UsageDashboard', () => {
     it('should show document icon for text type', () => {
       render(<UsageDashboard />);
       const typeBadges = document.querySelectorAll('.type-badge');
-      const textBadge = Array.from(typeBadges).find(badge => 
-        badge.textContent?.includes('text')
-      );
+      const textBadge = Array.from(typeBadges).find(badge => badge.textContent?.includes('text'));
       expect(textBadge?.textContent).toContain('📝');
     });
 
     it('should show image icon for image type', () => {
       render(<UsageDashboard />);
       const typeBadges = document.querySelectorAll('.type-badge');
-      const imageBadge = Array.from(typeBadges).find(badge => 
-        badge.textContent?.includes('image')
-      );
+      const imageBadge = Array.from(typeBadges).find(badge => badge.textContent?.includes('image'));
       expect(imageBadge?.textContent).toContain('🖼️');
     });
 
     it('should show video icon for video type', () => {
       render(<UsageDashboard />);
       const typeBadges = document.querySelectorAll('.type-badge');
-      const videoBadge = Array.from(typeBadges).find(badge => 
-        badge.textContent?.includes('video')
-      );
+      const videoBadge = Array.from(typeBadges).find(badge => badge.textContent?.includes('video'));
       expect(videoBadge?.textContent).toContain('🎬');
     });
   });
@@ -561,10 +557,10 @@ describe('UsageDashboard', () => {
       render(<UsageDashboard />);
       const statLabels = screen.getAllByText('จำนวน:');
       expect(statLabels.length).toBe(3);
-      
+
       const costLabels = screen.getAllByText('ค่าใช้จ่าย:');
       expect(costLabels.length).toBe(3);
-      
+
       const timeLabels = screen.getAllByText('เวลาเฉลี่ย:');
       expect(timeLabels.length).toBe(3);
     });

@@ -401,7 +401,7 @@ describe('buddhistPsychologyHelper', () => {
 
     it('should include kama_raga with correct data', () => {
       const result = formatAnusayaForDisplay(mockAnusayaProfile);
-      const kamaRaga = result.find((a) => a.name === 'kama_raga');
+      const kamaRaga = result.find(a => a.name === 'kama_raga');
 
       expect(kamaRaga).toBeDefined();
       expect(kamaRaga?.value).toBe(40);
@@ -411,7 +411,7 @@ describe('buddhistPsychologyHelper', () => {
 
     it('should include patigha with correct data', () => {
       const result = formatAnusayaForDisplay(mockAnusayaProfile);
-      const patigha = result.find((a) => a.name === 'patigha');
+      const patigha = result.find(a => a.name === 'patigha');
 
       expect(patigha).toBeDefined();
       expect(patigha?.value).toBe(30);
@@ -421,7 +421,7 @@ describe('buddhistPsychologyHelper', () => {
 
     it('should include all anusaya names', () => {
       const result = formatAnusayaForDisplay(mockAnusayaProfile);
-      const names = result.map((a) => a.name);
+      const names = result.map(a => a.name);
 
       expect(names).toContain('kama_raga');
       expect(names).toContain('patigha');
@@ -435,7 +435,7 @@ describe('buddhistPsychologyHelper', () => {
     it('should preserve values correctly', () => {
       const result = formatAnusayaForDisplay(mockAnusayaProfile);
 
-      result.forEach((item) => {
+      result.forEach(item => {
         expect(item.value).toBe(mockAnusayaProfile[item.name as keyof AnusayaProfile]);
       });
     });
@@ -505,7 +505,7 @@ describe('buddhistPsychologyHelper', () => {
         'พุทธิจริต',
         'วิตกจริต',
       ];
-      const emojis = caritas.map((c) => getCaritaDisplayInfo(c).emoji);
+      const emojis = caritas.map(c => getCaritaDisplayInfo(c).emoji);
       const uniqueEmojis = new Set(emojis);
 
       expect(uniqueEmojis.size).toBe(6);
@@ -562,7 +562,7 @@ describe('buddhistPsychologyHelper', () => {
 
     it('should have unique emojis for each intensity', () => {
       const intensities = ['mild', 'moderate', 'severe', 'extreme'] as const;
-      const emojis = intensities.map((i) => getIntensityDisplay(i).emoji);
+      const emojis = intensities.map(i => getIntensityDisplay(i).emoji);
       const uniqueEmojis = new Set(emojis);
 
       expect(uniqueEmojis.size).toBe(4);

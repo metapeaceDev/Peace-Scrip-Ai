@@ -4,10 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  SUBSCRIPTION_PLANS,
-  getPlansComparison,
-} from '../subscriptionManager';
+import { SUBSCRIPTION_PLANS, getPlansComparison } from '../subscriptionManager';
 import type { SubscriptionTier } from '../../../types';
 
 describe('subscriptionManager', () => {
@@ -221,23 +218,39 @@ describe('subscriptionManager', () => {
 
   describe('Plan Hierarchy', () => {
     it('should have increasing project limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.features.maxProjects).toBeLessThan(SUBSCRIPTION_PLANS.basic.features.maxProjects);
-      expect(SUBSCRIPTION_PLANS.basic.features.maxProjects).toBeLessThan(SUBSCRIPTION_PLANS.pro.features.maxProjects);
+      expect(SUBSCRIPTION_PLANS.free.features.maxProjects).toBeLessThan(
+        SUBSCRIPTION_PLANS.basic.features.maxProjects
+      );
+      expect(SUBSCRIPTION_PLANS.basic.features.maxProjects).toBeLessThan(
+        SUBSCRIPTION_PLANS.pro.features.maxProjects
+      );
     });
 
     it('should have increasing character limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.features.maxCharacters).toBeLessThan(SUBSCRIPTION_PLANS.basic.features.maxCharacters);
-      expect(SUBSCRIPTION_PLANS.basic.features.maxCharacters).toBeLessThan(SUBSCRIPTION_PLANS.pro.features.maxCharacters);
+      expect(SUBSCRIPTION_PLANS.free.features.maxCharacters).toBeLessThan(
+        SUBSCRIPTION_PLANS.basic.features.maxCharacters
+      );
+      expect(SUBSCRIPTION_PLANS.basic.features.maxCharacters).toBeLessThan(
+        SUBSCRIPTION_PLANS.pro.features.maxCharacters
+      );
     });
 
     it('should have increasing scene limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.features.maxScenes).toBeLessThan(SUBSCRIPTION_PLANS.basic.features.maxScenes);
-      expect(SUBSCRIPTION_PLANS.basic.features.maxScenes).toBeLessThan(SUBSCRIPTION_PLANS.pro.features.maxScenes);
+      expect(SUBSCRIPTION_PLANS.free.features.maxScenes).toBeLessThan(
+        SUBSCRIPTION_PLANS.basic.features.maxScenes
+      );
+      expect(SUBSCRIPTION_PLANS.basic.features.maxScenes).toBeLessThan(
+        SUBSCRIPTION_PLANS.pro.features.maxScenes
+      );
     });
 
     it('should have increasing storage limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.features.storageLimit).toBeLessThan(SUBSCRIPTION_PLANS.basic.features.storageLimit);
-      expect(SUBSCRIPTION_PLANS.basic.features.storageLimit).toBeLessThan(SUBSCRIPTION_PLANS.pro.features.storageLimit);
+      expect(SUBSCRIPTION_PLANS.free.features.storageLimit).toBeLessThan(
+        SUBSCRIPTION_PLANS.basic.features.storageLimit
+      );
+      expect(SUBSCRIPTION_PLANS.basic.features.storageLimit).toBeLessThan(
+        SUBSCRIPTION_PLANS.pro.features.storageLimit
+      );
     });
 
     it('should have increasing model access', () => {
@@ -253,13 +266,13 @@ describe('subscriptionManager', () => {
   describe('getPlansComparison', () => {
     it('should return all 4 plans', () => {
       const plans = getPlansComparison();
-      
+
       expect(plans.length).toBe(4);
     });
 
     it('should have correct plan order', () => {
       const plans = getPlansComparison();
-      
+
       expect(plans[0].tier).toBe('free');
       expect(plans[1].tier).toBe('basic');
       expect(plans[2].tier).toBe('pro');
@@ -268,7 +281,7 @@ describe('subscriptionManager', () => {
 
     it('should have all required properties', () => {
       const plans = getPlansComparison();
-      
+
       plans.forEach(plan => {
         expect(plan).toHaveProperty('tier');
         expect(plan).toHaveProperty('name');
@@ -280,13 +293,13 @@ describe('subscriptionManager', () => {
     it('should mark basic as recommended', () => {
       const plans = getPlansComparison();
       const basicPlan = plans.find(p => p.tier === 'basic');
-      
+
       expect(basicPlan?.recommended).toBe(true);
     });
 
     it('should have pricing information', () => {
       const plans = getPlansComparison();
-      
+
       expect(plans[0].price).toBe('฿0/เดือน');
       expect(plans[1].price).toBe('฿299/เดือน');
       expect(plans[2].price).toBe('฿999/เดือน');
@@ -295,7 +308,7 @@ describe('subscriptionManager', () => {
 
     it('should have feature lists', () => {
       const plans = getPlansComparison();
-      
+
       plans.forEach(plan => {
         expect(Array.isArray(plan.features)).toBe(true);
         expect(plan.features.length).toBeGreaterThan(0);
@@ -304,7 +317,7 @@ describe('subscriptionManager', () => {
 
     it('should have increasing or equal feature count', () => {
       const plans = getPlansComparison();
-      
+
       expect(plans[0].features.length).toBeLessThan(plans[1].features.length);
       expect(plans[1].features.length).toBeLessThan(plans[2].features.length);
       // Pro and Enterprise may have same number of features (enterprise adds white-label, same count)
@@ -329,9 +342,13 @@ describe('subscriptionManager', () => {
 
     it('should allow Stable Diffusion only in pro and enterprise', () => {
       expect(SUBSCRIPTION_PLANS.free.features.allowedImageModels).not.toContain('stable-diffusion');
-      expect(SUBSCRIPTION_PLANS.basic.features.allowedImageModels).not.toContain('stable-diffusion');
+      expect(SUBSCRIPTION_PLANS.basic.features.allowedImageModels).not.toContain(
+        'stable-diffusion'
+      );
       expect(SUBSCRIPTION_PLANS.pro.features.allowedImageModels).toContain('stable-diffusion');
-      expect(SUBSCRIPTION_PLANS.enterprise.features.allowedImageModels).toContain('stable-diffusion');
+      expect(SUBSCRIPTION_PLANS.enterprise.features.allowedImageModels).toContain(
+        'stable-diffusion'
+      );
     });
 
     it('should allow production package only in pro and enterprise', () => {
@@ -352,7 +369,7 @@ describe('subscriptionManager', () => {
   describe('Edge Cases', () => {
     it('should handle unlimited values consistently', () => {
       const enterprise = SUBSCRIPTION_PLANS.enterprise;
-      
+
       expect(enterprise.credits).toBe(-1);
       expect(enterprise.features.videoDurationLimit).toBe(-1);
       expect(enterprise.features.storageLimit).toBe(-1);
@@ -363,7 +380,7 @@ describe('subscriptionManager', () => {
 
     it('should have positive values for limited plans', () => {
       const tiers: SubscriptionTier[] = ['free', 'basic', 'pro'];
-      
+
       tiers.forEach(tier => {
         const plan = SUBSCRIPTION_PLANS[tier];
         expect(plan.credits).toBeGreaterThan(0);
@@ -394,7 +411,7 @@ describe('subscriptionManager', () => {
         if (plan.maxCredits === -1) return true; // Unlimited
         return usage <= plan.maxCredits;
       };
-      
+
       expect(checkQuota('free', 5)).toBe(true);
       expect(checkQuota('free', 15)).toBe(false);
       expect(checkQuota('enterprise', 100000)).toBe(true);
@@ -405,7 +422,7 @@ describe('subscriptionManager', () => {
         const plan = SUBSCRIPTION_PLANS[tier];
         return plan.features.allowedImageModels.includes(model);
       };
-      
+
       expect(hasFeature('free', 'gemini-2.0')).toBe(true);
       expect(hasFeature('free', 'comfyui')).toBe(false);
       expect(hasFeature('pro', 'comfyui')).toBe(true);
@@ -413,11 +430,11 @@ describe('subscriptionManager', () => {
 
     it('should support upgrade path determination', () => {
       const tierOrder: SubscriptionTier[] = ['free', 'basic', 'pro', 'enterprise'];
-      
+
       const canUpgrade = (currentTier: SubscriptionTier, targetTier: SubscriptionTier): boolean => {
         return tierOrder.indexOf(targetTier) > tierOrder.indexOf(currentTier);
       };
-      
+
       expect(canUpgrade('free', 'basic')).toBe(true);
       expect(canUpgrade('pro', 'basic')).toBe(false);
       expect(canUpgrade('basic', 'enterprise')).toBe(true);

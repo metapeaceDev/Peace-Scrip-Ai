@@ -3,11 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnalyticsDashboard } from '../AnalyticsDashboard';
 import { getUserSubscription } from '../../services/userStore';
-import {
-  getUsageStats,
-  calculateCostSavings,
-  getUsageHistory,
-} from '../../services/usageTracker';
+import { getUsageStats, calculateCostSavings, getUsageHistory } from '../../services/usageTracker';
 
 // Mock services
 vi.mock('../../services/userStore', () => ({

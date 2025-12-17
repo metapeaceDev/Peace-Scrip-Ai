@@ -1,6 +1,6 @@
 /**
  * Tests for UserStatus Component
- * 
+ *
  * Component: 437 lines - Subscription status, credits, tier management
  * Features tested:
  * - Subscription tier display (free/basic/pro/enterprise)
@@ -109,7 +109,7 @@ describe('UserStatus Component', () => {
       render(<UserStatus compact={true} />);
 
       const button = screen.getByTitle('View Plan Details');
-      
+
       // Initially closed
       expect(screen.queryByText('Storage:')).not.toBeInTheDocument();
 
@@ -130,7 +130,7 @@ describe('UserStatus Component', () => {
 
       // Check credits display
       expect(screen.getByText('850/1000')).toBeInTheDocument();
-      
+
       // Progress bar should be ~85% (850/1000)
       const progressBar = document.querySelector('.bg-gradient-to-r.from-cyan-500');
       expect(progressBar).toHaveStyle({ width: '85%' });
@@ -188,7 +188,7 @@ describe('UserStatus Component', () => {
 
     it('should update subscription after tier change', async () => {
       const updatedSub = { ...mockSubscription, tier: 'enterprise' as SubscriptionTier };
-      
+
       (userStore.getUserSubscription as any)
         .mockReturnValueOnce(mockSubscription)
         .mockReturnValueOnce(updatedSub);
@@ -310,7 +310,7 @@ describe('UserStatus Component', () => {
       fireEvent.click(screen.getByTitle('View Plan Details'));
 
       expect(screen.getByText('50/1000')).toBeInTheDocument();
-      
+
       const progressBar = document.querySelector('.bg-gradient-to-r.from-cyan-500');
       expect(progressBar).toHaveStyle({ width: '5%' });
     });

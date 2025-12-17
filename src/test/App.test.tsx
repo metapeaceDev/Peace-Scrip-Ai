@@ -6,7 +6,7 @@ import App from '../../App';
 vi.mock('../services/firebaseAuth', () => ({
   firebaseAuth: {
     getCurrentUser: vi.fn(() => Promise.resolve(null)),
-    onAuthStateChange: vi.fn((callback) => {
+    onAuthStateChange: vi.fn(callback => {
       callback(null);
       return () => {};
     }),

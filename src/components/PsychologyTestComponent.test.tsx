@@ -9,7 +9,7 @@ vi.mock('./PsychologyDisplay', () => ({
     <div data-testid={compact ? 'psychology-display-compact' : 'psychology-display-full'}>
       Psychology Display - {character.name} - {compact ? 'Compact' : 'Full'}
     </div>
-  )
+  ),
 }));
 
 describe('PsychologyTestComponent', () => {
@@ -40,7 +40,9 @@ describe('PsychologyTestComponent', () => {
   describe('Warning Message', () => {
     it('should display warning message about component visibility', () => {
       render(<PsychologyTestComponent />);
-      expect(screen.getByText(/ถ้าคุณเห็นข้อความนี้แต่ไม่เห็น Psychology Profile card/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/ถ้าคุณเห็นข้อความนี้แต่ไม่เห็น Psychology Profile card/)
+      ).toBeInTheDocument();
     });
 
     it('should display browser console instruction', () => {
@@ -183,7 +185,7 @@ describe('PsychologyTestComponent', () => {
       render(<PsychologyTestComponent />);
       const fullDisplay = screen.getByTestId('psychology-display-full');
       const compactDisplay = screen.getByTestId('psychology-display-compact');
-      
+
       expect(fullDisplay).toHaveTextContent('ทดสอบ Psychology Display');
       expect(compactDisplay).toHaveTextContent('ทดสอบ Psychology Display');
     });
@@ -214,14 +216,16 @@ describe('PsychologyTestComponent', () => {
       render(<PsychologyTestComponent />);
       const h1 = screen.getAllByRole('heading', { level: 1 });
       const h2 = screen.getAllByRole('heading', { level: 2 });
-      
+
       expect(h1).toHaveLength(1);
       expect(h2).toHaveLength(2);
     });
 
     it('should have readable text with proper contrast classes', () => {
       const { container } = render(<PsychologyTestComponent />);
-      const textElements = container.querySelectorAll('.text-white, .text-cyan-400, .text-yellow-300, .text-green-300');
+      const textElements = container.querySelectorAll(
+        '.text-white, .text-cyan-400, .text-yellow-300, .text-green-300'
+      );
       expect(textElements.length).toBeGreaterThan(0);
     });
   });
@@ -237,7 +241,7 @@ describe('PsychologyTestComponent', () => {
       const { container } = render(<PsychologyTestComponent />);
       const warningBox = container.querySelector('.bg-yellow-500\\/10');
       const fullDisplay = screen.getByTestId('psychology-display-full');
-      
+
       expect(warningBox).toBeInTheDocument();
       expect(fullDisplay).toBeInTheDocument();
     });
@@ -257,7 +261,7 @@ describe('PsychologyTestComponent', () => {
     it('should handle multiple renders', () => {
       const { rerender } = render(<PsychologyTestComponent />);
       expect(screen.getByText(/Psychology Display Component Test/)).toBeInTheDocument();
-      
+
       rerender(<PsychologyTestComponent />);
       expect(screen.getByText(/Psychology Display Component Test/)).toBeInTheDocument();
     });

@@ -95,7 +95,7 @@ describe('Studio - Project Display', () => {
       createMockProject({ id: '2', title: 'Short Film' }),
     ];
     render(<Studio {...mockProps} projects={projects} />);
-    
+
     expect(projects[0].title).toBe('Epic Movie');
     expect(projects[1].title).toBe('Short Film');
   });
@@ -106,7 +106,7 @@ describe('Studio - Project Display', () => {
       createMockProject({ id: '2', type: 'Series' }),
     ];
     render(<Studio {...mockProps} projects={projects} />);
-    
+
     expect(projects[0].type).toBe('Movie');
     expect(projects[1].type).toBe('Series');
   });
@@ -119,7 +119,7 @@ describe('Studio - Project Display', () => {
       createMockProject({ id: '2', lastModified: date1 }),
     ];
     render(<Studio {...mockProps} projects={projects} />);
-    
+
     expect(projects[0].lastModified).toEqual(date2);
     expect(projects[1].lastModified).toEqual(date1);
   });
@@ -230,15 +230,13 @@ describe('Studio - Edge Cases', () => {
   });
 
   it('should handle special characters in titles', () => {
-    const projects = [
-      createMockProject({ title: 'Project™ with émojis 🎬' }),
-    ];
+    const projects = [createMockProject({ title: 'Project™ with émojis 🎬' })];
     const { container } = render(<Studio {...mockProps} projects={projects} />);
     expect(container).toBeTruthy();
   });
 
   it('should handle many projects', () => {
-    const manyProjects = Array.from({ length: 50 }, (_, i) => 
+    const manyProjects = Array.from({ length: 50 }, (_, i) =>
       createMockProject({ id: `proj-${i}`, title: `Project ${i + 1}` })
     );
     const { container } = render(<Studio {...mockProps} projects={manyProjects} />);

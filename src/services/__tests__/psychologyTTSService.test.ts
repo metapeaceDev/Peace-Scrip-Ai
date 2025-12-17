@@ -99,7 +99,7 @@ describe('psychologyTTSService', () => {
   describe('getCaritaInfo', () => {
     it('should return correct info for tanha', () => {
       const info = service.getCaritaInfo('tanha');
-      
+
       expect(info.name).toBe('Taṇhācarita');
       expect(info.emotion).toBe('greedy');
       expect(info.pitchModifier).toBe(1.15);
@@ -107,7 +107,7 @@ describe('psychologyTTSService', () => {
 
     it('should return correct info for dosa', () => {
       const info = service.getCaritaInfo('dosa');
-      
+
       expect(info.name).toBe('Dosacarita');
       expect(info.emotion).toBe('angry');
       expect(info.pitchModifier).toBe(0.85);
@@ -115,7 +115,7 @@ describe('psychologyTTSService', () => {
 
     it('should return correct info for moha', () => {
       const info = service.getCaritaInfo('moha');
-      
+
       expect(info.name).toBe('Mohācarita');
       expect(info.emotion).toBe('confused');
       expect(info.speedModifier).toBe(0.75);
@@ -123,28 +123,28 @@ describe('psychologyTTSService', () => {
 
     it('should return correct info for saddha', () => {
       const info = service.getCaritaInfo('saddha');
-      
+
       expect(info.name).toBe('Saddhācarita');
       expect(info.emotion).toBe('faithful');
     });
 
     it('should return correct info for buddhi', () => {
       const info = service.getCaritaInfo('buddhi');
-      
+
       expect(info.name).toBe('Buddhicarita');
       expect(info.emotion).toBe('intelligent');
     });
 
     it('should return correct info for vitakka', () => {
       const info = service.getCaritaInfo('vitakka');
-      
+
       expect(info.name).toBe('Vitakkacarita');
       expect(info.emotion).toBe('anxious');
     });
 
     it('should return CaritaInfo object', () => {
       const info = service.getCaritaInfo('tanha');
-      
+
       expect(typeof info).toBe('object');
       expect(info).toHaveProperty('name');
       expect(info).toHaveProperty('emotion');
@@ -191,14 +191,14 @@ describe('psychologyTTSService', () => {
     it('should have highest energy for dosa (angry)', () => {
       const energies = Object.values(CARITA_TYPES).map(c => c.energyModifier);
       const maxEnergy = Math.max(...energies);
-      
+
       expect(CARITA_TYPES.dosa.energyModifier).toBe(maxEnergy);
     });
 
     it('should have lowest speed for moha (confused)', () => {
       const speeds = Object.values(CARITA_TYPES).map(c => c.speedModifier);
       const minSpeed = Math.min(...speeds);
-      
+
       expect(CARITA_TYPES.moha.speedModifier).toBe(minSpeed);
     });
 
@@ -214,18 +214,18 @@ describe('psychologyTTSService', () => {
 
     it('should differentiate between carita types', () => {
       const caritas = Object.keys(CARITA_TYPES) as CaritaType[];
-      
+
       // Check that no two caritas have identical modifiers
       for (let i = 0; i < caritas.length; i++) {
         for (let j = i + 1; j < caritas.length; j++) {
           const c1 = CARITA_TYPES[caritas[i]];
           const c2 = CARITA_TYPES[caritas[j]];
-          
-          const identical = 
+
+          const identical =
             c1.pitchModifier === c2.pitchModifier &&
             c1.speedModifier === c2.speedModifier &&
             c1.energyModifier === c2.energyModifier;
-          
+
           expect(identical).toBe(false);
         }
       }
@@ -235,36 +235,36 @@ describe('psychologyTTSService', () => {
   describe('Integration Tests', () => {
     it('should validate and get carita info workflow', () => {
       const caritaName = 'tanha';
-      
+
       expect(service.isValidCarita(caritaName)).toBe(true);
-      
+
       const info = service.getCaritaInfo(caritaName as CaritaType);
-      
+
       expect(info.emotion).toBe('greedy');
       expect(info.pitchModifier).toBeGreaterThan(1.0);
     });
 
     it('should handle invalid carita gracefully', () => {
       const invalidCarita = 'invalid';
-      
+
       expect(service.isValidCarita(invalidCarita)).toBe(false);
-      
+
       // Should not throw when checking validity
       expect(() => service.isValidCarita(invalidCarita)).not.toThrow();
     });
 
     it('should provide consistent carita information', () => {
       const carita: CaritaType = 'dosa';
-      
+
       const info1 = service.getCaritaInfo(carita);
       const info2 = service.getCaritaInfo(carita);
-      
+
       expect(info1).toEqual(info2);
     });
 
     it('should map all carita types to emotions', () => {
       const caritas: CaritaType[] = ['tanha', 'dosa', 'moha', 'saddha', 'buddhi', 'vitakka'];
-      
+
       caritas.forEach(carita => {
         const info = service.getCaritaInfo(carita);
         expect(info.emotion).toBeTruthy();
@@ -275,7 +275,7 @@ describe('psychologyTTSService', () => {
     it('should have unique emotion for each carita', () => {
       const emotions = Object.values(CARITA_TYPES).map(c => c.emotion);
       const uniqueEmotions = new Set(emotions);
-      
+
       expect(uniqueEmotions.size).toBe(6);
     });
 
@@ -330,27 +330,27 @@ describe('psychologyTTSService', () => {
   describe('Carita Characteristics', () => {
     it('should represent tanha (greed) with high energy and pitch', () => {
       const tanha = CARITA_TYPES.tanha;
-      
+
       expect(tanha.pitchModifier).toBeGreaterThan(1.1);
       expect(tanha.energyModifier).toBeGreaterThan(1.2);
     });
 
     it('should represent dosa (anger) with low pitch and high energy', () => {
       const dosa = CARITA_TYPES.dosa;
-      
+
       expect(dosa.pitchModifier).toBeLessThan(0.9);
       expect(dosa.energyModifier).toBeGreaterThan(1.3);
     });
 
     it('should represent moha (delusion) with reduced energy', () => {
       const moha = CARITA_TYPES.moha;
-      
+
       expect(moha.energyModifier).toBeLessThan(1.0);
     });
 
     it('should represent saddha (faith) as baseline', () => {
       const saddha = CARITA_TYPES.saddha;
-      
+
       expect(saddha.pitchModifier).toBe(1.0);
       expect(saddha.speedModifier).toBe(1.0);
       expect(saddha.energyModifier).toBe(1.0);
@@ -358,14 +358,14 @@ describe('psychologyTTSService', () => {
 
     it('should represent buddhi (wisdom) with slight reduction', () => {
       const buddhi = CARITA_TYPES.buddhi;
-      
+
       expect(buddhi.speedModifier).toBeLessThan(1.0);
       expect(buddhi.energyModifier).toBeLessThan(1.0);
     });
 
     it('should represent vitakka (speculation) with increased activity', () => {
       const vitakka = CARITA_TYPES.vitakka;
-      
+
       expect(vitakka.pitchModifier).toBeGreaterThan(1.0);
       expect(vitakka.speedModifier).toBeGreaterThan(1.0);
     });

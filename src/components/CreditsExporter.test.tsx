@@ -342,9 +342,7 @@ describe('CreditsExporter', () => {
       render(<CreditsExporter {...emptyProps} />);
 
       expect(screen.getByText('ไม่มีข้อมูลที่จะแสดง')).toBeInTheDocument();
-      expect(
-        screen.getByText('ลองเปลี่ยนหมวดหมู่หรือเพิ่มสมาชิกในทีม')
-      ).toBeInTheDocument();
+      expect(screen.getByText('ลองเปลี่ยนหมวดหมู่หรือเพิ่มสมาชิกในทีม')).toBeInTheDocument();
     });
 
     it('should show empty state when filter returns no results', () => {
@@ -532,20 +530,26 @@ describe('CreditsExporter', () => {
       fireEvent.change(titleInput, { target: { value: 'Test_Project_2024' } });
 
       // Mock just before triggering download
-      const mockLink = { 
-        href: '', 
-        download: '', 
+      const mockLink = {
+        href: '',
+        download: '',
         click: vi.fn(),
         setAttribute: vi.fn(),
-        getAttribute: vi.fn()
+        getAttribute: vi.fn(),
       };
       const originalCreateElement = document.createElement.bind(document);
-      const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-        if (tag === 'a') return mockLink as any;
-        return originalCreateElement(tag);
-      });
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
-      const removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
+      const createElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockImplementation((tag: string) => {
+          if (tag === 'a') return mockLink as any;
+          return originalCreateElement(tag);
+        });
+      const appendChildSpy = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation(() => null as any);
+      const removeChildSpy = vi
+        .spyOn(document.body, 'removeChild')
+        .mockImplementation(() => null as any);
 
       const select = screen.getByDisplayValue('PDF (Print)') as HTMLSelectElement;
       fireEvent.change(select, { target: { value: 'text' } });
@@ -557,14 +561,16 @@ describe('CreditsExporter', () => {
       expect(createElementSpy).toHaveBeenCalledWith('a');
       expect(mockLink.download).toContain('Test_Project_2024');
       expect(mockLink.download).toContain('.txt');
-      
+
       createElementSpy.mockRestore();
       appendChildSpy.mockRestore();
       removeChildSpy.mockRestore();
     });
 
     it('should generate filename with date', () => {
-      const dateSpy = vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2024-01-15T12:00:00Z');
+      const dateSpy = vi
+        .spyOn(Date.prototype, 'toISOString')
+        .mockReturnValue('2024-01-15T12:00:00Z');
 
       render(<CreditsExporter {...defaultProps} />);
 

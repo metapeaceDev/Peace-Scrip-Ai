@@ -4,10 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  getReplicateModels,
-  estimateReplicateCost,
-} from '../replicateService';
+import { getReplicateModels, estimateReplicateCost } from '../replicateService';
 
 describe('replicateService', () => {
   describe('REPLICATE_MODELS constant', () => {
@@ -109,8 +106,8 @@ describe('replicateService', () => {
         parseFloat(models.ANIMATEDIFF.cost.substring(1)),
         parseFloat(models.SVD.cost.substring(1)),
       ];
-      
-      expect(Math.max(...costs)).toBe(0.20);
+
+      expect(Math.max(...costs)).toBe(0.2);
     });
   });
 
@@ -136,7 +133,7 @@ describe('replicateService', () => {
     it('should have lowest cost', () => {
       const models = getReplicateModels();
       const costs = Object.values(models).map(m => parseFloat(m.cost.substring(1)));
-      
+
       expect(Math.min(...costs)).toBe(0.018);
       expect(parseFloat(hotshot.cost.substring(1))).toBe(0.018);
     });
@@ -194,31 +191,31 @@ describe('replicateService', () => {
   describe('estimateReplicateCost', () => {
     it('should return cost for AnimateDiff', () => {
       const cost = estimateReplicateCost('ANIMATEDIFF');
-      
+
       expect(cost).toBe('$0.17');
     });
 
     it('should return cost for SVD', () => {
       const cost = estimateReplicateCost('SVD');
-      
+
       expect(cost).toBe('$0.20');
     });
 
     it('should return cost for Hotshot-XL', () => {
       const cost = estimateReplicateCost('HOTSHOT_XL');
-      
+
       expect(cost).toBe('$0.018');
     });
 
     it('should return cost for LTX Video', () => {
       const cost = estimateReplicateCost('LTX_VIDEO');
-      
+
       expect(cost).toBe('$0.045');
     });
 
     it('should return cost for AnimateDiff Lightning', () => {
       const cost = estimateReplicateCost('ANIMATEDIFF_LIGHTNING');
-      
+
       expect(cost).toBe('$0.10');
     });
   });
@@ -227,33 +224,29 @@ describe('replicateService', () => {
     const models = getReplicateModels();
 
     it('should have 2 models with custom resolution support', () => {
-      const customResModels = Object.values(models).filter(
-        m => m.supportsCustomResolution
-      );
-      
+      const customResModels = Object.values(models).filter(m => m.supportsCustomResolution);
+
       expect(customResModels.length).toBe(2);
       expect(customResModels.map(m => m.name)).toContain('Hotshot-XL');
       expect(customResModels.map(m => m.name)).toContain('LTX Video');
     });
 
     it('should have 3 models with fixed resolution', () => {
-      const fixedResModels = Object.values(models).filter(
-        m => !m.supportsCustomResolution
-      );
-      
+      const fixedResModels = Object.values(models).filter(m => !m.supportsCustomResolution);
+
       expect(fixedResModels.length).toBe(3);
     });
 
     it('should have models with varying generation times', () => {
       const times = Object.values(models).map(m => m.avgTime);
-      
+
       expect(times).toContain('15-20s'); // Fastest
       expect(times).toContain('45-60s'); // Slowest
     });
 
     it('should have models with varying costs', () => {
       const costs = Object.values(models).map(m => m.cost);
-      
+
       expect(costs).toContain('$0.018'); // Cheapest
       expect(costs).toContain('$0.20'); // Most expensive
     });
@@ -263,36 +256,32 @@ describe('replicateService', () => {
     const models = getReplicateModels();
 
     it('should recommend Hotshot-XL for custom aspect ratios', () => {
-      const customResModels = Object.values(models).filter(
-        m => m.supportsCustomResolution
-      );
-      
+      const customResModels = Object.values(models).filter(m => m.supportsCustomResolution);
+
       const cheapest = customResModels.reduce((min, model) => {
         const cost = parseFloat(model.cost.substring(1));
         const minCost = parseFloat(min.cost.substring(1));
         return cost < minCost ? model : min;
       });
-      
+
       expect(cheapest.name).toBe('Hotshot-XL');
     });
 
     it('should recommend AnimateDiff Lightning for speed', () => {
       const lightningTime = models.ANIMATEDIFF_LIGHTNING.avgTime;
       const hotshotTime = models.HOTSHOT_XL.avgTime;
-      
+
       // Lightning is faster than most
       expect(lightningTime).toBe('15-20s');
       expect(parseInt(lightningTime)).toBeLessThan(parseInt(hotshotTime));
     });
 
     it('should recommend SVD for quality (highest cost)', () => {
-      const costs = Object.values(models).map(m => 
-        parseFloat(m.cost.substring(1))
-      );
-      
+      const costs = Object.values(models).map(m => parseFloat(m.cost.substring(1)));
+
       const maxCost = Math.max(...costs);
       const svdCost = parseFloat(models.SVD.cost.substring(1));
-      
+
       expect(svdCost).toBe(maxCost);
     });
   });
@@ -304,25 +293,25 @@ describe('replicateService', () => {
       const lightningCost = parseFloat(estimateReplicateCost('ANIMATEDIFF_LIGHTNING').substring(1));
       const animateDiffCost = parseFloat(estimateReplicateCost('ANIMATEDIFF').substring(1));
       const svdCost = parseFloat(estimateReplicateCost('SVD').substring(1));
-      
+
       // Hotshot is cheapest
       expect(hotshotCost).toBe(0.018);
-      
+
       // LTX is moderate
       expect(ltxCost).toBeGreaterThan(hotshotCost);
       expect(ltxCost).toBeLessThan(lightningCost);
-      
+
       // SVD is most expensive
       expect(svdCost).toBeGreaterThan(animateDiffCost);
     });
 
     it('should calculate cost savings vs cloud providers', () => {
       // Gemini Veo costs ~$0.20/video
-      const geminiVeoCost = 0.20;
-      
+      const geminiVeoCost = 0.2;
+
       const hotshotCost = parseFloat(estimateReplicateCost('HOTSHOT_XL').substring(1));
       const savings = ((geminiVeoCost - hotshotCost) / geminiVeoCost) * 100;
-      
+
       // Hotshot saves ~91% vs Gemini Veo
       expect(savings).toBeGreaterThan(90);
       expect(savings).toBeLessThan(92);
@@ -331,14 +320,14 @@ describe('replicateService', () => {
     it('should estimate bulk generation costs', () => {
       const hotshotCost = parseFloat(estimateReplicateCost('HOTSHOT_XL').substring(1));
       const svdCost = parseFloat(estimateReplicateCost('SVD').substring(1));
-      
+
       // 100 videos
       const hotshotBulk = hotshotCost * 100; // $1.80
       const svdBulk = svdCost * 100; // $20.00
-      
-      expect(hotshotBulk).toBeCloseTo(1.80, 2);
-      expect(svdBulk).toBeCloseTo(20.00, 2);
-      
+
+      expect(hotshotBulk).toBeCloseTo(1.8, 2);
+      expect(svdBulk).toBeCloseTo(20.0, 2);
+
       // Hotshot is 11x cheaper
       expect(svdBulk / hotshotBulk).toBeCloseTo(11.11, 1);
     });
@@ -346,8 +335,10 @@ describe('replicateService', () => {
 
   describe('Edge Cases', () => {
     it('should handle all model types for cost estimation', () => {
-      const modelKeys = Object.keys(getReplicateModels()) as Array<keyof ReturnType<typeof getReplicateModels>>;
-      
+      const modelKeys = Object.keys(getReplicateModels()) as Array<
+        keyof ReturnType<typeof getReplicateModels>
+      >;
+
       modelKeys.forEach(key => {
         const cost = estimateReplicateCost(key);
         expect(cost).toMatch(/^\$\d+\.\d+$/);
@@ -358,7 +349,7 @@ describe('replicateService', () => {
       const models = getReplicateModels();
       const ids = Object.values(models).map(m => m.id);
       const uniqueIds = new Set(ids);
-      
+
       expect(uniqueIds.size).toBe(ids.length);
     });
 
@@ -366,17 +357,17 @@ describe('replicateService', () => {
       const models = getReplicateModels();
       const names = Object.values(models).map(m => m.name);
       const uniqueNames = new Set(names);
-      
+
       expect(uniqueNames.size).toBe(names.length);
     });
 
     it('should have consistent cost precision', () => {
       const models = getReplicateModels();
-      
+
       Object.values(models).forEach(model => {
         const costValue = model.cost.substring(1);
         const decimalPlaces = costValue.split('.')[1]?.length || 0;
-        
+
         expect(decimalPlaces).toBeGreaterThan(0);
         expect(decimalPlaces).toBeLessThanOrEqual(3);
       });
@@ -386,19 +377,19 @@ describe('replicateService', () => {
   describe('Integration Tests', () => {
     it('should support model selection workflow', () => {
       const models = getReplicateModels();
-      
+
       // 1. User wants custom resolution → recommend Hotshot-XL or LTX
       const customResModels = Object.entries(models)
         .filter(([_, model]) => model.supportsCustomResolution)
         .map(([key, _]) => key);
-      
+
       expect(customResModels).toContain('HOTSHOT_XL');
       expect(customResModels).toContain('LTX_VIDEO');
-      
+
       // 2. User wants cheapest → get Hotshot-XL cost
       const cost = estimateReplicateCost('HOTSHOT_XL');
       expect(cost).toBe('$0.018');
-      
+
       // 3. User wants quality → get SVD
       const qualityModel = models.SVD;
       expect(qualityModel.description).toContain('Image to video');
@@ -406,27 +397,27 @@ describe('replicateService', () => {
 
     it('should support cost comparison across models', () => {
       const models = getReplicateModels();
-      
+
       const costComparison = Object.entries(models).map(([key, model]) => ({
         name: model.name,
         cost: parseFloat(model.cost.substring(1)),
         avgTime: model.avgTime,
       }));
-      
+
       // Sort by cost
       costComparison.sort((a, b) => a.cost - b.cost);
-      
+
       expect(costComparison[0].name).toBe('Hotshot-XL'); // Cheapest
       expect(costComparison[costComparison.length - 1].name).toBe('Stable Video Diffusion'); // Most expensive
     });
 
     it('should validate model ID format', () => {
       const models = getReplicateModels();
-      
+
       Object.values(models).forEach(model => {
         const [owner, repoAndVersion] = model.id.split('/');
         const [repo, version] = repoAndVersion.split(':');
-        
+
         expect(owner).toBeTruthy();
         expect(repo).toBeTruthy();
         expect(version).toBeTruthy();
@@ -435,14 +426,14 @@ describe('replicateService', () => {
     });
 
     it('should support budget-based model selection', () => {
-      const budget = 0.10; // $0.10 per video
+      const budget = 0.1; // $0.10 per video
       const models = getReplicateModels();
-      
+
       const affordableModels = Object.values(models).filter(model => {
         const cost = parseFloat(model.cost.substring(1));
         return cost <= budget;
       });
-      
+
       expect(affordableModels.length).toBeGreaterThan(0);
       expect(affordableModels.map(m => m.name)).toContain('Hotshot-XL');
       expect(affordableModels.map(m => m.name)).toContain('LTX Video');
@@ -452,13 +443,13 @@ describe('replicateService', () => {
     it('should support time-based model selection', () => {
       const maxTime = 30; // 30 seconds
       const models = getReplicateModels();
-      
+
       const fastModels = Object.values(models).filter(model => {
         const avgTime = model.avgTime;
         const timeValue = parseInt(avgTime.split('-')[0]);
         return timeValue <= maxTime;
       });
-      
+
       expect(fastModels.length).toBeGreaterThan(0);
       expect(fastModels.map(m => m.name)).toContain('Hotshot-XL');
       expect(fastModels.map(m => m.name)).toContain('AnimateDiff Lightning');

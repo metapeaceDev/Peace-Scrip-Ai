@@ -196,9 +196,7 @@ describe('PaymentTracker', () => {
       render(<PaymentTracker members={mockMembers} projectId="project1" />);
 
       await waitFor(() => {
-        expect(
-          screen.getByText('คลิก "บันทึกการจ่ายเงิน" เพื่อเริ่มต้น')
-        ).toBeInTheDocument();
+        expect(screen.getByText('คลิก "บันทึกการจ่ายเงิน" เพื่อเริ่มต้น')).toBeInTheDocument();
       });
     });
   });

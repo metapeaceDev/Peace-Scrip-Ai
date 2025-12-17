@@ -62,11 +62,13 @@ curl -X POST http://localhost:8001/voice/synthesize \
 ## API Endpoints
 
 ### Health Check
+
 ```http
 GET /health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -81,6 +83,7 @@ GET /health
 ---
 
 ### Upload Voice Sample
+
 ```http
 POST /voice/upload
 Content-Type: multipart/form-data
@@ -90,6 +93,7 @@ voice_name: <name> (optional)
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -103,6 +107,7 @@ voice_name: <name> (optional)
 ```
 
 **Recommendations:**
+
 - Duration: 6-30 seconds (optimal)
 - Format: WAV, MP3, FLAC, OGG, M4A
 - Quality: Clear speech, minimal background noise
@@ -111,6 +116,7 @@ voice_name: <name> (optional)
 ---
 
 ### Synthesize Speech
+
 ```http
 POST /voice/synthesize
 Content-Type: application/json
@@ -124,6 +130,7 @@ Content-Type: application/json
 ```
 
 **Parameters:**
+
 - `text` (required): Text to convert to speech
 - `voice_id` (required): Voice ID from upload
 - `language` (optional): Language code (default: "th")
@@ -135,11 +142,13 @@ Content-Type: application/json
 ---
 
 ### List Voices
+
 ```http
 GET /voice/list
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -160,11 +169,13 @@ GET /voice/list
 ---
 
 ### Delete Voice
+
 ```http
 DELETE /voice/delete/{voice_id}
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -175,11 +186,13 @@ DELETE /voice/delete/{voice_id}
 ---
 
 ### Cleanup Old Files
+
 ```http
 POST /cleanup?max_age_hours=24
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -194,11 +207,13 @@ POST /cleanup?max_age_hours=24
 ## Performance
 
 ### GPU Mode (NVIDIA T4)
+
 - Voice Upload + Processing: ~5 seconds
 - Speech Synthesis: ~2-3 seconds per sentence
 - Real-time Factor: ~5-10x (generates faster than playback)
 
 ### CPU Mode
+
 - Voice Upload + Processing: ~10 seconds
 - Speech Synthesis: ~10-15 seconds per sentence
 - Real-time Factor: ~0.5-1x (generates at playback speed)
@@ -206,12 +221,14 @@ POST /cleanup?max_age_hours=24
 ## Requirements
 
 ### Minimum (CPU)
+
 - CPU: 4+ cores
 - RAM: 8GB
 - Storage: 5GB (for models)
 - Python: 3.10+
 
 ### Recommended (GPU)
+
 - GPU: NVIDIA GPU with 4GB+ VRAM (T4, V100, A100)
 - CPU: 8+ cores
 - RAM: 16GB
@@ -246,12 +263,14 @@ docker run -d \
 ## Troubleshooting
 
 ### Model Download Issues
+
 ```bash
 # Manually download model
 python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/xtts_v2')"
 ```
 
 ### CUDA Out of Memory
+
 ```bash
 # Use CPU mode
 export DEVICE=cpu
@@ -259,6 +278,7 @@ python server.py
 ```
 
 ### Audio Quality Issues
+
 - Use WAV format for best quality
 - Ensure voice sample is 6-30 seconds
 - Check for background noise

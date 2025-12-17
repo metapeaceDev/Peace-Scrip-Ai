@@ -31,12 +31,16 @@ describe('PaymentCancel', () => {
   describe('Help Information', () => {
     it('should display payment problem help text', () => {
       render(<PaymentCancel />);
-      expect(screen.getByText(/หากมีปัญหาเกี่ยวกับการชำระเงิน ลองใช้บัตรอื่นหรือติดต่อธนาคาร/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/หากมีปัญหาเกี่ยวกับการชำระเงิน ลองใช้บัตรอื่นหรือติดต่อธนาคาร/)
+      ).toBeInTheDocument();
     });
 
     it('should display consultation help text', () => {
       render(<PaymentCancel />);
-      expect(screen.getByText(/หากต้องการปรึกษาเกี่ยวกับแผน ติดต่อทีมงานของเรา/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/หากต้องการปรึกษาเกี่ยวกับแผน ติดต่อทีมงานของเรา/)
+      ).toBeInTheDocument();
     });
 
     it('should display free trial information', () => {
@@ -66,17 +70,17 @@ describe('PaymentCancel', () => {
     it('should call onRetry when retry button clicked', () => {
       const mockRetry = vi.fn();
       render(<PaymentCancel onRetry={mockRetry} />);
-      
+
       const retryButton = screen.getByText('ลองอีกครั้ง');
       fireEvent.click(retryButton);
-      
+
       expect(mockRetry).toHaveBeenCalledTimes(1);
     });
 
     it('should have gradient styling on retry button', () => {
       const mockRetry = vi.fn();
       render(<PaymentCancel onRetry={mockRetry} />);
-      
+
       const retryButton = screen.getByText('ลองอีกครั้ง');
       expect(retryButton.className).toContain('from-cyan-600');
       expect(retryButton.className).toContain('to-blue-600');
@@ -92,28 +96,28 @@ describe('PaymentCancel', () => {
     it('should call onBack when back button clicked', () => {
       const mockBack = vi.fn();
       render(<PaymentCancel onBack={mockBack} />);
-      
+
       const backButton = screen.getByText('กลับไปหน้าหลัก');
       fireEvent.click(backButton);
-      
+
       expect(mockBack).toHaveBeenCalledTimes(1);
     });
 
     it('should redirect to home when back button clicked without onBack', () => {
       delete (window as any).location;
       (window as any).location = { href: '' };
-      
+
       render(<PaymentCancel />);
-      
+
       const backButton = screen.getByText('กลับไปหน้าหลัก');
       fireEvent.click(backButton);
-      
+
       expect(window.location.href).toBe('/');
     });
 
     it('should have gray styling on back button', () => {
       render(<PaymentCancel />);
-      
+
       const backButton = screen.getByText('กลับไปหน้าหลัก');
       expect(backButton.className).toContain('bg-gray-700');
     });
@@ -133,9 +137,9 @@ describe('PaymentCancel', () => {
     it('should cleanup timer on unmount', () => {
       const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
       const { unmount } = render(<PaymentCancel />);
-      
+
       unmount();
-      
+
       expect(clearIntervalSpy).toHaveBeenCalled();
       clearIntervalSpy.mockRestore();
     });
@@ -206,12 +210,12 @@ describe('PaymentCancel', () => {
     it('should handle complete user flow with retry', () => {
       const mockRetry = vi.fn();
       const mockBack = vi.fn();
-      
+
       render(<PaymentCancel onRetry={mockRetry} onBack={mockBack} />);
-      
+
       // User sees cancel message
       expect(screen.getByText('การชำระเงินถูกยกเลิก')).toBeInTheDocument();
-      
+
       // User clicks retry
       fireEvent.click(screen.getByText('ลองอีกครั้ง'));
       expect(mockRetry).toHaveBeenCalled();
@@ -219,12 +223,12 @@ describe('PaymentCancel', () => {
 
     it('should handle complete user flow with back', () => {
       const mockBack = vi.fn();
-      
+
       render(<PaymentCancel onBack={mockBack} />);
-      
+
       // User sees cancel message
       expect(screen.getByText('การชำระเงินถูกยกเลิก')).toBeInTheDocument();
-      
+
       // User clicks back
       fireEvent.click(screen.getByText('กลับไปหน้าหลัก'));
       expect(mockBack).toHaveBeenCalled();
@@ -232,22 +236,22 @@ describe('PaymentCancel', () => {
 
     it('should render all UI sections together', () => {
       const mockRetry = vi.fn();
-      
+
       render(<PaymentCancel onRetry={mockRetry} />);
-      
+
       // Header
       expect(screen.getByText('การชำระเงินถูกยกเลิก')).toBeInTheDocument();
-      
+
       // Help section
       expect(screen.getByText('ต้องการความช่วยเหลือหรือไม่?')).toBeInTheDocument();
-      
+
       // Buttons
       expect(screen.getByText('ลองอีกครั้ง')).toBeInTheDocument();
       expect(screen.getByText('กลับไปหน้าหลัก')).toBeInTheDocument();
-      
+
       // Countdown
       expect(screen.getByText(/10 วินาที/)).toBeInTheDocument();
-      
+
       // Contact
       expect(screen.getByText('📧 Email')).toBeInTheDocument();
     });
@@ -263,12 +267,12 @@ describe('PaymentCancel', () => {
     it('should handle multiple button clicks', () => {
       const mockRetry = vi.fn();
       render(<PaymentCancel onRetry={mockRetry} />);
-      
+
       const retryButton = screen.getByText('ลองอีกครั้ง');
       fireEvent.click(retryButton);
       fireEvent.click(retryButton);
       fireEvent.click(retryButton);
-      
+
       expect(mockRetry).toHaveBeenCalledTimes(3);
     });
   });
@@ -277,21 +281,21 @@ describe('PaymentCancel', () => {
     it('should have proper button elements', () => {
       const mockRetry = vi.fn();
       render(<PaymentCancel onRetry={mockRetry} />);
-      
+
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should have clickable links for contact', () => {
       render(<PaymentCancel />);
-      
+
       const links = screen.getAllByRole('link');
       expect(links.length).toBe(2); // email and phone
     });
 
     it('should have accessible heading', () => {
       render(<PaymentCancel />);
-      
+
       const heading = screen.getByText('การชำระเงินถูกยกเลิก');
       expect(heading.tagName).toBe('H1');
     });

@@ -43,6 +43,7 @@ OS:      macOS, Linux, Windows
 ```
 
 **Performance:**
+
 - Voice processing: ~10 seconds
 - TTS synthesis: ~10-15 seconds per sentence
 
@@ -59,6 +60,7 @@ CUDA:    11.8 or higher
 ```
 
 **Performance:**
+
 - Voice processing: ~5 seconds
 - TTS synthesis: ~2-3 seconds per sentence (5-10x faster!)
 
@@ -110,6 +112,7 @@ python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/x
 ```
 
 **Progress:**
+
 ```
 Downloading model checkpoint...
 [████████████████████] 100%
@@ -127,6 +130,7 @@ gunicorn --bind 0.0.0.0:8001 --workers 2 --timeout 120 server:app
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 🎙️  Voice Cloning Server Starting...
@@ -159,6 +163,7 @@ docker build -t voice-cloning-server .
 #### Step 2: Run Container
 
 **CPU Mode:**
+
 ```bash
 docker run -d \
   -p 8001:8001 \
@@ -170,6 +175,7 @@ docker run -d \
 ```
 
 **GPU Mode (NVIDIA):**
+
 ```bash
 docker run -d \
   --gpus all \
@@ -211,6 +217,7 @@ npm run dev
 5. คลิก **"อัปโหลด"**
 
 **ข้อแนะนำสำหรับไฟล์เสียง:**
+
 - ✅ **ความยาว:** 6-30 วินาที (แนะนำ 15-20 วินาที)
 - ✅ **เนื้อหา:** พูดธรรมชาติ มีความหลากหลาย
 - ✅ **คุณภาพ:** ไม่มีเสียงรบกวน คมชัด
@@ -226,6 +233,7 @@ curl -X POST http://localhost:8001/voice/upload \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -270,11 +278,13 @@ curl -X POST http://localhost:8001/voice/synthesize \
 #### ผ่าน API
 
 **ดูรายการ:**
+
 ```bash
 curl http://localhost:8001/voice/list
 ```
 
 **ลบเสียง:**
+
 ```bash
 curl -X DELETE http://localhost:8001/voice/delete/my_voice_20231217_123456
 ```
@@ -290,6 +300,7 @@ curl http://localhost:8001/health
 ```
 
 **Expected:**
+
 ```json
 {
   "status": "healthy",
@@ -307,6 +318,7 @@ curl http://localhost:8001/model/info
 ```
 
 **Expected:**
+
 ```json
 {
   "success": true,
@@ -354,6 +366,7 @@ aplay test_output.wav
 ### ❌ Problem: Server ไม่ทำงาน
 
 **Symptom:**
+
 ```
 curl: (7) Failed to connect to localhost port 8001
 ```
@@ -361,16 +374,19 @@ curl: (7) Failed to connect to localhost port 8001
 **Solutions:**
 
 1. **ตรวจสอบว่า server กำลังทำงาน:**
+
 ```bash
 ps aux | grep server.py
 ```
 
 2. **ตรวจสอบ port:**
+
 ```bash
 lsof -i :8001
 ```
 
 3. **เริ่ม server ใหม่:**
+
 ```bash
 python server.py
 ```
@@ -380,6 +396,7 @@ python server.py
 ### ❌ Problem: Model ดาวน์โหลดช้า
 
 **Symptom:**
+
 ```
 Downloading model checkpoint... (very slow)
 ```
@@ -389,11 +406,13 @@ Downloading model checkpoint... (very slow)
 1. **ใช้ connection ที่เร็วกว่า**
 
 2. **ดาวน์โหลดล่วงหน้า:**
+
 ```bash
 python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/xtts_v2')"
 ```
 
 3. **Manual download:**
+
 ```bash
 # Download from Hugging Face
 wget https://huggingface.co/coqui/XTTS-v2/resolve/main/model.pth
@@ -404,6 +423,7 @@ wget https://huggingface.co/coqui/XTTS-v2/resolve/main/model.pth
 ### ❌ Problem: CUDA Out of Memory
 
 **Symptom:**
+
 ```
 RuntimeError: CUDA out of memory
 ```
@@ -411,6 +431,7 @@ RuntimeError: CUDA out of memory
 **Solutions:**
 
 1. **ใช้ CPU mode:**
+
 ```bash
 export DEVICE=cpu
 python server.py
@@ -425,6 +446,7 @@ python server.py
 ### ❌ Problem: เสียงไม่ธรรมชาติ
 
 **Causes:**
+
 - Voice sample สั้นเกินไป (< 6 วินาที)
 - มีเสียงรบกวนมาก
 - คุณภาพไฟล์ไม่ดี
@@ -441,6 +463,7 @@ python server.py
 ### ❌ Problem: Synthesis ช้า (CPU)
 
 **Symptom:**
+
 ```
 Synthesis takes 15+ seconds per sentence
 ```
@@ -448,6 +471,7 @@ Synthesis takes 15+ seconds per sentence
 **Solutions:**
 
 1. **ใช้ GPU** (แนะนำ)
+
 ```bash
 pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
     --index-url https://download.pytorch.org/whl/cu118
@@ -467,6 +491,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q1: ต้องใช้ GPU หรือไม่?
 
 **A:** ไม่จำเป็น แต่แนะนำ
+
 - **CPU:** ใช้ได้ แต่ช้า (~10-15s/sentence)
 - **GPU:** เร็วมาก (~2-3s/sentence)
 
@@ -475,6 +500,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q2: รองรับภาษาอะไรบ้าง?
 
 **A:** 17 ภาษา:
+
 - ภาษาไทย (th)
 - English (en)
 - Chinese (zh-cn)
@@ -487,6 +513,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q3: ข้อมูลเสียงปลอดภัยไหม?
 
 **A:** ปลอดภัย 100%
+
 - Self-hosted บนเครื่องของคุณ
 - ไม่ส่งข้อมูลไปที่อื่น
 - คุณควบคุมข้อมูลได้เต็มที่
@@ -496,6 +523,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q4: ใช้เสียงได้กี่เสียง?
 
 **A:** ไม่จำกัด
+
 - สร้างได้ไม่จำกัด
 - ใช้ได้ไม่จำกัด
 - ฟรี 100%
@@ -505,6 +533,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q5: คุณภาพเทียบกับ ElevenLabs?
 
 **A:** ใกล้เคียง
+
 - XTTS-v2: ⭐⭐⭐⭐⭐ (ฟรี)
 - ElevenLabs: ⭐⭐⭐⭐⭐ (ต้องจ่าย)
 
@@ -513,6 +542,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q6: สามารถใช้เชิงพาณิชย์ได้ไหม?
 
 **A:** ได้!
+
 - Coqui TTS: Mozilla Public License 2.0
 - ใช้เชิงพาณิชย์ได้
 - ไม่ต้องจ่ายค่า license
@@ -522,6 +552,7 @@ pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 \
 ### Q7: ทำงานบน Mac M1/M2/M3 ได้ไหม?
 
 **A:** ได้! (CPU mode)
+
 ```bash
 # M1/M2/M3 ใช้ CPU mode
 pip install -r requirements.txt
@@ -533,6 +564,7 @@ python server.py
 ### Q8: Deploy ไปที่ไหนได้บ้าง?
 
 **A:** หลายที่:
+
 - Railway (แนะนำ)
 - Render
 - Google Cloud Run
@@ -545,17 +577,21 @@ python server.py
 ## 📞 การติดต่อและสนับสนุน
 
 ### 📖 เอกสาร
+
 - Architecture: `docs/VOICE_CLONING_ARCHITECTURE.md`
 - API Docs: `backend/voice-cloning/README.md`
 - This guide: `docs/deployment/VOICE_CLONING_SETUP.md`
 
 ### 🐛 Report Issues
+
 - GitHub: [Peace Script AI Issues](https://github.com/metapeaceDev/Peace-Script-Ai/issues)
 
 ### 💬 Community
+
 - Discord: [Peace Script AI Community](https://discord.gg/peace-script-ai)
 
 ### 📧 Email
+
 - Support: support@peace-script-ai.com
 - Technical: tech@peace-script-ai.com
 

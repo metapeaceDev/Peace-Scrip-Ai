@@ -1,16 +1,16 @@
 /**
  * Replicate API Service
- * 
+ *
  * Quick-start video generation using Replicate's hosted models:
  * - Tier 2: AnimateDiff v3 (Text/Image → 3s video at 512x512)
  * - Tier 3: SVD 1.1 (Image → 3s video at 1024x576)
- * 
+ *
  * Benefits:
  * - No deployment needed
  * - Pay-per-use (~$0.17/video)
  * - Production-ready API
  * - Fast generation (<60s)
- * 
+ *
  * @author Peace Script AI Team
  * @version 1.0.0
  */
@@ -93,9 +93,9 @@ function getReplicateApiKey(): string {
   if (!apiKey) {
     throw new Error(
       'Replicate API key not found! Please:\n' +
-      '1. Get your API key from https://replicate.com/account/api-tokens\n' +
-      '2. Add VITE_REPLICATE_API_KEY to your .env file\n' +
-      '3. Restart the development server'
+        '1. Get your API key from https://replicate.com/account/api-tokens\n' +
+        '2. Add VITE_REPLICATE_API_KEY to your .env file\n' +
+        '3. Restart the development server'
     );
   }
   return apiKey;
@@ -113,7 +113,7 @@ async function createPrediction(
   const response = await fetch(`${REPLICATE_API_URL}/predictions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Token ${apiKey}`,
+      Authorization: `Token ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -155,7 +155,7 @@ async function waitForPrediction(
     // Fetch prediction status
     const response = await fetch(`${REPLICATE_API_URL}/predictions/${predictionId}`, {
       headers: {
-        'Authorization': `Token ${apiKey}`,
+        Authorization: `Token ${apiKey}`,
         'Content-Type': 'application/json',
       },
     });
@@ -171,7 +171,7 @@ async function waitForPrediction(
       const elapsed = Date.now() - startTime;
       const estimatedTotal = 45000; // 45s average
       const progress = Math.min((elapsed / estimatedTotal) * 100, 95);
-      
+
       // ✅ MONOTONIC FIX: Only update if progress increased
       if (progress > lastProgress) {
         lastProgress = progress;
@@ -194,13 +194,13 @@ async function waitForPrediction(
     }
 
     // Wait before next poll
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
   }
 }
 
 /**
  * Generate video using AnimateDiff on Replicate
- * 
+ *
  * @param prompt - Text description of the video
  * @param image - Optional base image (base64 or URL)
  * @param options - Generation options
@@ -272,7 +272,7 @@ export async function generateAnimateDiffVideo(
 
 /**
  * Generate video using Stable Video Diffusion on Replicate
- * 
+ *
  * @param image - Base image (base64 or URL) - REQUIRED for SVD
  * @param options - Generation options
  * @param onProgress - Progress callback (0-100)
@@ -293,9 +293,10 @@ export async function generateSVDVideo(
 
     // Prepare input
     const input: Record<string, unknown> = {
-      image: image.startsWith('http') || image.startsWith('data:')
-        ? image
-        : `data:image/png;base64,${image}`,
+      image:
+        image.startsWith('http') || image.startsWith('data:')
+          ? image
+          : `data:image/png;base64,${image}`,
       num_frames: options.numFrames || 14, // 14 frames @ 6fps = 2.3s
       fps: options.fps || 6,
       motion_bucket_id: options.motionBucketId || 127, // 1-255, higher = more motion
@@ -340,7 +341,7 @@ export async function generateSVDVideo(
 
 /**
  * Generate video using AnimateDiff Lightning (ultra-fast)
- * 
+ *
  * @param prompt - Text description
  * @param options - Generation options
  * @param onProgress - Progress callback (0-100)
@@ -395,7 +396,7 @@ export async function generateAnimateDiffLightning(
 
 /**
  * 🆕 Generate video using Hotshot-XL (Custom Resolution Support)
- * 
+ *
  * @param prompt - Text description
  * @param image - Optional base image
  * @param options - Generation options with width/height
@@ -453,9 +454,10 @@ export async function generateHotshotXL(
     };
 
     if (image) {
-      input.image = image.startsWith('http') || image.startsWith('data:')
-        ? image
-        : `data:image/png;base64,${image}`;
+      input.image =
+        image.startsWith('http') || image.startsWith('data:')
+          ? image
+          : `data:image/png;base64,${image}`;
     }
 
     if (options.seed !== undefined) {
@@ -492,7 +494,7 @@ export async function generateHotshotXL(
 
 /**
  * 🆕 Generate video using LTX Video (High Quality Custom Resolution)
- * 
+ *
  * @param prompt - Text description
  * @param image - Optional base image
  * @param options - Generation options with width/height
@@ -554,9 +556,10 @@ export async function generateLTXVideo(
     };
 
     if (image) {
-      input.image = image.startsWith('http') || image.startsWith('data:')
-        ? image
-        : `data:image/png;base64,${image}`;
+      input.image =
+        image.startsWith('http') || image.startsWith('data:')
+          ? image
+          : `data:image/png;base64,${image}`;
     }
 
     if (options.seed !== undefined) {
@@ -600,7 +603,7 @@ export async function testReplicateConnection(): Promise<boolean> {
 
     const response = await fetch(`${REPLICATE_API_URL}/models`, {
       headers: {
-        'Authorization': `Token ${apiKey}`,
+        Authorization: `Token ${apiKey}`,
         'Content-Type': 'application/json',
       },
     });

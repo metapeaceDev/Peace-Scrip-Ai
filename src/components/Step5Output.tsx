@@ -1,5 +1,13 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type { ScriptData, GeneratedScene, PlotPoint, Character, DialogueLine, PsychologySnapshot, PsychologyChange } from '../../types';
+import type {
+  ScriptData,
+  GeneratedScene,
+  PlotPoint,
+  Character,
+  DialogueLine,
+  PsychologySnapshot,
+  PsychologyChange,
+} from '../../types';
 import { useTranslation } from './LanguageSwitcher';
 import {
   generateStoryboardImage,
@@ -193,7 +201,7 @@ const generateScreenplayText = (data: ScriptData): string => {
           const charName = d.character.toUpperCase();
           // Indentation logic for text file (approximate)
           output += `\t\t\t\t${charName}\n`;
-          
+
           // Safe handling of characterThoughts - handles legacy data formats (string/array/object)
           let thoughts = '';
           if (sit.characterThoughts) {
@@ -363,7 +371,7 @@ const SceneDisplay: React.FC<{
   // Sub-tabs for Scene Design only
   const [activeTab, setActiveTab] = useState('design');
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Ensure all arrays exist (handle legacy data)
   const safeSceneData: GeneratedScene = {
     ...sceneData,
@@ -398,9 +406,11 @@ const SceneDisplay: React.FC<{
   const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
   const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
   const [progress, setProgress] = useState(0);
-  
+
   // 🆕 Video Resolution & Aspect Ratio
-  const [videoAspectRatio, setVideoAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:3' | 'custom'>('16:9');
+  const [videoAspectRatio, setVideoAspectRatio] = useState<
+    '16:9' | '9:16' | '1:1' | '4:3' | 'custom'
+  >('16:9');
   const [customWidth, setCustomWidth] = useState<number>(1024);
   const [customHeight, setCustomHeight] = useState<number>(576);
 
@@ -747,27 +757,27 @@ const SceneDisplay: React.FC<{
   const buildEmotionalContext = (character: Character): string => {
     let context = '';
     const emotion = character.emotionalState;
-    
+
     if (emotion) {
       // Map mood to visual expression
       const moodMap: Record<string, string> = {
-        'peaceful': 'calm, serene, relaxed facial expression, composed posture',
-        'joyful': 'smiling, bright eyes, positive energy, open body language',
-        'angry': 'furrowed brows, tense jaw, intense gaze, clenched fists, hostile stance',
-        'confused': 'puzzled look, uncertain posture, questioning expression',
-        'fearful': 'wide eyes, tense body, defensive stance, worried expression',
-        'neutral': 'composed, neutral expression, balanced posture'
+        peaceful: 'calm, serene, relaxed facial expression, composed posture',
+        joyful: 'smiling, bright eyes, positive energy, open body language',
+        angry: 'furrowed brows, tense jaw, intense gaze, clenched fists, hostile stance',
+        confused: 'puzzled look, uncertain posture, questioning expression',
+        fearful: 'wide eyes, tense body, defensive stance, worried expression',
+        neutral: 'composed, neutral expression, balanced posture',
       };
-      
+
       context += `EMOTION: ${moodMap[emotion.currentMood] || 'neutral'}. `;
-      
+
       // Energy level affects animation/presence
       if (emotion.energyLevel > 70) {
         context += 'HIGH ENERGY: energetic, animated, dynamic presence. ';
       } else if (emotion.energyLevel < 30) {
         context += 'LOW ENERGY: tired, sluggish, low vitality, weary appearance. ';
       }
-      
+
       // Mental balance affects overall demeanor
       if (emotion.mentalBalance > 50) {
         context += 'BALANCED MIND: clear-minded, centered, confident demeanor. ';
@@ -775,24 +785,24 @@ const SceneDisplay: React.FC<{
         context += 'TROUBLED MIND: stressed, inner turmoil visible, anxious appearance. ';
       }
     }
-    
+
     return context;
   };
 
   const buildDefilementContext = (character: Character): string => {
     const defilements = character.internal?.defilement;
     if (!defilements) return '';
-    
+
     // Find dominant defilement (highest value)
     const entries = Object.entries(defilements);
     if (entries.length === 0) return '';
-    
-    const dominant = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+
+    const dominant = entries.reduce((max, curr) => (curr[1] > max[1] ? curr : max));
     const [name, value] = dominant;
-    
+
     // Only mention if significantly high (>60%)
     if (value < 60) return '';
-    
+
     const defilementMap: Record<string, string> = {
       'Lobha (Greed)': 'greedy eyes, calculating expression, grasping gestures',
       'Anger (Anger)': 'angry face, hostile body language, aggressive stance',
@@ -800,21 +810,21 @@ const SceneDisplay: React.FC<{
       'Mana (arrogance)': 'proud stance, superior expression, chin lifted, condescending look',
       'Titthi (obsession)': 'intense focus, fixed stare, obsessive mannerism',
       'Envy (Issa)': 'envious expression, bitter look, resentful posture',
-      'Restlessness (uddhacca)': 'restless movement, fidgeting, anxious energy'
+      'Restlessness (uddhacca)': 'restless movement, fidgeting, anxious energy',
     };
-    
+
     return `DOMINANT TRAIT: ${defilementMap[name] || name} (${Math.round(value)}% intensity). `;
   };
 
   const buildConsciousnessAura = (character: Character): string => {
     const consciousness = character.internal?.consciousness;
     if (!consciousness) return '';
-    
+
     const values = Object.values(consciousness);
     if (values.length === 0) return '';
-    
+
     const avgConsciousness = values.reduce((a, b) => a + b, 0) / values.length;
-    
+
     if (avgConsciousness > 75) {
       return 'AURA: virtuous presence, serene energy, inner peace radiating, wise demeanor. ';
     } else if (avgConsciousness > 50) {
@@ -822,100 +832,100 @@ const SceneDisplay: React.FC<{
     } else if (avgConsciousness < 40) {
       return 'AURA: troubled energy, restless presence, inner conflict visible. ';
     }
-    
+
     return '';
   };
 
   const buildCaritaMannerism = (character: Character): string => {
     const carita = character.buddhist_psychology?.carita;
     if (!carita) return '';
-    
+
     const caritaMap: Record<string, string> = {
-      'ราคจริต': 'sensual mannerisms, pleasure-seeking expression, indulgent posture',
-      'โทสจริต': 'intense gaze, passionate body language, energetic movements, strong presence',
-      'โมหจริต': 'confused mannerisms, hesitant movements, uncertain expressions',
-      'สัทธาจริต': 'faithful demeanor, trusting expression, open posture, devotional presence',
-      'พุทธิจริต': 'intellectual gaze, analytical expression, thoughtful posture, scholarly manner',
-      'วิตกจริต': 'contemplative pose, thoughtful expression, meditative presence'
+      ราคจริต: 'sensual mannerisms, pleasure-seeking expression, indulgent posture',
+      โทสจริต: 'intense gaze, passionate body language, energetic movements, strong presence',
+      โมหจริต: 'confused mannerisms, hesitant movements, uncertain expressions',
+      สัทธาจริต: 'faithful demeanor, trusting expression, open posture, devotional presence',
+      พุทธิจริต: 'intellectual gaze, analytical expression, thoughtful posture, scholarly manner',
+      วิตกจริต: 'contemplative pose, thoughtful expression, meditative presence',
     };
-    
+
     return `TEMPERAMENT: ${caritaMap[carita] || carita}. `;
   };
 
   const buildDetailedPhysical = (character: Character): string => {
     const physical = character.physical || {};
     let details = '';
-    
+
     // Gender
     if (physical['Gender']) {
       details += `${physical['Gender']}, `;
     }
-    
+
     // Build/Height/Weight
     if (physical['Height, Weight']) {
       details += `${physical['Height, Weight']}, `;
     }
-    
+
     // Skin color
     if (physical['Skin color']) {
       details += `${physical['Skin color']} skin, `;
     }
-    
+
     // Eye characteristics (very important for emotion!)
     if (physical['Eye characteristics']) {
       details += `eyes: ${physical['Eye characteristics']}, `;
     }
-    
+
     // Facial characteristics
     if (physical['Facial characteristics']) {
       details += `face: ${physical['Facial characteristics']}, `;
     }
-    
+
     return details;
   };
 
   const buildDetailedFashion = (character: Character, outfitDesc: string): string => {
     const fashion = character.fashion || {};
     let details = `wearing ${outfitDesc}`;
-    
+
     // Style concept
     if (fashion['Style Concept']) {
       details += `, style: ${fashion['Style Concept']}`;
     }
-    
+
     // Color palette
     if (fashion['Color Palette']) {
       details += `, colors: ${fashion['Color Palette']}`;
     }
-    
+
     // Accessories
     if (fashion['Accessories']) {
       details += `, accessories: ${fashion['Accessories']}`;
     }
-    
+
     // Condition/Texture
     if (fashion['Condition/Texture']) {
       details += `, condition: ${fashion['Condition/Texture']}`;
     }
-    
+
     return details;
   };
 
   const buildGoalsContext = (character: Character): string => {
     if (!character.goals) return '';
-    
+
     let context = '';
-    
+
     // Inner conflict affects body tension
     if (character.goals.conflict) {
       context += `INNER CONFLICT: ${character.goals.conflict} - shows in tense posture, worried micro-expressions. `;
     }
-    
+
     // Objective affects determination
     if (character.goals.objective) {
       context += `MOTIVATION: ${character.goals.objective} - shows in determined gaze, purposeful stance. `;
     }
-    
+
     return context;
   };
 
@@ -925,64 +935,69 @@ const SceneDisplay: React.FC<{
     }
 
     let context = '';
-    
+
     // Get the first situation (or find the most relevant one)
     const situation = currentScene.sceneDesign.situations[0];
-    
+
     // Add situation description (scene context)
     if (situation.description) {
       context += `SITUATION: ${situation.description}. `;
     }
-    
+
     // Add character inner thoughts (for subtle expression)
     if (situation.characterThoughts) {
       context += `CHARACTER THOUGHTS: "${situation.characterThoughts}" - show this through subtle facial expressions and body language. `;
     }
-    
+
     // Extract emotion from recent dialogue
     if (situation.dialogue && situation.dialogue.length > 0) {
       // Get last 2-3 lines of dialogue for context
       const recentDialogue = situation.dialogue.slice(-3);
-      
+
       // Check if this shot's character has dialogue
       if (shotData.cast) {
-        const characterDialogue = recentDialogue.filter(d => 
-          d.character === shotData.cast || 
-          shotData.cast.includes(d.character) || 
-          d.character.includes(shotData.cast)
+        const characterDialogue = recentDialogue.filter(
+          d =>
+            d.character === shotData.cast ||
+            shotData.cast.includes(d.character) ||
+            d.character.includes(shotData.cast)
         );
-        
+
         if (characterDialogue.length > 0) {
           const lastLine = characterDialogue[characterDialogue.length - 1];
           context += `RECENT LINE: "${lastLine.dialogue}" - facial expression and body language should match the emotional tone of this dialogue. `;
         }
       }
     }
-    
+
     return context;
   };
 
   // --- Video-Specific Context Builders ---
-  const buildMotionContext = (shotData: any, currentScene: GeneratedScene, character?: Character): string => {
+  const buildMotionContext = (
+    shotData: any,
+    currentScene: GeneratedScene,
+    character?: Character
+  ): string => {
     if (!character) return '';
-    
+
     let context = '\nCHARACTER MOTION:';
-    
+
     // A. Extract action from description
     const action = shotData.description || 'stands still';
     context += `\n- Action: ${action}`;
-    
+
     // B. Infer motion speed from emotional state
     const emotionState = character.emotionalState;
     let motionSpeed = 'natural, realistic';
-    
+
     if (emotionState) {
       if (emotionState.energyLevel > 70) {
         motionSpeed = 'brisk, energetic, animated';
       } else if (emotionState.energyLevel < 30) {
         motionSpeed = 'slow, lethargic, tired';
       }
-      
+
       // Mood affects speed
       if (emotionState.currentMood === 'fearful') {
         motionSpeed = 'quick, nervous, hesitant';
@@ -994,34 +1009,34 @@ const SceneDisplay: React.FC<{
         motionSpeed = 'light, bouncy, cheerful';
       }
     }
-    
+
     context += `\n- Motion Speed: ${motionSpeed}`;
     context += `\n- Motion Quality: natural, realistic`;
-    
+
     // C. Body language from psychology
     if (emotionState?.currentMood) {
       const bodyLanguageMap: Record<string, string> = {
-        'peaceful': 'relaxed shoulders, open gestures, smooth movements',
-        'joyful': 'light step, animated gestures, upright posture',
-        'angry': 'tense muscles, sharp movements, aggressive stance',
-        'confused': 'hesitant steps, looking around, uncertain gestures',
-        'fearful': 'tense body, quick glances, defensive posture',
-        'neutral': 'calm, balanced, natural movements'
+        peaceful: 'relaxed shoulders, open gestures, smooth movements',
+        joyful: 'light step, animated gestures, upright posture',
+        angry: 'tense muscles, sharp movements, aggressive stance',
+        confused: 'hesitant steps, looking around, uncertain gestures',
+        fearful: 'tense body, quick glances, defensive posture',
+        neutral: 'calm, balanced, natural movements',
       };
-      
+
       const bodyLang = bodyLanguageMap[emotionState.currentMood];
       if (bodyLang) {
         context += `\n- Body Language: ${bodyLang}`;
       }
     }
-    
+
     // D. Defilement affects motion style
     const defilements = character.internal?.defilement;
     if (defilements) {
       const entries = Object.entries(defilements);
       if (entries.length > 0) {
-        const dominant = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
-        
+        const dominant = entries.reduce((max, curr) => (curr[1] > max[1] ? curr : max));
+
         if (dominant[1] > 60) {
           const motionStyleMap: Record<string, string> = {
             'Lobha (Greed)': 'grasping gestures, reaching movements, acquisitive body language',
@@ -1029,7 +1044,7 @@ const SceneDisplay: React.FC<{
             'Moha (delusion)': 'confused movements, uncertain gestures, wandering attention',
             'Mana (arrogance)': 'proud posture, dismissive gestures, superior bearing',
           };
-          
+
           const motionStyle = motionStyleMap[dominant[0]];
           if (motionStyle) {
             context += `\n- Motion Style: ${motionStyle}`;
@@ -1037,25 +1052,25 @@ const SceneDisplay: React.FC<{
         }
       }
     }
-    
+
     // E. Carita affects mannerisms
     const carita = character.buddhist_psychology?.carita;
     if (carita) {
       const mannerismMap: Record<string, string> = {
-        'ราคจริต': 'sensual movements, indulgent gestures',
-        'โทสจริต': 'passionate movements, intense energy',
-        'โมหจริต': 'confused movements, uncertain gestures',
-        'สัทธาจริต': 'faithful movements, devotional gestures',
-        'พุทธิจริต': 'calculated movements, thoughtful gestures',
-        'วิตกจริต': 'contemplative movements, meditative stillness'
+        ราคจริต: 'sensual movements, indulgent gestures',
+        โทสจริต: 'passionate movements, intense energy',
+        โมหจริต: 'confused movements, uncertain gestures',
+        สัทธาจริต: 'faithful movements, devotional gestures',
+        พุทธิจริต: 'calculated movements, thoughtful gestures',
+        วิตกจริต: 'contemplative movements, meditative stillness',
       };
-      
+
       const mannerism = mannerismMap[carita];
       if (mannerism) {
         context += `\n- Mannerisms: ${mannerism}`;
       }
     }
-    
+
     return context;
   };
 
@@ -1063,9 +1078,9 @@ const SceneDisplay: React.FC<{
     if (!shotData.movement || shotData.movement === 'Static') {
       return '\nCAMERA: Static shot, locked position, no movement.';
     }
-    
+
     let context = '\nCAMERA MOVEMENT:';
-    
+
     // Map movement types to detailed descriptions
     const movementMap: Record<string, string> = {
       'Pan Left': 'Smooth pan from right to left, horizontal axis only',
@@ -1080,31 +1095,31 @@ const SceneDisplay: React.FC<{
       'Crane Down': 'Smooth crane movement downward, descending perspective',
       'Zoom In': 'Optical zoom-in, narrowing field of view',
       'Zoom Out': 'Optical zoom-out, widening field of view',
-      'Follow': 'Smooth following shot, tracking subject movement',
-      'Arc': 'Smooth arc movement around subject, circular path',
-      'Handheld': 'Handheld camera, natural shake, dynamic feel',
+      Follow: 'Smooth following shot, tracking subject movement',
+      Arc: 'Smooth arc movement around subject, circular path',
+      Handheld: 'Handheld camera, natural shake, dynamic feel',
     };
-    
+
     const movementDesc = movementMap[shotData.movement] || shotData.movement;
     context += `\n- Type: ${movementDesc}`;
-    
+
     // Equipment affects smoothness
     if (shotData.equipment) {
       const smoothnessMap: Record<string, string> = {
-        'Steadicam': 'very smooth, stabilized',
-        'Dolly': 'smooth, controlled',
-        'Crane': 'smooth, elevated',
-        'Handheld': 'natural shake, organic',
-        'Gimbal': 'stabilized, fluid',
-        'Tripod': 'locked, static',
+        Steadicam: 'very smooth, stabilized',
+        Dolly: 'smooth, controlled',
+        Crane: 'smooth, elevated',
+        Handheld: 'natural shake, organic',
+        Gimbal: 'stabilized, fluid',
+        Tripod: 'locked, static',
       };
-      
+
       const smoothness = smoothnessMap[shotData.equipment] || 'smooth';
       context += `\n- Smoothness: ${smoothness} (using ${shotData.equipment})`;
     } else {
       context += `\n- Smoothness: smooth, professional`;
     }
-    
+
     // Speed varies by shot type
     if (shotData.shotSize === 'ECU' || shotData.shotSize === 'CU') {
       context += `\n- Speed: slow, deliberate (close-up requires subtle movement)`;
@@ -1113,16 +1128,16 @@ const SceneDisplay: React.FC<{
     } else {
       context += `\n- Speed: normal, steady`;
     }
-    
+
     return context;
   };
 
   const buildTimingContext = (shotData: any): string => {
     const duration = shotData.durationSec || 3;
-    
+
     let context = `\nTIMING & PACING:`;
     context += `\n- Duration: ${duration} seconds total`;
-    
+
     // Pacing varies by duration
     if (duration <= 2) {
       context += `\n- Pacing: fast, quick tempo, energetic`;
@@ -1137,33 +1152,33 @@ const SceneDisplay: React.FC<{
       context += `\n- Pacing: very slow, dramatic`;
       context += `\n- Action Speed: slow-motion feel, cinematic`;
     }
-    
+
     // Suggest keyframes
     const midPoint = duration / 2;
     context += `\n- Key Moments:`;
     context += `\n  * Start (0s): Establish shot`;
     context += `\n  * Mid (${midPoint.toFixed(1)}s): Main action/movement`;
     context += `\n  * End (${duration}s): Complete action`;
-    
+
     return context;
   };
 
   const buildEnvironmentalMotionContext = (currentScene: GeneratedScene): string => {
     const location = currentScene.sceneDesign.location || '';
     const mood = currentScene.sceneDesign.moodTone || '';
-    
+
     let context = '\nENVIRONMENTAL MOTION:';
-    
+
     // Infer environmental motion from location
     const locationMotions: Record<string, string[]> = {
-      'market': ['background crowd walking naturally', 'vendors gesturing', 'fabric banners swaying'],
-      'street': ['cars passing in background', 'pedestrians walking', 'leaves blowing'],
-      'forest': ['trees swaying in wind', 'leaves falling occasionally', 'natural light filtering'],
-      'beach': ['waves rolling gently', 'palm trees swaying', 'sand particles blowing'],
-      'office': ['papers rustling slightly', 'computer screens glowing', 'subtle air movement'],
-      'home': ['curtains moving gently', 'subtle shadows shifting', 'natural ambient movement'],
+      market: ['background crowd walking naturally', 'vendors gesturing', 'fabric banners swaying'],
+      street: ['cars passing in background', 'pedestrians walking', 'leaves blowing'],
+      forest: ['trees swaying in wind', 'leaves falling occasionally', 'natural light filtering'],
+      beach: ['waves rolling gently', 'palm trees swaying', 'sand particles blowing'],
+      office: ['papers rustling slightly', 'computer screens glowing', 'subtle air movement'],
+      home: ['curtains moving gently', 'subtle shadows shifting', 'natural ambient movement'],
     };
-    
+
     // Find matching location type
     let motions: string[] = [];
     for (const [key, value] of Object.entries(locationMotions)) {
@@ -1172,13 +1187,13 @@ const SceneDisplay: React.FC<{
         break;
       }
     }
-    
+
     if (motions.length === 0) {
       motions = ['natural ambient movement', 'subtle background activity'];
     }
-    
+
     context += `\n- Background: ${motions.join(', ')}`;
-    
+
     // Add atmosphere from mood
     if (mood.toLowerCase().includes('tense') || mood.toLowerCase().includes('suspense')) {
       context += `\n- Atmosphere: slight camera shake, ominous shadows moving`;
@@ -1187,7 +1202,7 @@ const SceneDisplay: React.FC<{
     } else if (mood.toLowerCase().includes('chaotic') || mood.toLowerCase().includes('busy')) {
       context += `\n- Atmosphere: fast movements, multiple elements in motion`;
     }
-    
+
     return context;
   };
 
@@ -1195,18 +1210,18 @@ const SceneDisplay: React.FC<{
   const buildVideoPrompt = (shotData: any, currentScene: GeneratedScene): string => {
     // 1. Get base prompt (includes psychology)
     const basePrompt = buildPrompt(shotData, currentScene, true);
-    
+
     // 2. Find character for motion context
-    const character = shotData.cast 
+    const character = shotData.cast
       ? allCharacters.find(c => c.name === shotData.cast || c.name.includes(shotData.cast))
       : undefined;
-    
+
     // 3. Add video-specific contexts
     const motionContext = buildMotionContext(shotData, currentScene, character);
     const cameraContext = buildCameraMovementContext(shotData);
     const timingContext = buildTimingContext(shotData);
     const environmentContext = buildEnvironmentalMotionContext(currentScene);
-    
+
     // 4. Combine all contexts
     const duration = shotData.durationSec || 3;
     return `${basePrompt}
@@ -1446,7 +1461,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     abortGenerationRef.current = false; // Reset abort flag
 
     let currentSceneState = { ...editedScene };
-    
+
     // Safety check for shotList
     if (!currentSceneState.shotList || currentSceneState.shotList.length === 0) {
       alert('No shots available to generate images for.');
@@ -1854,78 +1869,78 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       <div className="flex justify-between items-center border-b border-gray-600 mb-4 pb-2">
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
+            onClick={() => setActiveTab('design')}
+            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'design' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Scene Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('shotlist')}
+            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'shotlist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Shot List
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('proplist')}
+            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'proplist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Prop List
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('storyboard')}
+            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'storyboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Storyboard
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('breakdown')}
+            className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'breakdown' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Breakdown
+          </button>
+        </div>
+        <div className="flex items-center gap-2 mt-2 sm:mt-0">
+          {isEditing ? (
+            <>
+              <button
                 type="button"
-                onClick={() => setActiveTab('design')}
-                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'design' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={handleSave}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors shadow-lg"
               >
-                Scene Details
+                Save
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab('shotlist')}
-                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'shotlist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={handleCancel}
+                className="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors"
               >
-                Shot List
+                Cancel
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('proplist')}
-                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'proplist' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-                Prop List
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('storyboard')}
-                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'storyboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-              >
-                Storyboard
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('breakdown')}
-                className={`py-2 px-3 sm:px-4 font-medium transition-colors text-sm ${activeTab === 'breakdown' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}
-              >
-                Breakdown
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-2 sm:mt-0">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors shadow-lg"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                  Edit
-                </button>
-              )}
-            </div>
-          </div>
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="prose prose-invert prose-sm max-w-none">
         {activeTab === 'design' && (
@@ -2283,13 +2298,13 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     />
                   ) : (
                     <p className="italic text-gray-400 pl-2 border-l-2 border-gray-600">
-                      {typeof sit.characterThoughts === 'string' 
-                        ? sit.characterThoughts 
+                      {typeof sit.characterThoughts === 'string'
+                        ? sit.characterThoughts
                         : Array.isArray(sit.characterThoughts)
-                        ? (sit.characterThoughts as any[]).join(' ')
-                        : sit.characterThoughts 
-                        ? JSON.stringify(sit.characterThoughts)
-                        : ''}
+                          ? (sit.characterThoughts as any[]).join(' ')
+                          : sit.characterThoughts
+                            ? JSON.stringify(sit.characterThoughts)
+                            : ''}
                     </p>
                   )}
                 </div>
@@ -2355,18 +2370,22 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                                 />
                                 {/* Apply Dialect Button */}
                                 {(() => {
-                                  const character = scriptData.characters.find(c => c.name === line.character);
-                                  const hasSpeechPattern = character?.speechPattern && 
-                                    (character.speechPattern.dialect !== 'standard' || 
-                                     character.speechPattern.accent !== 'none');
-                                  
+                                  const character = scriptData.characters.find(
+                                    c => c.name === line.character
+                                  );
+                                  const hasSpeechPattern =
+                                    character?.speechPattern &&
+                                    (character.speechPattern.dialect !== 'standard' ||
+                                      character.speechPattern.accent !== 'none');
+
                                   return hasSpeechPattern ? (
                                     <button
                                       type="button"
                                       onClick={async () => {
                                         if (!character) return;
                                         try {
-                                          const { convertDialogueToDialect } = await import('../services/geminiService');
+                                          const { convertDialogueToDialect } =
+                                            await import('../services/geminiService');
                                           const converted = await convertDialogueToDialect(
                                             line.dialogue,
                                             character,
@@ -2576,7 +2595,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                   </select>
                 </div>
               </div>
-              
+
               {/* 🆕 Custom Resolution Controls */}
               {videoAspectRatio === 'custom' && (
                 <div className="flex gap-3 items-end">
@@ -2585,7 +2604,11 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     <input
                       type="number"
                       value={customWidth}
-                      onChange={e => setCustomWidth(Math.max(256, Math.min(1920, parseInt(e.target.value) || 512)))}
+                      onChange={e =>
+                        setCustomWidth(
+                          Math.max(256, Math.min(1920, parseInt(e.target.value) || 512))
+                        )
+                      }
                       min="256"
                       max="1920"
                       step="8"
@@ -2593,11 +2616,17 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-400 mb-1">HEIGHT (px)</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">
+                      HEIGHT (px)
+                    </label>
                     <input
                       type="number"
                       value={customHeight}
-                      onChange={e => setCustomHeight(Math.max(256, Math.min(1920, parseInt(e.target.value) || 512)))}
+                      onChange={e =>
+                        setCustomHeight(
+                          Math.max(256, Math.min(1920, parseInt(e.target.value) || 512))
+                        )
+                      }
                       min="256"
                       max="1920"
                       step="8"
@@ -2609,7 +2638,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     <div className="flex gap-1">
                       <button
                         type="button"
-                        onClick={() => { setCustomWidth(1280); setCustomHeight(720); }}
+                        onClick={() => {
+                          setCustomWidth(1280);
+                          setCustomHeight(720);
+                        }}
                         className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
                         title="720p HD"
                       >
@@ -2617,7 +2649,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setCustomWidth(1920); setCustomHeight(1080); }}
+                        onClick={() => {
+                          setCustomWidth(1920);
+                          setCustomHeight(1080);
+                        }}
                         className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
                         title="1080p Full HD"
                       >
@@ -2625,7 +2660,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setCustomWidth(720); setCustomHeight(1280); }}
+                        onClick={() => {
+                          setCustomWidth(720);
+                          setCustomHeight(1280);
+                        }}
                         className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
                         title="TikTok/Reels"
                       >
@@ -2635,7 +2673,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                   </div>
                 </div>
               )}
-              
+
               <div className="flex gap-2 w-full sm:w-auto">
                 {/* Clear All Storyboard button */}
                 {(editedScene.storyboard?.length || 0) > 0 && (
@@ -3132,7 +3170,7 @@ const SceneItem: React.FC<{
           <div className="w-24 h-6 text-center">{button}</div>
           {canDelete && onDelete && (
             <button
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onDelete();
               }}
@@ -3218,49 +3256,53 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  
+
   // 🎯 Main Tab Navigation (Step5 Level)
-  const [mainTab, setMainTab] = useState<'sceneDesign' | 'simulation' | 'motionEditor'>('sceneDesign');
+  const [mainTab, setMainTab] = useState<'sceneDesign' | 'simulation' | 'motionEditor'>(
+    'sceneDesign'
+  );
   const [editingShotIndex, setEditingShotIndex] = useState<number | null>(0); // Auto-select first shot
   const [showMotionEditorModal, setShowMotionEditorModal] = useState(false); // 🎬 Modal for full Motion Editor
-  
+
   // 🎬 Motion Editor - Local state for image/video generation
   const [motionEditorGeneratingImage, setMotionEditorGeneratingImage] = useState(false);
   const [motionEditorGeneratingVideo, setMotionEditorGeneratingVideo] = useState(false);
   const [motionEditorProgress, setMotionEditorProgress] = useState(0);
-  
+
   // 🎬 Motion Editor - Generate Image Handler
   const handleMotionEditorGenerateImage = async (currentShot: any, sceneData: GeneratedScene) => {
     if (!currentShot || motionEditorGeneratingImage) return;
     if (onRegisterUndo) onRegisterUndo();
-    
+
     const shotNumber = currentShot.shot.shot;
     setMotionEditorGeneratingImage(true);
     setMotionEditorProgress(0);
-    
+
     try {
       // Build simple prompt from shot description
       const shotDesc = currentShot.shot.description || '';
       const location = sceneData.sceneDesign.location || '';
       const style = CHARACTER_IMAGE_STYLES[0] || 'Cinematic';
       const prompt = `Cinematic shot: ${shotDesc}. Location: ${location}. ${currentShot.shot.shotSize}. ${style}.`;
-      
+
       const sceneCharacterNames = sceneData.sceneDesign?.characters || [];
       const sceneCharacters: Character[] = scriptData.characters.filter((c: Character) =>
         sceneCharacterNames.includes(c.name)
       );
-      
-      const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p => setMotionEditorProgress(p));
-      
+
+      const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p =>
+        setMotionEditorProgress(p)
+      );
+
       const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || {};
       const newItem = { ...oldStoryboardItem, shot: shotNumber, image: base64Image };
       const updatedStoryboard = [
         ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
         newItem,
       ];
-      
+
       const updatedScene = { ...sceneData, storyboard: updatedStoryboard };
-      
+
       // Update scriptData
       setScriptData(prev => {
         const scenes = prev.generatedScenes[currentShot.sceneTitle] || [];
@@ -3282,26 +3324,26 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       setMotionEditorProgress(0);
     }
   };
-  
+
   // 🎥 Motion Editor - Generate Video Handler
   const handleMotionEditorGenerateVideo = async (currentShot: any, sceneData: GeneratedScene) => {
     if (!currentShot || motionEditorGeneratingVideo) return;
     if (onRegisterUndo) onRegisterUndo();
-    
+
     const shotNumber = currentShot.shot.shot;
     setMotionEditorGeneratingVideo(true);
     setMotionEditorProgress(0);
-    
+
     try {
       // Build video prompt
       const shotDesc = currentShot.shot.description || '';
       const movement = currentShot.shot.movement || 'Static';
       const duration = currentShot.shot.durationSec || 3;
       const prompt = `Cinematic video: ${shotDesc}. Camera: ${movement}. Duration: ${duration}s. ${currentShot.shot.shotSize}.`;
-      
+
       // Use existing image if available
       const existingImage = sceneData.storyboard?.find(s => s.shot === shotNumber)?.image;
-      
+
       const videoUri = await generateStoryboardVideo(
         prompt,
         existingImage,
@@ -3316,16 +3358,24 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           height: undefined,
         }
       );
-      
-      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || { shot: shotNumber, image: '' };
-      const newItem = { ...oldStoryboardItem, shot: shotNumber, image: oldStoryboardItem.image || '', video: videoUri };
+
+      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || {
+        shot: shotNumber,
+        image: '',
+      };
+      const newItem = {
+        ...oldStoryboardItem,
+        shot: shotNumber,
+        image: oldStoryboardItem.image || '',
+        video: videoUri,
+      };
       const updatedStoryboard = [
         ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
         newItem,
       ];
-      
+
       const updatedScene = { ...sceneData, storyboard: updatedStoryboard };
-      
+
       // Update scriptData
       setScriptData(prev => {
         const scenes = prev.generatedScenes[currentShot.sceneTitle] || [];
@@ -3347,7 +3397,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       setMotionEditorProgress(0);
     }
   };
-  
+
   // 🔄 Helper: Convert shot to MotionEdit format
   const convertShotToMotionEdit = (shot: {
     description: string;
@@ -3360,7 +3410,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     shot?: number;
   }): MotionEdit => {
     if (!shot) return DEFAULT_MOTION_EDIT;
-    
+
     // Map shotSize to ShotType
     const getShotType = (size: string): any => {
       const sizeMap: Record<string, string> = {
@@ -3371,90 +3421,88 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         'Over-the-Shoulder': 'Over-the-Shoulder',
         'Two Shot': 'Two Shot',
         'Full Shot': 'Wide Shot',
-        'Medium Close-up': 'Close-up'
+        'Medium Close-up': 'Close-up',
       };
       return sizeMap[size] || 'Medium Shot';
     };
-    
+
     return {
       shot_preview_generator_panel: {
         structure: '',
         prompt: shot.description || '',
         shot_type: getShotType(shot.shotSize),
-        voiceover: ''
+        voiceover: '',
       },
       camera_control: {
         shot_prompt: shot.description || '',
         perspective: (shot.perspective || 'Neutral') as any,
         movement: (shot.movement || 'Static') as any,
         equipment: (shot.equipment || 'Tripod') as any,
-        focal_length: (shot.focalLength || '50mm') as any
+        focal_length: (shot.focalLength || '50mm') as any,
       },
       frame_control: {
         foreground: '',
         object: shot.description || '',
-        background: ''
+        background: '',
       },
       lighting_design: {
         description: '',
-        color_temperature: 'Neutral'
+        color_temperature: 'Neutral',
       },
       sounds: {
         auto_sfx: true,
-        description: ''
-      }
+        description: '',
+      },
     };
   };
-  
+
   // 💾 Helper: Save MotionEdit changes back to shot
-  const handleMotionChange = useCallback((
-    sceneTitle: string,
-    sceneIndex: number,
-    shotIndex: number,
-    updatedMotion: MotionEdit
-  ) => {
-    if (onRegisterUndo) onRegisterUndo();
-    
-    setScriptData(prev => {
-      const scenes = prev.generatedScenes[sceneTitle] || [];
-      const updatedScenes = [...scenes];
-      
-      if (updatedScenes[sceneIndex] && updatedScenes[sceneIndex].shotList) {
-        const shots = [...updatedScenes[sceneIndex].shotList];
-        const camera = updatedMotion.camera_control;
-        const preview = updatedMotion.shot_preview_generator_panel;
-        
-        shots[shotIndex] = {
-          ...shots[shotIndex],
-          shotSize: preview.shot_type,
-          movement: camera.movement,
-          perspective: camera.perspective,
-          equipment: camera.equipment,
-          focalLength: camera.focal_length,
-          description: camera.shot_prompt || preview.prompt || shots[shotIndex].description
-        };
-        
-        updatedScenes[sceneIndex] = {
-          ...updatedScenes[sceneIndex],
-          shotList: shots
-        };
-      }
-      
-      return {
-        ...prev,
-        generatedScenes: {
-          ...prev.generatedScenes,
-          [sceneTitle]: updatedScenes
+  const handleMotionChange = useCallback(
+    (sceneTitle: string, sceneIndex: number, shotIndex: number, updatedMotion: MotionEdit) => {
+      if (onRegisterUndo) onRegisterUndo();
+
+      setScriptData(prev => {
+        const scenes = prev.generatedScenes[sceneTitle] || [];
+        const updatedScenes = [...scenes];
+
+        if (updatedScenes[sceneIndex] && updatedScenes[sceneIndex].shotList) {
+          const shots = [...updatedScenes[sceneIndex].shotList];
+          const camera = updatedMotion.camera_control;
+          const preview = updatedMotion.shot_preview_generator_panel;
+
+          shots[shotIndex] = {
+            ...shots[shotIndex],
+            shotSize: preview.shot_type,
+            movement: camera.movement,
+            perspective: camera.perspective,
+            equipment: camera.equipment,
+            focalLength: camera.focal_length,
+            description: camera.shot_prompt || preview.prompt || shots[shotIndex].description,
+          };
+
+          updatedScenes[sceneIndex] = {
+            ...updatedScenes[sceneIndex],
+            shotList: shots,
+          };
         }
-      };
-    });
-  }, [onRegisterUndo, setScriptData]);
-  
+
+        return {
+          ...prev,
+          generatedScenes: {
+            ...prev.generatedScenes,
+            [sceneTitle]: updatedScenes,
+          },
+        };
+      });
+    },
+    [onRegisterUndo, setScriptData]
+  );
+
   // ⌨️ Keyboard shortcuts for main tabs
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey) {
-        switch(e.key) {
+        switch (e.key) {
           case '1':
             e.preventDefault();
             setMainTab('sceneDesign');
@@ -3473,7 +3521,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  
+
   // Regenerate Modal State
   const [regenerateModal, setRegenerateModal] = useState<{
     isOpen: boolean;
@@ -3528,7 +3576,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   }, [scriptData.structure, scriptData.scenesPerPoint]);
 
   const handleGenerateSingle = useCallback(
-    async (plotPoint: PlotPoint, sceneIndex: number, mode: 'fresh' | 'refine' | 'use-edited' = 'fresh') => {
+    async (
+      plotPoint: PlotPoint,
+      sceneIndex: number,
+      mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
+    ) => {
       if (onRegisterUndo) onRegisterUndo();
       setGlobalError(null);
       setGenerationStatus(prev => ({
@@ -3538,12 +3590,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       try {
         const sceneNumber = sceneNumberMap[plotPoint.title][sceneIndex];
         const existingScene = scriptData.generatedScenes[plotPoint.title]?.[sceneIndex];
-        
+
         let scene;
-        
+
         // Import services dynamically
-        const { generateScene, refineScene, regenerateWithEdits } = await import('../services/geminiService');
-        
+        const { generateScene, refineScene, regenerateWithEdits } =
+          await import('../services/geminiService');
+
         // Choose generation method based on mode
         switch (mode) {
           case 'refine':
@@ -3559,7 +3612,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               sceneNumber
             );
             break;
-            
+
           case 'use-edited':
             if (!existingScene) {
               throw new Error('ไม่พบฉากที่แก้ไขแล้ว');
@@ -3573,7 +3626,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
               sceneNumber
             );
             break;
-            
+
           case 'fresh':
           default:
             scene = await generateScene(
@@ -3592,10 +3645,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
         // Find characters present in this scene
         const presentCharNames = scene.sceneDesign.characters;
-        
+
         console.log(`🧠 [Psychology] Scene has characters:`, presentCharNames);
-        console.log(`🧠 [Psychology] Available characters:`, updatedCharacters.map(c => ({ name: c.name, id: c.id })));
-        
+        console.log(
+          `🧠 [Psychology] Available characters:`,
+          updatedCharacters.map(c => ({ name: c.name, id: c.id }))
+        );
+
         presentCharNames.forEach(charName => {
           const charIndex = updatedCharacters.findIndex(c => c.name === charName);
           if (charIndex === -1) {
@@ -3605,28 +3661,39 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
           const character = updatedCharacters[charIndex];
           console.log(`🧠 [Psychology] Processing ${character.name} (ID: ${character.id})`);
-          
+
           const timeline = updatedTimelines[character.id] || {
             characterId: character.id,
             characterName: character.name,
             snapshots: [] as PsychologySnapshot[],
             changes: [] as PsychologyChange[],
-            summary: { total_kusala: 0, total_akusala: 0, net_progress: 0, dominant_pattern: 'สมดุล' },
-            overallArc: { startingBalance: 0, endingBalance: 0, totalChange: 0, direction: 'คงที่' as const, interpretation: 'เริ่มเก็บข้อมูล' }
+            summary: {
+              total_kusala: 0,
+              total_akusala: 0,
+              net_progress: 0,
+              dominant_pattern: 'สมดุล',
+            },
+            overallArc: {
+              startingBalance: 0,
+              endingBalance: 0,
+              totalChange: 0,
+              direction: 'คงที่' as const,
+              interpretation: 'เริ่มเก็บข้อมูล',
+            },
           };
 
           const result = updatePsychologyTimeline(timeline, character, scene, plotPoint.title);
-          
+
           console.log(`🧠 [Psychology] Updated timeline for ${character.name}:`, {
             snapshots: result.timeline.snapshots.length,
             changes: result.timeline.changes.length,
             summary: result.timeline.summary,
           });
-          
+
           updatedTimelines[character.id] = result.timeline;
           updatedCharacters[charIndex] = result.updatedCharacter;
         });
-        
+
         console.log(`🧠 [Psychology] Final timelines:`, Object.keys(updatedTimelines));
         // --- PSYCHOLOGY UPDATE END ---
 
@@ -3637,7 +3704,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             ...prev,
             generatedScenes: { ...prev.generatedScenes, [plotPoint.title]: newScenesForPoint },
             psychologyTimelines: updatedTimelines,
-            characters: updatedCharacters
+            characters: updatedCharacters,
           };
         });
         setGenerationStatus(prev => ({
@@ -3682,9 +3749,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       try {
         await handleGenerateSingle(task.point, task.sceneIndex);
       } catch (e) {
-        setGlobalError(
-          `Failed to generate scene for "${task.point.title}". Generation paused.`
-        );
+        setGlobalError(`Failed to generate scene for "${task.point.title}". Generation paused.`);
         break;
       }
     }
@@ -3729,7 +3794,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const downloadScreenplayPDF = () => {
     // Generate screenplay HTML for PDF
     const text = generateScreenplayText(scriptData);
-    
+
     // Create HTML content styled like a screenplay
     const html = `
 <!DOCTYPE html>
@@ -3813,30 +3878,42 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     </div>
   </div>
 
-  ${scriptData.structure.map(point => {
-    const scenes = scriptData.generatedScenes[point.title] || [];
-    return scenes.map(scene => {
-      const location = (scene.sceneDesign.location || 'INT. UNKNOWN - DAY').toUpperCase();
-      
-      return `
+  ${scriptData.structure
+    .map(point => {
+      const scenes = scriptData.generatedScenes[point.title] || [];
+      return scenes
+        .map(scene => {
+          const location = (scene.sceneDesign.location || 'INT. UNKNOWN - DAY').toUpperCase();
+
+          return `
   <div class="scene-heading">${location}</div>
   
-  ${scene.sceneDesign.situations.map(sit => `
+  ${scene.sceneDesign.situations
+    .map(
+      sit => `
     <div class="action">${sit.description}</div>
     
-    ${sit.dialogue.map(d => `
+    ${sit.dialogue
+      .map(
+        d => `
       <div class="character">${d.character.toUpperCase()}</div>
       <div class="dialogue">${d.dialogue}</div>
-    `).join('')}
-  `).join('')}
+    `
+      )
+      .join('')}
+  `
+    )
+    .join('')}
       `;
-    }).join('');
-  }).join('')}
+        })
+        .join('');
+    })
+    .join('')}
 
 </body>
 </html>
     `;
-    
+
     // Create blob and download as HTML (user can print to PDF from browser)
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -3846,10 +3923,12 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Show instructions
     setTimeout(() => {
-      alert('📄 ไฟล์ HTML ถูกดาวน์โหลดแล้ว!\n\n💡 วิธีแปลงเป็น PDF:\n1. เปิดไฟล์ HTML ในเบราว์เซอร์\n2. กด Ctrl+P (Windows) หรือ Cmd+P (Mac)\n3. เลือก "Save as PDF"\n4. กด Save');
+      alert(
+        '📄 ไฟล์ HTML ถูกดาวน์โหลดแล้ว!\n\n💡 วิธีแปลงเป็น PDF:\n1. เปิดไฟล์ HTML ในเบราว์เซอร์\n2. กด Ctrl+P (Windows) หรือ Cmd+P (Mac)\n3. เลือก "Save as PDF"\n4. กด Save'
+      );
     }, 500);
   };
 
@@ -3899,15 +3978,15 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     const actualCount = actualScenes.length;
     const recordedCount = scriptData.scenesPerPoint[pointTitle] || 0;
     const currentCount = Math.max(actualCount, recordedCount);
-    
-    console.log('🗑️ handleRemoveScene called:', { 
-      pointTitle, 
-      sceneIndex, 
-      recordedCount, 
-      actualCount, 
-      currentCount 
+
+    console.log('🗑️ handleRemoveScene called:', {
+      pointTitle,
+      sceneIndex,
+      recordedCount,
+      actualCount,
+      currentCount,
     });
-    
+
     if (currentCount <= 0 || sceneIndex < 0 || sceneIndex >= currentCount) {
       console.warn('❌ Cannot delete - invalid index:', { currentCount, sceneIndex });
       return;
@@ -3921,10 +4000,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
     if (hasData) {
       const sceneNumberOffset = scriptData.structure
-        .slice(0, scriptData.structure.findIndex(p => p.title === pointTitle))
+        .slice(
+          0,
+          scriptData.structure.findIndex(p => p.title === pointTitle)
+        )
         .reduce((sum, p) => sum + (scriptData.scenesPerPoint[p.title] || 1), 0);
       const continuousSceneNumber = sceneNumberOffset + sceneIndex + 1;
-      
+
       if (
         !window.confirm(
           `Are you sure you want to delete Scene ${continuousSceneNumber} in "${pointTitle}"? This cannot be undone.`
@@ -3945,7 +4027,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         newScenes.splice(sceneIndex, 1);
       }
 
-      console.log('🔄 Updated scenes:', { before: prev.generatedScenes[pointTitle]?.length || 0, after: newScenes.length });
+      console.log('🔄 Updated scenes:', {
+        before: prev.generatedScenes[pointTitle]?.length || 0,
+        after: newScenes.length,
+      });
 
       return {
         ...prev,
@@ -3964,7 +4049,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     setGenerationStatus(prev => {
       const oldStatusGroup = { ...(prev[pointTitle] || {}) };
       const newStatusGroup: Record<number, Status> = {};
-      
+
       Object.keys(oldStatusGroup).forEach(key => {
         const idx = parseInt(key);
         if (idx < sceneIndex) {
@@ -4036,45 +4121,53 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   return (
     <div className="p-6 animate-fade-in pb-24">
       {/* 🎬 Advanced Motion Editor Modal - Full-featured editor with timeline */}
-      {showMotionEditorModal && editingShotIndex !== null && (() => {
-        // Get current shot data with FULL CONTEXT
-        const allShots: Array<{ 
-          shot: any; 
-          sceneTitle: string; 
-          sceneIndex: number; 
-          shotIndex: number;
-          sceneData: GeneratedScene;
-        }> = [];
-        scriptData.structure.forEach((point) => {
-          const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
-          Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
-            const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
-            if (sceneData?.shotList) {
-              sceneData.shotList.forEach((shot, shotIndex) => {
-                allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex, sceneData });
-              });
-            }
+      {showMotionEditorModal &&
+        editingShotIndex !== null &&
+        (() => {
+          // Get current shot data with FULL CONTEXT
+          const allShots: Array<{
+            shot: any;
+            sceneTitle: string;
+            sceneIndex: number;
+            shotIndex: number;
+            sceneData: GeneratedScene;
+          }> = [];
+          scriptData.structure.forEach(point => {
+            const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
+            Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
+              const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
+              if (sceneData?.shotList) {
+                sceneData.shotList.forEach((shot, shotIndex) => {
+                  allShots.push({
+                    shot,
+                    sceneTitle: point.title,
+                    sceneIndex,
+                    shotIndex,
+                    sceneData,
+                  });
+                });
+              }
+            });
           });
-        });
-        
-        const currentShot = allShots[editingShotIndex];
-        
-        return (
-          <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm overflow-auto">
-            <MotionEditorPage
-              scriptData={scriptData}
-              shotId={currentShot?.shot?.shot?.toString() || editingShotIndex.toString()}
-              onSave={(updatedShot) => {
-                console.log('Shot updated:', updatedShot);
-                // TODO: Save updated shot data back to scriptData
-                setShowMotionEditorModal(false);
-              }}
-              onClose={() => setShowMotionEditorModal(false)}
-            />
-          </div>
-        );
-      })()}
-    
+
+          const currentShot = allShots[editingShotIndex];
+
+          return (
+            <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm overflow-auto">
+              <MotionEditorPage
+                scriptData={scriptData}
+                shotId={currentShot?.shot?.shot?.toString() || editingShotIndex.toString()}
+                onSave={updatedShot => {
+                  console.log('Shot updated:', updatedShot);
+                  // TODO: Save updated shot data back to scriptData
+                  setShowMotionEditorModal(false);
+                }}
+                onClose={() => setShowMotionEditorModal(false)}
+              />
+            </div>
+          );
+        })()}
+
       {/* Regenerate Options Modal */}
       <RegenerateOptionsModal
         isOpen={regenerateModal.isOpen}
@@ -4084,14 +4177,18 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode);
           }
         }}
-        sceneName={regenerateModal.plotPoint ? 
-          (scriptData.generatedScenes[regenerateModal.plotPoint.title]?.[regenerateModal.sceneIndex]?.sceneDesign?.sceneName || 
-           `${regenerateModal.plotPoint.title} - Scene ${regenerateModal.sceneIndex + 1}`) :
-          'Unknown Scene'
+        sceneName={
+          regenerateModal.plotPoint
+            ? scriptData.generatedScenes[regenerateModal.plotPoint.title]?.[
+                regenerateModal.sceneIndex
+              ]?.sceneDesign?.sceneName ||
+              `${regenerateModal.plotPoint.title} - Scene ${regenerateModal.sceneIndex + 1}`
+            : 'Unknown Scene'
         }
-        hasEdits={regenerateModal.plotPoint ? 
-          hasSceneEdits(regenerateModal.plotPoint, regenerateModal.sceneIndex) : 
-          false
+        hasEdits={
+          regenerateModal.plotPoint
+            ? hasSceneEdits(regenerateModal.plotPoint, regenerateModal.sceneIndex)
+            : false
         }
       />
 
@@ -4100,9 +4197,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
             {t('step5.title')}
           </h2>
-          <p className="text-gray-400 mt-1">
-            {t('step5.subtitle')}
-          </p>
+          <p className="text-gray-400 mt-1">{t('step5.subtitle')}</p>
         </div>
 
         <div className="flex gap-3">
@@ -4125,11 +4220,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     clipRule="evenodd"
                   />
                 </svg>
-                {isLoading ? t('step5.buttons.generating') : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
+                {isLoading
+                  ? t('step5.buttons.generating')
+                  : `${t('step5.buttons.generateAll')} (${allTasks.length})`}
               </button>
             )}
           </PermissionGuard>
-          
+
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
@@ -4160,7 +4257,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
               {isExportMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                  <button 
+                  <button
                     onClick={() => {
                       downloadScreenplayPDF();
                       setIsExportMenuOpen(false);
@@ -4169,7 +4266,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   >
                     📄 Screenplay (PDF/HTML)
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       downloadScreenplay();
                       setIsExportMenuOpen(false);
@@ -4178,7 +4275,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   >
                     📝 Screenplay (TXT)
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       alert(t('step5.export.finalDraftNote'));
                       setIsExportMenuOpen(false);
@@ -4187,7 +4284,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   >
                     🎬 Export as Final Draft (.fdx)
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       downloadShotList();
                       setIsExportMenuOpen(false);
@@ -4196,7 +4293,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   >
                     📊 Export Shot List (.csv)
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       downloadStoryboard();
                       setIsExportMenuOpen(false);
@@ -4245,9 +4342,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                 : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
             }`}
           >
-            <span className="flex items-center justify-center gap-2">
-              📝 Scene Design
-            </span>
+            <span className="flex items-center justify-center gap-2">📝 Scene Design</span>
             {mainTab === 'sceneDesign' && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-b-lg"></div>
             )}
@@ -4262,9 +4357,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                 : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
             }`}
           >
-            <span className="flex items-center justify-center gap-2">
-              🎭 Simulation
-            </span>
+            <span className="flex items-center justify-center gap-2">🎭 Simulation</span>
             {mainTab === 'simulation' && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-lg"></div>
             )}
@@ -4279,9 +4372,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                 : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
             }`}
           >
-            <span className="flex items-center justify-center gap-2">
-              🎬 Motion Editor
-            </span>
+            <span className="flex items-center justify-center gap-2">🎬 Motion Editor</span>
             {mainTab === 'motionEditor' && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-teal-500 rounded-b-lg"></div>
             )}
@@ -4291,448 +4382,538 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
       {/* 📌 Scene Design Tab - Equilibrium Structure */}
       {mainTab === 'sceneDesign' && (
-      <div className="space-y-8">
-        {scriptData.structure.map((point, pointIndex) => {
-          // Calculate continuous scene number
-          let sceneNumberOffset = 0;
-          for (let i = 0; i < pointIndex; i++) {
-            sceneNumberOffset += scriptData.scenesPerPoint[scriptData.structure[i].title] || 1;
-          }
+        <div className="space-y-8">
+          {scriptData.structure.map((point, pointIndex) => {
+            // Calculate continuous scene number
+            let sceneNumberOffset = 0;
+            for (let i = 0; i < pointIndex; i++) {
+              sceneNumberOffset += scriptData.scenesPerPoint[scriptData.structure[i].title] || 1;
+            }
 
-          return (
-          <div
-            key={pointIndex}
-            className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
-          >
-            <div className="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                {point.title}
-              </h3>
-              <button
-                onClick={() => handleAddScene(point.title)}
-                className="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
+            return (
+              <div
+                key={pointIndex}
+                className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Add Scene
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {Array.from({ length: scriptData.scenesPerPoint[point.title] || 1 }).map(
-                (_, sceneIndex) => {
-                  const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
-                  const status = generationStatus[point.title]?.[sceneIndex] || 'pending';
-                  const continuousSceneNumber = sceneNumberOffset + sceneIndex + 1;
-                  const totalScenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
-
-                  return (
-                    <div
-                      key={sceneIndex}
-                      id={`scene-${point.title.replace(/\s+/g, '-')}-${sceneIndex}`}
-                      className="relative group"
+                <div className="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                    {point.title}
+                  </h3>
+                  <button
+                    onClick={() => handleAddScene(point.title)}
+                    className="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
                     >
-                      <SceneItem
-                        sceneIndex={sceneIndex}
-                        sceneNumber={continuousSceneNumber}
-                        isPart={totalScenesInPoint > 1}
-                        status={status}
-                        sceneData={sceneData}
-                        button={getButtonForScene(point, sceneIndex)}
-                        onUpdate={updated => handleSceneUpdate(point.title, sceneIndex, updated)}
-                        allCharacters={scriptData.characters}
-                        onRegisterUndo={onRegisterUndo}
-                        _goToStep={_goToStep}
-                        onNavigateToCharacter={onNavigateToCharacter}
-                        pointTitle={point.title}
-                        onDelete={() => handleRemoveScene(point.title, sceneIndex)}
-                        canDelete={true}
-                        scriptData={scriptData}
+                      <path
+                        fillRule="evenodd"
+                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                        clipRule="evenodd"
                       />
+                    </svg>
+                    Add Scene
+                  </button>
+                </div>
 
-                      {/* Psychology Timeline for this scene */}
-                      {sceneData && sceneData.sceneDesign?.characters && sceneData.sceneDesign.characters.length > 0 && (
-                        <div className="mt-4 bg-gray-900/30 rounded-lg border border-purple-500/20 p-4">
-                          <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
-                            <span>📈</span>
-                            <span>Character Psychology in This Scene</span>
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {sceneData.sceneDesign.characters.map((charName, idx) => {
-                              try {
-                                if (!charName || typeof charName !== 'string') {
-                                  console.warn('[Psychology] Invalid character name:', charName);
-                                  return null;
-                                }
-                                
-                                // Enhanced character matching: exact match or fuzzy match
-                                const character = scriptData.characters.find(c => 
-                                  c.name === charName || 
-                                  c.name.includes(charName) || 
-                                  charName.includes(c.name)
-                                );
-                                if (!character) {
-                                  console.warn('[Psychology] Character not found:', charName, 'Available:', scriptData.characters.map(c => c.name));
-                                  return null;
-                                }
+                <div className="p-4 space-y-4">
+                  {Array.from({ length: scriptData.scenesPerPoint[point.title] || 1 }).map(
+                    (_, sceneIndex) => {
+                      const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
+                      const status = generationStatus[point.title]?.[sceneIndex] || 'pending';
+                      const continuousSceneNumber = sceneNumberOffset + sceneIndex + 1;
+                      const totalScenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
 
-                                const timeline = scriptData.psychologyTimelines?.[character.id] || scriptData.psychologyTimelines?.[character.name];
-                                if (!timeline || typeof timeline !== 'object') {
-                                  console.warn('[Psychology] No timeline for:', character.name);
-                                  return null;
-                                }
-                                if (!timeline.snapshots || !Array.isArray(timeline.snapshots) || timeline.snapshots.length === 0) {
-                                  console.warn('[Psychology] No snapshots for:', character.name);
-                                  return (
-                                    <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        {character.image && (
-                                          <img
-                                            src={character.image}
-                                            alt={character.name}
-                                            className="w-8 h-8 rounded-full object-cover border border-purple-400"
-                                          />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-sm font-bold text-purple-300 truncate">
-                                            {character.name}
+                      return (
+                        <div
+                          key={sceneIndex}
+                          id={`scene-${point.title.replace(/\s+/g, '-')}-${sceneIndex}`}
+                          className="relative group"
+                        >
+                          <SceneItem
+                            sceneIndex={sceneIndex}
+                            sceneNumber={continuousSceneNumber}
+                            isPart={totalScenesInPoint > 1}
+                            status={status}
+                            sceneData={sceneData}
+                            button={getButtonForScene(point, sceneIndex)}
+                            onUpdate={updated =>
+                              handleSceneUpdate(point.title, sceneIndex, updated)
+                            }
+                            allCharacters={scriptData.characters}
+                            onRegisterUndo={onRegisterUndo}
+                            _goToStep={_goToStep}
+                            onNavigateToCharacter={onNavigateToCharacter}
+                            pointTitle={point.title}
+                            onDelete={() => handleRemoveScene(point.title, sceneIndex)}
+                            canDelete={true}
+                            scriptData={scriptData}
+                          />
+
+                          {/* Psychology Timeline for this scene */}
+                          {sceneData &&
+                            sceneData.sceneDesign?.characters &&
+                            sceneData.sceneDesign.characters.length > 0 && (
+                              <div className="mt-4 bg-gray-900/30 rounded-lg border border-purple-500/20 p-4">
+                                <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
+                                  <span>📈</span>
+                                  <span>Character Psychology in This Scene</span>
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {sceneData.sceneDesign.characters.map((charName, idx) => {
+                                    try {
+                                      if (!charName || typeof charName !== 'string') {
+                                        console.warn(
+                                          '[Psychology] Invalid character name:',
+                                          charName
+                                        );
+                                        return null;
+                                      }
+
+                                      // Enhanced character matching: exact match or fuzzy match
+                                      const character = scriptData.characters.find(
+                                        c =>
+                                          c.name === charName ||
+                                          c.name.includes(charName) ||
+                                          charName.includes(c.name)
+                                      );
+                                      if (!character) {
+                                        console.warn(
+                                          '[Psychology] Character not found:',
+                                          charName,
+                                          'Available:',
+                                          scriptData.characters.map(c => c.name)
+                                        );
+                                        return null;
+                                      }
+
+                                      const timeline =
+                                        scriptData.psychologyTimelines?.[character.id] ||
+                                        scriptData.psychologyTimelines?.[character.name];
+                                      if (!timeline || typeof timeline !== 'object') {
+                                        console.warn(
+                                          '[Psychology] No timeline for:',
+                                          character.name
+                                        );
+                                        return null;
+                                      }
+                                      if (
+                                        !timeline.snapshots ||
+                                        !Array.isArray(timeline.snapshots) ||
+                                        timeline.snapshots.length === 0
+                                      ) {
+                                        console.warn(
+                                          '[Psychology] No snapshots for:',
+                                          character.name
+                                        );
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3"
+                                          >
+                                            <div className="flex items-center gap-2 mb-2">
+                                              {character.image && (
+                                                <img
+                                                  src={character.image}
+                                                  alt={character.name}
+                                                  className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                                />
+                                              )}
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-bold text-purple-300 truncate">
+                                                  {character.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 truncate">
+                                                  {character.role}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="text-xs text-gray-500 text-center py-2">
+                                              No psychology data
+                                            </div>
                                           </div>
-                                          <div className="text-xs text-gray-500 truncate">{character.role}</div>
-                                        </div>
-                                      </div>
-                                      <div className="text-xs text-gray-500 text-center py-2">
-                                        No psychology data
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                
-                                // Use continuousSceneNumber directly instead of sceneNumberMap
-                                console.debug('[Psychology] Looking for snapshot:', { 
-                                  character: character.name, 
-                                  currentSceneNumber: continuousSceneNumber, 
-                                  snapshotsCount: timeline.snapshots?.length || 0,
-                                  availableSnapshots: (timeline.snapshots || []).map(s => ({ 
-                                    sceneNumber: s?.sceneNumber, 
-                                    hasMentalBalance: typeof s?.mentalBalance === 'number' 
-                                  }))
-                                });
-                                
-                                const foundSnapshot = timeline.snapshots.find(s => 
-                                  s && 
-                                  typeof s === 'object' && 
-                                  s.sceneNumber === continuousSceneNumber && 
-                                  typeof s.mentalBalance === 'number'
-                                );
+                                        );
+                                      }
 
-                                // CRITICAL: Create immutable references to prevent race conditions
-                                if (!foundSnapshot || typeof foundSnapshot !== 'object' || typeof foundSnapshot.mentalBalance !== 'number') {
-                                  console.warn('[Psychology] No valid snapshot found for scene', continuousSceneNumber, 'character', character.name);
-                                  return (
-                                    <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        {character.image && (
-                                          <img
-                                            src={character.image}
-                                            alt={character.name}
-                                            className="w-8 h-8 rounded-full object-cover border border-purple-400"
-                                          />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-sm font-bold text-purple-300 truncate">
-                                            {character.name}
+                                      // Use continuousSceneNumber directly instead of sceneNumberMap
+                                      console.debug('[Psychology] Looking for snapshot:', {
+                                        character: character.name,
+                                        currentSceneNumber: continuousSceneNumber,
+                                        snapshotsCount: timeline.snapshots?.length || 0,
+                                        availableSnapshots: (timeline.snapshots || []).map(s => ({
+                                          sceneNumber: s?.sceneNumber,
+                                          hasMentalBalance: typeof s?.mentalBalance === 'number',
+                                        })),
+                                      });
+
+                                      const foundSnapshot = timeline.snapshots.find(
+                                        s =>
+                                          s &&
+                                          typeof s === 'object' &&
+                                          s.sceneNumber === continuousSceneNumber &&
+                                          typeof s.mentalBalance === 'number'
+                                      );
+
+                                      // CRITICAL: Create immutable references to prevent race conditions
+                                      if (
+                                        !foundSnapshot ||
+                                        typeof foundSnapshot !== 'object' ||
+                                        typeof foundSnapshot.mentalBalance !== 'number'
+                                      ) {
+                                        console.warn(
+                                          '[Psychology] No valid snapshot found for scene',
+                                          continuousSceneNumber,
+                                          'character',
+                                          character.name
+                                        );
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3"
+                                          >
+                                            <div className="flex items-center gap-2 mb-2">
+                                              {character.image && (
+                                                <img
+                                                  src={character.image}
+                                                  alt={character.name}
+                                                  className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                                />
+                                              )}
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-bold text-purple-300 truncate">
+                                                  {character.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 truncate">
+                                                  {character.role}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="text-xs text-gray-500 text-center py-2">
+                                              No data for this scene
+                                            </div>
                                           </div>
-                                          <div className="text-xs text-gray-500 truncate">{character.role}</div>
+                                        );
+                                      }
+
+                                      // Create immutable snapshot reference
+                                      const snapshot = {
+                                        mentalBalance: foundSnapshot.mentalBalance,
+                                        total_kusala_kamma: foundSnapshot.total_kusala_kamma,
+                                        total_akusala_kamma: foundSnapshot.total_akusala_kamma,
+                                        magga_stage: foundSnapshot.magga_stage,
+                                      };
+
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3"
+                                        >
+                                          <div className="flex items-center gap-2 mb-2">
+                                            {character.image && (
+                                              <img
+                                                src={character.image}
+                                                alt={character.name}
+                                                className="w-8 h-8 rounded-full object-cover border border-purple-400"
+                                              />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-bold text-purple-300 truncate">
+                                                {character.name}
+                                              </div>
+                                              <div className="text-xs text-gray-500 truncate">
+                                                {character.role}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Always show psychology data since we validated snapshot above */}
+                                          <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-xs text-gray-400">
+                                                Mental Balance
+                                              </span>
+                                              <span
+                                                className={`text-sm font-bold ${
+                                                  snapshot.mentalBalance >= 20
+                                                    ? 'text-green-400'
+                                                    : snapshot.mentalBalance >= 0
+                                                      ? 'text-blue-400'
+                                                      : snapshot.mentalBalance >= -20
+                                                        ? 'text-yellow-400'
+                                                        : 'text-red-400'
+                                                }`}
+                                              >
+                                                {snapshot.mentalBalance}
+                                              </span>
+                                            </div>
+
+                                            {(typeof snapshot.total_kusala_kamma === 'number' ||
+                                              typeof snapshot.total_akusala_kamma === 'number') && (
+                                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="bg-green-900/20 border border-green-500/30 rounded px-2 py-1 text-center">
+                                                  <div className="text-green-400">
+                                                    +{snapshot.total_kusala_kamma || 0}
+                                                  </div>
+                                                  <div className="text-[10px] text-gray-500">
+                                                    Kusala
+                                                  </div>
+                                                </div>
+                                                <div className="bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-center">
+                                                  <div className="text-red-400">
+                                                    -{snapshot.total_akusala_kamma || 0}
+                                                  </div>
+                                                  <div className="text-[10px] text-gray-500">
+                                                    Akusala
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {snapshot.magga_stage &&
+                                              typeof snapshot.magga_stage === 'string' && (
+                                                <div className="text-xs bg-purple-900/30 px-2 py-1 rounded border border-purple-500/30 text-purple-300 text-center">
+                                                  {snapshot.magga_stage}
+                                                </div>
+                                              )}
+                                          </div>
                                         </div>
-                                      </div>
-                                      <div className="text-xs text-gray-500 text-center py-2">
-                                        No data for this scene
-                                      </div>
-                                    </div>
-                                  );
-                                }
-
-                                // Create immutable snapshot reference
-                                const snapshot = {
-                                  mentalBalance: foundSnapshot.mentalBalance,
-                                  total_kusala_kamma: foundSnapshot.total_kusala_kamma,
-                                  total_akusala_kamma: foundSnapshot.total_akusala_kamma,
-                                  magga_stage: foundSnapshot.magga_stage
-                                };
-
-                              return (
-                                <div key={idx} className="bg-gray-800/50 rounded-lg border border-purple-500/30 p-3">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {character.image && (
-                                      <img
-                                        src={character.image}
-                                        alt={character.name}
-                                        className="w-8 h-8 rounded-full object-cover border border-purple-400"
-                                      />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-bold text-purple-300 truncate">
-                                        {character.name}
-                                      </div>
-                                      <div className="text-xs text-gray-500 truncate">{character.role}</div>
-                                    </div>
-                                  </div>
-
-                                  {/* Always show psychology data since we validated snapshot above */}
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-xs text-gray-400">Mental Balance</span>
-                                      <span className={`text-sm font-bold ${
-                                        snapshot.mentalBalance >= 20 ? 'text-green-400' :
-                                        snapshot.mentalBalance >= 0 ? 'text-blue-400' :
-                                        snapshot.mentalBalance >= -20 ? 'text-yellow-400' :
-                                        'text-red-400'
-                                      }`}>
-                                        {snapshot.mentalBalance}
-                                      </span>
-                                    </div>
-                                    
-                                    {(typeof snapshot.total_kusala_kamma === 'number' || typeof snapshot.total_akusala_kamma === 'number') && (
-                                      <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-green-900/20 border border-green-500/30 rounded px-2 py-1 text-center">
-                                          <div className="text-green-400">+{snapshot.total_kusala_kamma || 0}</div>
-                                          <div className="text-[10px] text-gray-500">Kusala</div>
-                                        </div>
-                                        <div className="bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-center">
-                                          <div className="text-red-400">-{snapshot.total_akusala_kamma || 0}</div>
-                                          <div className="text-[10px] text-gray-500">Akusala</div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {snapshot.magga_stage && typeof snapshot.magga_stage === 'string' && (
-                                      <div className="text-xs bg-purple-900/30 px-2 py-1 rounded border border-purple-500/30 text-purple-300 text-center">
-                                        {snapshot.magga_stage}
-                                      </div>
-                                    )}
-                                  </div>
+                                      );
+                                    } catch (error) {
+                                      console.error(
+                                        'Error rendering scene psychology card:',
+                                        error
+                                      );
+                                      return null;
+                                    }
+                                  })}
                                 </div>
-                              );
-                              } catch (error) {
-                                console.error('Error rendering scene psychology card:', error);
-                                return null;
-                              }
-                            })}
-                          </div>
+                              </div>
+                            )}
                         </div>
-                      )}
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </div>
-          );
-        })}
-      </div>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* 🎭 Simulation Tab - Character Psychology Timeline */}
       {mainTab === 'simulation' && (
         <div className="p-6 bg-gray-900/30 rounded-lg border border-gray-700 min-h-[600px]">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-purple-400 mb-2">🎭 Character Psychology Timeline</h2>
-            <p className="text-gray-400 text-sm">Track psychological changes of all characters across scenes</p>
+            <h2 className="text-2xl font-bold text-purple-400 mb-2">
+              🎭 Character Psychology Timeline
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Track psychological changes of all characters across scenes
+            </p>
           </div>
-          
+
           {/* Psychology Timeline Content */}
           <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
             {Object.keys(scriptData.psychologyTimelines || {}).length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🧠</div>
-                <h3 className="text-xl font-bold text-gray-300 mb-2">
-                  No Psychology Data Yet
-                </h3>
+                <h3 className="text-xl font-bold text-gray-300 mb-2">No Psychology Data Yet</h3>
                 <p className="text-gray-500">
                   Generate scenes to start tracking character psychology changes
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Object.entries(scriptData.psychologyTimelines || {}).map(([charId, timeline]: [string, any]) => {
-                  try {
-                    // Strict validation
-                    if (!timeline || typeof timeline !== 'object') return null;
-                    if (!timeline.snapshots || !Array.isArray(timeline.snapshots)) return null;
-                    if (!timeline.summary || typeof timeline.summary !== 'object') return null;
-                    
-                    // Create immutable references
-                    const snapshots = (timeline.snapshots || []).filter((s: any) => 
-                      s && 
-                      typeof s === 'object' && 
-                      typeof s.mentalBalance === 'number' &&
-                      typeof s.sceneNumber === 'number'
-                    );
-                    const summary = timeline.summary;
-                    const overallArc = timeline.overallArc;
-                    
-                    const character = scriptData.characters.find((c: any) => c.id === charId || c.name === charId);
-                    if (!character) return null;
+                {Object.entries(scriptData.psychologyTimelines || {}).map(
+                  ([charId, timeline]: [string, any]) => {
+                    try {
+                      // Strict validation
+                      if (!timeline || typeof timeline !== 'object') return null;
+                      if (!timeline.snapshots || !Array.isArray(timeline.snapshots)) return null;
+                      if (!timeline.summary || typeof timeline.summary !== 'object') return null;
 
-                    return (
-                      <div 
-                        key={charId} 
-                        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-purple-500/30 overflow-hidden shadow-xl hover:shadow-purple-500/20 transition-all cursor-pointer hover:scale-105 hover:border-purple-400/50"
-                        onClick={() => {
-                          if (onNavigateToCharacter) {
-                            onNavigateToCharacter(character.name, 5, undefined);
-                          }
-                        }}
-                        title={`Click to view ${character.name}'s details`}
-                      >
-                        {/* Character Header */}
-                        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 p-4 border-b border-purple-500/30">
-                          <div className="flex items-center gap-3 mb-2">
-                            {character.image && (
-                              <img
-                                src={character.image}
-                                alt={character.name}
-                                className="w-12 h-12 rounded-full object-cover border-2 border-purple-400 shadow-lg"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-bold text-purple-300 truncate">
-                                {character.name}
-                              </h3>
-                              <p className="text-xs text-gray-400 truncate">{character.role}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-4 text-center">
-                            <div className="flex-1">
-                              <div className="text-xs text-gray-500">Scenes</div>
-                              <div className="text-xl font-bold text-cyan-400">
-                                {snapshots.length}
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-xs text-gray-500">Changes</div>
-                              <div className="text-xl font-bold text-pink-400">
-                                {timeline.changes?.length || 0}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                      // Create immutable references
+                      const snapshots = (timeline.snapshots || []).filter(
+                        (s: any) =>
+                          s &&
+                          typeof s === 'object' &&
+                          typeof s.mentalBalance === 'number' &&
+                          typeof s.sceneNumber === 'number'
+                      );
+                      const summary = timeline.summary;
+                      const overallArc = timeline.overallArc;
 
-                        {/* Stats Grid */}
-                        {summary && (
-                          <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
-                            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
-                              <div className="text-[10px] text-green-400 mb-1">Kusala</div>
-                              <div className="text-lg font-bold text-green-300">
-                                +{summary.total_kusala || 0}
+                      const character = scriptData.characters.find(
+                        (c: any) => c.id === charId || c.name === charId
+                      );
+                      if (!character) return null;
+
+                      return (
+                        <div
+                          key={charId}
+                          className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-purple-500/30 overflow-hidden shadow-xl hover:shadow-purple-500/20 transition-all cursor-pointer hover:scale-105 hover:border-purple-400/50"
+                          onClick={() => {
+                            if (onNavigateToCharacter) {
+                              onNavigateToCharacter(character.name, 5, undefined);
+                            }
+                          }}
+                          title={`Click to view ${character.name}'s details`}
+                        >
+                          {/* Character Header */}
+                          <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 p-4 border-b border-purple-500/30">
+                            <div className="flex items-center gap-3 mb-2">
+                              {character.image && (
+                                <img
+                                  src={character.image}
+                                  alt={character.name}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-400 shadow-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-purple-300 truncate">
+                                  {character.name}
+                                </h3>
+                                <p className="text-xs text-gray-400 truncate">{character.role}</p>
                               </div>
                             </div>
-                            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
-                              <div className="text-[10px] text-red-400 mb-1">Akusala</div>
-                              <div className="text-lg font-bold text-red-300">
-                                -{summary.total_akusala || 0}
+                            <div className="flex gap-4 text-center">
+                              <div className="flex-1">
+                                <div className="text-xs text-gray-500">Scenes</div>
+                                <div className="text-xl font-bold text-cyan-400">
+                                  {snapshots.length}
+                                </div>
                               </div>
-                            </div>
-                            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
-                              <div className="text-[10px] text-blue-400 mb-1">Net</div>
-                              <div className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                                {(summary.net_progress || 0) >= 0 ? '+' : ''}{summary.net_progress || 0}
-                              </div>
-                            </div>
-                            <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
-                              <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
-                              <div className="text-xs font-bold text-purple-300 truncate">
-                                {summary.dominant_pattern || 'N/A'}
+                              <div className="flex-1">
+                                <div className="text-xs text-gray-500">Changes</div>
+                                <div className="text-xl font-bold text-pink-400">
+                                  {timeline.changes?.length || 0}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        )}
 
-                        {/* Overall Arc - Compact */}
-                        {overallArc && overallArc.startingBalance !== undefined && overallArc.endingBalance !== undefined && (
-                          <div className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold text-gray-400">Character Arc</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                                overallArc.direction === 'กุศลขึ้น' 
-                                  ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                  : overallArc.direction === 'กุศลลง'
-                                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                  : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                              }`}>
-                                {overallArc.direction || 'N/A'}
-                              </span>
-                            </div>
-                            
-                            {/* Progress Bar */}
-                            <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
-                              <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-bold z-10">
-                                <span className="text-gray-400">{overallArc.startingBalance}</span>
-                                <span className="text-cyan-300">→</span>
-                                <span className="text-white">{overallArc.endingBalance}</span>
+                          {/* Stats Grid */}
+                          {summary && (
+                            <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
+                              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-green-400 mb-1">Kusala</div>
+                                <div className="text-lg font-bold text-green-300">
+                                  +{summary.total_kusala || 0}
+                                </div>
                               </div>
-                              <div 
-                                className={`absolute left-0 top-0 h-full transition-all ${
-                                  (overallArc.totalChange || 0) >= 0 
-                                    ? 'bg-gradient-to-r from-green-600/50 to-green-500/50' 
-                                    : 'bg-gradient-to-r from-red-600/50 to-red-500/50'
-                                }`}
-                                style={{ 
-                                  width: `${Math.min(100, Math.abs((overallArc.endingBalance + 100) / 2))}%` 
-                                }}
-                              />
+                              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-red-400 mb-1">Akusala</div>
+                                <div className="text-lg font-bold text-red-300">
+                                  -{summary.total_akusala || 0}
+                                </div>
+                              </div>
+                              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-blue-400 mb-1">Net</div>
+                                <div
+                                  className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}
+                                >
+                                  {(summary.net_progress || 0) >= 0 ? '+' : ''}
+                                  {summary.net_progress || 0}
+                                </div>
+                              </div>
+                              <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
+                                <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
+                                <div className="text-xs font-bold text-purple-300 truncate">
+                                  {summary.dominant_pattern || 'N/A'}
+                                </div>
+                              </div>
                             </div>
-                            
-                            <p className="text-xs text-gray-400 mt-2 line-clamp-2">
-                              {overallArc.interpretation || 'No interpretation available'}
-                            </p>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Mini Timeline Preview */}
-                        {snapshots && snapshots.length > 0 && (
-                          <div className="p-4 pt-0">
-                            <div className="text-xs font-bold text-gray-400 mb-2">Scene Journey</div>
-                            <div className="flex gap-1 overflow-x-auto pb-1">
-                              {snapshots.map((snapshot: any, idx: number) => {
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={`flex-shrink-0 w-8 h-8 rounded border-2 flex items-center justify-center text-xs font-bold ${
-                                      snapshot.mentalBalance >= 20
-                                        ? 'bg-green-500/20 border-green-500 text-green-300'
-                                        : snapshot.mentalBalance >= 0
-                                        ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                                        : snapshot.mentalBalance >= -20
-                                        ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300'
-                                        : 'bg-red-500/20 border-red-500 text-red-300'
+                          {/* Overall Arc - Compact */}
+                          {overallArc &&
+                            overallArc.startingBalance !== undefined &&
+                            overallArc.endingBalance !== undefined && (
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-bold text-gray-400">
+                                    Character Arc
+                                  </span>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                      overallArc.direction === 'กุศลขึ้น'
+                                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                        : overallArc.direction === 'กุศลลง'
+                                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                          : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
                                     }`}
-                                    title={`Scene ${snapshot.sceneNumber}: Balance ${snapshot.mentalBalance}`}
                                   >
-                                    {snapshot.sceneNumber}
+                                    {overallArc.direction || 'N/A'}
+                                  </span>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
+                                  <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-bold z-10">
+                                    <span className="text-gray-400">
+                                      {overallArc.startingBalance}
+                                    </span>
+                                    <span className="text-cyan-300">→</span>
+                                    <span className="text-white">{overallArc.endingBalance}</span>
                                   </div>
-                                );
-                              })}
+                                  <div
+                                    className={`absolute left-0 top-0 h-full transition-all ${
+                                      (overallArc.totalChange || 0) >= 0
+                                        ? 'bg-gradient-to-r from-green-600/50 to-green-500/50'
+                                        : 'bg-gradient-to-r from-red-600/50 to-red-500/50'
+                                    }`}
+                                    style={{
+                                      width: `${Math.min(100, Math.abs((overallArc.endingBalance + 100) / 2))}%`,
+                                    }}
+                                  />
+                                </div>
+
+                                <p className="text-xs text-gray-400 mt-2 line-clamp-2">
+                                  {overallArc.interpretation || 'No interpretation available'}
+                                </p>
+                              </div>
+                            )}
+
+                          {/* Mini Timeline Preview */}
+                          {snapshots && snapshots.length > 0 && (
+                            <div className="p-4 pt-0">
+                              <div className="text-xs font-bold text-gray-400 mb-2">
+                                Scene Journey
+                              </div>
+                              <div className="flex gap-1 overflow-x-auto pb-1">
+                                {snapshots.map((snapshot: any, idx: number) => {
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`flex-shrink-0 w-8 h-8 rounded border-2 flex items-center justify-center text-xs font-bold ${
+                                        snapshot.mentalBalance >= 20
+                                          ? 'bg-green-500/20 border-green-500 text-green-300'
+                                          : snapshot.mentalBalance >= 0
+                                            ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                                            : snapshot.mentalBalance >= -20
+                                              ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300'
+                                              : 'bg-red-500/20 border-red-500 text-red-300'
+                                      }`}
+                                      title={`Scene ${snapshot.sceneNumber}: Balance ${snapshot.mentalBalance}`}
+                                    >
+                                      {snapshot.sceneNumber}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  } catch (error) {
-                    console.error('Error rendering psychology card:', error);
-                    return null;
+                          )}
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error('Error rendering psychology card:', error);
+                      return null;
+                    }
                   }
-                })}
+                )}
               </div>
             )}
           </div>
@@ -4744,25 +4925,33 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         <div className="p-6 bg-gray-900/30 rounded-lg border border-gray-700 min-h-[600px]">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-green-400 mb-2">🎬 Motion Editor</h2>
-            <p className="text-gray-400 text-sm">Professional cinematic camera controls for all shots</p>
+            <p className="text-gray-400 text-sm">
+              Professional cinematic camera controls for all shots
+            </p>
           </div>
 
           {(() => {
             // Collect all shots from all scenes with FULL CONTEXT
-            const allShots: Array<{ 
-              shot: any; 
-              sceneTitle: string; 
-              sceneIndex: number; 
+            const allShots: Array<{
+              shot: any;
+              sceneTitle: string;
+              sceneIndex: number;
               shotIndex: number;
               sceneData: GeneratedScene; // 🎯 NEW: Full scene data for AI context
             }> = [];
-            scriptData.structure.forEach((point) => {
+            scriptData.structure.forEach(point => {
               const scenesInPoint = scriptData.scenesPerPoint[point.title] || 1;
               Array.from({ length: scenesInPoint }).forEach((_, sceneIndex) => {
                 const sceneData = scriptData.generatedScenes[point.title]?.[sceneIndex];
                 if (sceneData?.shotList) {
                   sceneData.shotList.forEach((shot, shotIndex) => {
-                    allShots.push({ shot, sceneTitle: point.title, sceneIndex, shotIndex, sceneData });
+                    allShots.push({
+                      shot,
+                      sceneTitle: point.title,
+                      sceneIndex,
+                      shotIndex,
+                      sceneData,
+                    });
                   });
                 }
               });
@@ -4776,7 +4965,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     {/* Header with Advanced Editor button */}
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-green-400">
-                        {allShots[editingShotIndex ?? 0].sceneTitle} - Shot {(editingShotIndex ?? 0) + 1}
+                        {allShots[editingShotIndex ?? 0].sceneTitle} - Shot{' '}
+                        {(editingShotIndex ?? 0) + 1}
                       </h3>
                       <button
                         type="button"
@@ -4784,8 +4974,18 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all shadow-lg flex items-center gap-2"
                         title="Full-featured motion editor with timeline, keyframes, and camera controls"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
                         </svg>
                         🎬 Open Advanced Motion Editor
                       </button>
@@ -4794,13 +4994,24 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     {/* Shot Info */}
                     <div className="p-4 bg-gray-800/50 rounded-lg mb-4">
                       <p className="text-gray-400 text-sm mb-2">
-                        <strong>Description:</strong> {allShots[editingShotIndex ?? 0].shot.description}
+                        <strong>Description:</strong>{' '}
+                        {allShots[editingShotIndex ?? 0].shot.description}
                       </p>
                       <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                        <div><strong>Size:</strong> {allShots[editingShotIndex ?? 0].shot.shotSize}</div>
-                        <div><strong>Movement:</strong> {allShots[editingShotIndex ?? 0].shot.movement}</div>
-                        <div><strong>Duration:</strong> {allShots[editingShotIndex ?? 0].shot.durationSec}s</div>
-                        <div><strong>Equipment:</strong> {allShots[editingShotIndex ?? 0].shot.equipment}</div>
+                        <div>
+                          <strong>Size:</strong> {allShots[editingShotIndex ?? 0].shot.shotSize}
+                        </div>
+                        <div>
+                          <strong>Movement:</strong> {allShots[editingShotIndex ?? 0].shot.movement}
+                        </div>
+                        <div>
+                          <strong>Duration:</strong>{' '}
+                          {allShots[editingShotIndex ?? 0].shot.durationSec}s
+                        </div>
+                        <div>
+                          <strong>Equipment:</strong>{' '}
+                          {allShots[editingShotIndex ?? 0].shot.equipment}
+                        </div>
                       </div>
                     </div>
 
@@ -4809,22 +5020,37 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                       {/* Image Preview */}
                       <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
                         <h4 className="text-lg font-bold text-blue-400 mb-3 flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                           </svg>
                           Image Preview
                         </h4>
                         {(() => {
                           const currentShot = allShots[editingShotIndex ?? 0];
-                          const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
-                          const storyboardItem = sceneData?.storyboard?.find(s => s.shot === currentShot.shot.shot);
-                          
+                          const sceneData =
+                            scriptData.generatedScenes[currentShot.sceneTitle]?.[
+                              currentShot.sceneIndex
+                            ];
+                          const storyboardItem = sceneData?.storyboard?.find(
+                            s => s.shot === currentShot.shot.shot
+                          );
+
                           return (
                             <>
                               {storyboardItem?.image ? (
                                 <div className="mb-3">
-                                  <img 
-                                    src={storyboardItem.image} 
+                                  <img
+                                    src={storyboardItem.image}
                                     alt={`Shot ${currentShot.shot.shot} preview`}
                                     className="w-full h-48 object-cover rounded-lg border border-gray-600"
                                   />
@@ -4839,10 +5065,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                 onClick={async () => {
                                   const currentShot = allShots[editingShotIndex ?? 0];
                                   if (!currentShot) return;
-                                  
-                                  const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+
+                                  const sceneData =
+                                    scriptData.generatedScenes[currentShot.sceneTitle]?.[
+                                      currentShot.sceneIndex
+                                    ];
                                   if (!sceneData) return;
-                                  
+
                                   await handleMotionEditorGenerateImage(currentShot, sceneData);
                                 }}
                                 disabled={motionEditorGeneratingImage}
@@ -4856,8 +5085,18 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                   </>
                                 ) : (
                                   <>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    <svg
+                                      className="w-5 h-5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                      />
                                     </svg>
                                     🎨 Generate Image
                                   </>
@@ -4871,21 +5110,36 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                       {/* Video Preview */}
                       <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
                         <h4 className="text-lg font-bold text-purple-400 mb-3 flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
                           </svg>
                           Video Preview
                         </h4>
                         {(() => {
                           const currentShot = allShots[editingShotIndex ?? 0];
-                          const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
-                          const storyboardItem = sceneData?.storyboard?.find(s => s.shot === currentShot.shot.shot);
-                          
+                          const sceneData =
+                            scriptData.generatedScenes[currentShot.sceneTitle]?.[
+                              currentShot.sceneIndex
+                            ];
+                          const storyboardItem = sceneData?.storyboard?.find(
+                            s => s.shot === currentShot.shot.shot
+                          );
+
                           return (
                             <>
                               {storyboardItem?.video ? (
                                 <div className="mb-3">
-                                  <video 
+                                  <video
                                     src={storyboardItem.video}
                                     controls
                                     className="w-full h-48 object-cover rounded-lg border border-gray-600 bg-black"
@@ -4901,10 +5155,13 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                 onClick={async () => {
                                   const currentShot = allShots[editingShotIndex ?? 0];
                                   if (!currentShot) return;
-                                  
-                                  const sceneData = scriptData.generatedScenes[currentShot.sceneTitle]?.[currentShot.sceneIndex];
+
+                                  const sceneData =
+                                    scriptData.generatedScenes[currentShot.sceneTitle]?.[
+                                      currentShot.sceneIndex
+                                    ];
                                   if (!sceneData) return;
-                                  
+
                                   await handleMotionEditorGenerateVideo(currentShot, sceneData);
                                 }}
                                 disabled={motionEditorGeneratingVideo}
@@ -4918,9 +5175,24 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                   </>
                                 ) : (
                                   <>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg
+                                      className="w-5 h-5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                      />
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                      />
                                     </svg>
                                     🎥 Generate Video
                                   </>
@@ -4936,7 +5208,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-bold text-green-400">
-                          📍 Shot {editingShotIndex !== null ? editingShotIndex + 1 : 1} of {allShots.length}
+                          📍 Shot {editingShotIndex !== null ? editingShotIndex + 1 : 1} of{' '}
+                          {allShots.length}
                         </h3>
                         <div className="flex gap-2">
                           <button
@@ -4953,7 +5226,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              const newIdx = Math.min(allShots.length - 1, (editingShotIndex ?? 0) + 1);
+                              const newIdx = Math.min(
+                                allShots.length - 1,
+                                (editingShotIndex ?? 0) + 1
+                              );
                               setEditingShotIndex(newIdx);
                             }}
                             disabled={editingShotIndex === allShots.length - 1}
@@ -4983,15 +5259,19 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         ))}
                       </div>
                     </div>
-                    
+
                     {/* ⚡ Quick Motion Edit - Inline Editor */}
                     <div className="border-t border-gray-700 pt-6">
                       <div className="flex items-center gap-2 mb-4">
                         <h4 className="text-lg font-bold text-green-400">⚡ Quick Motion Edit</h4>
-                        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">Basic camera controls</span>
+                        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                          Basic camera controls
+                        </span>
                       </div>
                       <MotionEditor
-                        initialMotionEdit={convertShotToMotionEdit(allShots[editingShotIndex ?? 0].shot)}
+                        initialMotionEdit={convertShotToMotionEdit(
+                          allShots[editingShotIndex ?? 0].shot
+                        )}
                         shotData={allShots[editingShotIndex ?? 0].shot}
                         sceneTitle={allShots[editingShotIndex ?? 0].sceneTitle}
                         shotNumber={(editingShotIndex ?? 0) + 1}
@@ -4999,7 +5279,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                         sceneDetails={allShots[editingShotIndex ?? 0].sceneData.sceneDesign}
                         characterPsychology={scriptData.psychologyTimelines}
                         allCharacters={scriptData.characters}
-                        onMotionChange={(updatedMotion) => {
+                        onMotionChange={updatedMotion => {
                           const idx = editingShotIndex ?? 0;
                           handleMotionChange(
                             allShots[idx].sceneTitle,
@@ -5054,9 +5334,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
                     📜 Screenplay Preview
                   </h2>
-                  <p className="text-gray-400 mt-2">
-                    {scriptData.title} - Live Preview
-                  </p>
+                  <p className="text-gray-400 mt-2">{scriptData.title} - Live Preview</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -5066,7 +5344,12 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-3 rounded-lg transition-all shadow-lg flex items-center gap-2 font-bold"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
                     </svg>
                     <span>ดาวน์โหลด</span>
                   </button>
@@ -5075,22 +5358,34 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                     className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
                   >
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow-2xl overflow-hidden">
-                <div className="p-12 font-mono text-black" style={{ fontFamily: 'Courier, monospace' }}>
+                <div
+                  className="p-12 font-mono text-black"
+                  style={{ fontFamily: 'Courier, monospace' }}
+                >
                   <div className="text-center mb-24">
                     <div className="h-32"></div>
                     <h1 className="text-4xl font-bold mb-6">{scriptData.title.toUpperCase()}</h1>
                     <p className="text-lg mb-4">by</p>
                     <p className="text-lg mb-8">Peace Script AI</p>
                     <div className="text-sm space-y-2 max-w-md mx-auto text-left">
-                      <p><strong>Genre:</strong> {scriptData.mainGenre}</p>
-                      <p><strong>Logline:</strong> {scriptData.logLine}</p>
+                      <p>
+                        <strong>Genre:</strong> {scriptData.mainGenre}
+                      </p>
+                      <p>
+                        <strong>Logline:</strong> {scriptData.logLine}
+                      </p>
                     </div>
                   </div>
 

@@ -15,9 +15,11 @@ vi.mock('../../services/psychologyCalculator', () => ({
     strongestDefilement: 'Dosa (Anger)',
   })),
   calculateReaction: vi.fn((char: Character) => ({
-    reactionType: char.id === 'char1' ? 'wholesome' : char.id === 'char2' ? 'unwholesome' : 'neutral',
+    reactionType:
+      char.id === 'char1' ? 'wholesome' : char.id === 'char2' ? 'unwholesome' : 'neutral',
     emotionalTone: char.id === 'char1' ? 'Calm and Composed' : 'Angry and Defensive',
-    reasoning: 'This is the reasoning behind the reaction based on the character psychology profile',
+    reasoning:
+      'This is the reasoning behind the reaction based on the character psychology profile',
   })),
 }));
 
@@ -177,7 +179,9 @@ describe('CharacterComparison - Character Cards', () => {
   });
 
   it('should display character images', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const images = container.querySelectorAll('img');
     expect(images.length).toBe(2);
@@ -371,7 +375,9 @@ describe('CharacterComparison - Summary Statistics', () => {
   const mockOnClose = vi.fn();
 
   it('should display Total Characters count', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const totalLabel = screen.getByText(/Total Characters/i);
     expect(totalLabel).toBeDefined();
@@ -556,7 +562,9 @@ describe('CharacterComparison - Props Handling', () => {
       },
     ];
 
-    const { container } = render(<CharacterComparison characters={characters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={characters} onClose={mockOnClose} />
+    );
 
     const images = container.querySelectorAll('img');
     expect(images.length).toBe(0);
@@ -600,35 +608,45 @@ describe('CharacterComparison - Visual Elements', () => {
   const mockOnClose = vi.fn();
 
   it('should have gradient header background', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const header = container.querySelector('.bg-gradient-to-r.from-cyan-500\\/20');
     expect(header).toBeDefined();
   });
 
   it('should have bordered card container', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const card = container.querySelector('.border-2.border-cyan-500\\/50');
     expect(card).toBeDefined();
   });
 
   it('should have scrollable comparison grid', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const scrollableDiv = container.querySelector('.overflow-y-auto.flex-1');
     expect(scrollableDiv).toBeDefined();
   });
 
   it('should have responsive grid layout', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const grid = container.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3');
     expect(grid).toBeDefined();
   });
 
   it('should have progress bar for mental balance', () => {
-    const { container } = render(<CharacterComparison characters={mockCharacters} onClose={mockOnClose} />);
+    const { container } = render(
+      <CharacterComparison characters={mockCharacters} onClose={mockOnClose} />
+    );
 
     const progressBars = container.querySelectorAll('.bg-gray-700.rounded-full.h-3');
     expect(progressBars.length).toBeGreaterThan(0);

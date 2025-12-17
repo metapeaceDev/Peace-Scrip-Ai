@@ -49,7 +49,7 @@ global.ResizeObserver = class ResizeObserver {
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
@@ -98,10 +98,7 @@ console.error = (...args: any[]) => {
 
 console.warn = (...args: any[]) => {
   // Suppress known warnings
-  if (
-    typeof args[0] === 'string' &&
-    args[0].includes('Warning: An update to')
-  ) {
+  if (typeof args[0] === 'string' && args[0].includes('Warning: An update to')) {
     return;
   }
   originalWarn.call(console, ...args);

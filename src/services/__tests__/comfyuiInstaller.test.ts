@@ -89,10 +89,8 @@ describe('comfyuiInstaller', () => {
     });
 
     it('should handle network timeout gracefully', async () => {
-      (global.fetch as any).mockImplementationOnce(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 100)
-        )
+      (global.fetch as any).mockImplementationOnce(
+        () => new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
       );
 
       const status = await checkComfyUIStatus();
@@ -168,7 +166,7 @@ describe('comfyuiInstaller', () => {
 
     it('should provide step-by-step instructions for each OS', () => {
       const oses = ['windows', 'mac', 'linux'];
-      
+
       for (const os of oses) {
         Object.defineProperty(global, 'navigator', {
           value: { userAgent: os === 'windows' ? 'Windows' : os === 'mac' ? 'Mac' : 'Linux' },
@@ -176,7 +174,7 @@ describe('comfyuiInstaller', () => {
         });
 
         const instructions = getInstallInstructions();
-        
+
         expect(instructions.instructions.length).toBeGreaterThan(3);
         expect(instructions.instructions[0]).toMatch(/^1\./);
         expect(instructions.downloadUrl).toBeTruthy();
@@ -213,7 +211,7 @@ describe('comfyuiInstaller', () => {
 
     it('should provide meaningful messages', async () => {
       const generator = monitorInstallation();
-      
+
       for await (const step of generator) {
         expect(step.message).toBeTruthy();
         expect(step.message.length).toBeGreaterThan(5);
@@ -254,9 +252,7 @@ describe('comfyuiInstaller', () => {
 
       await checkRequiredModels(customUrl);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(customUrl)
-      );
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining(customUrl));
     });
 
     it('should handle malformed response', async () => {
@@ -335,7 +331,7 @@ describe('comfyuiInstaller', () => {
     it('should handle complete installation check flow', async () => {
       // User checks status - ComfyUI not running
       (global.fetch as any).mockRejectedValueOnce(new Error('Not running'));
-      
+
       const initialStatus = await checkComfyUIStatus();
       expect(initialStatus.running).toBe(false);
 
@@ -358,7 +354,7 @@ describe('comfyuiInstaller', () => {
         ok: true,
         json: async () => ({ system: { comfyui_version: '1.0.0' } }),
       });
-      
+
       const finalStatus = await checkComfyUIStatus();
       expect(finalStatus.running).toBe(true);
       expect(finalStatus.version).toBe('1.0.0');

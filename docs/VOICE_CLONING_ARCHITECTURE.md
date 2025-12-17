@@ -8,6 +8,7 @@
 ## 🎯 เป้าหมาย (Objectives)
 
 ### ความต้องการหลัก
+
 1. **Voice Cloning**: โคลนเสียงจากตัวอย่างเสียง (voice samples)
 2. **Custom Voices**: ผู้ใช้สามารถสร้างและจัดการเสียงของตัวเองได้
 3. **High Quality**: คุณภาพเสียงใกล้เคียงต้นฉบับ
@@ -23,6 +24,7 @@
 #### 1. **Coqui TTS + XTTS v2** ⭐⭐⭐⭐⭐ (แนะนำที่สุด)
 
 **ข้อดี:**
+
 - ✅ **Open Source** - ฟรี ไม่มีค่าใช้จ่าย
 - ✅ **Zero-Shot Voice Cloning** - ไม่ต้อง fine-tune
 - ✅ **Multilingual** - รองรับ 17 ภาษา รวมภาษาไทย
@@ -33,11 +35,13 @@
 - ✅ **Active Development** - community support ดี
 
 **ข้อจำกัด:**
+
 - ⚠️ ต้องการ GPU (แนะนำ NVIDIA GPU 4GB+ VRAM)
 - ⚠️ CPU mode ช้ากว่า (~10-15 seconds ต่อประโยค)
 - ⚠️ Model size ใหญ่ (~1.8GB)
 
 **Technical Specs:**
+
 ```python
 # Coqui TTS XTTS-v2
 Model Size: 1.8GB
@@ -49,6 +53,7 @@ License: Mozilla Public License 2.0 (Commercial OK)
 ```
 
 **Use Case:** ✅ เหมาะสำหรับ Peace Script AI
+
 - Self-hosted deployment
 - Free unlimited usage
 - High quality Thai voice cloning
@@ -59,6 +64,7 @@ License: Mozilla Public License 2.0 (Commercial OK)
 #### 2. **ElevenLabs API** ⭐⭐⭐⭐
 
 **ข้อดี:**
+
 - ✅ **Excellent Quality** - คุณภาพเสียงระดับ top tier
 - ✅ **Fast** - API response < 1 second
 - ✅ **Easy Integration** - REST API ใช้งานง่าย
@@ -67,12 +73,14 @@ License: Mozilla Public License 2.0 (Commercial OK)
 - ✅ **No GPU Required** - cloud-based
 
 **ข้อจำกัด:**
+
 - ❌ **Paid Service** - ต้องจ่ายเงิน
 - ❌ **API Quota** - จำกัด characters ต่อเดือน
 - ❌ **Privacy Concerns** - ต้องส่งข้อมูลผ่าน cloud
 - ⚠️ **Thai Support** - รองรับภาษาไทย แต่อาจไม่ดีเท่า native models
 
 **Pricing:**
+
 ```
 Free Tier: 10,000 characters/month (~฿0)
 Starter: $5/month (30,000 chars)
@@ -82,6 +90,7 @@ Voice Cloning: +$5/voice clone
 ```
 
 **Use Case:** ⚠️ ไม่แนะนำเป็น primary solution
+
 - Expensive for high volume
 - Privacy issues
 - Better as fallback option
@@ -91,18 +100,21 @@ Voice Cloning: +$5/voice clone
 #### 3. **RVC (Retrieval-based Voice Conversion)** ⭐⭐⭐
 
 **ข้อดี:**
+
 - ✅ **Open Source** - ฟรี
 - ✅ **High Quality** - คุณภาพดีมาก
 - ✅ **Voice Conversion** - แปลงเสียงได้ดี
 - ✅ **Pre-trained Models** - มี model สำเร็จรูป
 
 **ข้อจำกัด:**
+
 - ❌ **Training Required** - ต้อง train model ก่อนใช้
 - ❌ **Complex Setup** - ติดตั้งยาก
 - ❌ **Long Training Time** - ต้องใช้เวลา train นาน
 - ⚠️ **Not Pure TTS** - เป็น voice conversion ไม่ใช่ TTS โดยตรง
 
 **Use Case:** ❌ ไม่เหมาะสำหรับโปรเจคนี้
+
 - Too complex for users
 - Requires training per voice
 - Not real-time
@@ -112,12 +124,14 @@ Voice Cloning: +$5/voice clone
 #### 4. **Bark by Suno** ⭐⭐⭐
 
 **ข้อดี:**
+
 - ✅ **Open Source** - ฟรี
 - ✅ **Expressive** - เสียงมี emotion
 - ✅ **Multilingual** - รองรับหลายภาษา
 - ✅ **Sound Effects** - สร้าง sound effects ได้
 
 **ข้อจำกัด:**
+
 - ❌ **No Voice Cloning** - ไม่มีฟีเจอร์ clone เสียง
 - ❌ **Slow** - ช้ามาก (30s+ per sentence)
 - ⚠️ **Unpredictable** - ผลลัพธ์ไม่คงที่
@@ -129,17 +143,20 @@ Voice Cloning: +$5/voice clone
 #### 5. **StyleTTS 2** ⭐⭐⭐⭐
 
 **ข้อดี:**
+
 - ✅ **Open Source** - ฟรี
 - ✅ **High Quality** - คุณภาพดีมาก
 - ✅ **Zero-Shot** - ไม่ต้อง fine-tune
 - ✅ **Expressive** - เสียงธรรมชาติ
 
 **ข้อจำกัด:**
+
 - ⚠️ **English Focus** - เน้นภาษาอังกฤษ
 - ⚠️ **Limited Thai Support** - ภาษาไทยอาจไม่ดี
 - ⚠️ **Newer Project** - ยังไม่ mature เท่า Coqui
 
 **Use Case:** ⚠️ พิจารณาเป็นทางเลือกรอง
+
 - ถ้าต้องการ English voice cloning
 - Still developing Thai support
 
@@ -150,6 +167,7 @@ Voice Cloning: +$5/voice clone
 ### Primary Solution: **Coqui TTS XTTS-v2** ⭐⭐⭐⭐⭐
 
 **เหตุผล:**
+
 1. ✅ **ฟรี 100%** - ไม่มีค่าใช้จ่าย
 2. ✅ **รองรับภาษาไทยเต็มรูปแบบ** - native Thai support
 3. ✅ **Zero-shot voice cloning** - ใช้ตัวอย่างเสียง 6-30 วินาทีเท่านั้น
@@ -160,6 +178,7 @@ Voice Cloning: +$5/voice clone
 ### Fallback Option: **ElevenLabs API**
 
 **ใช้เมื่อ:**
+
 - User ต้องการคุณภาพสูงสุดและยอมจ่าย
 - Server ไม่มี GPU
 - ต้องการ professional voices
@@ -231,6 +250,7 @@ Voice Cloning: +$5/voice clone
 **Location:** `backend/voice-cloning/`
 
 **Stack:**
+
 ```
 - Python 3.10+
 - Flask 3.0
@@ -256,6 +276,7 @@ GET    /health                # Health check
 ### 2. Frontend - Voice Management UI
 
 **Components:**
+
 1. **VoiceUploadModal** - Upload voice samples
 2. **VoiceLibrary** - Manage cloned voices
 3. **VoiceSelector** - Select voice for TTS
@@ -273,17 +294,17 @@ interface VoiceProfile {
   _id: string;
   userId: string;
   voiceName: string;
-  samplePath: string;           // Path to voice sample file
-  sampleDuration: number;        // Duration in seconds
-  language: string;              // 'th', 'en', etc.
+  samplePath: string; // Path to voice sample file
+  sampleDuration: number; // Duration in seconds
+  language: string; // 'th', 'en', etc.
   quality: 'low' | 'medium' | 'high';
   createdAt: Date;
   updatedAt: Date;
   metadata: {
     originalFileName: string;
     fileSize: number;
-    format: string;              // 'wav', 'mp3'
-    sampleRate: number;          // 22050, 24000, etc.
+    format: string; // 'wav', 'mp3'
+    sampleRate: number; // 22050, 24000, etc.
   };
 }
 
@@ -293,7 +314,7 @@ interface VoiceGeneration {
   userId: string;
   voiceId: string;
   text: string;
-  duration: number;              // Generated audio duration
+  duration: number; // Generated audio duration
   timestamp: Date;
   engine: 'xtts-v2';
 }
@@ -352,6 +373,7 @@ peace-script-basic-v1/
 ## 🚀 Implementation Plan
 
 ### Phase 1: Backend Foundation (Priority 1)
+
 - [ ] Setup Coqui TTS XTTS-v2
 - [ ] Create Flask API server
 - [ ] Voice upload endpoint
@@ -360,24 +382,28 @@ peace-script-basic-v1/
 - [ ] Health check & diagnostics
 
 ### Phase 2: Voice Synthesis (Priority 2)
+
 - [ ] TTS synthesis with cloned voice
 - [ ] Audio quality optimization
 - [ ] Caching system
 - [ ] Error handling
 
 ### Phase 3: Frontend Integration (Priority 3)
+
 - [ ] Voice upload UI
 - [ ] Voice library management
 - [ ] Voice selector component
 - [ ] Integration with existing TTS
 
 ### Phase 4: Storage & Database (Priority 4)
+
 - [ ] MongoDB schema
 - [ ] File storage system
 - [ ] Voice metadata management
 - [ ] User voice library
 
 ### Phase 5: Production Ready (Priority 5)
+
 - [ ] Docker deployment
 - [ ] Performance optimization
 - [ ] Rate limiting
@@ -385,6 +411,7 @@ peace-script-basic-v1/
 - [ ] Documentation
 
 ### Phase 6: Advanced Features (Priority 6)
+
 - [ ] Voice quality analysis
 - [ ] Multi-speaker support
 - [ ] Voice mixing
@@ -395,6 +422,7 @@ peace-script-basic-v1/
 ## 💻 Minimum Requirements
 
 ### Development Environment
+
 ```
 CPU: 4+ cores recommended
 RAM: 8GB minimum, 16GB recommended
@@ -404,6 +432,7 @@ Python: 3.10 or higher
 ```
 
 ### Production Environment
+
 ```
 CPU: 8+ cores
 RAM: 16GB minimum, 32GB recommended
@@ -419,11 +448,13 @@ Bandwidth: 1Gbps recommended
 ### Coqui XTTS-v2
 
 **GPU Mode (NVIDIA T4):**
+
 - Voice Cloning: ~5-10 seconds
 - TTS Synthesis: ~2-3 seconds per sentence
 - Batch Processing: ~1 second per sentence
 
 **CPU Mode:**
+
 - Voice Cloning: ~30-60 seconds
 - TTS Synthesis: ~10-15 seconds per sentence
 - Batch Processing: ~5-8 seconds per sentence
@@ -435,6 +466,7 @@ Bandwidth: 1Gbps recommended
 ### Self-Hosted (Coqui TTS)
 
 **One-time Costs:**
+
 ```
 Development Time: ~40-60 hours
 Server Setup: ~5 hours
@@ -442,6 +474,7 @@ Total: ~$0 (using existing infrastructure)
 ```
 
 **Monthly Costs:**
+
 ```
 GPU Server (Railway/Render):
 - Hobby: ~$20-30/month (CPU only, slower)
@@ -454,6 +487,7 @@ Total: $25-110/month (depends on GPU usage)
 ```
 
 **Cost per Generation:**
+
 ```
 Essentially FREE (unlimited usage)
 Only server costs (fixed monthly fee)
@@ -462,6 +496,7 @@ Only server costs (fixed monthly fee)
 ### Cloud API (ElevenLabs)
 
 **Monthly Costs:**
+
 ```
 Creator Plan: $22/month (100,000 characters)
 Voice Cloning: $5 per voice
@@ -469,6 +504,7 @@ Total: ~$27-50/month
 ```
 
 **Cost per Generation:**
+
 ```
 ~$0.0002 per character
 Average sentence (50 chars): ~$0.01
@@ -479,18 +515,21 @@ Average sentence (50 chars): ~$0.01
 ## 🎯 Success Metrics
 
 ### Quality Metrics
+
 - [ ] Voice similarity > 85%
 - [ ] Naturalness score > 4/5
 - [ ] Thai pronunciation accuracy > 90%
 - [ ] Audio quality: 22kHz+ sample rate
 
 ### Performance Metrics
+
 - [ ] Voice cloning < 30 seconds (CPU)
 - [ ] TTS synthesis < 5 seconds per sentence (CPU)
 - [ ] API response time < 10 seconds
 - [ ] System uptime > 99%
 
 ### User Experience
+
 - [ ] Voice upload success rate > 95%
 - [ ] Clear error messages
 - [ ] Intuitive UI
@@ -501,6 +540,7 @@ Average sentence (50 chars): ~$0.01
 ## 🔒 Security & Privacy
 
 ### Data Protection
+
 - ✅ Voice samples encrypted at rest
 - ✅ HTTPS for all API calls
 - ✅ User authentication required
@@ -508,6 +548,7 @@ Average sentence (50 chars): ~$0.01
 - ✅ Automatic cleanup of old files
 
 ### Privacy Considerations
+
 - ✅ No cloud uploads (self-hosted)
 - ✅ Users own their voice data
 - ✅ Can delete voice samples anytime
@@ -518,12 +559,14 @@ Average sentence (50 chars): ~$0.01
 ## 📚 Resources & Documentation
 
 ### Coqui TTS
+
 - GitHub: https://github.com/coqui-ai/TTS
 - Docs: https://docs.coqui.ai/
 - Models: https://huggingface.co/coqui
 - XTTS-v2: https://github.com/coqui-ai/TTS#-xtts-v2
 
 ### Alternatives
+
 - ElevenLabs: https://elevenlabs.io/docs
 - StyleTTS 2: https://github.com/yl4579/StyleTTS2
 - Bark: https://github.com/suno-ai/bark

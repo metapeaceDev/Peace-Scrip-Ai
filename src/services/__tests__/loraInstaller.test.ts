@@ -269,9 +269,7 @@ describe('loraInstaller', () => {
         body: null, // No reader
       });
 
-      await expect(downloadLoRAModel(testModel)).rejects.toThrow(
-        'Unable to read download stream'
-      );
+      await expect(downloadLoRAModel(testModel)).rejects.toThrow('Unable to read download stream');
     });
 
     it('should throw error when upload to ComfyUI fails', async () => {

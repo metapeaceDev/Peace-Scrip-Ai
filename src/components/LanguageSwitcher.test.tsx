@@ -53,20 +53,20 @@ describe('LanguageSwitcher', () => {
     it('should toggle to English when clicking Thai compact button', () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<LanguageSwitcher compact={true} />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('en');
     });
 
     it('should toggle to Thai when clicking English compact button', () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       render(<LanguageSwitcher compact={true} />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('th');
     });
 
@@ -111,9 +111,9 @@ describe('LanguageSwitcher', () => {
     it('should select English when changed', () => {
       render(<LanguageSwitcher />);
       const select = screen.getByRole('combobox');
-      
+
       fireEvent.change(select, { target: { value: 'en' } });
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('en');
     });
 
@@ -121,9 +121,9 @@ describe('LanguageSwitcher', () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       render(<LanguageSwitcher />);
       const select = screen.getByRole('combobox');
-      
+
       fireEvent.change(select, { target: { value: 'th' } });
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('th');
     });
 
@@ -164,14 +164,14 @@ describe('LanguageSwitcher', () => {
     it('should update language when languageChanged event fires', async () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<LanguageSwitcher compact={true} />);
-      
+
       expect(screen.getByText('TH')).toBeInTheDocument();
-      
+
       // Simulate language change event
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       const event = new CustomEvent('languageChanged', { detail: 'en' });
       window.dispatchEvent(event);
-      
+
       await waitFor(() => {
         expect(screen.getByText('EN')).toBeInTheDocument();
       });
@@ -180,15 +180,15 @@ describe('LanguageSwitcher', () => {
     it('should update dropdown value when language changed externally', async () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<LanguageSwitcher />);
-      
+
       const select = screen.getByRole('combobox') as HTMLSelectElement;
       expect(select.value).toBe('th');
-      
+
       // Simulate external language change
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       const event = new CustomEvent('languageChanged', { detail: 'en' });
       window.dispatchEvent(event);
-      
+
       await waitFor(() => {
         expect(select.value).toBe('en');
       });
@@ -197,9 +197,9 @@ describe('LanguageSwitcher', () => {
     it('should cleanup event listener on unmount', () => {
       const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
       const { unmount } = render(<LanguageSwitcher />);
-      
+
       unmount();
-      
+
       expect(removeEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
       removeEventListenerSpy.mockRestore();
     });
@@ -207,7 +207,7 @@ describe('LanguageSwitcher', () => {
     it('should add event listener on mount', () => {
       const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
       render(<LanguageSwitcher />);
-      
+
       expect(addEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
       addEventListenerSpy.mockRestore();
     });
@@ -217,20 +217,20 @@ describe('LanguageSwitcher', () => {
     it('should call setLanguage and update state when compact button clicked', async () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<LanguageSwitcher compact={true} />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('en');
     });
 
     it('should call setLanguage and update state when dropdown changed', async () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<LanguageSwitcher />);
-      
+
       const select = screen.getByRole('combobox');
       fireEvent.change(select, { target: { value: 'en' } });
-      
+
       expect(i18n.setLanguage).toHaveBeenCalledWith('en');
     });
 
@@ -268,20 +268,20 @@ describe('useTranslation Hook', () => {
     it('should return current language', () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<TestComponent />);
-      
+
       expect(screen.getByTestId('language')).toHaveTextContent('th');
     });
 
     it('should return English language', () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       render(<TestComponent />);
-      
+
       expect(screen.getByTestId('language')).toHaveTextContent('en');
     });
 
     it('should return translation function', () => {
       render(<TestComponent />);
-      
+
       expect(screen.getByTestId('translation')).toHaveTextContent('translated_test.key');
       expect(i18n.t).toHaveBeenCalledWith('test.key');
     });
@@ -289,14 +289,14 @@ describe('useTranslation Hook', () => {
     it('should update when language changes', async () => {
       (i18n.getCurrentLanguage as any).mockReturnValue('th');
       render(<TestComponent />);
-      
+
       expect(screen.getByTestId('language')).toHaveTextContent('th');
-      
+
       // Change language
       (i18n.getCurrentLanguage as any).mockReturnValue('en');
       const event = new CustomEvent('languageChanged', { detail: 'en' });
       window.dispatchEvent(event);
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('language')).toHaveTextContent('en');
       });
@@ -305,9 +305,9 @@ describe('useTranslation Hook', () => {
     it('should cleanup event listener on unmount', () => {
       const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
       const { unmount } = render(<TestComponent />);
-      
+
       unmount();
-      
+
       expect(removeEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
       removeEventListenerSpy.mockRestore();
     });
@@ -315,7 +315,7 @@ describe('useTranslation Hook', () => {
     it('should add event listener on mount', () => {
       const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
       render(<TestComponent />);
-      
+
       expect(addEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
       addEventListenerSpy.mockRestore();
     });

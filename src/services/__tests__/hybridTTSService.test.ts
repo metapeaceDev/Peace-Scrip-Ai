@@ -30,7 +30,7 @@ describe('hybridTTSService - Type Exports', () => {
       preferredProvider: 'psychology',
       fallbackEnabled: true,
     } as any;
-    
+
     expect(options.text).toBe('สวัสดี');
     expect(options.preferredProvider).toBe('psychology');
   });
@@ -44,7 +44,7 @@ describe('hybridTTSService - Type Exports', () => {
       costSavings: 5,
       psychologyAvailability: 90.9,
     } as any;
-    
+
     expect(stats.totalRequests).toBe(110);
     expect(stats.costSavings).toBe(5);
   });
@@ -88,7 +88,7 @@ describe('hybridTTSService - Stats Tracking', () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
     const stats = service.getStats();
-    
+
     expect(stats.totalRequests).toBe(0);
     expect(stats.psychologyRequests).toBe(0);
     expect(stats.azureRequests).toBe(0);
@@ -98,7 +98,7 @@ describe('hybridTTSService - Stats Tracking', () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
     const stats = service.getStats();
-    
+
     expect(stats.psychologyAvailability).toBeGreaterThanOrEqual(0);
     expect(stats.psychologyAvailability).toBeLessThanOrEqual(100);
   });
@@ -107,7 +107,7 @@ describe('hybridTTSService - Stats Tracking', () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
     const stats = service.getStats();
-    
+
     expect(stats.costSavings).toBeGreaterThanOrEqual(0);
   });
 });
@@ -116,36 +116,36 @@ describe('hybridTTSService - Provider Selection', () => {
   it('should accept psychology as preferred provider', async () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
-    
+
     const options = {
       text: 'สวัสดี',
       preferredProvider: 'psychology' as const,
     };
-    
+
     expect(options.preferredProvider).toBe('psychology');
   });
 
   it('should accept azure as preferred provider', async () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
-    
+
     const options = {
       text: 'Hello',
       preferredProvider: 'azure' as const,
     };
-    
+
     expect(options.preferredProvider).toBe('azure');
   });
 
   it('should enable fallback by default', async () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
-    
+
     const options = {
       text: 'Test',
       fallbackEnabled: undefined, // Default should be true
     };
-    
+
     expect(options.fallbackEnabled).toBeUndefined(); // Service handles default
   });
 });
@@ -220,11 +220,11 @@ describe('hybridTTSService - Cost Savings Calculation', () => {
   it('should calculate savings based on psychology usage', async () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
-    
+
     // costSavings = psychologyRequests * AZURE_COST_PER_REQUEST
     const stats = service.getStats();
     const expectedSavings = stats.psychologyRequests * 0.5;
-    
+
     expect(stats.costSavings).toBe(expectedSavings);
   });
 
@@ -232,7 +232,7 @@ describe('hybridTTSService - Cost Savings Calculation', () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
     service.resetStats();
-    
+
     const stats = service.getStats();
     expect(stats.costSavings).toBe(0);
   });
@@ -242,9 +242,9 @@ describe('hybridTTSService - Availability Calculation', () => {
   it('should calculate availability percentage', async () => {
     const { HybridTTSService } = await import('../hybridTTSService');
     const service = new HybridTTSService();
-    
+
     const stats = service.getStats();
-    
+
     if (stats.totalRequests > 0) {
       const expectedAvailability = (stats.psychologyRequests / stats.totalRequests) * 100;
       expect(stats.psychologyAvailability).toBeCloseTo(expectedAvailability, 1);

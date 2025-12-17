@@ -1,11 +1,11 @@
 /**
  * ComfyUI Model Selector Service
- * 
+ *
  * Automatically selects the optimal AI model based on:
  * - User preference (speed/balanced/quality/best)
  * - Available VRAM
  * - Hardware capabilities
- * 
+ *
  * Part of Cost Optimization initiative
  */
 
@@ -33,7 +33,7 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
     cost: 0,
     description: 'Ultra-fast generation for quick previews and iteration',
   },
-  
+
   BALANCED: {
     checkpoint: 'sd_xl_base_1.0.safetensors',
     steps: 20,
@@ -45,7 +45,7 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
     cost: 0,
     description: 'Good balance between speed and quality',
   },
-  
+
   QUALITY: {
     checkpoint: 'flux1-schnell.safetensors',
     steps: 8,
@@ -57,7 +57,7 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
     cost: 0,
     description: 'Excellent quality with reasonable speed (FLUX schnell)',
   },
-  
+
   BEST: {
     checkpoint: 'flux1-dev.safetensors',
     steps: 28,
@@ -87,7 +87,7 @@ export async function detectAvailableVRAM(): Promise<number> {
     if (response.ok) {
       const data = await response.json();
       const vramGB = data.vram_total_gb || data.vram_gb || data.memory_gb;
-      
+
       if (typeof vramGB === 'number' && vramGB > 0) {
         console.log(`🎮 Detected GPU VRAM: ${vramGB}GB`);
         return vramGB;
@@ -111,16 +111,16 @@ export async function detectAvailableVRAM(): Promise<number> {
       // WebGPU not supported or failed
     }
   }
-  
+
   // Fallback: Heuristic based on platform
   const userAgent = navigator.userAgent.toLowerCase();
-  
+
   if (userAgent.includes('mac')) {
     // Mac typically has 8-16GB unified memory
     // M1/M2/M3 Macs: 8GB (base), 16GB (common), 24GB+ (high-end)
     return 16;
   }
-  
+
   // Default to 8GB (most modern GPUs have at least this)
   return 8;
 }
@@ -134,12 +134,12 @@ export function selectOptimalModel(
 ): ModelProfile {
   const vram = availableVRAM || 8; // Default 8GB
   const preferredProfile = MODEL_PROFILES[userPreference.toUpperCase()];
-  
+
   // If enough VRAM, return preferred model
   if (preferredProfile.vramRequired <= vram) {
     return preferredProfile;
   }
-  
+
   // Downgrade to model that fits in VRAM
   if (vram >= 12) return MODEL_PROFILES.QUALITY;
   if (vram >= 8) return MODEL_PROFILES.BALANCED;
@@ -150,9 +150,7 @@ export function selectOptimalModel(
  * Get all available models that fit in VRAM
  */
 export function getAvailableModels(availableVRAM: number): ModelProfile[] {
-  return Object.values(MODEL_PROFILES).filter(
-    (profile) => profile.vramRequired <= availableVRAM
-  );
+  return Object.values(MODEL_PROFILES).filter(profile => profile.vramRequired <= availableVRAM);
 }
 
 /**
@@ -168,10 +166,10 @@ export function calculateCostSavings(
   savingsPercent: number;
 } {
   const opensourceCost = generationsCount * modelProfile.cost; // ฿0
-  const cloudCost = generationsCount * 1.40; // Gemini Imagen ฿1.40 per image
+  const cloudCost = generationsCount * 1.4; // Gemini Imagen ฿1.40 per image
   const savings = cloudCost - opensourceCost;
   const savingsPercent = (savings / cloudCost) * 100;
-  
+
   return {
     opensourceCost,
     cloudCost,
@@ -185,19 +183,27 @@ export function calculateCostSavings(
  */
 export function getRecommendedModel(useCase: string): ModelProfile {
   const useCaseLower = useCase.toLowerCase();
-  
-  if (useCaseLower.includes('quick') || useCaseLower.includes('preview') || useCaseLower.includes('sketch')) {
+
+  if (
+    useCaseLower.includes('quick') ||
+    useCaseLower.includes('preview') ||
+    useCaseLower.includes('sketch')
+  ) {
     return MODEL_PROFILES.SPEED;
   }
-  
-  if (useCaseLower.includes('final') || useCaseLower.includes('production') || useCaseLower.includes('client')) {
+
+  if (
+    useCaseLower.includes('final') ||
+    useCaseLower.includes('production') ||
+    useCaseLower.includes('client')
+  ) {
     return MODEL_PROFILES.BEST;
   }
-  
+
   if (useCaseLower.includes('storyboard') || useCaseLower.includes('scene')) {
     return MODEL_PROFILES.QUALITY;
   }
-  
+
   // Default to balanced
   return MODEL_PROFILES.BALANCED;
 }
@@ -232,24 +238,24 @@ export async function checkModelAvailability(checkpoint: string): Promise<boolea
     if (response.ok) {
       const data = await response.json();
       const isAvailable = data.available || data.exists || false;
-      
+
       if (!isAvailable) {
         console.log(`⚠️ Model not found: ${checkpoint}`);
       }
-      
+
       return isAvailable;
     }
   } catch (error) {
     // Backend not available or doesn't support model check
     console.log(`ℹ️ Could not verify model availability for: ${checkpoint}`);
   }
-  
+
   // Fallback: Assume models in MODEL_PROFILES are available
   // This prevents blocking the UI when backend is offline
   const isInProfiles = Object.values(MODEL_PROFILES).some(
     profile => profile.checkpoint === checkpoint
   );
-  
+
   return isInProfiles;
 }
 
@@ -265,7 +271,7 @@ Download SDXL Turbo:
 Or manually:
   https://huggingface.co/stabilityai/sdxl-turbo
     `,
-    
+
     'flux1-schnell.safetensors': `
 Download FLUX.1-schnell:
   bash scripts/download-flux-schnell.sh
@@ -273,20 +279,20 @@ Download FLUX.1-schnell:
 Or manually:
   https://huggingface.co/black-forest-labs/FLUX.1-schnell
     `,
-    
+
     'flux1-dev.safetensors': `
 Download FLUX.1-dev:
   https://huggingface.co/black-forest-labs/FLUX.1-dev
   Save to: ComfyUI/models/checkpoints/
     `,
-    
+
     'sd_xl_base_1.0.safetensors': `
 Download SDXL Base:
   https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
   Save to: ComfyUI/models/checkpoints/
     `,
   };
-  
+
   return instructions[checkpoint] || 'Model download instructions not found';
 }
 

@@ -91,9 +91,7 @@ describe('psychologyEvolution - Core Functions', () => {
           description: 'พระเอก walks into room',
           emotion: 'neutral',
           characterThoughts: 'พระเอก thinks',
-          dialogue: [
-            { character: 'พระเอก', dialogue: 'สวัสดี', emotion: 'neutral' },
-          ],
+          dialogue: [{ character: 'พระเอก', dialogue: 'สวัสดี', emotion: 'neutral' }],
         },
       ],
       visualElements: [],
@@ -161,7 +159,7 @@ describe('psychologyEvolution - Core Functions', () => {
       const result = actionsToSensoryInput(actions);
 
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some((i) => i.type === 'pleasant')).toBe(true);
+      expect(result.some(i => i.type === 'pleasant')).toBe(true);
     });
 
     it('should convert unpleasant กาย actions', () => {
@@ -173,7 +171,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
       const result = actionsToSensoryInput(actions);
 
-      expect(result.some((i) => i.type === 'unpleasant')).toBe(true);
+      expect(result.some(i => i.type === 'unpleasant')).toBe(true);
     });
 
     it('should convert วาจา to ear sense door', () => {
@@ -185,7 +183,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
       const result = actionsToSensoryInput(actions);
 
-      expect(result.some((i) => i.senseDoor === 'ear')).toBe(true);
+      expect(result.some(i => i.senseDoor === 'ear')).toBe(true);
     });
 
     it('should convert ใจ to mind sense door', () => {
@@ -197,7 +195,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
       const result = actionsToSensoryInput(actions);
 
-      expect(result.some((i) => i.senseDoor === 'mind')).toBe(true);
+      expect(result.some(i => i.senseDoor === 'mind')).toBe(true);
     });
 
     it('should handle empty actions', () => {
@@ -210,12 +208,12 @@ describe('psychologyEvolution - Core Functions', () => {
   describe('calculateMentalBalance', () => {
     it('should calculate balance from consciousness and defilement', () => {
       const consciousness = {
-        'Mindfulness': 70,
-        'Wisdom': 60,
+        Mindfulness: 70,
+        Wisdom: 60,
       };
       const defilement = {
-        'Greed': 30,
-        'Hatred': 20,
+        Greed: 30,
+        Hatred: 20,
       };
 
       const result = calculateMentalBalance(consciousness, defilement);
@@ -225,11 +223,11 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should return positive for high consciousness', () => {
       const consciousness = {
-        'Mindfulness': 90,
-        'Wisdom': 90,
+        Mindfulness: 90,
+        Wisdom: 90,
       };
       const defilement = {
-        'Greed': 10,
+        Greed: 10,
       };
 
       const result = calculateMentalBalance(consciousness, defilement);
@@ -239,11 +237,11 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should return negative for high defilement', () => {
       const consciousness = {
-        'Mindfulness': 10,
+        Mindfulness: 10,
       };
       const defilement = {
-        'Greed': 90,
-        'Hatred': 90,
+        Greed: 90,
+        Hatred: 90,
       };
 
       const result = calculateMentalBalance(consciousness, defilement);
@@ -336,7 +334,7 @@ describe('psychologyEvolution - Core Functions', () => {
   describe('updatePsychologyTimeline', () => {
     it('should return timeline and updated character', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.timeline).toBeDefined();
@@ -345,7 +343,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should add snapshot to timeline', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.timeline.snapshots.length).toBe(2); // Initial + new
@@ -353,7 +351,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should preserve character identity', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.timeline.characterName).toBe('พระเอก');
@@ -362,26 +360,31 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should add changes to timeline', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.timeline.changes.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should handle multiple updates', () => {
-      let timeline = initializePsychologyTimeline(mockCharacter);
-      
+      const timeline = initializePsychologyTimeline(mockCharacter);
+
       const first = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
-      
+
       const scene2 = { ...mockScene, sceneId: 'scene-2', sceneNumber: 2 };
-      const second = updatePsychologyTimeline(first.timeline, first.updatedCharacter, scene2, 'plot-2');
+      const second = updatePsychologyTimeline(
+        first.timeline,
+        first.updatedCharacter,
+        scene2,
+        'plot-2'
+      );
 
       expect(second.timeline.snapshots.length).toBe(3); // Initial + 2 updates
     });
 
     it('should include summary statistics', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.timeline.summary).toBeDefined();
@@ -391,7 +394,7 @@ describe('psychologyEvolution - Core Functions', () => {
 
     it('should update character with changes', () => {
       const timeline = initializePsychologyTimeline(mockCharacter);
-      
+
       const result = updatePsychologyTimeline(timeline, mockCharacter, mockScene, 'plot-1');
 
       expect(result.updatedCharacter.id).toBe(mockCharacter.id);

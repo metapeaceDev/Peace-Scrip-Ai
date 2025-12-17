@@ -55,7 +55,7 @@ describe('ollamaService', () => {
     });
 
     it('should have required fields for all models', () => {
-      Object.values(OLLAMA_MODELS).forEach((model) => {
+      Object.values(OLLAMA_MODELS).forEach(model => {
         expect(model.name).toBeDefined();
         expect(model.size).toBeDefined();
         expect(model.speedTier).toBeDefined();
@@ -120,11 +120,7 @@ describe('ollamaService', () => {
       (global.fetch as any).mockResolvedValue({
         ok: true,
         json: async () => ({
-          models: [
-            { name: 'llama3.2:3b' },
-            { name: 'qwen2.5:7b' },
-            { name: 'deepseek-r1:7b' },
-          ],
+          models: [{ name: 'llama3.2:3b' }, { name: 'qwen2.5:7b' }, { name: 'deepseek-r1:7b' }],
         }),
       });
 
@@ -393,7 +389,7 @@ describe('ollamaService', () => {
     it('should always show 100% savings with Ollama', () => {
       const projects = [1, 5, 10, 50, 100, 1000];
 
-      projects.forEach((count) => {
+      projects.forEach(count => {
         const result = calculateTextGenerationSavings(count);
         expect(result.savingsPercent).toBe(100);
         expect(result.ollamaCost).toBe(0);
@@ -497,7 +493,7 @@ describe('ollamaService', () => {
     it('should handle different genres', () => {
       const genres = ['Action', 'Drama', 'Comedy', 'Thriller', 'Romance'];
 
-      genres.forEach((genre) => {
+      genres.forEach(genre => {
         const prompt = buildScriptPrompt(genre, 3, 5);
         expect(prompt).toContain(`Genre: ${genre}`);
       });
@@ -521,7 +517,8 @@ describe('ollamaService', () => {
       ];
 
       const mockReader = {
-        read: vi.fn()
+        read: vi
+          .fn()
           .mockResolvedValueOnce({
             done: false,
             value: new TextEncoder().encode(JSON.stringify(mockChunks[0]) + '\n'),
@@ -601,7 +598,8 @@ describe('ollamaService', () => {
 
     it('should skip invalid JSON lines', async () => {
       const mockReader = {
-        read: vi.fn()
+        read: vi
+          .fn()
           .mockResolvedValueOnce({
             done: false,
             value: new TextEncoder().encode('{"response": "Valid"}\n'),
@@ -640,7 +638,8 @@ describe('ollamaService', () => {
 
     it('should release lock on early termination', async () => {
       const mockReader = {
-        read: vi.fn()
+        read: vi
+          .fn()
           .mockResolvedValueOnce({
             done: false,
             value: new TextEncoder().encode('{"response": "First"}\n'),

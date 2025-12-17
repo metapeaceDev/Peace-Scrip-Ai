@@ -15,14 +15,14 @@ vi.mock('../services/psychologyCalculator', () => ({
     emotionalTendency: 'Generally calm and centered',
     strongestVirtue: 'Metta (Loving kindness)',
     strongestDefilement: 'Moha (Delusion)',
-    personalityDescription: 'A balanced individual with strong compassion and occasional confusion'
+    personalityDescription: 'A balanced individual with strong compassion and occasional confusion',
   })),
   analyzeParamiPortfolio: vi.fn(() => ({
     totalParamiStrength: 120,
     strongestParami: {
       name: 'dana',
       level: 8,
-      effectiveLevel: 10.5
+      effectiveLevel: 10.5,
     },
     overallSynergyBonus: 15,
     synergyAnalysis: [
@@ -31,13 +31,13 @@ vi.mock('../services/psychologyCalculator', () => ({
       { parami: 'nekkhamma', baseLevel: 6, synergyBonus: 1.0, effectiveLevel: 7.0 },
       { parami: 'panna', baseLevel: 9, synergyBonus: 3.0, effectiveLevel: 12.0 },
       { parami: 'viriya', baseLevel: 5, synergyBonus: 0.5, effectiveLevel: 5.5 },
-      { parami: 'khanti', baseLevel: 4, synergyBonus: 0, effectiveLevel: 4.0 }
-    ]
-  }))
+      { parami: 'khanti', baseLevel: 4, synergyBonus: 0, effectiveLevel: 4.0 },
+    ],
+  })),
 }));
 
 vi.mock('../config/featureFlags', () => ({
-  isFeatureEnabled: vi.fn((flag: string) => flag === 'PARAMI_SYNERGY_MATRIX')
+  isFeatureEnabled: vi.fn((flag: string) => flag === 'PARAMI_SYNERGY_MATRIX'),
 }));
 
 describe('PsychologyDisplay', () => {
@@ -51,14 +51,14 @@ describe('PsychologyDisplay', () => {
     fashion: {},
     internal: {
       consciousness: {
-        'Metta (Loving kindness)': 85
+        'Metta (Loving kindness)': 85,
       },
       defilement: {
-        'Moha (Delusion)': 30
+        'Moha (Delusion)': 30,
       },
-      subconscious: {}
+      subconscious: {},
     },
-    goals: {}
+    goals: {},
   };
 
   beforeEach(() => {
@@ -293,7 +293,7 @@ describe('PsychologyDisplay', () => {
     it('should handle character without internal data', () => {
       const minimalCharacter = {
         ...mockCharacter,
-        internal: {}
+        internal: {},
       };
 
       expect(() => render(<PsychologyDisplay character={minimalCharacter} />)).not.toThrow();
@@ -305,11 +305,11 @@ describe('PsychologyDisplay', () => {
 
     it('should handle re-renders', () => {
       const { rerender } = render(<PsychologyDisplay character={mockCharacter} />);
-      
+
       expect(screen.getByText(/Psychological Analysis/)).toBeInTheDocument();
-      
+
       rerender(<PsychologyDisplay character={mockCharacter} compact={true} />);
-      
+
       expect(screen.getByText(/Psychology Profile/)).toBeInTheDocument();
     });
 
@@ -331,7 +331,9 @@ describe('PsychologyDisplay', () => {
 
     it('should have readable text colors', () => {
       const { container } = render(<PsychologyDisplay character={mockCharacter} />);
-      const textElements = container.querySelectorAll('.text-cyan-400, .text-green-400, .text-red-400');
+      const textElements = container.querySelectorAll(
+        '.text-cyan-400, .text-green-400, .text-red-400'
+      );
       expect(textElements.length).toBeGreaterThan(0);
     });
   });
@@ -357,7 +359,9 @@ describe('PsychologyDisplay', () => {
 
     it('should use uppercase tracking for labels', () => {
       const { container } = render(<PsychologyDisplay character={mockCharacter} />);
-      const labels = container.querySelectorAll('.uppercase.tracking-wide, .uppercase.tracking-wider');
+      const labels = container.querySelectorAll(
+        '.uppercase.tracking-wide, .uppercase.tracking-wider'
+      );
       expect(labels.length).toBeGreaterThan(0);
     });
   });

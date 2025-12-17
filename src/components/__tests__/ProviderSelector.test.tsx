@@ -40,7 +40,7 @@ vi.mock('../../services/comfyuiModelSelector', () => ({
       description: 'Best quality model',
     },
   },
-  selectOptimalModel: vi.fn((preference) => {
+  selectOptimalModel: vi.fn(preference => {
     const models: any = {
       speed: {
         checkpoint: 'FLUX.1-schnell',

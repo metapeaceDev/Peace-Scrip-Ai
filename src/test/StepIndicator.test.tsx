@@ -31,7 +31,7 @@ describe('StepIndicator', () => {
 
   it('highlights current step', () => {
     render(<StepIndicator currentStep={3} totalSteps={5} onStepClick={() => {}} />);
-    
+
     const step3 = screen.getByText('ตัวละคร').closest('li');
     expect(step3?.querySelector('.bg-cyan-500')).toBeInTheDocument();
   });

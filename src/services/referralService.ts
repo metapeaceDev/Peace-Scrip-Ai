@@ -214,7 +214,9 @@ async function awardReferralCredits(rewards: ReferralReward): Promise<void> {
       'referral.totalEarned': increment(rewards.referrer.credits),
     });
 
-    console.log(`💰 Awarded ${rewards.referrer.credits} credits to referrer ${rewards.referrer.userId}`);
+    console.log(
+      `💰 Awarded ${rewards.referrer.credits} credits to referrer ${rewards.referrer.userId}`
+    );
 
     // Award bonus credits to referee (new user)
     const refereeRef = doc(db, 'users', rewards.referee.userId);
@@ -226,7 +228,9 @@ async function awardReferralCredits(rewards: ReferralReward): Promise<void> {
       'referral.bonusReceived': rewards.referee.credits,
     });
 
-    console.log(`🎁 Awarded ${rewards.referee.credits} bonus credits to referee ${rewards.referee.userId}`);
+    console.log(
+      `🎁 Awarded ${rewards.referee.credits} bonus credits to referee ${rewards.referee.userId}`
+    );
   } catch (error) {
     console.error('Error awarding credits in Firestore:', error);
     throw error;
@@ -359,11 +363,10 @@ export function createCustomReferralCode(
  */
 export function generateReferralLink(code: string, channel?: 'copy' | 'social' | 'email'): string {
   // Use environment variable for production URL, fallback to localhost in dev
-  const baseUrl = import.meta.env.VITE_APP_URL || 
-                  (import.meta.env.PROD 
-                    ? 'https://peace-script-ai.web.app' 
-                    : 'http://localhost:5173');
-  
+  const baseUrl =
+    import.meta.env.VITE_APP_URL ||
+    (import.meta.env.PROD ? 'https://peace-script-ai.web.app' : 'http://localhost:5173');
+
   const referralUrl = `${baseUrl}/signup?ref=${code.toUpperCase()}`;
 
   switch (channel) {

@@ -44,7 +44,7 @@ describe('teamCollaborationService', () => {
   describe('Owner Role', () => {
     it('should have all permissions enabled', () => {
       const owner = ROLE_PERMISSIONS.owner;
-      
+
       expect(owner.canEdit).toBe(true);
       expect(owner.canDelete).toBe(true);
       expect(owner.canInvite).toBe(true);
@@ -57,7 +57,7 @@ describe('teamCollaborationService', () => {
     it('should be the most privileged role', () => {
       const ownerPerms = Object.values(ROLE_PERMISSIONS.owner);
       const allTrue = ownerPerms.every(perm => perm === true);
-      
+
       expect(allTrue).toBe(true);
     });
   });
@@ -65,7 +65,7 @@ describe('teamCollaborationService', () => {
   describe('Admin Role', () => {
     it('should have all permissions enabled', () => {
       const admin = ROLE_PERMISSIONS.admin;
-      
+
       expect(admin.canEdit).toBe(true);
       expect(admin.canDelete).toBe(true);
       expect(admin.canInvite).toBe(true);
@@ -83,7 +83,7 @@ describe('teamCollaborationService', () => {
   describe('Editor Role', () => {
     it('should allow editing and exporting', () => {
       const editor = ROLE_PERMISSIONS.editor;
-      
+
       expect(editor.canEdit).toBe(true);
       expect(editor.canExport).toBe(true);
       expect(editor.canViewAnalytics).toBe(true);
@@ -91,7 +91,7 @@ describe('teamCollaborationService', () => {
 
     it('should not allow management permissions', () => {
       const editor = ROLE_PERMISSIONS.editor;
-      
+
       expect(editor.canDelete).toBe(false);
       expect(editor.canInvite).toBe(false);
       expect(editor.canManageTeam).toBe(false);
@@ -101,7 +101,7 @@ describe('teamCollaborationService', () => {
     it('should be less privileged than admin', () => {
       const editorPerms = Object.values(ROLE_PERMISSIONS.editor).filter(p => p === true).length;
       const adminPerms = Object.values(ROLE_PERMISSIONS.admin).filter(p => p === true).length;
-      
+
       expect(editorPerms).toBeLessThan(adminPerms);
     });
   });
@@ -109,7 +109,7 @@ describe('teamCollaborationService', () => {
   describe('Viewer Role', () => {
     it('should have all permissions disabled', () => {
       const viewer = ROLE_PERMISSIONS.viewer;
-      
+
       expect(viewer.canEdit).toBe(false);
       expect(viewer.canDelete).toBe(false);
       expect(viewer.canInvite).toBe(false);
@@ -122,13 +122,13 @@ describe('teamCollaborationService', () => {
     it('should be the least privileged role', () => {
       const viewerPerms = Object.values(ROLE_PERMISSIONS.viewer);
       const allFalse = viewerPerms.every(perm => perm === false);
-      
+
       expect(allFalse).toBe(true);
     });
 
     it('should be read-only', () => {
       const viewer = ROLE_PERMISSIONS.viewer;
-      
+
       expect(viewer.canEdit).toBe(false);
       expect(viewer.canDelete).toBe(false);
       expect(viewer.canManageTeam).toBe(false);
@@ -137,14 +137,14 @@ describe('teamCollaborationService', () => {
 
   describe('Permission Hierarchy', () => {
     it('should have descending privilege order: owner/admin > editor > viewer', () => {
-      const countPermissions = (perms: TeamMemberPermissions) => 
+      const countPermissions = (perms: TeamMemberPermissions) =>
         Object.values(perms).filter(p => p === true).length;
-      
+
       const ownerCount = countPermissions(ROLE_PERMISSIONS.owner);
       const adminCount = countPermissions(ROLE_PERMISSIONS.admin);
       const editorCount = countPermissions(ROLE_PERMISSIONS.editor);
       const viewerCount = countPermissions(ROLE_PERMISSIONS.viewer);
-      
+
       expect(ownerCount).toBeGreaterThanOrEqual(editorCount);
       expect(adminCount).toBeGreaterThanOrEqual(editorCount);
       expect(editorCount).toBeGreaterThan(viewerCount);
@@ -252,7 +252,7 @@ describe('teamCollaborationService', () => {
   describe('Role Comparison', () => {
     it('should have identical owner and admin permissions', () => {
       const ownerKeys = Object.keys(ROLE_PERMISSIONS.owner) as (keyof TeamMemberPermissions)[];
-      
+
       ownerKeys.forEach(key => {
         expect(ROLE_PERMISSIONS.owner[key]).toBe(ROLE_PERMISSIONS.admin[key]);
       });
@@ -260,7 +260,7 @@ describe('teamCollaborationService', () => {
 
     it('should have different permissions for each role level', () => {
       const roles: CollaboratorRole[] = ['owner', 'editor', 'viewer'];
-      
+
       for (let i = 0; i < roles.length; i++) {
         for (let j = i + 1; j < roles.length; j++) {
           expect(ROLE_PERMISSIONS[roles[i]]).not.toEqual(ROLE_PERMISSIONS[roles[j]]);
@@ -270,7 +270,7 @@ describe('teamCollaborationService', () => {
 
     it('should maintain consistent permission structure', () => {
       const ownerKeys = Object.keys(ROLE_PERMISSIONS.owner);
-      
+
       Object.values(ROLE_PERMISSIONS).forEach(permissions => {
         expect(Object.keys(permissions).sort()).toEqual(ownerKeys.sort());
       });
@@ -285,15 +285,15 @@ describe('teamCollaborationService', () => {
         viewer.canDelete,
         viewer.canInvite,
         viewer.canManageTeam,
-        viewer.canManagePayments
+        viewer.canManagePayments,
       ];
-      
+
       expect(dangerousPermissions.every(p => p === false)).toBe(true);
     });
 
     it('should prevent editors from administrative actions', () => {
       const editor = ROLE_PERMISSIONS.editor;
-      
+
       expect(editor.canDelete).toBe(false);
       expect(editor.canInvite).toBe(false);
       expect(editor.canManageTeam).toBe(false);
@@ -301,23 +301,26 @@ describe('teamCollaborationService', () => {
     });
 
     it('should allow only owners and admins to manage team', () => {
-      const canManageTeamRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[])
-        .filter(role => ROLE_PERMISSIONS[role].canManageTeam);
-      
+      const canManageTeamRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[]).filter(
+        role => ROLE_PERMISSIONS[role].canManageTeam
+      );
+
       expect(canManageTeamRoles).toEqual(['owner', 'admin']);
     });
 
     it('should allow only owners and admins to manage payments', () => {
-      const canManagePaymentsRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[])
-        .filter(role => ROLE_PERMISSIONS[role].canManagePayments);
-      
+      const canManagePaymentsRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[]).filter(
+        role => ROLE_PERMISSIONS[role].canManagePayments
+      );
+
       expect(canManagePaymentsRoles).toEqual(['owner', 'admin']);
     });
 
     it('should allow only owners and admins to delete', () => {
-      const canDeleteRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[])
-        .filter(role => ROLE_PERMISSIONS[role].canDelete);
-      
+      const canDeleteRoles = (Object.keys(ROLE_PERMISSIONS) as CollaboratorRole[]).filter(
+        role => ROLE_PERMISSIONS[role].canDelete
+      );
+
       expect(canDeleteRoles).toEqual(['owner', 'admin']);
     });
   });
@@ -340,7 +343,7 @@ describe('teamCollaborationService', () => {
 
     it('should have consistent permission names across roles', () => {
       const permissionNames = Object.keys(ROLE_PERMISSIONS.owner);
-      
+
       Object.values(ROLE_PERMISSIONS).forEach(permissions => {
         expect(Object.keys(permissions).sort()).toEqual(permissionNames.sort());
       });
@@ -350,10 +353,13 @@ describe('teamCollaborationService', () => {
   describe('Integration Tests', () => {
     it('should support role-based access control workflow', () => {
       // Simulate permission check workflow
-      const checkPermission = (role: CollaboratorRole, permission: keyof TeamMemberPermissions): boolean => {
+      const checkPermission = (
+        role: CollaboratorRole,
+        permission: keyof TeamMemberPermissions
+      ): boolean => {
         return ROLE_PERMISSIONS[role][permission];
       };
-      
+
       expect(checkPermission('owner', 'canDelete')).toBe(true);
       expect(checkPermission('editor', 'canDelete')).toBe(false);
       expect(checkPermission('viewer', 'canEdit')).toBe(false);
@@ -372,10 +378,10 @@ describe('teamCollaborationService', () => {
           .filter(([_, enabled]) => enabled)
           .map(([permission]) => permission);
       };
-      
+
       const ownerPerms = getEnabledPermissions('owner');
       const viewerPerms = getEnabledPermissions('viewer');
-      
+
       expect(ownerPerms.length).toBe(7);
       expect(viewerPerms.length).toBe(0);
     });

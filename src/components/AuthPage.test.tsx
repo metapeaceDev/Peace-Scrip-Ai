@@ -55,7 +55,7 @@ describe('AuthPage', () => {
 
       expect(screen.getByText('PEACE SCRIPT')).toBeInTheDocument();
       expect(screen.getByText('Sign in to access your cloud studio')).toBeInTheDocument();
-      
+
       const submitButton = getSubmitButton();
       expect(submitButton).toBeDefined();
       expect(submitButton?.textContent).toContain('เข้าสู่ระบบ');
@@ -142,7 +142,7 @@ describe('AuthPage', () => {
       // Fill login form
       const emailInput = screen.getByPlaceholderText('name@example.com') as HTMLInputElement;
       const passwordInput = screen.getByPlaceholderText('••••••••') as HTMLInputElement;
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
@@ -180,7 +180,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
@@ -203,7 +203,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
@@ -224,7 +224,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
@@ -243,7 +243,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
 
@@ -262,7 +262,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password' } });
 
@@ -287,7 +287,7 @@ describe('AuthPage', () => {
       const usernameInput = screen.getByPlaceholderText('Choose a username');
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(usernameInput, { target: { value: 'testuser' } });
       fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'newpassword123' } });
@@ -315,7 +315,7 @@ describe('AuthPage', () => {
       const usernameInput = screen.getByPlaceholderText('Choose a username');
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(usernameInput, { target: { value: 'testuser' } });
       fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password' } });
@@ -342,7 +342,7 @@ describe('AuthPage', () => {
       const usernameInput = screen.getByPlaceholderText('Choose a username');
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(usernameInput, { target: { value: 'testuser' } });
       fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password' } });
@@ -464,10 +464,10 @@ describe('AuthPage', () => {
 
       // Close modal
       const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find(btn => 
+      const closeButton = closeButtons.find(btn =>
         btn.querySelector('path[d*="M6 18L18 6M6 6l12 12"]')
       );
-      
+
       if (closeButton) {
         fireEvent.click(closeButton);
         expect(screen.queryByText('รีเซ็ตรหัสผ่าน')).not.toBeInTheDocument();
@@ -500,7 +500,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1]; // Second one is in modal
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'invalid-email' } });
 
       const form = modalEmailInput.closest('form');
@@ -524,7 +524,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'reset@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -546,7 +546,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'user@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -570,7 +570,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'user@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -591,7 +591,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'notfound@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -613,7 +613,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'test@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -633,21 +633,21 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'test@example.com' } });
 
       // Close modal
       const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find(btn => 
+      const closeButton = closeButtons.find(btn =>
         btn.querySelector('path[d*="M6 18L18 6M6 6l12 12"]')
       );
-      
+
       if (closeButton) {
         fireEvent.click(closeButton);
-        
+
         // Reopen modal
         fireEvent.click(screen.getByRole('button', { name: /ลืมรหัสผ่าน/i }));
-        
+
         const newEmailInputs = screen.getAllByPlaceholderText('name@example.com');
         const newModalEmailInput = newEmailInputs[1] as HTMLInputElement;
         expect(newModalEmailInput.value).toBe('');
@@ -666,7 +666,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: 'test@example.com' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -687,7 +687,7 @@ describe('AuthPage', () => {
 
       const emailInputs = screen.getAllByPlaceholderText('name@example.com');
       const modalEmailInput = emailInputs[1];
-      
+
       fireEvent.change(modalEmailInput, { target: { value: '  test@example.com  ' } });
 
       const submitButton = screen.getByRole('button', { name: /ส่งลิงก์รีเซ็ตรหัสผ่าน/i });
@@ -708,7 +708,7 @@ describe('AuthPage', () => {
       // Try login with error
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'wrong' } });
 
@@ -764,7 +764,7 @@ describe('AuthPage', () => {
 
       const emailInput = screen.getByPlaceholderText('name@example.com');
       const passwordInput = screen.getByPlaceholderText('••••••••');
-      
+
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password' } });
 

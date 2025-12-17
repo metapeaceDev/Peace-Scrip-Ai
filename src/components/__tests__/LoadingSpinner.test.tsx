@@ -69,12 +69,12 @@ describe('LoadingSpinner', () => {
     it('should have different animation delays for each dot', () => {
       const { container } = render(<LoadingSpinner />);
       const dots = container.querySelectorAll('.animate-pulse');
-      
+
       // Check that animation delay classes exist (Tailwind arbitrary values)
       const firstDot = dots[0];
       const secondDot = dots[1];
       const thirdDot = dots[2];
-      
+
       expect(firstDot.className).toContain('animation-delay');
       expect(secondDot.className).toContain('animation-delay');
       // Third dot has no delay
@@ -83,7 +83,7 @@ describe('LoadingSpinner', () => {
     it('should apply pulse animation to all dots', () => {
       const { container } = render(<LoadingSpinner />);
       const dots = container.querySelectorAll('.animate-pulse');
-      
+
       dots.forEach(dot => {
         expect(dot).toHaveClass('animate-pulse');
       });

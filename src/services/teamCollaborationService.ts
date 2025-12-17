@@ -235,13 +235,7 @@ class TeamCollaborationService {
       };
 
       // บันทึกใน projectCollaborators subcollection
-      const collaboratorRef = doc(
-        db,
-        'projects',
-        projectId,
-        'collaborators',
-        userId
-      );
+      const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
 
       await setDoc(collaboratorRef, {
         ...collaborator,
@@ -269,13 +263,7 @@ class TeamCollaborationService {
       console.log('🗑️ Removing collaborator:', userId, 'from project:', projectId);
 
       // ลบจาก collaborators subcollection
-      const collaboratorRef = doc(
-        db,
-        'projects',
-        projectId,
-        'collaborators',
-        userId
-      );
+      const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
       await deleteDoc(collaboratorRef);
 
       // ลบ projectId จาก user's sharedProjects
@@ -294,16 +282,9 @@ class TeamCollaborationService {
   /**
    * ดึงรายการ collaborators ทั้งหมดของโปรเจ็ค
    */
-  async getProjectCollaborators(
-    projectId: string
-  ): Promise<ProjectCollaborator[]> {
+  async getProjectCollaborators(projectId: string): Promise<ProjectCollaborator[]> {
     try {
-      const collaboratorsRef = collection(
-        db,
-        'projects',
-        projectId,
-        'collaborators'
-      );
+      const collaboratorsRef = collection(db, 'projects', projectId, 'collaborators');
       const snapshot = await getDocs(collaboratorsRef);
 
       const collaborators: ProjectCollaborator[] = snapshot.docs.map(doc => {
@@ -342,13 +323,7 @@ class TeamCollaborationService {
       }
 
       // ตรวจสอบว่าเป็น collaborator
-      const collaboratorRef = doc(
-        db,
-        'projects',
-        projectId,
-        'collaborators',
-        userId
-      );
+      const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
       const collaboratorDoc = await getDoc(collaboratorRef);
 
       if (collaboratorDoc.exists()) {
@@ -423,13 +398,7 @@ class TeamCollaborationService {
     newRole: CollaboratorRole
   ): Promise<void> {
     try {
-      const collaboratorRef = doc(
-        db,
-        'projects',
-        projectId,
-        'collaborators',
-        userId
-      );
+      const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
 
       await updateDoc(collaboratorRef, {
         role: newRole,
@@ -480,7 +449,7 @@ class TeamCollaborationService {
   private async sendInvitationEmail(invitation: ProjectInvitation): Promise<void> {
     try {
       const { sendEmail, createTeamInvitationEmail } = await import('./emailService');
-      
+
       // สร้าง invitation link
       const appUrl = import.meta.env.VITE_APP_URL || 'https://peace-script-ai.web.app';
       const invitationLink = `${appUrl}/invitations/${invitation.id}`;
@@ -543,7 +512,7 @@ class TeamCollaborationService {
 
       // อัพเดทใน subcollection (วิธีที่ถูกต้อง)
       const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
-      
+
       // ตรวจสอบว่า document มีอยู่จริง
       const collaboratorDoc = await getDoc(collaboratorRef);
       if (!collaboratorDoc.exists()) {
@@ -563,7 +532,7 @@ class TeamCollaborationService {
       const legacyCollaboratorId = `${projectId}_${memberEmail}`;
       const legacyCollaboratorRef = doc(db, 'collaborators', legacyCollaboratorId);
       const legacyDoc = await getDoc(legacyCollaboratorRef);
-      
+
       if (legacyDoc.exists()) {
         await updateDoc(legacyCollaboratorRef, {
           role: newRole,
@@ -619,7 +588,7 @@ class TeamCollaborationService {
     try {
       // ดึงข้อมูล collaborator
       const collaborator = await this.getCollaboratorRole(projectId, userId);
-      
+
       if (!collaborator) {
         return false; // ไม่ใช่สมาชิกของโปรเจ็ค
       }
@@ -647,11 +616,8 @@ class TeamCollaborationService {
 
       if (!collaboratorDoc.exists()) {
         // ถ้าไม่เจอ ลองค้นหาทุก collaborators ของโปรเจ็คนี้
-        const q = query(
-          collection(db, 'collaborators'),
-          where('projectId', '==', projectId)
-        );
-        
+        const q = query(collection(db, 'collaborators'), where('projectId', '==', projectId));
+
         const snapshot = await getDocs(q);
         for (const doc of snapshot.docs) {
           const data = doc.data();
@@ -724,10 +690,10 @@ class TeamCollaborationService {
     // ติดตาม real-time changes
     const unsubscribe = onSnapshot(
       q,
-      (snapshot) => {
+      snapshot => {
         const invitations: ProjectInvitation[] = [];
 
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           const data = doc.data();
           invitations.push({
             id: doc.id,
@@ -760,7 +726,7 @@ class TeamCollaborationService {
         // Callback with count and latest invitation
         callback(count, latest);
       },
-      (error) => {
+      error => {
         console.error('❌ Error in invitation subscription:', error);
       }
     );

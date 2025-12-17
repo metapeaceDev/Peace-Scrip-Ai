@@ -58,7 +58,7 @@ describe('PricingPage - Pricing Tiers', () => {
     const basicElements = screen.getAllByText('BASIC');
     const proElements = screen.getAllByText('PRO');
     const enterpriseElements = screen.getAllByText('ENTERPRISE');
-    
+
     expect(freeElements.length).toBeGreaterThanOrEqual(1);
     expect(basicElements.length).toBeGreaterThanOrEqual(1);
     expect(proElements.length).toBeGreaterThanOrEqual(1);
@@ -260,10 +260,12 @@ describe('PricingPage - CTA Buttons', () => {
   });
 
   it('should show correct button text for FREE tier', () => {
-    const { container } = render(<PricingPage onSelectTier={mockOnSelectTier} currentTier="basic" />);
+    const { container } = render(
+      <PricingPage onSelectTier={mockOnSelectTier} currentTier="basic" />
+    );
     const buttons = container.querySelectorAll('button');
-    const freeButton = Array.from(buttons).find(btn => 
-      btn.textContent?.includes('ใช้งานฟรี') || btn.textContent?.includes('แพ็กเกจปัจจุบัน')
+    const freeButton = Array.from(buttons).find(
+      btn => btn.textContent?.includes('ใช้งานฟรี') || btn.textContent?.includes('แพ็กเกจปัจจุบัน')
     );
     expect(freeButton).toBeTruthy();
   });
@@ -278,14 +280,16 @@ describe('PricingPage - CTA Buttons', () => {
   it('should show correct button text for ENTERPRISE tier', () => {
     const { container } = render(<PricingPage onSelectTier={mockOnSelectTier} />);
     const buttons = container.querySelectorAll('button');
-    const enterpriseButton = Array.from(buttons).find(btn => 
-      btn.textContent?.includes('ติดต่อฝ่ายขาย') && btn.closest('.grid')
+    const enterpriseButton = Array.from(buttons).find(
+      btn => btn.textContent?.includes('ติดต่อฝ่ายขาย') && btn.closest('.grid')
     );
     expect(enterpriseButton).toBeTruthy();
   });
 
   it('should disable button for current tier', () => {
-    const { container } = render(<PricingPage onSelectTier={mockOnSelectTier} currentTier="basic" />);
+    const { container } = render(
+      <PricingPage onSelectTier={mockOnSelectTier} currentTier="basic" />
+    );
     const currentButtons = screen.getAllByText(/แพ็กเกจปัจจุบัน/i);
     expect(currentButtons[0]).toBeDisabled();
   });
@@ -300,9 +304,7 @@ describe('PricingPage - Props Handling', () => {
   });
 
   it('should accept currentTier prop', () => {
-    const { container } = render(
-      <PricingPage onSelectTier={mockOnSelectTier} currentTier="pro" />
-    );
+    const { container } = render(<PricingPage onSelectTier={mockOnSelectTier} currentTier="pro" />);
     expect(container).toBeTruthy();
   });
 

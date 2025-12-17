@@ -13,9 +13,15 @@ const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
   };
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
@@ -94,7 +100,6 @@ describe('AuthPage - Component Rendering', () => {
   });
 });
 
-
 describe('AuthPage - Form Mode Switching', () => {
   const mockOnLoginSuccess = vi.fn();
 
@@ -154,13 +159,13 @@ describe('AuthPage - Login Flow', () => {
     vi.mocked(firebaseAuth.login).mockResolvedValue({ user: mockUser } as any);
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     const emailInput = screen.getByPlaceholderText(/name@example.com/i);
     const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-    
+
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    
+
     const submitButton = container.querySelector('button[type="submit"]');
     fireEvent.click(submitButton!);
 
@@ -176,7 +181,7 @@ describe('AuthPage - Login Flow', () => {
     vi.mocked(firebaseAuth.login).mockResolvedValue({ user: mockUser } as any);
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'save@test.com' },
     });
@@ -201,7 +206,7 @@ describe('AuthPage - Login Flow', () => {
     );
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'test@test.com' },
     });
@@ -212,19 +217,20 @@ describe('AuthPage - Login Flow', () => {
     fireEvent.click(submitButton!);
 
     // Check that button is disabled (loading state)
-    await waitFor(() => {
-      expect(submitButton).toBeDisabled();
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(submitButton).toBeDisabled();
+      },
+      { timeout: 500 }
+    );
   });
 
   it('should handle login error', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.login).mockRejectedValue(
-      new Error('Invalid email or password')
-    );
+    vi.mocked(firebaseAuth.login).mockRejectedValue(new Error('Invalid email or password'));
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'wrong@test.com' },
     });
@@ -244,7 +250,7 @@ describe('AuthPage - Login Flow', () => {
     vi.mocked(firebaseAuth.login).mockRejectedValue(new Error('Login failed'));
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'test@test.com' },
     });
@@ -263,7 +269,6 @@ describe('AuthPage - Login Flow', () => {
   });
 });
 
-
 describe('AuthPage - Registration Flow', () => {
   const mockOnLoginSuccess = vi.fn();
 
@@ -279,7 +284,7 @@ describe('AuthPage - Registration Flow', () => {
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     fireEvent.change(screen.getByPlaceholderText(/username/i), {
       target: { value: 'newuser' },
     });
@@ -292,11 +297,7 @@ describe('AuthPage - Registration Flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /สมัครสมาชิก/i }));
 
     await waitFor(() => {
-      expect(firebaseAuth.register).toHaveBeenCalledWith(
-        'new@test.com',
-        'newpass123',
-        'newuser'
-      );
+      expect(firebaseAuth.register).toHaveBeenCalledWith('new@test.com', 'newpass123', 'newuser');
     });
   });
 
@@ -306,7 +307,7 @@ describe('AuthPage - Registration Flow', () => {
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     fireEvent.change(screen.getByPlaceholderText(/username/i), {
       target: { value: 'user' },
     });
@@ -325,13 +326,11 @@ describe('AuthPage - Registration Flow', () => {
 
   it('should handle registration error', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.register).mockRejectedValue(
-      new Error('Email already exists')
-    );
+    vi.mocked(firebaseAuth.register).mockRejectedValue(new Error('Email already exists'));
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     fireEvent.change(screen.getByPlaceholderText(/username/i), {
       target: { value: 'existinguser' },
     });
@@ -382,16 +381,17 @@ describe('AuthPage - Google Login', () => {
     fireEvent.click(googleButton);
 
     // Check that Google button is disabled during loading
-    await waitFor(() => {
-      expect(googleButton.closest('button')).toBeDisabled();
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(googleButton.closest('button')).toBeDisabled();
+      },
+      { timeout: 500 }
+    );
   });
 
   it('should handle Google login error', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.loginWithGoogle).mockRejectedValue(
-      new Error('Google auth failed')
-    );
+    vi.mocked(firebaseAuth.loginWithGoogle).mockRejectedValue(new Error('Google auth failed'));
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     const googleButton = screen.getByText(/Google/i);
@@ -425,12 +425,12 @@ describe('AuthPage - Password Reset', () => {
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ลืมรหัสผ่าน/i));
-    
+
     // หา email input จาก modal ที่เปิดขึ้นมา (ตัวสุดท้าย)
     const emailInputs = screen.getAllByPlaceholderText(/name@example.com/i);
     const modalEmailInput = emailInputs[emailInputs.length - 1];
     fireEvent.change(modalEmailInput, { target: { value: 'reset@test.com' } });
-    
+
     // หาปุ่ม submit ใน modal
     const buttons = screen.getAllByRole('button');
     const resetButton = buttons.find(btn => btn.textContent?.includes('ส่งลิงก์'));
@@ -444,7 +444,7 @@ describe('AuthPage - Password Reset', () => {
   it('should validate email before reset', async () => {
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ลืมรหัสผ่าน/i));
-    
+
     const buttons = screen.getAllByRole('button');
     const resetButton = buttons.find(btn => btn.textContent?.includes('ส่งลิงก์'));
     fireEvent.click(resetButton!);
@@ -456,11 +456,11 @@ describe('AuthPage - Password Reset', () => {
   it('should validate email format', async () => {
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ลืมรหัสผ่าน/i));
-    
+
     const emailInputs = screen.getAllByPlaceholderText(/name@example.com/i);
     const modalEmailInput = emailInputs[emailInputs.length - 1];
     fireEvent.change(modalEmailInput, { target: { value: 'invalid-email' } });
-    
+
     // HTML5 email validation จะทำงาน
     expect(modalEmailInput).toHaveAttribute('type', 'email');
     expect(modalEmailInput).toBeRequired();
@@ -472,11 +472,11 @@ describe('AuthPage - Password Reset', () => {
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ลืมรหัสผ่าน/i));
-    
+
     const emailInputs = screen.getAllByPlaceholderText(/name@example.com/i);
     const modalEmailInput = emailInputs[emailInputs.length - 1];
     fireEvent.change(modalEmailInput, { target: { value: 'success@test.com' } });
-    
+
     const buttons = screen.getAllByRole('button');
     const resetButton = buttons.find(btn => btn.textContent?.includes('ส่งลิงก์'));
     fireEvent.click(resetButton!);
@@ -486,7 +486,6 @@ describe('AuthPage - Password Reset', () => {
     });
   });
 });
-
 
 describe('AuthPage - Offline Mode', () => {
   const mockOnLoginSuccess = vi.fn();
@@ -530,9 +529,7 @@ describe('AuthPage - Error Handling', () => {
 
   it('should display login errors', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.login).mockRejectedValue(
-      new Error('Invalid credentials')
-    );
+    vi.mocked(firebaseAuth.login).mockRejectedValue(new Error('Invalid credentials'));
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
@@ -551,13 +548,11 @@ describe('AuthPage - Error Handling', () => {
 
   it('should display registration errors', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.register).mockRejectedValue(
-      new Error('Email already in use')
-    );
+    vi.mocked(firebaseAuth.register).mockRejectedValue(new Error('Email already in use'));
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     fireEvent.change(screen.getByPlaceholderText(/username/i), {
       target: { value: 'test' },
     });
@@ -576,9 +571,7 @@ describe('AuthPage - Error Handling', () => {
 
   it('should display Google login errors', async () => {
     const { firebaseAuth } = await import('../../services/firebaseAuth');
-    vi.mocked(firebaseAuth.loginWithGoogle).mockRejectedValue(
-      new Error('Popup closed')
-    );
+    vi.mocked(firebaseAuth.loginWithGoogle).mockRejectedValue(new Error('Popup closed'));
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/Google/i));
@@ -627,20 +620,20 @@ describe('AuthPage - Edge Cases', () => {
   it('should handle very long email', () => {
     const longEmail = 'a'.repeat(100) + '@example.com';
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     const emailInput = screen.getByPlaceholderText(/name@example.com/i);
     fireEvent.change(emailInput, { target: { value: longEmail } });
-    
+
     expect((emailInput as HTMLInputElement).value).toBe(longEmail);
   });
 
   it('should handle special characters in email', () => {
     const specialEmail = 'test+tag@example.com';
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     const emailInput = screen.getByPlaceholderText(/name@example.com/i);
     fireEvent.change(emailInput, { target: { value: specialEmail } });
-    
+
     expect((emailInput as HTMLInputElement).value).toBe(specialEmail);
   });
 
@@ -648,10 +641,10 @@ describe('AuthPage - Edge Cases', () => {
     const unicodeUsername = 'ผู้ใช้งาน';
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     const usernameInput = screen.getByPlaceholderText(/username/i);
     fireEvent.change(usernameInput, { target: { value: unicodeUsername } });
-    
+
     expect((usernameInput as HTMLInputElement).value).toBe(unicodeUsername);
   });
 });
@@ -673,7 +666,7 @@ describe('AuthPage - UI States', () => {
     );
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'test@test.com' },
     });
@@ -683,9 +676,12 @@ describe('AuthPage - UI States', () => {
     const submitButton = container.querySelector('button[type="submit"]');
     fireEvent.click(submitButton!);
 
-    await waitFor(() => {
-      expect(submitButton).toBeDisabled();
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(submitButton).toBeDisabled();
+      },
+      { timeout: 500 }
+    );
   });
 
   it('should show loading spinner', async () => {
@@ -696,7 +692,7 @@ describe('AuthPage - UI States', () => {
     );
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'test@test.com' },
     });
@@ -707,9 +703,12 @@ describe('AuthPage - UI States', () => {
     fireEvent.click(submitButton!);
 
     // Verify button is disabled during loading
-    await waitFor(() => {
-      expect(submitButton).toBeDisabled();
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(submitButton).toBeDisabled();
+      },
+      { timeout: 500 }
+    );
   });
 });
 
@@ -727,7 +726,7 @@ describe('AuthPage - Integration', () => {
     vi.mocked(firebaseAuth.login).mockResolvedValue({ user: mockUser } as any);
 
     const { container } = render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
-    
+
     fireEvent.change(screen.getByPlaceholderText(/name@example.com/i), {
       target: { value: 'user@test.com' },
     });
@@ -751,7 +750,7 @@ describe('AuthPage - Integration', () => {
 
     render(<AuthPage onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByText(/ยังไม่มีบัญชี/i));
-    
+
     fireEvent.change(screen.getByPlaceholderText(/username/i), {
       target: { value: 'newuser' },
     });
@@ -764,11 +763,7 @@ describe('AuthPage - Integration', () => {
     fireEvent.click(screen.getByRole('button', { name: /สมัครสมาชิก/i }));
 
     await waitFor(() => {
-      expect(firebaseAuth.register).toHaveBeenCalledWith(
-        'new@test.com',
-        'password123',
-        'newuser'
-      );
+      expect(firebaseAuth.register).toHaveBeenCalledWith('new@test.com', 'password123', 'newuser');
     });
   });
 });

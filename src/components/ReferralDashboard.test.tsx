@@ -11,7 +11,7 @@ const mockCreateCustomReferralCode = vi.fn();
 vi.mock('../services/referralService', () => ({
   getUserReferralStats: (...args: any[]) => mockGetUserReferralStats(...args),
   generateReferralLink: (...args: any[]) => mockGenerateReferralLink(...args),
-  createCustomReferralCode: (...args: any[]) => mockCreateCustomReferralCode(...args)
+  createCustomReferralCode: (...args: any[]) => mockCreateCustomReferralCode(...args),
 }));
 
 describe('ReferralDashboard', () => {
@@ -19,7 +19,7 @@ describe('ReferralDashboard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Default mock implementations
     mockGetUserReferralStats.mockReturnValue({
       code: 'PEACE123',
@@ -30,14 +30,14 @@ describe('ReferralDashboard', () => {
         {
           userId: 'user12345678',
           timestamp: new Date('2024-01-15'),
-          creditsAwarded: 50
+          creditsAwarded: 50,
         },
         {
           userId: 'user87654321',
           timestamp: new Date('2024-01-10'),
-          creditsAwarded: 50
-        }
-      ]
+          creditsAwarded: 50,
+        },
+      ],
     });
 
     mockGenerateReferralLink.mockImplementation((code: string, source: string) => {
@@ -49,19 +49,19 @@ describe('ReferralDashboard', () => {
 
     mockCreateCustomReferralCode.mockReturnValue({
       success: true,
-      code: { code: 'CUSTOM2024', userId: mockUserId }
+      code: { code: 'CUSTOM2024', userId: mockUserId },
     });
 
     // Mock window methods
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn(() => Promise.resolve())
-      }
+        writeText: vi.fn(() => Promise.resolve()),
+      },
     });
     window.open = vi.fn();
     delete (window as any).location;
     (window as any).location = { href: '', reload: vi.fn() };
-    
+
     vi.useFakeTimers();
   });
 
@@ -110,7 +110,9 @@ describe('ReferralDashboard', () => {
 
     it('should display referral link', () => {
       render(<ReferralDashboard userId={mockUserId} />);
-      expect(screen.getByDisplayValue(/https:\/\/peacescript\.ai\/ref\/PEACE123/)).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue(/https:\/\/peacescript\.ai\/ref\/PEACE123/)
+      ).toBeInTheDocument();
     });
   });
 
@@ -125,18 +127,18 @@ describe('ReferralDashboard', () => {
     it('should open Twitter share', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const twitterButton = screen.getByText(/Share on Twitter/);
-      
+
       fireEvent.click(twitterButton);
-      
+
       expect(window.open).toHaveBeenCalled();
     });
 
     it('should set href for email share', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const emailButton = screen.getByText(/Share via Email/);
-      
+
       fireEvent.click(emailButton);
-      
+
       expect(window.location.href).toContain('mailto:');
     });
   });
@@ -150,18 +152,18 @@ describe('ReferralDashboard', () => {
     it('should convert input to uppercase', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const input = screen.getByPlaceholderText(/PEACE2024/) as HTMLInputElement;
-      
+
       fireEvent.change(input, { target: { value: 'test' } });
-      
+
       expect(input.value).toBe('TEST');
     });
 
     it('should show error for short code', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const button = screen.getByText('สร้างรหัส');
-      
+
       fireEvent.click(button);
-      
+
       expect(screen.getByText(/รหัสต้องมีอย่างน้อย 4 ตัวอักษร/)).toBeInTheDocument();
     });
 
@@ -169,10 +171,10 @@ describe('ReferralDashboard', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const input = screen.getByPlaceholderText(/PEACE2024/);
       const button = screen.getByText('สร้างรหัส');
-      
+
       fireEvent.change(input, { target: { value: 'CUSTOM' } });
       fireEvent.click(button);
-      
+
       expect(mockCreateCustomReferralCode).toHaveBeenCalledWith(mockUserId, 'CUSTOM');
     });
 
@@ -180,10 +182,10 @@ describe('ReferralDashboard', () => {
       render(<ReferralDashboard userId={mockUserId} />);
       const input = screen.getByPlaceholderText(/PEACE2024/);
       const button = screen.getByText('สร้างรหัส');
-      
+
       fireEvent.change(input, { target: { value: 'CUSTOM2024' } });
       fireEvent.click(button);
-      
+
       expect(screen.getByText(/สร้างรหัส CUSTOM2024 สำเร็จ/)).toBeInTheDocument();
     });
   });

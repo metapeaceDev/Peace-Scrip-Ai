@@ -1,6 +1,6 @@
 /**
  * Tests for firestoreService
- * 
+ *
  * These tests verify Firestore operations including:
  * - Saving and loading project data
  * - User profile management
@@ -67,7 +67,7 @@ const mockGetBytes = vi.mocked(storage.getBytes);
 describe('firestoreService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default mock implementations
     mockRef.mockReturnValue({ fullPath: 'mock/path' } as any);
     mockUploadString.mockResolvedValue({ ref: { fullPath: 'mock/path' } } as any);
@@ -91,7 +91,9 @@ describe('firestoreService', () => {
       mockCollection.mockReturnValue({ type: 'collection' } as any);
       mockDoc.mockReturnValue({ id: projectId } as any);
       mockSetDoc.mockResolvedValue(undefined as any);
-      mockUploadString.mockResolvedValue({ ref: { fullPath: `projects/${userId}/${projectId}.json` } } as any);
+      mockUploadString.mockResolvedValue({
+        ref: { fullPath: `projects/${userId}/${projectId}.json` },
+      } as any);
 
       const result = await firestoreService.createProject(userId, projectData as any);
 
@@ -110,9 +112,9 @@ describe('firestoreService', () => {
       mockDoc.mockReturnValue({ id: 'project456' } as any);
       mockUploadString.mockRejectedValue(new Error('Storage error'));
 
-      await expect(
-        firestoreService.createProject(userId, projectData as any)
-      ).rejects.toThrow('Storage error');
+      await expect(firestoreService.createProject(userId, projectData as any)).rejects.toThrow(
+        'Storage error'
+      );
     });
   });
 
@@ -141,7 +143,7 @@ describe('firestoreService', () => {
         id: projectId,
         data: () => mockMetadata,
       } as any);
-      
+
       // Mock storage download
       mockGetBytes.mockResolvedValue(
         new TextEncoder().encode(JSON.stringify(mockProjectData)).buffer as any
@@ -163,9 +165,7 @@ describe('firestoreService', () => {
         exists: () => false,
       } as any);
 
-      await expect(
-        firestoreService.getProject(projectId)
-      ).rejects.toThrow('Project not found');
+      await expect(firestoreService.getProject(projectId)).rejects.toThrow('Project not found');
     });
   });
 
@@ -174,15 +174,15 @@ describe('firestoreService', () => {
       const userId = 'user123';
 
       const mockProjects = [
-        { 
-          id: 'project1', 
+        {
+          id: 'project1',
           title: 'Script 1',
           userId: 'user123',
           createdAt: { toDate: () => new Date('2024-01-02') },
           updatedAt: { toDate: () => new Date('2024-01-02') }, // Newer
         },
-        { 
-          id: 'project2', 
+        {
+          id: 'project2',
           title: 'Script 2',
           userId: 'user123',
           createdAt: { toDate: () => new Date('2024-01-01') },
@@ -194,7 +194,7 @@ describe('firestoreService', () => {
       mockQuery.mockReturnValue({ type: 'query' } as any);
       mockGetDocs.mockResolvedValue({
         forEach: (callback: any) => {
-          mockProjects.forEach((data) => {
+          mockProjects.forEach(data => {
             callback({
               id: data.id,
               data: () => data,
@@ -202,14 +202,14 @@ describe('firestoreService', () => {
           });
         },
       } as any);
-      
+
       // Mock user document for shared projects - called after getUserProjects query
       let callCount = 0;
       mockDoc.mockImplementation(() => {
         callCount++;
         return { id: `doc${callCount}` } as any;
       });
-      
+
       mockGetDoc.mockResolvedValue({
         exists: () => false, // No shared projects
       } as any);
@@ -230,7 +230,7 @@ describe('firestoreService', () => {
       mockGetDocs.mockResolvedValue({
         forEach: () => {}, // No projects
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({
         exists: () => false,
@@ -250,9 +250,9 @@ describe('firestoreService', () => {
       mockDoc.mockReturnValue({ id: projectId } as any);
       mockGetDoc.mockResolvedValue({
         exists: () => true,
-        data: () => ({ 
-          userId: 'user123', 
-          storagePath: 'projects/user123/project456.json' 
+        data: () => ({
+          userId: 'user123',
+          storagePath: 'projects/user123/project456.json',
         }),
       } as any);
       mockDeleteDoc.mockResolvedValue(undefined as any);
@@ -275,9 +275,7 @@ describe('firestoreService', () => {
       } as any);
       mockDeleteDoc.mockRejectedValue(new Error('Permission denied'));
 
-      await expect(
-        firestoreService.deleteProject(projectId)
-      ).rejects.toThrow('Permission denied');
+      await expect(firestoreService.deleteProject(projectId)).rejects.toThrow('Permission denied');
     });
   });
 
@@ -293,8 +291,8 @@ describe('firestoreService', () => {
       mockGetDoc.mockResolvedValue({
         exists: () => true,
         id: projectId,
-        data: () => ({ 
-          userId: 'user123', 
+        data: () => ({
+          userId: 'user123',
           storagePath: 'projects/user123/project456.json',
           posterImage: 'https://existing-poster.com/image.jpg',
         }),
@@ -369,7 +367,7 @@ describe('firestoreService', () => {
 
       mockCollection.mockReturnValue({ type: 'collection' } as any);
       let docCounter = 0;
-      mockDoc.mockImplementation(() => ({ id: `project${++docCounter}` } as any));
+      mockDoc.mockImplementation(() => ({ id: `project${++docCounter}` }) as any);
       mockSetDoc.mockResolvedValue(undefined as any);
       mockUploadString.mockResolvedValue({ ref: { fullPath: 'mock/path' } } as any);
 
@@ -385,7 +383,7 @@ describe('firestoreService', () => {
     it('should handle batch delete for multiple projects', async () => {
       const projectIds = ['project1', 'project2', 'project3'];
 
-      mockDoc.mockImplementation((_, id) => ({ id } as any));
+      mockDoc.mockImplementation((_, id) => ({ id }) as any);
       mockGetDoc.mockResolvedValue({
         exists: () => true,
         data: () => ({ storagePath: 'mock/path' }),
@@ -393,9 +391,7 @@ describe('firestoreService', () => {
       mockDeleteDoc.mockResolvedValue(undefined as any);
       mockDeleteObject.mockResolvedValue(undefined as any);
 
-      const results = await Promise.all(
-        projectIds.map(id => firestoreService.deleteProject(id))
-      );
+      const results = await Promise.all(projectIds.map(id => firestoreService.deleteProject(id)));
 
       expect(results).toHaveLength(3);
       expect(results.every(r => r.success)).toBe(true);
@@ -412,9 +408,9 @@ describe('firestoreService', () => {
 
       mockCollection.mockReturnValue({ type: 'collection' } as any);
       let docCounter = 0;
-      mockDoc.mockImplementation(() => ({ id: `project${++docCounter}` } as any));
+      mockDoc.mockImplementation(() => ({ id: `project${++docCounter}` }) as any);
       mockSetDoc.mockResolvedValue(undefined as any);
-      
+
       let uploadCounter = 0;
       mockUploadString.mockImplementation(() => {
         uploadCounter++;
@@ -450,12 +446,12 @@ describe('firestoreService', () => {
         forEach: (callback: any) => {
           mockProjects
             .filter(p => p.mainGenre === 'Action')
-            .forEach((data) => {
+            .forEach(data => {
               callback({ id: data.id, data: () => data });
             });
         },
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({ exists: () => false } as any);
 
@@ -469,23 +465,23 @@ describe('firestoreService', () => {
       const userId = 'user123';
 
       const mockProjects = [
-        { 
-          id: 'p3', 
-          title: 'Newest', 
+        {
+          id: 'p3',
+          title: 'Newest',
           userId,
           createdAt: { toDate: () => new Date('2024-03-01') },
           updatedAt: { toDate: () => new Date('2024-03-01') },
         },
-        { 
-          id: 'p1', 
-          title: 'Oldest', 
+        {
+          id: 'p1',
+          title: 'Oldest',
           userId,
           createdAt: { toDate: () => new Date('2024-01-01') },
           updatedAt: { toDate: () => new Date('2024-01-01') },
         },
-        { 
-          id: 'p2', 
-          title: 'Middle', 
+        {
+          id: 'p2',
+          title: 'Middle',
           userId,
           createdAt: { toDate: () => new Date('2024-02-01') },
           updatedAt: { toDate: () => new Date('2024-02-01') },
@@ -499,12 +495,12 @@ describe('firestoreService', () => {
           // Return sorted by updatedAt descending
           [...mockProjects]
             .sort((a, b) => b.updatedAt.toDate().getTime() - a.updatedAt.toDate().getTime())
-            .forEach((data) => {
+            .forEach(data => {
               callback({ id: data.id, data: () => data });
             });
         },
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({ exists: () => false } as any);
 
@@ -532,12 +528,12 @@ describe('firestoreService', () => {
       mockGetDocs.mockResolvedValue({
         forEach: (callback: any) => {
           // Simulate limit by only returning first 10
-          mockProjects.slice(0, maxProjects).forEach((data) => {
+          mockProjects.slice(0, maxProjects).forEach(data => {
             callback({ id: data.id, data: () => data });
           });
         },
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({ exists: () => false } as any);
 
@@ -563,12 +559,12 @@ describe('firestoreService', () => {
         forEach: (callback: any) => {
           mockProjects
             .filter(p => p.mainGenre === 'Action' && p.status === 'active')
-            .forEach((data) => {
+            .forEach(data => {
               callback({ id: data.id, data: () => data });
             });
         },
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({ exists: () => false } as any);
 
@@ -586,8 +582,7 @@ describe('firestoreService', () => {
       mockDoc.mockReturnValue({ id: projectId } as any);
       mockGetDoc.mockRejectedValue(new Error('Network error: Connection timeout'));
 
-      await expect(firestoreService.getProject(projectId))
-        .rejects.toThrow('Network error');
+      await expect(firestoreService.getProject(projectId)).rejects.toThrow('Network error');
     });
 
     it('should handle permission denied errors', async () => {
@@ -598,13 +593,14 @@ describe('firestoreService', () => {
       mockDoc.mockReturnValue({ id: 'project456' } as any);
       mockSetDoc.mockRejectedValue(new Error('Permission denied'));
 
-      await expect(firestoreService.createProject(userId, projectData as any))
-        .rejects.toThrow('Permission denied');
+      await expect(firestoreService.createProject(userId, projectData as any)).rejects.toThrow(
+        'Permission denied'
+      );
     });
 
     it('should handle storage quota exceeded', async () => {
       const userId = 'user123';
-      const largeProject = { 
+      const largeProject = {
         title: 'Large Project',
         scenes: Array.from({ length: 1000 }, (_, i) => ({
           id: i,
@@ -617,8 +613,9 @@ describe('firestoreService', () => {
       mockSetDoc.mockResolvedValue(undefined as any);
       mockUploadString.mockRejectedValue(new Error('storage/quota-exceeded'));
 
-      await expect(firestoreService.createProject(userId, largeProject as any))
-        .rejects.toThrow('storage/quota-exceeded');
+      await expect(firestoreService.createProject(userId, largeProject as any)).rejects.toThrow(
+        'storage/quota-exceeded'
+      );
     });
 
     it('should handle concurrent modification conflicts', async () => {
@@ -635,8 +632,9 @@ describe('firestoreService', () => {
       } as any);
       mockUpdateDoc.mockRejectedValue(new Error('Document has been modified'));
 
-      await expect(firestoreService.updateProject(projectId, updates))
-        .rejects.toThrow('Document has been modified');
+      await expect(firestoreService.updateProject(projectId, updates)).rejects.toThrow(
+        'Document has been modified'
+      );
     });
 
     it('should retry on transient failures', async () => {
@@ -685,14 +683,11 @@ describe('firestoreService', () => {
           storagePath: 'mock/path',
         }),
       } as any);
-      
-      // Return invalid JSON
-      mockGetBytes.mockResolvedValue(
-        new TextEncoder().encode('{ invalid json ').buffer as any
-      );
 
-      await expect(firestoreService.getProject(projectId))
-        .rejects.toThrow();
+      // Return invalid JSON
+      mockGetBytes.mockResolvedValue(new TextEncoder().encode('{ invalid json ').buffer as any);
+
+      await expect(firestoreService.getProject(projectId)).rejects.toThrow();
     });
   });
 
@@ -710,7 +705,7 @@ describe('firestoreService', () => {
       mockCollection.mockReturnValue({ type: 'collection' } as any);
       mockDoc.mockReturnValue({ id: 'project456' } as any);
       mockSetDoc.mockResolvedValue(undefined as any);
-      
+
       let uploadedData: string = '';
       mockUploadString.mockImplementation((ref, data) => {
         uploadedData = data;
@@ -738,8 +733,7 @@ describe('firestoreService', () => {
       } as any);
       mockGetBytes.mockRejectedValue(new Error('Object not found'));
 
-      await expect(firestoreService.getProject(projectId))
-        .rejects.toThrow('Object not found');
+      await expect(firestoreService.getProject(projectId)).rejects.toThrow('Object not found');
     });
 
     it('should cleanup storage on project deletion', async () => {
@@ -804,16 +798,16 @@ describe('firestoreService', () => {
 
       mockCollection.mockReturnValue({ type: 'collection' } as any);
       mockQuery.mockReturnValue({ type: 'query' } as any);
-      
+
       // First page
       mockGetDocs.mockResolvedValueOnce({
         forEach: (callback: any) => {
-          mockProjects.slice(0, pageSize).forEach((data) => {
+          mockProjects.slice(0, pageSize).forEach(data => {
             callback({ id: data.id, data: () => data });
           });
         },
       } as any);
-      
+
       mockDoc.mockReturnValue({ id: userId } as any);
       mockGetDoc.mockResolvedValue({ exists: () => false } as any);
 
@@ -842,7 +836,7 @@ describe('firestoreService', () => {
       const result = firestoreService.saveToLocalStorage('local-123', projectData);
 
       expect(result.success).toBe(true);
-      
+
       // Verify it was saved
       const saved = localStorage.getItem('peace_project_local-123');
       expect(saved).toBeTruthy();
@@ -854,9 +848,9 @@ describe('firestoreService', () => {
         id: 'local-456',
         title: 'Retrieved Project',
       };
-      
+
       localStorage.setItem('peace_project_local-456', JSON.stringify(projectData));
-      
+
       // Test: retrieve it
       const result = firestoreService.getFromLocalStorage('local-456');
 
@@ -880,7 +874,7 @@ describe('firestoreService', () => {
 
       // This may or may not fail depending on quota
       const result = firestoreService.saveToLocalStorage('huge', hugeData);
-      
+
       // Just verify it returns a result
       expect(result).toHaveProperty('success');
     });
@@ -1001,9 +995,9 @@ describe('firestoreService', () => {
       mockUpdateDoc.mockRejectedValue(new Error('Network error'));
 
       const { updateUserSubscription } = await import('../firestoreService');
-      await expect(
-        updateUserSubscription('user-1', { tier: 'pro' })
-      ).rejects.toThrow('Network error');
+      await expect(updateUserSubscription('user-1', { tier: 'pro' })).rejects.toThrow(
+        'Network error'
+      );
     });
   });
 

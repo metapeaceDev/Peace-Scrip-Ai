@@ -69,8 +69,8 @@ describe('Step4Structure', () => {
     scenesPerPoint: {
       'Opening Image': 1,
       'Inciting Incident': 2,
-      'Midpoint': 3,
-      'Climax': 1,
+      Midpoint: 3,
+      Climax: 1,
     },
     scenes: [],
     title: 'Test Movie',
@@ -155,13 +155,13 @@ describe('Step4Structure', () => {
       // Use getAllByText to handle multiple occurrences
       const openingImages = screen.getAllByText(/Opening Image/);
       expect(openingImages.length).toBeGreaterThan(0);
-      
+
       const incidents = screen.getAllByText(/Inciting Incident/);
       expect(incidents.length).toBeGreaterThan(0);
-      
+
       const midpoints = screen.getAllByText(/Midpoint/);
       expect(midpoints.length).toBeGreaterThan(0);
-      
+
       const climaxes = screen.getAllByText(/Climax/);
       expect(climaxes.length).toBeGreaterThan(0);
     });
@@ -178,7 +178,7 @@ describe('Step4Structure', () => {
 
       const textareas = screen.getAllByRole('textbox');
       expect(textareas.length).toBeGreaterThan(0);
-      
+
       // Check if descriptions are in textareas
       const openingTextarea = textareas.find(
         (ta: HTMLTextAreaElement) => ta.value === 'Opening scene description'
@@ -267,7 +267,7 @@ describe('Step4Structure', () => {
 
       const select = screen.getAllByLabelText(/Scenes/)[0] as HTMLSelectElement;
       const options = Array.from(select.options).map(o => o.value);
-      
+
       expect(options).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
     });
   });
@@ -413,7 +413,7 @@ describe('Step4Structure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('regenerate-modal')).toBeInTheDocument();
       });
-      
+
       const confirmButton = screen.getByRole('button', { name: 'Confirm' });
       fireEvent.click(confirmButton);
 
@@ -520,16 +520,15 @@ describe('Step4Structure', () => {
       );
 
       // Force open modal (normally disabled)
-      const component = screen.getByRole('button', { name: /Generate Structure/i }).parentElement?.parentElement;
-      
+      const component = screen.getByRole('button', { name: /Generate Structure/i }).parentElement
+        ?.parentElement;
+
       // Manually trigger modal since button is disabled
       // We'll test the error message directly by checking the handleGenerateStructureConfirm logic
     });
 
     it('should handle generation error', async () => {
-      vi.mocked(geminiService.generateStructure).mockRejectedValue(
-        new Error('Generation failed')
-      );
+      vi.mocked(geminiService.generateStructure).mockRejectedValue(new Error('Generation failed'));
 
       render(
         <Step4Structure
@@ -584,8 +583,8 @@ describe('Step4Structure', () => {
 
       const regenerateButtons = screen.getAllByRole('button', { name: /Regenerate/i });
       // Click first plot point's regenerate button (skip main generate button)
-      const plotPointButton = regenerateButtons.find(btn => 
-        btn.textContent?.includes('Regenerate') && btn.title?.includes('Opening Image')
+      const plotPointButton = regenerateButtons.find(
+        btn => btn.textContent?.includes('Regenerate') && btn.title?.includes('Opening Image')
       );
 
       if (plotPointButton) {
@@ -615,9 +614,7 @@ describe('Step4Structure', () => {
       );
 
       const regenerateButtons = screen.getAllByRole('button', { name: /Regenerate/i });
-      const plotPointButton = regenerateButtons.find(btn => 
-        btn.title?.includes('Opening Image')
-      );
+      const plotPointButton = regenerateButtons.find(btn => btn.title?.includes('Opening Image'));
 
       if (plotPointButton) {
         fireEvent.click(plotPointButton);
@@ -656,9 +653,7 @@ describe('Step4Structure', () => {
       );
 
       const regenerateButtons = screen.getAllByRole('button', { name: /Regenerate/i });
-      const plotPointButton = regenerateButtons.find(btn => 
-        btn.title?.includes('Opening Image')
-      );
+      const plotPointButton = regenerateButtons.find(btn => btn.title?.includes('Opening Image'));
 
       if (plotPointButton) {
         fireEvent.click(plotPointButton);
@@ -691,9 +686,7 @@ describe('Step4Structure', () => {
       );
 
       const regenerateButtons = screen.getAllByRole('button', { name: /Regenerate/i });
-      const plotPointButton = regenerateButtons.find(btn => 
-        btn.title?.includes('Opening Image')
-      );
+      const plotPointButton = regenerateButtons.find(btn => btn.title?.includes('Opening Image'));
 
       if (plotPointButton) {
         fireEvent.click(plotPointButton);
@@ -779,9 +772,7 @@ describe('Step4Structure', () => {
 
   describe('Error Display', () => {
     it('should display error message when present', async () => {
-      vi.mocked(geminiService.generateStructure).mockRejectedValue(
-        new Error('API Error')
-      );
+      vi.mocked(geminiService.generateStructure).mockRejectedValue(new Error('API Error'));
 
       render(
         <Step4Structure
@@ -826,7 +817,7 @@ describe('Step4Structure', () => {
       );
 
       const button = screen.getByRole('button', { name: /Generate Structure/i });
-      
+
       // First attempt - fail
       fireEvent.click(button);
 

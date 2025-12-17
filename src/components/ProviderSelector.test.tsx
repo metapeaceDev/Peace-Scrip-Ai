@@ -78,7 +78,7 @@ vi.mock('../services/comfyuiModelSelector', () => ({
   }),
   detectAvailableVRAM: vi.fn(() => Promise.resolve(8)),
   calculateCostSavings: vi.fn(() => ({
-    savings: 12.50,
+    savings: 12.5,
     savingsPercent: 65,
   })),
 }));
@@ -110,8 +110,8 @@ describe('ProviderSelector', () => {
     it('should have hybrid mode selected by default', () => {
       render(<ProviderSelector />);
       const modeCards = document.querySelectorAll('.mode-card');
-      const hybridCard = Array.from(modeCards).find(card => 
-        card.querySelector('h4')?.textContent === 'Hybrid'
+      const hybridCard = Array.from(modeCards).find(
+        card => card.querySelector('h4')?.textContent === 'Hybrid'
       );
       expect(hybridCard?.className).toContain('active');
     });
@@ -184,33 +184,33 @@ describe('ProviderSelector', () => {
   describe('Mode Selection', () => {
     it('should select cloud mode when clicked', () => {
       render(<ProviderSelector onModeChange={mockOnModeChange} />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(mockOnModeChange).toHaveBeenCalledWith('cloud');
       expect(cloudCard?.className).toContain('active');
     });
 
     it('should select open-source mode when clicked', () => {
       render(<ProviderSelector onModeChange={mockOnModeChange} />);
-      
+
       const openSourceCard = screen.getByText('Open Source').closest('.mode-card');
       fireEvent.click(openSourceCard!);
-      
+
       expect(mockOnModeChange).toHaveBeenCalledWith('open-source');
       expect(openSourceCard?.className).toContain('active');
     });
 
     it('should select hybrid mode when clicked', () => {
       render(<ProviderSelector onModeChange={mockOnModeChange} />);
-      
+
       const modeCards = document.querySelectorAll('.mode-card');
-      const hybridCard = Array.from(modeCards).find(card => 
-        card.querySelector('h4')?.textContent === 'Hybrid'
+      const hybridCard = Array.from(modeCards).find(
+        card => card.querySelector('h4')?.textContent === 'Hybrid'
       );
       fireEvent.click(hybridCard!);
-      
+
       expect(mockOnModeChange).toHaveBeenCalledWith('hybrid');
     });
   });
@@ -223,19 +223,19 @@ describe('ProviderSelector', () => {
 
     it('should show model selection for open-source mode', () => {
       render(<ProviderSelector />);
-      
+
       const openSourceCard = screen.getByText('Open Source').closest('.mode-card');
       fireEvent.click(openSourceCard!);
-      
+
       expect(screen.getByText('🎨 Model Quality Preference')).toBeInTheDocument();
     });
 
     it('should hide model selection for cloud mode', () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(screen.queryByText('🎨 Model Quality Preference')).not.toBeInTheDocument();
     });
   });
@@ -257,19 +257,19 @@ describe('ProviderSelector', () => {
 
     it('should change preference when slider moves', () => {
       render(<ProviderSelector onModelChange={mockOnModelChange} />);
-      
+
       const slider = screen.getByRole('slider');
       fireEvent.change(slider, { target: { value: '2' } });
-      
+
       expect(mockOnModelChange).toHaveBeenCalledWith('quality');
     });
 
     it('should update active label when slider changes', () => {
       render(<ProviderSelector />);
-      
+
       const slider = screen.getByRole('slider');
       fireEvent.change(slider, { target: { value: '0' } });
-      
+
       const speedLabel = screen.getByText('⚡ Speed');
       expect(speedLabel.className).toContain('active');
     });
@@ -278,7 +278,7 @@ describe('ProviderSelector', () => {
   describe('Selected Model Info', () => {
     it('should display selected model details', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('📦 Selected Model')).toBeInTheDocument();
         expect(screen.getByText('FLUX dev (Q8)')).toBeInTheDocument();
@@ -289,7 +289,7 @@ describe('ProviderSelector', () => {
 
     it('should show model steps', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('20')).toBeInTheDocument();
       });
@@ -297,7 +297,7 @@ describe('ProviderSelector', () => {
 
     it('should show VRAM requirement', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('8GB')).toBeInTheDocument();
       });
@@ -305,10 +305,10 @@ describe('ProviderSelector', () => {
 
     it('should update model when preference changes', async () => {
       render(<ProviderSelector />);
-      
+
       const slider = screen.getByRole('slider');
       fireEvent.change(slider, { target: { value: '0' } });
-      
+
       await waitFor(() => {
         expect(screen.getByText('FLUX schnell')).toBeInTheDocument();
         expect(screen.getByText('8-12s')).toBeInTheDocument();
@@ -368,7 +368,7 @@ describe('ProviderSelector', () => {
       render(<ProviderSelector />);
       const input = screen.getByDisplayValue('12') as HTMLInputElement;
       fireEvent.change(input, { target: { value: '20' } });
-      
+
       // 20 images × ฿0.50 = ฿10.00
       await waitFor(() => {
         expect(screen.getByText('฿10.00')).toBeInTheDocument();
@@ -379,19 +379,19 @@ describe('ProviderSelector', () => {
   describe('Cost Calculations - Cloud Mode', () => {
     it('should calculate cloud text cost', () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(screen.getAllByText('฿0.35').length).toBeGreaterThan(0);
     });
 
     it('should calculate cloud image cost', async () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       // 12 images × ฿1.40 = ฿16.80
       // This value appears in both columns (cloud and comparison)
       await waitFor(() => {
@@ -402,10 +402,10 @@ describe('ProviderSelector', () => {
 
     it('should calculate cloud video cost', () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(screen.getAllByText('฿17.50').length).toBeGreaterThan(0);
     });
   });
@@ -413,10 +413,10 @@ describe('ProviderSelector', () => {
   describe('Cost Calculations - Open Source Mode', () => {
     it('should show zero cost for open source', () => {
       render(<ProviderSelector />);
-      
+
       const openSourceCard = screen.getByText('Open Source').closest('.mode-card');
       fireEvent.click(openSourceCard!);
-      
+
       const zeroCosts = screen.getAllByText('฿0');
       expect(zeroCosts.length).toBeGreaterThan(3); // text, images, video, total
     });
@@ -431,19 +431,19 @@ describe('ProviderSelector', () => {
 
     it('should show savings for open-source mode', () => {
       render(<ProviderSelector />);
-      
+
       const openSourceCard = screen.getByText('Open Source').closest('.mode-card');
       fireEvent.click(openSourceCard!);
-      
+
       expect(screen.getByText(/ประหยัดได้/)).toBeInTheDocument();
     });
 
     it('should not show savings for cloud mode', () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(screen.queryByText(/ประหยัดได้/)).not.toBeInTheDocument();
     });
   });
@@ -456,19 +456,19 @@ describe('ProviderSelector', () => {
 
     it('should show hardware requirements for open-source mode', () => {
       render(<ProviderSelector />);
-      
+
       const openSourceCard = screen.getByText('Open Source').closest('.mode-card');
       fireEvent.click(openSourceCard!);
-      
+
       expect(screen.getByText('⚙️ ความต้องการของระบบ')).toBeInTheDocument();
     });
 
     it('should hide hardware requirements for cloud mode', () => {
       render(<ProviderSelector />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(screen.queryByText('⚙️ ความต้องการของระบบ')).not.toBeInTheDocument();
     });
 
@@ -505,7 +505,7 @@ describe('ProviderSelector', () => {
   describe('VRAM Detection', () => {
     it('should detect available VRAM on mount', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(modelSelector.detectAvailableVRAM).toHaveBeenCalled();
       });
@@ -513,12 +513,12 @@ describe('ProviderSelector', () => {
 
     it('should show warning when VRAM is insufficient', async () => {
       (modelSelector.detectAvailableVRAM as any).mockResolvedValueOnce(4);
-      
+
       render(<ProviderSelector />);
-      
+
       const slider = screen.getByRole('slider');
       fireEvent.change(slider, { target: { value: '3' } }); // Best quality needs 16GB
-      
+
       await waitFor(() => {
         expect(screen.getByText(/VRAM ของคุณอาจไม่พอ/)).toBeInTheDocument();
       });
@@ -528,19 +528,19 @@ describe('ProviderSelector', () => {
   describe('Callback Functions', () => {
     it('should call onModeChange when mode changes', () => {
       render(<ProviderSelector onModeChange={mockOnModeChange} />);
-      
+
       const cloudCard = screen.getByText('Cloud APIs').closest('.mode-card');
       fireEvent.click(cloudCard!);
-      
+
       expect(mockOnModeChange).toHaveBeenCalledWith('cloud');
     });
 
     it('should call onModelChange when model preference changes', async () => {
       render(<ProviderSelector onModelChange={mockOnModelChange} />);
-      
+
       const slider = screen.getByRole('slider');
       fireEvent.change(slider, { target: { value: '2' } });
-      
+
       await waitFor(() => {
         expect(mockOnModelChange).toHaveBeenCalledWith('quality');
       });
@@ -582,11 +582,11 @@ describe('ProviderSelector', () => {
     it('should handle slider value changes smoothly', () => {
       render(<ProviderSelector />);
       const slider = screen.getByRole('slider');
-      
+
       for (let i = 0; i <= 3; i++) {
         fireEvent.change(slider, { target: { value: i.toString() } });
       }
-      
+
       // Should not throw errors
       expect(slider).toBeInTheDocument();
     });
@@ -595,7 +595,7 @@ describe('ProviderSelector', () => {
   describe('Integration with Model Selector Service', () => {
     it('should call selectOptimalModel with correct parameters', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(modelSelector.selectOptimalModel).toHaveBeenCalledWith('balanced', 8);
       });
@@ -603,7 +603,7 @@ describe('ProviderSelector', () => {
 
     it('should call calculateCostSavings with correct parameters', async () => {
       render(<ProviderSelector />);
-      
+
       await waitFor(() => {
         expect(modelSelector.calculateCostSavings).toHaveBeenCalled();
       });

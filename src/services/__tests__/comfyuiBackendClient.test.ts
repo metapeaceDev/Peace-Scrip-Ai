@@ -38,7 +38,7 @@ describe('comfyuiBackendClient', () => {
         workerStats: '/api/comfyui/workers',
         queueStats: '/api/comfyui/queue',
       };
-      
+
       expect(endpoints.generate).toBeDefined();
       expect(endpoints.jobStatus).toBeDefined();
       expect(endpoints.workerStats).toBeDefined();
@@ -86,13 +86,13 @@ describe('comfyuiBackendClient', () => {
     it('should accept priority parameter', () => {
       const defaultPriority = 5;
       const validPriorities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-      
+
       expect(validPriorities).toContain(defaultPriority);
     });
 
     it('should send required fields in request body', () => {
       const requiredFields = ['prompt', 'workflow', 'referenceImage', 'priority'];
-      
+
       requiredFields.forEach(field => {
         expect(field).toBeTruthy();
       });
@@ -101,9 +101,9 @@ describe('comfyuiBackendClient', () => {
     it('should include authorization header', () => {
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-token',
+        Authorization: 'Bearer mock-token',
       };
-      
+
       expect(headers.Authorization).toContain('Bearer');
       expect(headers['Content-Type']).toBe('application/json');
     });
@@ -127,15 +127,8 @@ describe('comfyuiBackendClient', () => {
     });
 
     it('should recognize job states', () => {
-      const validStates = [
-        'queued',
-        'processing',
-        'completed',
-        'success',
-        'failed',
-        'error',
-      ];
-      
+      const validStates = ['queued', 'processing', 'completed', 'success', 'failed', 'error'];
+
       expect(validStates).toContain('completed');
       expect(validStates).toContain('success');
       expect(validStates).toContain('failed');
@@ -143,7 +136,7 @@ describe('comfyuiBackendClient', () => {
 
     it('should track progress as percentage', () => {
       const progressValues = [0, 25, 50, 75, 100];
-      
+
       progressValues.forEach(progress => {
         expect(progress).toBeGreaterThanOrEqual(0);
         expect(progress).toBeLessThanOrEqual(100);
@@ -153,17 +146,17 @@ describe('comfyuiBackendClient', () => {
     it('should round progress to 1 decimal place', () => {
       const progress = 45.67;
       const rounded = Math.round(progress * 10) / 10;
-      
+
       expect(rounded).toBe(45.7);
     });
 
     it('should handle progress callback', () => {
       const mockCallback = vi.fn();
-      
+
       mockCallback(0);
       mockCallback(50);
       mockCallback(100);
-      
+
       expect(mockCallback).toHaveBeenCalledTimes(3);
       expect(mockCallback).toHaveBeenCalledWith(0);
       expect(mockCallback).toHaveBeenCalledWith(50);
@@ -173,12 +166,8 @@ describe('comfyuiBackendClient', () => {
 
   describe('Response Handling', () => {
     it('should handle multiple response formats', () => {
-      const responses = [
-        { data: { jobId: 'job-123' } },
-        { jobId: 'job-456' },
-        { id: 'job-789' },
-      ];
-      
+      const responses = [{ data: { jobId: 'job-123' } }, { jobId: 'job-456' }, { id: 'job-789' }];
+
       responses.forEach(response => {
         const jobData = response.data || response;
         const jobId = (jobData as any).jobId || (jobData as any).id;
@@ -192,7 +181,7 @@ describe('comfyuiBackendClient', () => {
         { imageData: 'base64-data' },
         { image: 'data:image/png;base64,...' },
       ];
-      
+
       results.forEach(result => {
         const hasImage = result.imageUrl || (result as any).imageData || (result as any).image;
         expect(hasImage).toBeTruthy();
@@ -204,7 +193,7 @@ describe('comfyuiBackendClient', () => {
         imageUrl: 'https://storage.com/image.png',
         imageData: 'base64-fallback',
       };
-      
+
       const finalImage = result.imageUrl || result.imageData;
       expect(finalImage).toBe(result.imageUrl);
     });
@@ -215,7 +204,7 @@ describe('comfyuiBackendClient', () => {
         failedReason: 'Out of memory',
         error: 'CUDA error',
       };
-      
+
       expect(failedResponse.state).toBe('failed');
       expect(failedResponse.failedReason || failedResponse.error).toBeDefined();
     });
@@ -225,13 +214,13 @@ describe('comfyuiBackendClient', () => {
     it('should detect timeout errors', () => {
       const error = new Error('AbortError');
       error.name = 'AbortError';
-      
+
       expect(error.name).toBe('AbortError');
     });
 
     it('should detect connection errors', () => {
       const error = new TypeError('fetch failed');
-      
+
       expect(error instanceof TypeError).toBe(true);
       expect(error.message).toContain('fetch');
     });
@@ -239,13 +228,13 @@ describe('comfyuiBackendClient', () => {
     it('should handle missing job ID in response', () => {
       const invalidResponse = { data: {} };
       const jobId = (invalidResponse.data as any).jobId || (invalidResponse.data as any).id;
-      
+
       expect(jobId).toBeUndefined();
     });
 
     it('should handle service unavailable state', () => {
       const serviceAvailable = false;
-      
+
       if (!serviceAvailable) {
         const error = new Error('ComfyUI backend service is not available');
         expect(error.message).toContain('not available');
@@ -261,7 +250,7 @@ describe('comfyuiBackendClient', () => {
   describe('Queue Management', () => {
     it('should support priority levels', () => {
       const priorities = [1, 5, 10]; // Low, Medium, High
-      
+
       priorities.forEach(priority => {
         expect(priority).toBeGreaterThanOrEqual(1);
         expect(priority).toBeLessThanOrEqual(10);
@@ -275,7 +264,7 @@ describe('comfyuiBackendClient', () => {
         completed: 100,
         failed: 3,
       };
-      
+
       expect(queueStats.pending).toBeGreaterThanOrEqual(0);
       expect(queueStats.processing).toBeGreaterThanOrEqual(0);
       expect(queueStats.completed).toBeGreaterThanOrEqual(0);
@@ -288,10 +277,8 @@ describe('comfyuiBackendClient', () => {
         idle: 2,
         busy: 0,
       };
-      
-      expect(workerStats.total).toBe(
-        workerStats.active + workerStats.idle + workerStats.busy
-      );
+
+      expect(workerStats.total).toBe(workerStats.active + workerStats.idle + workerStats.busy);
     });
   });
 
@@ -301,21 +288,21 @@ describe('comfyuiBackendClient', () => {
         '3': { class_type: 'KSampler' },
         '4': { class_type: 'CheckpointLoader' },
       };
-      
+
       expect(workflow['3']).toBeDefined();
       expect(workflow['4']).toBeDefined();
     });
 
     it('should support reference image parameter', () => {
       const referenceImage = 'https://example.com/face.jpg';
-      
+
       expect(referenceImage).toBeTruthy();
       expect(referenceImage).toContain('http');
     });
 
     it('should support base64 reference images', () => {
       const base64Image = 'data:image/png;base64,iVBORw0KG...';
-      
+
       expect(base64Image).toContain('data:image');
       expect(base64Image).toContain('base64');
     });
@@ -329,7 +316,7 @@ describe('comfyuiBackendClient', () => {
         polling: 8000,
         maxWait: 4800000,
       };
-      
+
       expect(timeouts.healthCheck).toBeLessThan(timeouts.submission);
       expect(timeouts.submission).toBeGreaterThan(timeouts.polling);
       expect(timeouts.polling).toBeLessThan(timeouts.maxWait);
@@ -339,7 +326,7 @@ describe('comfyuiBackendClient', () => {
     it('should have reasonable max wait time for Mac', () => {
       const maxWait = 4800000; // 80 minutes
       const maxWaitMinutes = maxWait / 60000;
-      
+
       expect(maxWaitMinutes).toBe(80);
       expect(maxWaitMinutes).toBeGreaterThan(60); // More than 1 hour
     });
@@ -358,7 +345,7 @@ describe('comfyuiBackendClient', () => {
 
     it('should update progress during processing', () => {
       const progressUpdates = [0, 10, 25, 50, 75, 90, 100];
-      
+
       progressUpdates.forEach((progress, index) => {
         if (index > 0) {
           expect(progress).toBeGreaterThan(progressUpdates[index - 1]);
@@ -369,7 +356,7 @@ describe('comfyuiBackendClient', () => {
     it('should handle missing progress values', () => {
       const progress = undefined;
       const safeProgress = typeof progress === 'number' ? progress : 0;
-      
+
       expect(safeProgress).toBe(0);
     });
   });
@@ -381,7 +368,7 @@ describe('comfyuiBackendClient', () => {
         status: 'completed',
         result: 'https://image.url',
       };
-      
+
       expect(legacyResponse.jobId).toBeDefined();
       expect(legacyResponse.status).toBe('completed');
     });
@@ -396,7 +383,7 @@ describe('comfyuiBackendClient', () => {
           },
         },
       };
-      
+
       expect(newResponse.data.jobId).toBeDefined();
       expect(newResponse.data.state).toBe('success');
     });
@@ -408,7 +395,7 @@ describe('comfyuiBackendClient', () => {
         failed: 'error',
         error: 'error',
       };
-      
+
       expect(stateMapping.completed).toBe('success');
       expect(stateMapping.success).toBe('success');
     });
@@ -443,14 +430,14 @@ describe('comfyuiBackendClient', () => {
     it('should handle progress over 100%', () => {
       const invalidProgress = 150;
       const clampedProgress = Math.min(100, Math.max(0, invalidProgress));
-      
+
       expect(clampedProgress).toBe(100);
     });
 
     it('should handle negative progress', () => {
       const invalidProgress = -10;
       const clampedProgress = Math.min(100, Math.max(0, invalidProgress));
-      
+
       expect(clampedProgress).toBe(0);
     });
   });
@@ -463,7 +450,7 @@ describe('comfyuiBackendClient', () => {
         referenceImage: null,
         priority: 5,
       };
-      
+
       expect(workflow.prompt).toBeDefined();
       expect(workflow.workflow).toBeDefined();
       expect(workflow.priority).toBe(5);
@@ -472,11 +459,11 @@ describe('comfyuiBackendClient', () => {
     it('should handle retry logic for failed polls', () => {
       const maxRetries = 3;
       let retries = 0;
-      
+
       while (retries < maxRetries) {
         retries++;
       }
-      
+
       expect(retries).toBe(maxRetries);
     });
 
@@ -490,11 +477,11 @@ describe('comfyuiBackendClient', () => {
           },
         },
       };
-      
+
       const jobId = response.data.jobId;
       const state = response.data.state;
       const imageUrl = response.data.result.imageUrl;
-      
+
       expect(jobId).toBeTruthy();
       expect(state).toBe('completed');
       expect(imageUrl).toContain('http');

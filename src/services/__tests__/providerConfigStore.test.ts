@@ -54,10 +54,7 @@ describe('providerConfigStore', () => {
         availableVRAM: 24,
         autoFallback: false,
       };
-      localStorageMock.setItem(
-        'peace-script-provider-config',
-        JSON.stringify(storedConfig)
-      );
+      localStorageMock.setItem('peace-script-provider-config', JSON.stringify(storedConfig));
 
       const config = getProviderConfig();
 
@@ -93,10 +90,7 @@ describe('providerConfigStore', () => {
         availableVRAM: 16,
         autoFallback: true,
       });
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error loading provider config:',
-        expect.any(Error)
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Error loading provider config:', expect.any(Error));
       consoleSpy.mockRestore();
     });
 
@@ -150,10 +144,7 @@ describe('providerConfigStore', () => {
       };
 
       expect(() => saveProviderConfig(config)).not.toThrow();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error saving provider config:',
-        expect.any(Error)
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Error saving provider config:', expect.any(Error));
       consoleSpy.mockRestore();
     });
   });
@@ -172,9 +163,7 @@ describe('providerConfigStore', () => {
 
       setProviderMode('cloud');
 
-      const saved = JSON.parse(
-        localStorageMock.setItem.mock.calls[0][1] as string
-      );
+      const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
       expect(saved).toEqual({
         mode: 'cloud',
         modelPreference: 'quality', // preserved
@@ -186,13 +175,11 @@ describe('providerConfigStore', () => {
     it('should work with all provider modes', () => {
       const modes: ProviderMode[] = ['cloud', 'open-source', 'hybrid'];
 
-      modes.forEach((mode) => {
+      modes.forEach(mode => {
         vi.clearAllMocks();
         setProviderMode(mode);
 
-        const saved = JSON.parse(
-          localStorageMock.setItem.mock.calls[0][1] as string
-        );
+        const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
         expect(saved.mode).toBe(mode);
       });
     });
@@ -211,9 +198,7 @@ describe('providerConfigStore', () => {
 
       setModelPreference('quality');
 
-      const saved = JSON.parse(
-        localStorageMock.setItem.mock.calls[0][1] as string
-      );
+      const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
       expect(saved).toEqual({
         mode: 'cloud', // preserved
         modelPreference: 'quality',
@@ -225,13 +210,11 @@ describe('providerConfigStore', () => {
     it('should work with all model preferences', () => {
       const preferences: ModelPreference[] = ['speed', 'balanced', 'quality', 'best'];
 
-      preferences.forEach((preference) => {
+      preferences.forEach(preference => {
         vi.clearAllMocks();
         setModelPreference(preference);
 
-        const saved = JSON.parse(
-          localStorageMock.setItem.mock.calls[0][1] as string
-        );
+        const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
         expect(saved.modelPreference).toBe(preference);
       });
     });
@@ -250,9 +233,7 @@ describe('providerConfigStore', () => {
 
       setAvailableVRAM(32);
 
-      const saved = JSON.parse(
-        localStorageMock.setItem.mock.calls[0][1] as string
-      );
+      const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
       expect(saved).toEqual({
         mode: 'open-source', // preserved
         modelPreference: 'speed', // preserved
@@ -264,13 +245,11 @@ describe('providerConfigStore', () => {
     it('should handle different VRAM values', () => {
       const vramValues = [4, 8, 12, 16, 24, 32, 48, 64];
 
-      vramValues.forEach((vram) => {
+      vramValues.forEach(vram => {
         vi.clearAllMocks();
         setAvailableVRAM(vram);
 
-        const saved = JSON.parse(
-          localStorageMock.setItem.mock.calls[0][1] as string
-        );
+        const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1] as string);
         expect(saved.availableVRAM).toBe(vram);
       });
     });

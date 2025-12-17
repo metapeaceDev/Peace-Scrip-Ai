@@ -23,7 +23,7 @@ describe('Step3Character', () => {
       scriptData: { characters: [] },
       setScriptData: vi.fn(),
     };
-    
+
     const { container } = render(<Step3Character {...mockProps} />);
     expect(container).toBeTruthy();
   });

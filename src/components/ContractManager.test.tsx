@@ -44,7 +44,7 @@ describe('ContractManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock getDocs to return empty initially
     vi.mocked(firebaseFirestore.getDocs).mockResolvedValue({
       forEach: vi.fn(),
@@ -67,7 +67,7 @@ describe('ContractManager', () => {
 
     it('should render upload section after loading', async () => {
       render(<ContractManager projectId={mockProjectId} />);
-      
+
       await waitFor(() => {
         const heading = screen.getByRole('heading', { level: 3, name: 'อัพโหลดสัญญา' });
         expect(heading).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('ContractManager', () => {
 
     it('should render file input', async () => {
       render(<ContractManager projectId={mockProjectId} />);
-      
+
       await waitFor(() => {
         const input = document.getElementById('contract-file-input') as HTMLInputElement;
         expect(input).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('ContractManager', () => {
 
     it('should render description textarea', async () => {
       render(<ContractManager projectId={mockProjectId} />);
-      
+
       await waitFor(() => {
         const textarea = screen.getByPlaceholderText(/ระบุรายละเอียดสัญญา/);
         expect(textarea).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('ContractManager', () => {
 
     it('should render upload button', async () => {
       render(<ContractManager projectId={mockProjectId} />);
-      
+
       await waitFor(() => {
         const button = screen.getByRole('button', { name: /อัพโหลดสัญญา/ });
         expect(button).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe('ContractManager', () => {
 
     it('should render contracts list section', async () => {
       render(<ContractManager projectId={mockProjectId} />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/สัญญาทั้งหมด/)).toBeInTheDocument();
       });
@@ -530,7 +530,7 @@ describe('ContractManager', () => {
     it('should handle upload error', async () => {
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       vi.mocked(firebaseStorage.uploadBytes).mockRejectedValue(new Error('Upload failed'));
 
       render(<ContractManager projectId={mockProjectId} />);
@@ -843,10 +843,10 @@ describe('ContractManager', () => {
         expect(screen.getByText('ตัวอย่างสัญญา')).toBeInTheDocument();
       });
 
-      const closeButtons = screen.getAllByRole('button').filter(btn => 
-        btn.querySelector('svg path[d*="M6 18L18 6M6 6l12 12"]')
-      );
-      
+      const closeButtons = screen
+        .getAllByRole('button')
+        .filter(btn => btn.querySelector('svg path[d*="M6 18L18 6M6 6l12 12"]'));
+
       if (closeButtons.length > 0) {
         fireEvent.click(closeButtons[0]);
 

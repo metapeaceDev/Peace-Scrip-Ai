@@ -17,6 +17,13 @@ Peace Script is a professional AI-assisted screenwriting and pre-production tool
     - **Advanced**: LoRA models for character consistency & cinematic style
     - **No Installation**: Users don't need to install anything locally
 - **Storyboard AI**: Generate visual storyboards (images and video previews) for every shot.
+- **🎙️ Professional Voice Cloning**: Clone any voice from 6+ seconds of audio:
+  - **17 Languages**: en, es, fr, de, it, pt, pl, tr, ru, nl, cs, ar, zh-cn, hu, ko, ja, hi
+  - **Studio Quality**: 24kHz, 16-bit audio output
+  - **Fast Generation**: ~10-15 seconds per audio clip
+  - **XTTS-v2 Engine**: State-of-the-art Coqui TTS model
+  - **Simple Setup**: One-command deployment
+  - See [VOICE_CLONING_QUICKSTART.md](./VOICE_CLONING_QUICKSTART.md) for quick start
 - **🎬 6-Tier Video Generation System**: Intelligent fallback with custom resolution support:
   - **Tier 1**: Gemini Veo 3.1 (720p, 30-120s, cinematic quality) ✅ Production Ready
   - **Tier 2a**: AnimateDiff v3 (512x512 fixed, $0.17/video) ⚠️ Limited
@@ -85,6 +92,9 @@ Peace Script AI offers flexible pricing tiers for every creator:
 - **Tier 2**: ComfyUI + AnimateDiff v3 (512x512, 3s, fast) 🚀 READY
 - **Tier 3**: ComfyUI + SVD 1.1 (1024x576, 3s, high quality) 🚀 READY
 - **Fallback Chain**: Automatic tier switching for maximum reliability
+
+**Voice Cloning:**
+- **Coqui XTTS-v2** (17 languages, professional quality) 🎙️ LIVE
 
 ## 📦 Getting Started
 
@@ -192,7 +202,27 @@ docker-compose up -d  # Start Redis
 npm run dev
 ```
 
-### 5. Run Development Server
+### 6. Setup Voice Cloning (Optional but Recommended)
+
+**🎙️ One-Command Setup** (5 minutes):
+
+```bash
+cd backend/voice-cloning
+./deploy.sh  # Installs everything and starts server
+```
+
+Server runs on http://localhost:8001
+
+**Features:**
+- Clone any voice from 6+ seconds audio
+- 17 languages supported
+- Professional 24kHz quality
+- ~10-15 seconds generation time
+
+📖 Quick Start: [VOICE_CLONING_QUICKSTART.md](./VOICE_CLONING_QUICKSTART.md)  
+📚 Full Guide: [VOICE_CLONING_DEPLOYMENT.md](./VOICE_CLONING_DEPLOYMENT.md)
+
+### 7. Run Development Server
 
 ```bash
 # Frontend only
@@ -203,15 +233,16 @@ npm run dev:all
 ```
 
 Frontend: http://localhost:5173  
-Backend API: http://localhost:8000
+Backend API: http://localhost:8000  
+Voice Cloning: http://localhost:8001
 
-### 6. Build for Production
+### 8. Build for Production
 
 ```bash
 npm run build
 ```
 
-### 7. Deploy to Firebase
+### 9. Deploy to Firebase
 
 ```bash
 firebase login
@@ -423,6 +454,12 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 **Image Generation:**
 - **ComfyUI Setup**: [COMFYUI_SETUP.md](COMFYUI_SETUP.md) | [Quick Start](COMFYUI_QUICKSTART.md)
 - **Colab Guide**: [COLAB_SETUP_GUIDE.md](COLAB_SETUP_GUIDE.md)
+
+**Voice Cloning (New!):**
+- **Quick Start**: [VOICE_CLONING_QUICKSTART.md](VOICE_CLONING_QUICKSTART.md) - 5-minute setup
+- **Full Deployment**: [VOICE_CLONING_DEPLOYMENT.md](VOICE_CLONING_DEPLOYMENT.md) - Complete guide
+- **Documentation Index**: [docs/voice-cloning/README.md](docs/voice-cloning/README.md) - All docs
+- **Project History**: [VOICE_CLONING_ROADMAP.md](VOICE_CLONING_ROADMAP.md) - Implementation journey
 
 **Additional Documentation:**
 - **Pricing Strategy**: [PRICING_STRATEGY.md](PRICING_STRATEGY.md)

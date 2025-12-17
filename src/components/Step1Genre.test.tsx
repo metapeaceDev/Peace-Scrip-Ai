@@ -113,18 +113,18 @@ describe('Step1Genre', () => {
     it('should update title on input change', () => {
       render(<Step1Genre {...defaultProps} />);
       const input = screen.getByDisplayValue('Test Movie') as HTMLInputElement;
-      
+
       fireEvent.change(input, { target: { value: 'New Title' } });
-      
+
       expect(mockUpdateScriptData).toHaveBeenCalledWith({ title: 'New Title' });
     });
 
     it('should call onRegisterUndo when title focused', () => {
       render(<Step1Genre {...defaultProps} />);
       const input = screen.getByDisplayValue('Test Movie');
-      
+
       fireEvent.focus(input);
-      
+
       expect(mockOnRegisterUndo).toHaveBeenCalled();
     });
   });
@@ -134,7 +134,7 @@ describe('Step1Genre', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByLabelText('step1.fields.mainGenre') as HTMLSelectElement;
       const options = Array.from(select.options).map(opt => opt.value);
-      
+
       GENRES.forEach(genre => {
         expect(options).toContain(genre);
       });
@@ -143,29 +143,29 @@ describe('Step1Genre', () => {
     it('should update main genre on selection', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByDisplayValue('Action');
-      
+
       fireEvent.change(select, { target: { name: 'mainGenre', value: 'Comedy' } });
-      
+
       expect(mockUpdateScriptData).toHaveBeenCalledWith({ mainGenre: 'Comedy' });
     });
 
     it('should update first secondary genre', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByLabelText('step1.fields.secondaryGenre1');
-      
+
       fireEvent.change(select, { target: { value: 'Horror' } });
-      
-      expect(mockUpdateScriptData).toHaveBeenCalledWith({ 
-        secondaryGenres: ['Horror', 'Thriller'] 
+
+      expect(mockUpdateScriptData).toHaveBeenCalledWith({
+        secondaryGenres: ['Horror', 'Thriller'],
       });
     });
 
     it.skip('should update secondary genres (complex array state)', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByLabelText('step1.fields.secondaryGenre2');
-      
+
       fireEvent.change(select, { target: { value: 'Romance' } });
-      
+
       // Verify updateScriptData was called with secondaryGenres array
       expect(mockUpdateScriptData).toHaveBeenCalled();
       const calls = mockUpdateScriptData.mock.calls;
@@ -179,9 +179,9 @@ describe('Step1Genre', () => {
     it('should call onRegisterUndo when genre changes', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByDisplayValue('Action');
-      
+
       fireEvent.change(select, { target: { name: 'mainGenre', value: 'Thriller' } });
-      
+
       expect(mockOnRegisterUndo).toHaveBeenCalled();
     });
   });
@@ -190,9 +190,9 @@ describe('Step1Genre', () => {
     it('should update language on selection', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByLabelText('step1.fields.projectLanguage');
-      
+
       fireEvent.change(select, { target: { name: 'language', value: 'English' } });
-      
+
       expect(mockUpdateScriptData).toHaveBeenCalledWith({ language: 'English' });
     });
 
@@ -200,7 +200,7 @@ describe('Step1Genre', () => {
       render(<Step1Genre {...defaultProps} />);
       const select = screen.getByLabelText('step1.fields.projectLanguage') as HTMLSelectElement;
       const options = Array.from(select.options).map(opt => opt.value);
-      
+
       expect(options).toContain('Thai');
       expect(options).toContain('English');
     });
@@ -217,9 +217,9 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, posterImage: 'data:image/png;base64,abc123' },
       };
-      
+
       render(<Step1Genre {...propsWithPoster} />);
-      
+
       const img = screen.getByAltText('Movie Poster') as HTMLImageElement;
       expect(img).toBeInTheDocument();
       expect(img.src).toContain('data:image/png;base64,abc123');
@@ -230,53 +230,58 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, posterImage: 'data:image/png;base64,abc123' },
       };
-      
+
       render(<Step1Genre {...propsWithPoster} />);
-      
+
       expect(screen.queryByText('step1.poster.noPoster')).not.toBeInTheDocument();
     });
   });
 
   describe('Generate Poster', () => {
     it('should generate poster when button clicked', async () => {
-      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue('data:image/png;base64,generated');
-      
+      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue(
+        'data:image/png;base64,generated'
+      );
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.generate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(geminiService.generateMoviePoster).toHaveBeenCalled();
       });
     });
 
     it.skip('should show loading state while generating poster (async timing sensitive)', async () => {
-      vi.mocked(geminiService.generateMoviePoster).mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('data:image/png;base64,generated'), 100))
+      vi.mocked(geminiService.generateMoviePoster).mockImplementation(
+        () =>
+          new Promise(resolve => setTimeout(() => resolve('data:image/png;base64,generated'), 100))
       );
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.generate');
-      
+
       fireEvent.click(button);
-      
+
       // Wait for loading state to appear
       const loadingText = await screen.findByText('step1.poster.generating');
       expect(loadingText).toBeInTheDocument();
     });
 
     it('should update scriptData with generated poster', async () => {
-      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue('data:image/png;base64,generated');
-      
+      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue(
+        'data:image/png;base64,generated'
+      );
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.generate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
-        expect(mockUpdateScriptData).toHaveBeenCalledWith({ 
-          posterImage: 'data:image/png;base64,generated' 
+        expect(mockUpdateScriptData).toHaveBeenCalledWith({
+          posterImage: 'data:image/png;base64,generated',
         });
       });
     });
@@ -286,25 +291,27 @@ describe('Step1Genre', () => {
         progressCallback?.(50);
         return Promise.resolve('data:image/png;base64,generated');
       });
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.generate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(screen.getByText('50%')).toBeInTheDocument();
       });
     });
 
     it('should call onRegisterUndo before generating', async () => {
-      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue('data:image/png;base64,generated');
-      
+      vi.mocked(geminiService.generateMoviePoster).mockResolvedValue(
+        'data:image/png;base64,generated'
+      );
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.generate');
-      
+
       fireEvent.click(button);
-      
+
       expect(mockOnRegisterUndo).toHaveBeenCalled();
     });
 
@@ -314,20 +321,18 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, title: '' },
       };
-      
+
       render(<Step1Genre {...propsNoTitle} />);
-      
+
       // Find generate button - may need to use getAllByText since there could be multiple
       const buttons = screen.queryAllByText(/generate/i);
-      const posterButton = buttons.find(btn => 
-        btn.textContent?.includes('step1.poster.generate')
-      );
-      
+      const posterButton = buttons.find(btn => btn.textContent?.includes('step1.poster.generate'));
+
       if (posterButton) {
         fireEvent.click(posterButton);
         expect(alertSpy).toHaveBeenCalledWith('step1.poster.enterTitle');
       }
-      
+
       alertSpy.mockRestore();
     });
   });
@@ -341,26 +346,26 @@ describe('Step1Genre', () => {
     it('should trigger file input when upload button clicked', () => {
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.poster.upload');
-      
+
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       const clickSpy = vi.spyOn(fileInput, 'click');
-      
+
       fireEvent.click(button);
-      
+
       expect(clickSpy).toHaveBeenCalled();
     });
 
     it('should accept image files only', () => {
       render(<Step1Genre {...defaultProps} />);
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      
+
       expect(fileInput.accept).toBe('image/*');
     });
 
     it('should update posterImage on file upload', async () => {
       render(<Step1Genre {...defaultProps} />);
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      
+
       const file = new File(['image'], 'poster.png', { type: 'image/png' });
       const mockReader = {
         readAsDataURL: vi.fn(),
@@ -368,15 +373,15 @@ describe('Step1Genre', () => {
         result: 'data:image/png;base64,uploaded',
       };
       vi.spyOn(window, 'FileReader').mockImplementation(() => mockReader as any);
-      
+
       fireEvent.change(fileInput, { target: { files: [file] } });
-      
+
       // Trigger onloadend
       mockReader.onloadend?.();
-      
+
       await waitFor(() => {
-        expect(mockUpdateScriptData).toHaveBeenCalledWith({ 
-          posterImage: 'data:image/png;base64,uploaded' 
+        expect(mockUpdateScriptData).toHaveBeenCalledWith({
+          posterImage: 'data:image/png;base64,uploaded',
         });
       });
     });
@@ -388,9 +393,9 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, posterImage: 'data:image/png;base64,abc123' },
       };
-      
+
       render(<Step1Genre {...propsWithPoster} />);
-      
+
       // Verify poster is displayed (download functionality requires user interaction with hover)
       const img = screen.getByAltText('Movie Poster') as HTMLImageElement;
       expect(img).toBeInTheDocument();
@@ -400,27 +405,33 @@ describe('Step1Genre', () => {
   describe('Poster Prompt', () => {
     it('should render poster prompt textarea', () => {
       render(<Step1Genre {...defaultProps} />);
-      const textarea = screen.getByPlaceholderText('step1.poster.promptPlaceholder') as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText(
+        'step1.poster.promptPlaceholder'
+      ) as HTMLTextAreaElement;
       expect(textarea).toBeInTheDocument();
     });
 
     it('should update prompt when title changes', () => {
       const { rerender } = render(<Step1Genre {...defaultProps} />);
-      
+
       const newProps = {
         ...defaultProps,
         scriptData: { ...defaultScriptData, title: 'New Title' },
       };
-      
+
       rerender(<Step1Genre {...newProps} />);
-      
-      const textarea = screen.getByPlaceholderText('step1.poster.promptPlaceholder') as HTMLTextAreaElement;
+
+      const textarea = screen.getByPlaceholderText(
+        'step1.poster.promptPlaceholder'
+      ) as HTMLTextAreaElement;
       expect(textarea.value).toContain('New Title');
     });
 
     it('should include genre in prompt', () => {
       render(<Step1Genre {...defaultProps} />);
-      const textarea = screen.getByPlaceholderText('step1.poster.promptPlaceholder') as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText(
+        'step1.poster.promptPlaceholder'
+      ) as HTMLTextAreaElement;
       expect(textarea.value).toContain('Action');
     });
 
@@ -428,34 +439,36 @@ describe('Step1Genre', () => {
       render(<Step1Genre {...defaultProps} />);
       const button = screen.queryByText(/step1\.poster\.resetPrompt/i);
       // Button might exist or might be in different structure
-      expect(button || screen.getByPlaceholderText('step1.poster.promptPlaceholder')).toBeInTheDocument();
+      expect(
+        button || screen.getByPlaceholderText('step1.poster.promptPlaceholder')
+      ).toBeInTheDocument();
     });
   });
 
   describe('Generate Title', () => {
     it('should generate title when button clicked', async () => {
       vi.mocked(geminiService.generateTitle).mockResolvedValue('Generated Title');
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText(/step1.fields.generateTitle/);
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(geminiService.generateTitle).toHaveBeenCalledWith(defaultScriptData);
       });
     });
 
     it('should show loading state while generating title', async () => {
-      vi.mocked(geminiService.generateTitle).mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('Generated Title'), 100))
+      vi.mocked(geminiService.generateTitle).mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve('Generated Title'), 100))
       );
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText(/step1.fields.generateTitle/);
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(screen.getByText('step1.fields.generatingTitle')).toBeInTheDocument();
       });
@@ -463,12 +476,12 @@ describe('Step1Genre', () => {
 
     it('should update title with generated value', async () => {
       vi.mocked(geminiService.generateTitle).mockResolvedValue('AI Generated Title');
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText(/step1.fields.generateTitle/);
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(mockUpdateScriptData).toHaveBeenCalledWith({ title: 'AI Generated Title' });
       });
@@ -477,16 +490,16 @@ describe('Step1Genre', () => {
     it('should show error if title generation fails', async () => {
       vi.mocked(geminiService.generateTitle).mockRejectedValue(new Error('API Error'));
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText(/step1.fields.generateTitle/);
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(screen.getByText('step1.errors.failedTitle')).toBeInTheDocument();
       });
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -509,12 +522,12 @@ describe('Step1Genre', () => {
         budget: 0,
         location: '',
       });
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(geminiService.generateFullScriptOutline).toHaveBeenCalledWith(
           'Test Movie',
@@ -526,15 +539,15 @@ describe('Step1Genre', () => {
     });
 
     it('should show stop button while generating', async () => {
-      vi.mocked(geminiService.generateFullScriptOutline).mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 100))
+      vi.mocked(geminiService.generateFullScriptOutline).mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 100))
       );
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(screen.getByText('step1.actions.stopReset')).toBeInTheDocument();
       });
@@ -557,14 +570,14 @@ describe('Step1Genre', () => {
         budget: 1000000,
         location: 'Bangkok',
       };
-      
+
       vi.mocked(geminiService.generateFullScriptOutline).mockResolvedValue(generatedData);
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(mockSetScriptData).toHaveBeenCalled();
       });
@@ -587,25 +600,27 @@ describe('Step1Genre', () => {
         budget: 0,
         location: '',
       });
-      
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(button);
-      
+
       await waitFor(() => {
         expect(mockSetCurrentStep).toHaveBeenCalledWith(5);
       });
     });
 
     it.skip('should show error if generation fails (async timing)', async () => {
-      vi.mocked(geminiService.generateFullScriptOutline).mockRejectedValue(new Error('Generation failed'));
-      
+      vi.mocked(geminiService.generateFullScriptOutline).mockRejectedValue(
+        new Error('Generation failed')
+      );
+
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(button);
-      
+
       // Use findByText which waits automatically
       const errorMessage = await screen.findByText('step1.errors.autoGenerateError');
       expect(errorMessage).toBeInTheDocument();
@@ -616,24 +631,24 @@ describe('Step1Genre', () => {
     it('should call nextStep when manual button clicked', () => {
       render(<Step1Genre {...defaultProps} />);
       const button = screen.getByText('step1.actions.startManually');
-      
+
       fireEvent.click(button);
-      
+
       expect(mockNextStep).toHaveBeenCalled();
     });
   });
 
   describe('Disabled States', () => {
     it('should disable inputs while auto-generating', async () => {
-      vi.mocked(geminiService.generateFullScriptOutline).mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 100))
+      vi.mocked(geminiService.generateFullScriptOutline).mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 100))
       );
-      
+
       render(<Step1Genre {...defaultProps} />);
       const autoButton = screen.getByText('step1.actions.autoGenerate');
-      
+
       fireEvent.click(autoButton);
-      
+
       await waitFor(() => {
         const genreSelect = screen.getByLabelText('step1.fields.mainGenre') as HTMLSelectElement;
         expect(genreSelect.disabled).toBe(true);
@@ -647,9 +662,9 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, secondaryGenres: [] },
       };
-      
+
       render(<Step1Genre {...propsNoSecondary} />);
-      
+
       // Should still render selectors
       expect(screen.getByLabelText('step1.fields.secondaryGenre1')).toBeInTheDocument();
     });
@@ -659,19 +674,19 @@ describe('Step1Genre', () => {
         ...defaultProps,
         scriptData: { ...defaultScriptData, title: '' },
       };
-      
+
       render(<Step1Genre {...propsNoTitle} />);
-      
+
       const input = screen.getByLabelText('step1.fields.title') as HTMLInputElement;
       expect(input.value).toBe('');
     });
 
     it('should handle missing onRegisterUndo prop', () => {
       const propsNoUndo = { ...defaultProps, onRegisterUndo: undefined };
-      
+
       render(<Step1Genre {...propsNoUndo} />);
       const input = screen.getByDisplayValue('Test Movie');
-      
+
       // Should not throw error
       expect(() => fireEvent.change(input, { target: { value: 'New' } })).not.toThrow();
     });

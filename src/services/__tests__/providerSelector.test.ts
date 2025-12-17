@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  getProviderStatus,
-  getRecommendedProvider,
-  selectProvider,
-} from '../providerSelector';
+import { getProviderStatus, getRecommendedProvider, selectProvider } from '../providerSelector';
 import type { ProviderStatus, AutoSelectionCriteria } from '../../../types';
 
 describe('providerSelector', () => {

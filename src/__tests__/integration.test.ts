@@ -108,7 +108,7 @@ describe('Character Development Workflow', () => {
     const finalState = {
       consciousness: {
         'สติ (Mindfulness)': 85, // 80 + 5
-        'ปัญญา (Wisdom)': 78,    // 75 + 3
+        'ปัญญา (Wisdom)': 78, // 75 + 3
       },
       defilement: {
         โลภะ: 27, // 30 - 3
@@ -178,7 +178,7 @@ describe('Scene Generation Workflow', () => {
 describe('TTS Integration Workflow', () => {
   it('should support multiple TTS engines', () => {
     const engines = ['browser', 'google', 'azure', 'pythainlp'];
-    
+
     engines.forEach(engine => {
       expect(['browser', 'google', 'azure', 'aws', 'pythainlp']).toContain(engine);
     });
@@ -405,7 +405,9 @@ describe('Quota Monitoring Integration', () => {
       'gemini-2.0-flash': { used: 50, limit: 200, rpm: 10 },
     };
 
-    expect(quotas['gemini-2.5-flash'].used / quotas['gemini-2.5-flash'].limit).toBeGreaterThan(0.75);
+    expect(quotas['gemini-2.5-flash'].used / quotas['gemini-2.5-flash'].limit).toBeGreaterThan(
+      0.75
+    );
     expect(quotas['gemini-2.0-flash'].used / quotas['gemini-2.0-flash'].limit).toBeLessThan(0.5);
   });
 });
@@ -416,7 +418,7 @@ describe('Hybrid TTS Integration', () => {
       const costPerRequest = 0.5; // THB
       const savings = psychologySuccessful * costPerRequest;
       const savingsPercent = (psychologySuccessful / totalRequests) * 100;
-      
+
       return { savings, savingsPercent };
     };
 

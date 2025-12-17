@@ -27,6 +27,31 @@ def health_check():
         'version': '1.0.0'
     })
 
+@app.route('/health/detailed', methods=['GET'])
+def detailed_health_check():
+    """Detailed health check endpoint"""
+    import sys
+    import platform
+    
+    return jsonify({
+        'status': 'healthy',
+        'service': 'PyThaiNLP TTS',
+        'version': '1.0.0',
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'available_endpoints': [
+            '/health',
+            '/health/detailed',
+            '/tts',
+            '/voices'
+        ],
+        'capabilities': {
+            'thai_tts': True,
+            'voice_cloning': False,
+            'multiple_voices': False
+        }
+    })
+
 @app.route('/tts', methods=['POST'])
 def text_to_speech():
     """

@@ -21,9 +21,15 @@ const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    clear: () => { store = {}; },
-    removeItem: (key: string) => { delete store[key]; },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    clear: () => {
+      store = {};
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
   };
 })();
 
@@ -50,9 +56,9 @@ describe('deviceManager', () => {
         memory: { total: 32768, available: 16384, used: 16384 },
         platform: 'windows',
       };
-      
+
       const settings = getRecommendedSettings(resources);
-      
+
       expect(settings.device).toBe('cuda');
       expect(settings.executionMode).toBe('local');
     });
@@ -71,9 +77,9 @@ describe('deviceManager', () => {
         memory: { total: 16384, available: 8192, used: 8192 },
         platform: 'macos',
       };
-      
+
       const settings = getRecommendedSettings(resources);
-      
+
       expect(settings.device).toBe('mps');
       expect(settings.executionMode).toBe('local');
     });
@@ -92,9 +98,9 @@ describe('deviceManager', () => {
         memory: { total: 16384, available: 8192, used: 8192 },
         platform: 'linux',
       };
-      
+
       const settings = getRecommendedSettings(resources);
-      
+
       expect(settings.device).toBe('cpu');
       expect(settings.executionMode).toBe('cloud');
     });
@@ -114,9 +120,9 @@ describe('deviceManager', () => {
         memory: { total: 4096, available: 2048, used: 2048 },
         platform: 'windows',
       };
-      
+
       const settings = getRecommendedSettings(lowRAM);
-      
+
       expect(settings.useLowVRAM).toBe(true);
     });
 
@@ -135,9 +141,9 @@ describe('deviceManager', () => {
         memory: { total: 16384, available: 8192, used: 8192 },
         platform: 'windows',
       };
-      
+
       const settings = getRecommendedSettings(resources);
-      
+
       expect(settings).toHaveProperty('device');
       expect(settings).toHaveProperty('executionMode');
       expect(settings).toHaveProperty('cloudProvider');
@@ -157,16 +163,16 @@ describe('deviceManager', () => {
         batchSize: 4,
         preview: true,
       };
-      
+
       saveRenderSettings(settings);
       const loaded = loadRenderSettings();
-      
+
       expect(loaded).toEqual(settings);
     });
 
     it('should return null when no settings saved', () => {
       const loaded = loadRenderSettings();
-      
+
       expect(loaded).toBeNull();
     });
 
@@ -179,7 +185,7 @@ describe('deviceManager', () => {
         batchSize: 1,
         preview: false,
       };
-      
+
       const settings2: RenderSettings = {
         device: 'mps',
         executionMode: 'local',
@@ -188,20 +194,20 @@ describe('deviceManager', () => {
         batchSize: 4,
         preview: true,
       };
-      
+
       saveRenderSettings(settings1);
       saveRenderSettings(settings2);
-      
+
       const loaded = loadRenderSettings();
-      
+
       expect(loaded).toEqual(settings2);
     });
 
     it('should handle corrupted localStorage data', () => {
       localStorage.setItem('renderSettings', 'invalid json');
-      
+
       const loaded = loadRenderSettings();
-      
+
       expect(loaded).toBeNull();
     });
   });
@@ -209,28 +215,28 @@ describe('deviceManager', () => {
   describe('getDeviceDisplayName', () => {
     it('should return display name for CUDA', () => {
       const name = getDeviceDisplayName('cuda');
-      
+
       expect(name).toContain('NVIDIA');
       expect(typeof name).toBe('string');
     });
 
     it('should return display name for MPS', () => {
       const name = getDeviceDisplayName('mps');
-      
+
       expect(name).toContain('Apple');
       expect(typeof name).toBe('string');
     });
 
     it('should return display name for CPU', () => {
       const name = getDeviceDisplayName('cpu');
-      
+
       expect(name).toContain('CPU');
       expect(typeof name).toBe('string');
     });
 
     it('should handle unknown device type', () => {
       const name = getDeviceDisplayName('unknown' as any);
-      
+
       expect(typeof name).toBe('string');
       expect(name.length).toBeGreaterThan(0);
     });
@@ -239,21 +245,21 @@ describe('deviceManager', () => {
   describe('estimateRenderTime', () => {
     it('should estimate time for CUDA device', () => {
       const time = estimateRenderTime('cuda', 10);
-      
+
       expect(typeof time).toBe('string');
       expect(time.length).toBeGreaterThan(0);
     });
 
     it('should estimate time for MPS device', () => {
       const time = estimateRenderTime('mps', 10);
-      
+
       expect(typeof time).toBe('string');
       expect(time.length).toBeGreaterThan(0);
     });
 
     it('should estimate time for CPU device', () => {
       const time = estimateRenderTime('cpu', 10);
-      
+
       expect(typeof time).toBe('string');
       expect(time.length).toBeGreaterThan(0);
     });
@@ -261,20 +267,20 @@ describe('deviceManager', () => {
     it('should scale with image count', () => {
       const time1 = estimateRenderTime('cuda', 5);
       const time2 = estimateRenderTime('cuda', 20);
-      
+
       expect(time1).toBeTruthy();
       expect(time2).toBeTruthy();
     });
 
     it('should handle zero images', () => {
       const time = estimateRenderTime('cuda', 0);
-      
+
       expect(typeof time).toBe('string');
     });
 
     it('should handle large image count', () => {
       const time = estimateRenderTime('mps', 1000);
-      
+
       expect(typeof time).toBe('string');
       expect(time.length).toBeGreaterThan(0);
     });
@@ -283,14 +289,14 @@ describe('deviceManager', () => {
   describe('getCloudProviders', () => {
     it('should return list of cloud providers', () => {
       const providers = getCloudProviders();
-      
+
       expect(Array.isArray(providers)).toBe(true);
       expect(providers.length).toBeGreaterThan(0);
     });
 
     it('should include provider names', () => {
       const providers = getCloudProviders();
-      
+
       providers.forEach(provider => {
         expect(provider).toHaveProperty('name');
         expect(typeof provider.name).toBe('string');
@@ -299,7 +305,7 @@ describe('deviceManager', () => {
 
     it('should include provider metadata', () => {
       const providers = getCloudProviders();
-      
+
       providers.forEach(provider => {
         expect(provider).toHaveProperty('id');
         expect(provider).toHaveProperty('name');
@@ -314,7 +320,7 @@ describe('deviceManager', () => {
       const providers = getCloudProviders();
       const names = providers.map(p => p.name);
       const uniqueNames = new Set(names);
-      
+
       expect(uniqueNames.size).toBe(names.length);
     });
   });
@@ -335,21 +341,21 @@ describe('deviceManager', () => {
         memory: { total: 32768, available: 16384, used: 16384 },
         platform: 'windows',
       };
-      
+
       const recommended = getRecommendedSettings(resources);
       saveRenderSettings(recommended);
       const loaded = loadRenderSettings();
-      
+
       expect(loaded).toEqual(recommended);
     });
 
     it('should work with different device types', () => {
       const devices = ['cuda', 'mps', 'cpu'];
-      
+
       devices.forEach(deviceType => {
         const displayName = getDeviceDisplayName(deviceType as any);
         const estimatedTime = estimateRenderTime(deviceType as any, 10);
-        
+
         expect(displayName).toBeTruthy();
         expect(estimatedTime).toBeTruthy();
       });

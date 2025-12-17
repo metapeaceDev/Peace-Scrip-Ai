@@ -246,14 +246,14 @@ export async function createCheckoutSession(
   } = {}
 ): Promise<{ sessionId: string; url: string }> {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     throw new Error('Stripe is not configured. Please add VITE_STRIPE_SECRET_KEY to environment.');
   }
 
   const pricing = SUBSCRIPTION_PRICES[tier];
   const basePrice = billingCycle === 'monthly' ? pricing.monthlyPrice : pricing.yearlyPrice;
-  
+
   // Apply promo code discount if provided
   let discountCoupon: string | undefined;
   if (metadata.promoCode) {
@@ -287,7 +287,9 @@ export async function createCheckoutSession(
       },
     ],
     discounts: discountCoupon ? [{ coupon: discountCoupon }] : undefined,
-    success_url: options.successUrl || `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url:
+      options.successUrl ||
+      `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: options.cancelUrl || `${window.location.origin}/payment/cancel`,
     metadata: {
       userId: metadata.userId,
@@ -325,7 +327,7 @@ export async function createPaymentIntent(
 
   if (provider === 'stripe') {
     const stripe = getStripeServer();
-    
+
     if (!stripe) {
       throw new Error('Stripe is not configured');
     }
@@ -387,9 +389,12 @@ export async function createPaymentIntent(
  */
 export async function confirmPayment(
   sessionId: string
-): Promise<{ success: boolean; subscription?: { tier: SubscriptionTier; expiresAt: Date; subscriptionId: string } }> {
+): Promise<{
+  success: boolean;
+  subscription?: { tier: SubscriptionTier; expiresAt: Date; subscriptionId: string };
+}> {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     throw new Error('Stripe is not configured');
   }
@@ -406,7 +411,7 @@ export async function confirmPayment(
 
     // Get subscription details
     const subscriptionId = session.subscription as string;
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+    const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as any;
 
     const tier = (session.metadata?.tier as SubscriptionTier) || 'basic';
     const billingCycle = session.metadata?.billingCycle || 'monthly';
@@ -458,14 +463,14 @@ export async function cancelSubscription(
   immediate: boolean = false
 ): Promise<{ success: boolean; endsAt: Date }> {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     throw new Error('Stripe is not configured');
   }
 
   try {
     let subscription: any;
-    
+
     if (immediate) {
       // Cancel immediately
       subscription = await stripe.subscriptions.cancel(stripeSubscriptionId);
@@ -514,15 +519,15 @@ export async function changeSubscription(
   nextBillingDate: Date;
 }> {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     throw new Error('Stripe is not configured');
   }
 
   try {
     // Get current subscription
-    const currentSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId) as any;
-    
+    const currentSubscription = (await stripe.subscriptions.retrieve(stripeSubscriptionId)) as any;
+
     // Get pricing for new tier
     const pricing = SUBSCRIPTION_PRICES[newTier];
     const newPrice = billingCycle === 'monthly' ? pricing.monthlyPrice : pricing.yearlyPrice;
@@ -540,7 +545,7 @@ export async function changeSubscription(
     });
 
     // Update subscription with proration
-    const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
+    const updatedSubscription = (await stripe.subscriptions.update(stripeSubscriptionId, {
       items: [
         {
           id: currentSubscription.items.data[0].id,
@@ -552,12 +557,13 @@ export async function changeSubscription(
         tier: newTier,
         billingCycle,
       },
-    }) as any;
+    })) as any;
 
     // Get upcoming invoice to calculate proration
-    const upcomingInvoice = await stripe.invoices.retrieve(
-      (await stripe.invoices.list({ subscription: stripeSubscriptionId, limit: 1 })).data[0]?.id || ''
-    ) as any;
+    const upcomingInvoice = (await stripe.invoices.retrieve(
+      (await stripe.invoices.list({ subscription: stripeSubscriptionId, limit: 1 })).data[0]?.id ||
+        ''
+    )) as any;
 
     const prorated = upcomingInvoice.amount_due / 100; // Convert from cents
     const nextBillingDate = new Date(updatedSubscription.current_period_end * 1000);
@@ -646,13 +652,13 @@ export function verifyStripeWebhook(
   signature: string
 ): Stripe.Event | null {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     throw new Error('Stripe is not configured');
   }
 
   const webhookSecret = import.meta.env.VITE_STRIPE_WEBHOOK_SECRET;
-  
+
   if (!webhookSecret) {
     console.error('Stripe webhook secret not configured');
     return null;
@@ -681,13 +687,13 @@ export async function handlePaymentWebhook(
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.client_reference_id || session.metadata?.userId;
-      
+
       if (userId && session.subscription) {
         const subscriptionId = session.subscription as string;
         const stripe = getStripeServer();
-        
+
         if (stripe) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as any;
           const tier = (session.metadata?.tier as SubscriptionTier) || 'basic';
           const billingCycle = session.metadata?.billingCycle || 'monthly';
 
@@ -710,12 +716,12 @@ export async function handlePaymentWebhook(
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as any;
       const subscriptionId = invoice.subscription as string;
-      
+
       if (subscriptionId) {
         const stripe = getStripeServer();
-        
+
         if (stripe) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          const subscription = (await stripe.subscriptions.retrieve(subscriptionId)) as any;
           const userId = subscription.metadata?.userId;
 
           if (userId) {
@@ -734,10 +740,10 @@ export async function handlePaymentWebhook(
     case 'invoice.payment_failed': {
       const invoice = event.data.object as any;
       const subscriptionId = invoice.subscription as string;
-      
+
       if (subscriptionId) {
         const stripe = getStripeServer();
-        
+
         if (stripe) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const userId = subscription.metadata?.userId;
@@ -760,9 +766,14 @@ export async function handlePaymentWebhook(
       const userId = subscription.metadata?.userId;
 
       if (userId) {
-        const status = subscription.status === 'active' ? 'active' : 
-                      subscription.status === 'canceled' ? 'canceled' :
-                      subscription.status === 'past_due' ? 'past_due' : 'active';
+        const status =
+          subscription.status === 'active'
+            ? 'active'
+            : subscription.status === 'canceled'
+              ? 'canceled'
+              : subscription.status === 'past_due'
+                ? 'past_due'
+                : 'active';
 
         await updateUserSubscription(userId, {
           status,
@@ -819,7 +830,7 @@ export async function validatePromoCode(code: string): Promise<{
   stripeCouponId?: string;
 }> {
   const stripe = getStripeServer();
-  
+
   if (!stripe) {
     // Fallback to mock codes if Stripe not configured
     const mockPromoCodes: Record<
@@ -869,8 +880,10 @@ export async function validatePromoCode(code: string): Promise<{
     }
 
     // Check redemption limits
-    if (promotionCode.max_redemptions && 
-        promotionCode.times_redeemed >= promotionCode.max_redemptions) {
+    if (
+      promotionCode.max_redemptions &&
+      promotionCode.times_redeemed >= promotionCode.max_redemptions
+    ) {
       return { valid: false };
     }
 

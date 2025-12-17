@@ -97,10 +97,10 @@ describe('LoRASetup', () => {
     it('should toggle checkbox', () => {
       render(<LoRASetup onComplete={mockOnComplete} />);
       const checkbox = screen.getByLabelText(/Auto-check every 10 seconds/i) as HTMLInputElement;
-      
+
       fireEvent.click(checkbox);
       expect(checkbox.checked).toBe(false);
-      
+
       fireEvent.click(checkbox);
       expect(checkbox.checked).toBe(true);
     });
@@ -184,7 +184,9 @@ describe('LoRASetup', () => {
     });
 
     it('should accept onSkip prop', () => {
-      expect(() => render(<LoRASetup onComplete={mockOnComplete} onSkip={mockOnSkip} />)).not.toThrow();
+      expect(() =>
+        render(<LoRASetup onComplete={mockOnComplete} onSkip={mockOnSkip} />)
+      ).not.toThrow();
     });
 
     it('should work without onSkip prop', () => {

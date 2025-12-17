@@ -1,13 +1,13 @@
 /**
  * Video Generation Service
- * 
+ *
  * Comprehensive service for video generation pipeline:
  * - Single shot video generation
  * - Batch processing multiple shots
  * - Video stitching and compilation
  * - Progress tracking and error handling
  * - Queue management for large projects
- * 
+ *
  * @author Peace Script AI Team
  * @version 1.0.0
  */
@@ -44,22 +44,22 @@ export interface VideoGenerationOptions {
   duration?: number;
   frameCount?: number;
   motionStrength?: number;
-  
+
   // 🆕 VIDEO EXTENSION: Sequential Generation Support
-  previousVideo?: string;  // URL of previous video for seamless continuation
-  endFrameInfluence?: number;  // 0-1, strength of last frame influence (default: 0.7)
-  transitionType?: 'seamless' | 'smooth' | 'creative';  // Transition style
-  
+  previousVideo?: string; // URL of previous video for seamless continuation
+  endFrameInfluence?: number; // 0-1, strength of last frame influence (default: 0.7)
+  transitionType?: 'seamless' | 'smooth' | 'creative'; // Transition style
+
   // 🆕 CHARACTER CONSISTENCY: Face ID & LoRA Support
   characterReference?: {
-    faceImage?: string;  // Face reference image (base64 or URL)
-    loraPath?: string;  // Custom LoRA model path
-    loraStrength?: number;  // 0-1 (default: 0.8)
+    faceImage?: string; // Face reference image (base64 or URL)
+    loraPath?: string; // Custom LoRA model path
+    loraStrength?: number; // 0-1 (default: 0.8)
   };
-  
+
   // 🆕 BUDDHIST PSYCHOLOGY INTEGRATION: Character & Scene Context
-  character?: Character;  // Character with emotional state and psychology
-  currentScene?: GeneratedScene;  // Scene context for emotion tracking
+  character?: Character; // Character with emotional state and psychology
+  currentScene?: GeneratedScene; // Scene context for emotion tracking
 }
 
 export interface VideoGenerationProgress {
@@ -74,7 +74,7 @@ export interface VideoGenerationProgress {
 /**
  * Extract last frame from video URL as base64 image
  * Used for seamless video-to-video generation
- * 
+ *
  * @param videoUrl - URL of the video to extract from
  * @returns Base64 encoded PNG image of the last frame
  */
@@ -84,30 +84,30 @@ export async function extractLastFrame(videoUrl: string): Promise<string> {
     video.crossOrigin = 'anonymous';
     video.src = videoUrl;
     video.muted = true;
-    
+
     video.onloadedmetadata = () => {
       // Seek to last frame (0.1s before end to ensure valid frame)
       video.currentTime = Math.max(0, video.duration - 0.1);
     };
-    
+
     video.onseeked = () => {
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 1280;
         canvas.height = video.videoHeight || 720;
-        
+
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           throw new Error('Failed to get canvas context');
         }
-        
+
         // Draw last frame
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert to base64 (without data URL prefix)
         const dataUrl = canvas.toDataURL('image/png');
         const base64 = dataUrl.split(',')[1];
-        
+
         console.log(`✅ Extracted last frame: ${canvas.width}x${canvas.height}`);
         resolve(base64);
       } catch (error) {
@@ -117,11 +117,11 @@ export async function extractLastFrame(videoUrl: string): Promise<string> {
         video.remove();
       }
     };
-    
-    video.onerror = (error) => {
+
+    video.onerror = error => {
       reject(new Error(`Failed to load video: ${error}`));
     };
-    
+
     // Timeout after 10 seconds
     setTimeout(() => {
       reject(new Error('Video frame extraction timed out'));
@@ -183,13 +183,15 @@ export async function generateShotVideo(
     if (options.previousVideo && initImage) {
       // Lower motion strength for smoother transition
       if (options.transitionType === 'seamless') {
-        generationOptions.motionStrength = 0.5;  // Subtle motion
+        generationOptions.motionStrength = 0.5; // Subtle motion
       } else if (options.transitionType === 'smooth') {
-        generationOptions.motionStrength = 0.6;  // Moderate motion
+        generationOptions.motionStrength = 0.6; // Moderate motion
       }
       // 'creative' uses default 0.7
-      
-      console.log(`🎨 Continuity mode: ${options.transitionType || 'smooth'}, motion: ${generationOptions.motionStrength}`);
+
+      console.log(
+        `🎨 Continuity mode: ${options.transitionType || 'smooth'}, motion: ${generationOptions.motionStrength}`
+      );
     }
 
     // 🆕 Pass character consistency options
@@ -204,7 +206,9 @@ export async function generateShotVideo(
       generationOptions.character = options.character;
       generationOptions.currentScene = options.currentScene;
       generationOptions.shotData = shot;
-      console.log(`🧠 Psychology-driven motion: ${options.character.emotionalState?.currentMood || 'neutral'} mood, energy ${options.character.emotionalState?.energyLevel || 50}`);
+      console.log(
+        `🧠 Psychology-driven motion: ${options.character.emotionalState?.currentMood || 'neutral'} mood, energy ${options.character.emotionalState?.energyLevel || 50}`
+      );
     }
 
     // Generate video using existing generateStoryboardVideo function
@@ -244,7 +248,7 @@ export async function generateSceneVideos(
 
   // 🆕 Track last video URL for sequential generation
   let lastVideoUrl: string | undefined;
-  
+
   // 🆕 Track character emotional state across shots
   let currentCharacter = options.character;
 
@@ -261,14 +265,16 @@ export async function generateSceneVideos(
           status: 'generating',
         });
       }
-      
+
       // 🆕 EMOTION CONTINUITY: Update character emotional state for this shot
       if (currentCharacter && options.currentScene) {
         currentCharacter = updateEmotionalState(
           currentCharacter,
           `scene-${scene.sceneNumber}-shot-${i + 1}`
         );
-        console.log(`🎭 Shot ${i + 1} emotion: ${currentCharacter.emotionalState?.currentMood} (energy: ${currentCharacter.emotionalState?.energyLevel})`);
+        console.log(
+          `🎭 Shot ${i + 1} emotion: ${currentCharacter.emotionalState?.currentMood} (energy: ${currentCharacter.emotionalState?.energyLevel})`
+        );
       }
 
       // Find corresponding storyboard image for this shot
@@ -277,18 +283,18 @@ export async function generateSceneVideos(
       // 🆕 SEQUENTIAL GENERATION: Use last video for continuity
       const shotOptions: VideoGenerationOptions = {
         ...options,
-        previousVideo: i > 0 ? lastVideoUrl : undefined,  // Use previous shot's video
-        transitionType: options.transitionType || 'smooth',  // Default to smooth transitions
-        character: currentCharacter,  // ✅ Pass updated character
-        currentScene: options.currentScene,  // ✅ Pass scene context
+        previousVideo: i > 0 ? lastVideoUrl : undefined, // Use previous shot's video
+        transitionType: options.transitionType || 'smooth', // Default to smooth transitions
+        character: currentCharacter, // ✅ Pass updated character
+        currentScene: options.currentScene, // ✅ Pass scene context
       };
 
       // Generate video for this shot
       const videoUrl = await generateShotVideo(
         shot,
         storyboardImage,
-        shotOptions,  // ✅ Pass options with previousVideo
-        (progress) => {
+        shotOptions, // ✅ Pass options with previousVideo
+        progress => {
           if (onProgress) {
             onProgress({
               shotIndex: i,
@@ -325,11 +331,10 @@ export async function generateSceneVideos(
 
       // Small delay between shots to avoid API rate limits
       await new Promise(resolve => setTimeout(resolve, 2000));
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`❌ Failed to generate video for shot ${i}:`, error);
-      
+
       results.failedCount++;
       results.videos.push({
         shotId: `${shot.scene}-shot-${shot.shot}`,
@@ -468,7 +473,7 @@ export async function stitchVideos(
 
     console.log('✅ Video playlist created:', playlistUrl);
     console.log(`📋 Playlist contains ${videoUrls.length} videos`);
-    
+
     // For future implementation with backend:
     // - Send videoUrls to backend FFmpeg service
     // - Backend downloads, stitches, and uploads final video
@@ -489,7 +494,11 @@ export async function stitchVideos(
 export async function generateCompleteMovie(
   scenes: GeneratedScene[],
   options: VideoGenerationOptions = {},
-  onProgress?: (sceneIndex: number, totalScenes: number, shotProgress: VideoGenerationProgress) => void
+  onProgress?: (
+    sceneIndex: number,
+    totalScenes: number,
+    shotProgress: VideoGenerationProgress
+  ) => void
 ): Promise<{
   success: boolean;
   sceneVideos: Array<{
@@ -517,15 +526,11 @@ export async function generateCompleteMovie(
 
     try {
       // Generate videos for all shots in this scene
-      const result = await generateSceneVideos(
-        scene,
-        options,
-        (shotProgress) => {
-          if (onProgress) {
-            onProgress(i, scenes.length, shotProgress);
-          }
+      const result = await generateSceneVideos(scene, options, shotProgress => {
+        if (onProgress) {
+          onProgress(i, scenes.length, shotProgress);
         }
-      );
+      });
 
       sceneVideos.push({
         sceneId: `scene-${scene.sceneNumber}`,
@@ -535,7 +540,6 @@ export async function generateCompleteMovie(
 
       totalDuration += result.totalDuration;
       totalShots += result.videos.length;
-
     } catch (error) {
       console.error(`❌ Failed to process scene ${i}:`, error);
       // Continue with next scene

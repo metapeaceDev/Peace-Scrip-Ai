@@ -221,7 +221,7 @@ describe('PricingPage', () => {
       render(<PricingPage onSelectTier={mockOnSelectTier} />);
       const table = document.querySelector('table');
       expect(table).toBeInTheDocument();
-      
+
       const headers = table?.querySelectorAll('th');
       expect(headers?.length).toBeGreaterThan(4);
     });
@@ -335,9 +335,7 @@ describe('PricingPage', () => {
     it('should style popular tier button differently', () => {
       render(<PricingPage onSelectTier={mockOnSelectTier} currentTier="free" />);
       const buttons = screen.getAllByRole('button');
-      const popularButton = buttons.find(btn => 
-        btn.className.includes('from-cyan-600')
-      );
+      const popularButton = buttons.find(btn => btn.className.includes('from-cyan-600'));
       expect(popularButton).toBeTruthy();
     });
 
@@ -466,7 +464,9 @@ describe('PricingPage', () => {
     it('should handle all tiers as current tier', () => {
       const tiers = ['free', 'basic', 'pro', 'enterprise'] as const;
       tiers.forEach(tier => {
-        const { unmount } = render(<PricingPage onSelectTier={mockOnSelectTier} currentTier={tier} />);
+        const { unmount } = render(
+          <PricingPage onSelectTier={mockOnSelectTier} currentTier={tier} />
+        );
         expect(screen.getByText('✓ CURRENT')).toBeInTheDocument();
         unmount();
       });

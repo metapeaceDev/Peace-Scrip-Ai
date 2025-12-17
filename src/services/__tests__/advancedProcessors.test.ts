@@ -216,10 +216,7 @@ describe('advancedProcessors', () => {
           },
         ];
 
-        const processed = TanhaToUpadana_Escalator.processUpadanas(
-          active_upadanas,
-          new Set()
-        );
+        const processed = TanhaToUpadana_Escalator.processUpadanas(active_upadanas, new Set());
 
         expect(processed).toHaveLength(0); // Removed
       });

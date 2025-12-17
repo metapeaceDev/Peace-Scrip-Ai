@@ -24,7 +24,8 @@ vi.mock('../config/firebase', () => ({
 }));
 
 describe('ImageStorageService', () => {
-  const validBase64Image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const validBase64Image =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   const mockDownloadURL = 'https://storage.googleapis.com/test/image.png';
   const mockStorageRef = { fullPath: 'test/path' };
 
@@ -339,11 +340,11 @@ describe('ImageStorageService', () => {
       mockImage.height = 400;
 
       const promise = imageStorageService.createThumbnail(validBase64Image, 300, 400);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockCanvas.width).toBe(300);
@@ -355,11 +356,11 @@ describe('ImageStorageService', () => {
       mockImage.height = 800;
 
       const promise = imageStorageService.createThumbnail(validBase64Image, 300, 400);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockCanvas.width).toBe(200); // Proportional: 400 * (400/800)
@@ -371,11 +372,11 @@ describe('ImageStorageService', () => {
       mockImage.height = 150;
 
       const promise = imageStorageService.createThumbnail(validBase64Image, 300, 400);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockCanvas.width).toBe(200);
@@ -387,11 +388,11 @@ describe('ImageStorageService', () => {
       mockImage.height = 1000;
 
       const promise = imageStorageService.createThumbnail(validBase64Image, 100, 100);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockCanvas.width).toBe(100);
@@ -400,11 +401,11 @@ describe('ImageStorageService', () => {
 
     it('should draw image on canvas', async () => {
       const promise = imageStorageService.createThumbnail(validBase64Image);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockContext.drawImage).toHaveBeenCalledWith(
@@ -428,7 +429,7 @@ describe('ImageStorageService', () => {
       mockCanvas.getContext = vi.fn(() => null);
 
       const promise = imageStorageService.createThumbnail(validBase64Image);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
@@ -448,11 +449,11 @@ describe('ImageStorageService', () => {
 
     it('should compress thumbnail with 0.7 quality', async () => {
       const promise = imageStorageService.createThumbnail(validBase64Image);
-      
+
       await vi.waitFor(() => {
         if (mockImage.onload) mockImage.onload();
       });
-      
+
       await promise;
 
       expect(mockCanvas.toDataURL).toHaveBeenCalledWith('image/jpeg', 0.7);
@@ -461,11 +462,7 @@ describe('ImageStorageService', () => {
 
   describe('Integration Tests', () => {
     it('should handle complete upload workflow', async () => {
-      const url = await imageStorageService.uploadPosterImage(
-        validBase64Image,
-        'proj-1',
-        'user-1'
-      );
+      const url = await imageStorageService.uploadPosterImage(validBase64Image, 'proj-1', 'user-1');
 
       expect(url).toBe(mockDownloadURL);
       expect(mockRef).toHaveBeenCalled();

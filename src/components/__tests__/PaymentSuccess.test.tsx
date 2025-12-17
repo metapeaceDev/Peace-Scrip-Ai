@@ -132,44 +132,44 @@ describe('PaymentSuccess - Countdown Timer', () => {
 
   it('should decrease countdown after 1 second', () => {
     render(<PaymentSuccess />);
-    
+
     act(() => {
       vi.advanceTimersByTime(1000);
     });
-    
+
     const countdownTexts = screen.getAllByText(/4 วินาที/i);
     expect(countdownTexts.length).toBeGreaterThan(0);
   });
 
   it('should decrease countdown to 3 seconds', () => {
     render(<PaymentSuccess />);
-    
+
     act(() => {
       vi.advanceTimersByTime(2000);
     });
-    
+
     const countdownTexts = screen.getAllByText(/3 วินาที/i);
     expect(countdownTexts.length).toBeGreaterThan(0);
   });
 
   it('should decrease countdown to 2 seconds', () => {
     render(<PaymentSuccess />);
-    
+
     act(() => {
       vi.advanceTimersByTime(3000);
     });
-    
+
     const countdownTexts = screen.getAllByText(/2 วินาที/i);
     expect(countdownTexts.length).toBeGreaterThan(0);
   });
 
   it('should decrease countdown to 1 second', () => {
     render(<PaymentSuccess />);
-    
+
     act(() => {
       vi.advanceTimersByTime(4000);
     });
-    
+
     const countdownTexts = screen.getAllByText(/1 วินาที/i);
     expect(countdownTexts.length).toBeGreaterThan(0);
   });
@@ -209,7 +209,7 @@ describe('PaymentSuccess - User Interaction', () => {
   it('should have clickable email link', () => {
     const { container } = render(<PaymentSuccess />);
     const emailLink = container.querySelector('a[href^="mailto:"]') as HTMLAnchorElement;
-    
+
     expect(emailLink).toBeTruthy();
     expect(emailLink?.href).toContain('metapeaceofficial@gmail.com');
   });
@@ -229,30 +229,30 @@ describe('PaymentSuccess - Auto Redirect', () => {
 
   it('should auto redirect after 5 seconds when no callback', () => {
     render(<PaymentSuccess />);
-    
+
     act(() => {
       vi.advanceTimersByTime(5000);
     });
-    
+
     expect(window.location.href).toBe('/');
   });
 
   it('should call onContinue after countdown when provided', () => {
     const mockOnContinue = vi.fn();
     render(<PaymentSuccess onContinue={mockOnContinue} />);
-    
+
     act(() => {
       vi.advanceTimersByTime(5000);
     });
-    
+
     expect(mockOnContinue).toHaveBeenCalled();
   });
 
   it('should not redirect before countdown ends', () => {
     render(<PaymentSuccess />);
-    
+
     vi.advanceTimersByTime(3000);
-    
+
     expect(window.location.href).not.toBe('/');
   });
 });

@@ -23,7 +23,7 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
   const loadVoices = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await voiceCloningService.listVoices();
       setVoices(result.voices);
@@ -63,12 +63,22 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
 
   const getQualityBadge = (recommendation?: string) => {
     if (recommendation === 'optimal') {
-      return <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">คุณภาพดีเยี่ยม</span>;
+      return (
+        <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">
+          คุณภาพดีเยี่ยม
+        </span>
+      );
     }
     if (recommendation === 'acceptable') {
-      return <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded">ใช้ได้</span>;
+      return (
+        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded">ใช้ได้</span>
+      );
     }
-    return <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">ค่อนข้างสั้น</span>;
+    return (
+      <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">
+        ค่อนข้างสั้น
+      </span>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -78,7 +88,7 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -94,16 +104,19 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 📚 คลังเสียง
               </h2>
-              <p className="text-cyan-100 text-sm mt-1">
-                จัดการเสียงที่คุณโคลนไว้
-              </p>
+              <p className="text-cyan-100 text-sm mt-1">จัดการเสียงที่คุณโคลนไว้</p>
             </div>
             <button
               onClick={onClose}
               className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -147,7 +160,7 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
 
           {!loading && !error && voices.length > 0 && (
             <div className="space-y-3">
-              {voices.map((voice) => (
+              {voices.map(voice => (
                 <div
                   key={voice.voice_id}
                   className={`bg-gray-700 border rounded-lg p-4 transition-all ${
@@ -230,7 +243,9 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-400">
               {voices.length > 0 ? (
-                <>เสียงทั้งหมด: <strong className="text-white">{voices.length}</strong> เสียง</>
+                <>
+                  เสียงทั้งหมด: <strong className="text-white">{voices.length}</strong> เสียง
+                </>
               ) : (
                 <>ยังไม่มีเสียง</>
               )}

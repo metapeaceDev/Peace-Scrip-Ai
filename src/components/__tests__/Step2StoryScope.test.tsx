@@ -37,13 +37,12 @@ vi.mock('./LanguageSwitcher', () => ({
 }));
 
 vi.mock('./RegenerateOptionsModal', () => ({
-  RegenerateOptionsModal: ({ isOpen, onClose }: any) => 
+  RegenerateOptionsModal: ({ isOpen, onClose }: any) =>
     isOpen ? <div>Regenerate Modal</div> : null,
 }));
 
 vi.mock('./TTSSettingsModal', () => ({
-  TTSSettingsModal: ({ isOpen, onClose }: any) => 
-    isOpen ? <div>TTS Settings Modal</div> : null,
+  TTSSettingsModal: ({ isOpen, onClose }: any) => (isOpen ? <div>TTS Settings Modal</div> : null),
 }));
 
 vi.mock('../services/ttsService', () => ({

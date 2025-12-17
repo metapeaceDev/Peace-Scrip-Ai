@@ -51,48 +51,55 @@ export interface Character {
   psychology_timeline?: CharacterPsychologyTimeline;
   // NEW: Speech Pattern & Dialect Configuration
   speechPattern?: {
-    dialect: DialectType;           // ภาษาท้องถิ่น
-    accent: AccentType;             // สำเนียง
+    dialect: DialectType; // ภาษาท้องถิ่น
+    accent: AccentType; // สำเนียง
     formalityLevel: FormalityLevel; // ระดับความเป็นทางการ
     personality: SpeechPersonality; // บุคลิกภาษา
-    customPhrases?: string[];       // คำพูดเฉพาะตัว
-    speechTics?: string[];          // ท่าทางการพูด (เช่น "เนอะ", "นะจ๊ะ")
+    customPhrases?: string[]; // คำพูดเฉพาะตัว
+    speechTics?: string[]; // ท่าทางการพูด (เช่น "เนอะ", "นะจ๊ะ")
   };
-  // NEW: Voice Cloning ID
-  voiceCloneId?: string;            // ID ของเสียงที่โคลนสำหรับตัวละคร
+  // NEW: Voice Cloning ID (Legacy)
+  voiceCloneId?: string; // ID ของเสียงที่โคลนสำหรับตัวละคร (Legacy field)
+  // NEW: Voice Cloning Configuration (Plan C)
+  voiceCloning?: {
+    hasVoiceSample: boolean; // มี voice sample หรือไม่
+    voiceSampleId?: string; // ID ของ voice sample ที่อัพโหลด
+    language?: string; // ภาษาที่ใช้ในการสังเคราะห์เสียง (en, es, fr, de, etc.)
+    temperature?: number; // ความสร้างสรรค์ของเสียง (0.0-1.0)
+  };
 }
 
 // Speech Pattern Types
-export type DialectType = 
-  | 'standard'      // ภาษากลาง
-  | 'isaan'         // อีสาน
-  | 'northern'      // เหนือ
-  | 'southern'      // ใต้
-  | 'central'       // กลาง (ชัดเจน)
-  | 'custom';       // กำหนดเอง
+export type DialectType =
+  | 'standard' // ภาษากลาง
+  | 'isaan' // อีสาน
+  | 'northern' // เหนือ
+  | 'southern' // ใต้
+  | 'central' // กลาง (ชัดเจน)
+  | 'custom'; // กำหนดเอง
 
 export type AccentType =
-  | 'none'          // ไม่มีสำเนียง
-  | 'isaan'         // สำเนียงอีสาน
-  | 'northern'      // สำเนียงเหนือ
-  | 'southern'      // สำเนียงใต้
-  | 'chinese'       // สำเนียงจีน
-  | 'western'       // สำเนียงฝรั่ง
-  | 'custom';       // กำหนดเอง
+  | 'none' // ไม่มีสำเนียง
+  | 'isaan' // สำเนียงอีสาน
+  | 'northern' // สำเนียงเหนือ
+  | 'southern' // สำเนียงใต้
+  | 'chinese' // สำเนียงจีน
+  | 'western' // สำเนียงฝรั่ง
+  | 'custom'; // กำหนดเอง
 
 export type FormalityLevel =
-  | 'formal'        // ทางการ (ครับ/ค่ะ)
-  | 'informal'      // ไม่เป็นทางการ (นะ/จ้ะ)
-  | 'casual'        // สบายๆ (เว้ย/เฮ้ย)
-  | 'slang';        // สแลง
+  | 'formal' // ทางการ (ครับ/ค่ะ)
+  | 'informal' // ไม่เป็นทางการ (นะ/จ้ะ)
+  | 'casual' // สบายๆ (เว้ย/เฮ้ย)
+  | 'slang'; // สแลง
 
 export type SpeechPersonality =
-  | 'polite'        // สุภาพ
-  | 'rude'          // หยาบคาย
-  | 'humorous'      // ตลก
-  | 'serious'       // จริงจัง
-  | 'childlike'     // เด็ก
-  | 'elderly'       // ผู้สูงอายุ
+  | 'polite' // สุภาพ
+  | 'rude' // หยาบคาย
+  | 'humorous' // ตลก
+  | 'serious' // จริงจัง
+  | 'childlike' // เด็ก
+  | 'elderly' // ผู้สูงอายุ
   | 'intellectual'; // ปัญญาชน
 
 // Buddhist Psychology Types (re-exported from digitalMind.ts for convenience)

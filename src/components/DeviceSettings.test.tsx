@@ -88,7 +88,7 @@ describe('DeviceSettings', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     vi.mocked(deviceManager.checkComfyUIHealth).mockResolvedValue(mockHealthy);
     vi.mocked(deviceManager.detectSystemResources).mockResolvedValue(mockResources);
     vi.mocked(deviceManager.loadRenderSettings).mockReturnValue(mockSettings);
@@ -175,7 +175,7 @@ describe('DeviceSettings', () => {
 
       const overlay = document.querySelector('.device-settings-modal-overlay');
       expect(overlay).toBeInTheDocument();
-      
+
       fireEvent.click(overlay!);
 
       await waitFor(() => {
@@ -353,7 +353,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const deviceCards = document.querySelectorAll('.device-card');
-      const selectedCard = Array.from(deviceCards).find(card => 
+      const selectedCard = Array.from(deviceCards).find(card =>
         card.classList.contains('selected')
       );
 
@@ -395,7 +395,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const deviceCards = document.querySelectorAll('.device-card');
-      const unavailableCard = Array.from(deviceCards).find(card => 
+      const unavailableCard = Array.from(deviceCards).find(card =>
         card.textContent?.includes('NVIDIA GPU')
       );
 
@@ -413,7 +413,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const deviceCards = document.querySelectorAll('.device-card');
-      const cpuCard = Array.from(deviceCards).find(card => 
+      const cpuCard = Array.from(deviceCards).find(card =>
         card.textContent?.includes('CPU (Fallback)')
       ) as HTMLElement;
 
@@ -435,7 +435,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const deviceCards = document.querySelectorAll('.device-card');
-      const cudaCard = Array.from(deviceCards).find(card => 
+      const cudaCard = Array.from(deviceCards).find(card =>
         card.textContent?.includes('NVIDIA GPU')
       ) as HTMLElement;
 
@@ -649,7 +649,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const providerCards = document.querySelectorAll('.provider-card');
-      const selectedCard = Array.from(providerCards).find(card => 
+      const selectedCard = Array.from(providerCards).find(card =>
         card.classList.contains('selected')
       );
 
@@ -689,7 +689,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const providerCards = document.querySelectorAll('.provider-card');
-      const firebaseCard = Array.from(providerCards).find(card => 
+      const firebaseCard = Array.from(providerCards).find(card =>
         card.textContent?.includes('Firebase Functions')
       );
 
@@ -727,7 +727,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const providerCards = document.querySelectorAll('.provider-card');
-      const runpodCard = Array.from(providerCards).find(card => 
+      const runpodCard = Array.from(providerCards).find(card =>
         card.textContent?.includes('RunPod')
       ) as HTMLElement;
 
@@ -851,9 +851,7 @@ describe('DeviceSettings', () => {
 
   describe('Error Handling', () => {
     it('should handle health check error gracefully', async () => {
-      vi.mocked(deviceManager.checkComfyUIHealth).mockRejectedValue(
-        new Error('Network error')
-      );
+      vi.mocked(deviceManager.checkComfyUIHealth).mockRejectedValue(new Error('Network error'));
 
       render(<DeviceSettings />);
 
@@ -909,7 +907,7 @@ describe('DeviceSettings', () => {
       fireEvent.click(screen.getByRole('button', { name: /Apple M1 GPU/ }));
 
       const deviceCards = document.querySelectorAll('.device-card');
-      const cpuCard = Array.from(deviceCards).find(card => 
+      const cpuCard = Array.from(deviceCards).find(card =>
         card.textContent?.includes('CPU (Fallback)')
       ) as HTMLElement;
 

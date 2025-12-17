@@ -68,3 +68,24 @@ enable-comfyui.sh
 thai-tts-development/
 .env.test
 test-realtime-sync.html
+
+# Voice Cloning Backend - Generated Files
+backend/voice-cloning/venv-tts/
+backend/voice-cloning/uploads/
+backend/voice-cloning/outputs/
+backend/voice-cloning/models/
+backend/voice-cloning/.python-version
+
+# Voice Cloning - Test Files
+backend/voice-cloning/*test*.wav
+backend/voice-cloning/*sample*.wav
+backend/voice-cloning/server_demo.py
+backend/voice-cloning/server_lite.py
+
+# Archive folder (old documentation)
+archive/
+
+# Temporary test files
+test-upload.html
+start-servers.sh
+start-servers-lite.sh

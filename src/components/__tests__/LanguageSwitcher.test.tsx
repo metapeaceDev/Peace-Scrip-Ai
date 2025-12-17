@@ -45,10 +45,10 @@ describe('LanguageSwitcher', () => {
     it('should toggle language on click', async () => {
       const { setLanguage } = await import('../../i18n/index');
       render(<LanguageSwitcher compact={true} />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(setLanguage).toHaveBeenCalledWith('en');
     });
 
@@ -97,10 +97,10 @@ describe('LanguageSwitcher', () => {
     it('should change language on select', async () => {
       const { setLanguage } = await import('../../i18n/index');
       render(<LanguageSwitcher compact={false} />);
-      
+
       const select = screen.getByRole('combobox');
       fireEvent.change(select, { target: { value: 'en' } });
-      
+
       expect(setLanguage).toHaveBeenCalledWith('en');
     });
 
@@ -140,19 +140,19 @@ describe('LanguageSwitcher', () => {
   describe('Language Change Event', () => {
     it('should setup event listener on mount', () => {
       const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-      
+
       render(<LanguageSwitcher compact={true} />);
-      
+
       expect(addEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
       addEventListenerSpy.mockRestore();
     });
 
     it('should cleanup event listener on unmount', () => {
       const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-      
+
       const { unmount } = render(<LanguageSwitcher compact={true} />);
       unmount();
-      
+
       expect(removeEventListenerSpy).toHaveBeenCalledWith('languageChanged', expect.any(Function));
     });
   });

@@ -15,7 +15,7 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 describe('ErrorBoundary', () => {
   const originalError = console.error;
   const mockSentry = {
-    captureException: vi.fn()
+    captureException: vi.fn(),
   };
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('ErrorBoundary', () => {
     Storage.prototype.clear = vi.fn();
     // Mock indexedDB
     (window as any).indexedDB = {
-      deleteDatabase: vi.fn()
+      deleteDatabase: vi.fn(),
     };
   });
 
@@ -125,7 +125,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const captureCall = mockSentry.captureException.mock.calls[0];
       expect(captureCall[0]).toBeInstanceOf(Error);
       expect(captureCall[1]).toHaveProperty('contexts');
@@ -134,7 +134,7 @@ describe('ErrorBoundary', () => {
 
     it('should not crash if Sentry is not available', () => {
       delete (window as any).Sentry;
-      
+
       expect(() => {
         render(
           <ErrorBoundary>
@@ -203,13 +203,13 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const details = container.querySelector('details');
       expect(details).toBeInTheDocument();
-      
+
       const summary = screen.getByText('Show Stack Trace');
       fireEvent.click(summary);
-      
+
       const stackTrace = container.querySelector('pre');
       expect(stackTrace).toBeInTheDocument();
     });
@@ -231,10 +231,10 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const reloadButton = screen.getByText('Reload Application');
       fireEvent.click(reloadButton);
-      
+
       expect(window.location.reload).toHaveBeenCalled();
     });
 
@@ -244,7 +244,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const reloadButton = screen.getByText('Reload Application');
       expect(reloadButton).toHaveClass('bg-gradient-to-r');
       expect(reloadButton).toHaveClass('from-cyan-600');
@@ -267,10 +267,10 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const clearButton = screen.getByText('Clear Data & Reload');
       fireEvent.click(clearButton);
-      
+
       expect(window.confirm).toHaveBeenCalledWith('This will clear all local data. Are you sure?');
     });
 
@@ -280,10 +280,10 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const clearButton = screen.getByText('Clear Data & Reload');
       fireEvent.click(clearButton);
-      
+
       expect(localStorage.clear).toHaveBeenCalled();
     });
 
@@ -293,10 +293,10 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const clearButton = screen.getByText('Clear Data & Reload');
       fireEvent.click(clearButton);
-      
+
       expect(window.indexedDB.deleteDatabase).toHaveBeenCalledWith('PeaceScriptDB');
     });
 
@@ -306,25 +306,25 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const clearButton = screen.getByText('Clear Data & Reload');
       fireEvent.click(clearButton);
-      
+
       expect(window.location.reload).toHaveBeenCalled();
     });
 
     it('should not clear data if user cancels', () => {
       window.confirm = vi.fn(() => false);
-      
+
       render(
         <ErrorBoundary>
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const clearButton = screen.getByText('Clear Data & Reload');
       fireEvent.click(clearButton);
-      
+
       expect(localStorage.clear).not.toHaveBeenCalled();
       expect(window.location.reload).not.toHaveBeenCalled();
     });
@@ -337,7 +337,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const mainDiv = container.querySelector('.bg-gray-900');
       expect(mainDiv).toBeInTheDocument();
     });
@@ -348,7 +348,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const centerDiv = container.querySelector('.items-center.justify-center');
       expect(centerDiv).toBeInTheDocument();
     });
@@ -359,7 +359,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const fullHeightDiv = container.querySelector('.min-h-screen');
       expect(fullHeightDiv).toBeInTheDocument();
     });
@@ -370,7 +370,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const card = container.querySelector('.rounded-xl');
       expect(card).toBeInTheDocument();
     });
@@ -381,7 +381,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const spaceDiv = container.querySelector('.space-y-3');
       expect(spaceDiv).toBeInTheDocument();
     });
@@ -394,7 +394,7 @@ describe('ErrorBoundary', () => {
           <div>Child</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByText('Child')).toBeInTheDocument();
       expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
     });
@@ -405,7 +405,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       // Error state is set, showing error UI
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
@@ -418,7 +418,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const h1 = screen.getByRole('heading', { level: 1 });
       expect(h1).toHaveTextContent('Something went wrong');
     });
@@ -429,7 +429,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBe(2);
     });
@@ -440,7 +440,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByRole('button', { name: /Reload Application/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Clear Data & Reload/i })).toBeInTheDocument();
     });
@@ -469,7 +469,7 @@ describe('ErrorBoundary', () => {
           <div>Child 3</div>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByText('Child 1')).toBeInTheDocument();
       expect(screen.getByText('Child 2')).toBeInTheDocument();
       expect(screen.getByText('Child 3')).toBeInTheDocument();
@@ -483,7 +483,7 @@ describe('ErrorBoundary', () => {
           </ErrorBoundary>
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByText('Nested Child')).toBeInTheDocument();
     });
 
@@ -497,7 +497,7 @@ describe('ErrorBoundary', () => {
           <SpecialError />
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByText(/Error with <special> & "characters"/)).toBeInTheDocument();
     });
   });
@@ -506,11 +506,11 @@ describe('ErrorBoundary', () => {
     it('should return proper state object', () => {
       const error = new Error('Test error');
       const state = ErrorBoundary.getDerivedStateFromError(error);
-      
+
       expect(state).toEqual({
         hasError: true,
         error: error,
-        errorInfo: null
+        errorInfo: null,
       });
     });
   });
@@ -522,8 +522,10 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
-      expect(screen.getByText(/An unexpected error occurred in the application/)).toBeInTheDocument();
+
+      expect(
+        screen.getByText(/An unexpected error occurred in the application/)
+      ).toBeInTheDocument();
     });
 
     it('should provide guidance on what to do', () => {
@@ -532,7 +534,7 @@ describe('ErrorBoundary', () => {
           <ThrowError shouldThrow={true} />
         </ErrorBoundary>
       );
-      
+
       expect(screen.getByText(/Try reloading the application/)).toBeInTheDocument();
     });
   });

@@ -1,45 +1,52 @@
 # Voice Cloning Integration in Character Speech Pattern
 
 ## 📋 Overview
+
 เพิ่มฟีเจอร์ Voice Cloning เข้าไปในส่วน Character Configuration → Speech Pattern เพื่อให้ผู้ใช้สามารถอัพโหลดเสียงของตัวเองและโคลนเป็นเสียงตัวละครได้
 
 ## ✅ Implementation Summary
 
 ### 1. **Type Definitions** (`types.ts`)
+
 เพิ่ม `voiceCloneId` field ใน Character interface:
+
 ```typescript
 export interface Character {
   // ... existing fields ...
-  
+
   // NEW: Voice Cloning ID
-  voiceCloneId?: string;  // ID ของเสียงที่โคลนสำหรับตัวละคร
+  voiceCloneId?: string; // ID ของเสียงที่โคลนสำหรับตัวละคร
 }
 ```
 
 ### 2. **Component Integration** (`Step3Character.tsx`)
 
 #### Imports Added:
+
 ```typescript
 import { VoiceUploadModal } from './VoiceUploadModal';
 ```
 
 #### States Added:
+
 ```typescript
 const [isVoiceUploadModalOpen, setIsVoiceUploadModalOpen] = useState(false);
 ```
 
 #### Handler Function:
+
 ```typescript
 const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
   if (onRegisterUndo) onRegisterUndo();
-  updateCharacterAtIndex(activeCharIndex, { 
-    voiceCloneId: voiceId 
+  updateCharacterAtIndex(activeCharIndex, {
+    voiceCloneId: voiceId,
   });
   setIsVoiceUploadModalOpen(false);
 };
 ```
 
 #### UI Components:
+
 - **Voice Upload Modal**: Renders VoiceUploadModal component
 - **Voice Cloning Section**: แสดงใน Speech Pattern tab
   - ปุ่ม "อัพโหลดเสียง" (Upload Voice)
@@ -51,6 +58,7 @@ const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
 ### 3. **UI/UX Features**
 
 #### Voice Cloning Section Design:
+
 ```
 ┌─────────────────────────────────────────────┐
 │ 🎙️ Voice Cloning              [➕ อัพโหลดเสียง] │
@@ -74,10 +82,11 @@ const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
 ```
 
 #### Visual Hierarchy:
+
 - **Gradient Background**: Purple-pink gradient (`from-purple-900/30 to-pink-900/20`)
 - **Border**: Purple border (`border-purple-500/30`)
 - **Icons**: 🎙️ microphone emoji for voice-related features
-- **Color Scheme**: 
+- **Color Scheme**:
   - Purple accent for voice cloning
   - Cyan for tips/info
   - Red for delete action
@@ -85,6 +94,7 @@ const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
 ### 4. **Integration Points**
 
 #### Location in UI:
+
 ```
 Step 3: Character Configuration
   └─ External Tab
@@ -99,6 +109,7 @@ Step 3: Character Configuration
 ```
 
 #### Data Flow:
+
 ```
 User → Upload Voice Button
      → VoiceUploadModal Opens
@@ -133,32 +144,33 @@ User → Upload Voice Button
 
 ### ✅ Completed Features
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Type Definition | ✅ | Added `voiceCloneId` to Character interface |
-| State Management | ✅ | Added modal state and handlers |
-| VoiceUploadModal Integration | ✅ | Connected modal with proper callbacks |
-| UI Section | ✅ | Created voice cloning section in Speech Pattern |
-| Upload Button | ✅ | Purple button with icon |
-| Voice Display | ✅ | Shows selected voice ID |
-| Remove Voice | ✅ | Red button to clear voiceCloneId |
-| Empty State | ✅ | Placeholder when no voice selected |
-| Help Text | ✅ | Usage instructions with icon |
-| Undo Support | ✅ | Integrated with onRegisterUndo |
+| Feature                      | Status | Description                                     |
+| ---------------------------- | ------ | ----------------------------------------------- |
+| Type Definition              | ✅     | Added `voiceCloneId` to Character interface     |
+| State Management             | ✅     | Added modal state and handlers                  |
+| VoiceUploadModal Integration | ✅     | Connected modal with proper callbacks           |
+| UI Section                   | ✅     | Created voice cloning section in Speech Pattern |
+| Upload Button                | ✅     | Purple button with icon                         |
+| Voice Display                | ✅     | Shows selected voice ID                         |
+| Remove Voice                 | ✅     | Red button to clear voiceCloneId                |
+| Empty State                  | ✅     | Placeholder when no voice selected              |
+| Help Text                    | ✅     | Usage instructions with icon                    |
+| Undo Support                 | ✅     | Integrated with onRegisterUndo                  |
 
 ### 🔄 Pending Features
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Voice Preview | ⏳ | Play sample of cloned voice |
-| Voice Library | ⏳ | Show all uploaded voices |
-| Backend Integration | ⏳ | Connect to voice cloning server |
-| TTS Integration | ⏳ | Use cloned voice in dialogue generation |
-| Multi-language Support | ⏳ | Support for multiple languages |
+| Feature                | Status | Description                             |
+| ---------------------- | ------ | --------------------------------------- |
+| Voice Preview          | ⏳     | Play sample of cloned voice             |
+| Voice Library          | ⏳     | Show all uploaded voices                |
+| Backend Integration    | ⏳     | Connect to voice cloning server         |
+| TTS Integration        | ⏳     | Use cloned voice in dialogue generation |
+| Multi-language Support | ⏳     | Support for multiple languages          |
 
 ## 🎨 UI Components
 
 ### Voice Cloning Section
+
 ```typescript
 <div className="mt-8 p-6 bg-gradient-to-br from-purple-900/30 to-pink-900/20 rounded-lg border border-purple-500/30">
   <div className="flex items-center justify-between mb-4">
@@ -173,14 +185,14 @@ User → Upload Voice Button
       ➕ อัพโหลดเสียง
     </button>
   </div>
-  
+
   {/* Voice Status Display */}
   {activeCharacter.voiceCloneId ? (
     /* Selected Voice Card */
   ) : (
     /* Empty State */
   )}
-  
+
   {/* Help Text */}
   <div className="mt-4 p-3 bg-cyan-900/10">
     💡 คำแนะนำ: อัพโหลดไฟล์เสียง 15-20 วินาที...
@@ -189,6 +201,7 @@ User → Upload Voice Button
 ```
 
 ### VoiceUploadModal
+
 ```typescript
 <VoiceUploadModal
   isOpen={isVoiceUploadModalOpen}
@@ -202,6 +215,7 @@ User → Upload Voice Button
 ### File Changes
 
 #### Modified Files:
+
 1. **`types.ts`**
    - Added `voiceCloneId?: string` to Character interface
    - Line: ~57
@@ -214,6 +228,7 @@ User → Upload Voice Button
    - Lines: ~17, ~165, ~867-877, ~1838-1912
 
 ### Dependencies:
+
 - ✅ VoiceUploadModal component (already exists)
 - ✅ voiceCloningService (already exists)
 - ✅ voice-cloning types (already exists)
@@ -223,6 +238,7 @@ User → Upload Voice Button
 ### For Full Integration:
 
 1. **Start Voice Cloning Backend**
+
    ```bash
    cd backend/voice-cloning
    pip install -r requirements.txt
@@ -255,10 +271,10 @@ User → Upload Voice Button
 ```typescript
 // Character with voice cloning
 const character: Character = {
-  id: "char-001",
-  name: "นายเอ",
-  role: "Protagonist",
-  
+  id: 'char-001',
+  name: 'นายเอ',
+  role: 'Protagonist',
+
   // Speech pattern configuration
   speechPattern: {
     dialect: 'central',
@@ -266,12 +282,12 @@ const character: Character = {
     formalityLevel: 'informal',
     personality: 'polite',
     speechTics: ['นะ', 'จ้า'],
-    customPhrases: ['สวัสดีครับ', 'ไม่เป็นไรครับ']
+    customPhrases: ['สวัสดีครับ', 'ไม่เป็นไรครับ'],
   },
-  
+
   // Voice cloning ID
-  voiceCloneId: 'voice_abc123def456',  // ⭐ NEW FIELD
-  
+  voiceCloneId: 'voice_abc123def456', // ⭐ NEW FIELD
+
   // ... other fields
 };
 ```
@@ -302,6 +318,7 @@ const character: Character = {
 ## ✨ Summary
 
 เพิ่ม Voice Cloning feature เข้าไปใน Character Speech Pattern สำเร็จ! ผู้ใช้สามารถ:
+
 - ✅ อัพโหลดเสียงของตัวเอง
 - ✅ เลือกเสียงสำหรับตัวละคร
 - ✅ ลบเสียงได้
@@ -310,6 +327,7 @@ const character: Character = {
 Ready for testing! 🎉
 
 ---
+
 **Created**: 17 ธันวาคม 2568  
 **Version**: 1.0  
 **Status**: ✅ Implementation Complete, Ready for Testing

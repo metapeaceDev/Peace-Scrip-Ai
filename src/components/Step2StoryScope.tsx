@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { ScriptData } from '../../types';
 import { generateBoundary } from '../services/geminiService';
@@ -15,13 +14,41 @@ interface Step2StoryScopeProps {
   onRegisterUndo?: () => void;
 }
 
-const InputField: React.FC<{ label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; isTextArea?: boolean; placeholder?: string; onFocus?: () => void }> = ({ label, name, value, onChange, isTextArea = false, placeholder, onFocus }) => (
+const InputField: React.FC<{
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  isTextArea?: boolean;
+  placeholder?: string;
+  onFocus?: () => void;
+}> = ({ label, name, value, onChange, isTextArea = false, placeholder, onFocus }) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-300 mb-2">
+      {label}
+    </label>
     {isTextArea ? (
-      <textarea id={name} name={name} value={value} onChange={onChange} onFocus={onFocus} rows={2} className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500" placeholder={placeholder}></textarea>
+      <textarea
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        rows={2}
+        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        placeholder={placeholder}
+      ></textarea>
     ) : (
-      <input type="text" id={name} name={name} value={value} onChange={onChange} onFocus={onFocus} className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500" placeholder={placeholder} />
+      <input
+        type="text"
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        placeholder={placeholder}
+      />
     )}
   </div>
 );
@@ -37,10 +64,23 @@ const InputFieldWithRegenerate: React.FC<{
   onRegenerate: () => void;
   isGenerating?: boolean;
   showRegenerate?: boolean;
-}> = ({ label, name, value, onChange, isTextArea = false, placeholder, onFocus, onRegenerate, isGenerating = false, showRegenerate = true }) => (
+}> = ({
+  label,
+  name,
+  value,
+  onChange,
+  isTextArea = false,
+  placeholder,
+  onFocus,
+  onRegenerate,
+  isGenerating = false,
+  showRegenerate = true,
+}) => (
   <div>
     <div className="flex items-center justify-between mb-2">
-      <label htmlFor={name} className="block text-sm font-medium text-gray-300">{label}</label>
+      <label htmlFor={name} className="block text-sm font-medium text-gray-300">
+        {label}
+      </label>
       {showRegenerate && (
         <button
           onClick={onRegenerate}
@@ -49,7 +89,12 @@ const InputFieldWithRegenerate: React.FC<{
           title="Regenerate this field"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
           </svg>
           <span>Regenerate</span>
         </button>
@@ -81,7 +126,13 @@ const InputFieldWithRegenerate: React.FC<{
   </div>
 );
 
-const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScriptData, nextStep, prevStep, onRegisterUndo }) => {
+const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
+  scriptData,
+  updateScriptData,
+  nextStep,
+  prevStep,
+  onRegisterUndo,
+}) => {
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +144,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
   const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set());
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  
+
   // TTS Settings
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
   const [ttsSettings, setTtsSettings] = useState<TTSSettings>(() => {
@@ -102,7 +153,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        
+
         // Validate: If engine requires API key but key is missing, fall back to browser
         if (parsed.engine === 'google' && !parsed.googleApiKey) {
           console.warn('⚠️ Google TTS selected but no API key - falling back to browser');
@@ -120,7 +171,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
           console.warn('⚠️ AWS Polly is disabled - falling back to browser');
           parsed.engine = 'browser';
         }
-        
+
         return parsed;
       } catch (e) {
         console.error('Failed to parse TTS settings:', e);
@@ -141,9 +192,9 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       const voices = window.speechSynthesis.getVoices();
       console.log('🔊 Available voices:', voices.length);
     };
-    
+
     loadVoices();
-    
+
     // Some browsers load voices asynchronously
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -158,7 +209,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ [e.target.name]: e.target.value });
   };
-  
+
   const handleTimelineChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateScriptData({ timeline: { ...scriptData.timeline, [e.target.name]: e.target.value } });
   };
@@ -182,7 +233,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     // Build story content
     const isThai = scriptData.language === 'Thai';
     const segments: string[] = [];
-    
+
     if (scriptData.title) {
       segments.push(`${isThai ? 'ชื่อเรื่อง' : 'Title'}: ${scriptData.title}`);
     }
@@ -203,7 +254,11 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     }
 
     if (segments.length === 0) {
-      alert(isThai ? 'ไม่มีเนื้อหาให้อ่าน กรุณากด Generate AI ก่อน' : 'No content to read. Please generate content first.');
+      alert(
+        isThai
+          ? 'ไม่มีเนื้อหาให้อ่าน กรุณากด Generate AI ก่อน'
+          : 'No content to read. Please generate content first.'
+      );
       return;
     }
 
@@ -233,7 +288,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
   const handleSaveTtsSettings = (settings: TTSSettings) => {
     // Validate before saving
     const validatedSettings = { ...settings };
-    
+
     // If engine requires API key but key is missing, fall back to browser
     if (settings.engine === 'google' && !settings.googleApiKey) {
       alert('⚠️ Google TTS requires API key. Falling back to Browser TTS.');
@@ -251,7 +306,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       alert('⚠️ AWS Polly is disabled for security. Falling back to Browser TTS.');
       validatedSettings.engine = 'browser';
     }
-    
+
     setTtsSettings(validatedSettings);
     localStorage.setItem('ttsSettings', JSON.stringify(validatedSettings));
     setTtsSettingsOpen(false);
@@ -291,18 +346,20 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
     if (!fieldName) return;
 
     if (onRegisterUndo) onRegisterUndo();
-    
+
     // Add field to generating set
     setGeneratingFields(prev => new Set(prev).add(fieldName));
     if (fieldName === 'all') setIsGenerating(true);
     setError(null);
 
     try {
-      console.log(`🧠 Regenerating ${fieldName} with mode: ${mode}, language: ${scriptData.language}`);
-      
+      console.log(
+        `🧠 Regenerating ${fieldName} with mode: ${mode}, language: ${scriptData.language}`
+      );
+
       // Create context based on mode
       let contextData = { ...scriptData };
-      
+
       if (mode === 'fresh') {
         // Fresh Start: Reset the field(s) being regenerated
         if (fieldName === 'all') {
@@ -345,13 +402,15 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
         }
       }
       // For 'refine' and 'use-edited', use current data as-is
-      
+
       const result = await generateBoundary(
-        contextData, 
-        mode, 
-        fieldName === 'all' ? undefined : (fieldName as 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline')
+        contextData,
+        mode,
+        fieldName === 'all'
+          ? undefined
+          : (fieldName as 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline')
       );
-      
+
       // Update only the requested field(s)
       if (fieldName === 'all') {
         updateScriptData({
@@ -367,7 +426,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             social: result.timeline?.social || scriptData.timeline.social,
             economist: result.timeline?.economist || scriptData.timeline.economist,
             environment: result.timeline?.environment || scriptData.timeline.environment,
-          }
+          },
         });
       } else if (fieldName === 'timeline') {
         updateScriptData({
@@ -378,14 +437,14 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             social: result.timeline?.social || scriptData.timeline.social,
             economist: result.timeline?.economist || scriptData.timeline.economist,
             environment: result.timeline?.environment || scriptData.timeline.environment,
-          }
+          },
         });
       } else {
         updateScriptData({
           [fieldName]: (result as any)[fieldName] || (scriptData as any)[fieldName],
         });
       }
-      
+
       setError(null);
     } catch (err) {
       console.error(`Failed to regenerate ${fieldName}:`, err);
@@ -418,26 +477,51 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
           onClick={handleGenerate}
           disabled={isGenerating || !scriptData.mainGenre}
           className={`px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center gap-2 ${
-            isGenerating 
-              ? 'bg-gray-600 cursor-not-allowed' 
+            isGenerating
+              ? 'bg-gray-600 cursor-not-allowed'
               : !scriptData.mainGenre
-              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
+                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
           }`}
           title={!scriptData.mainGenre ? t('step2.selectGenreFirst') : t('step2.generateButton')}
         >
           {isGenerating ? (
             <>
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               <span>{t('step2.generating')}</span>
             </>
           ) : (
             <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>{t('step2.generateButton')}</span>
             </>
@@ -454,16 +538,32 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       {isGenerating && (
         <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500 rounded-lg">
           <div className="flex items-start gap-3">
-            <svg className="animate-spin h-5 w-5 text-purple-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin h-5 w-5 text-purple-400 mt-0.5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             <div className="text-sm text-purple-300">
               <p className="font-bold mb-1">{t('step2.aiAnalyzing')}</p>
               <p className="text-xs text-purple-400">
-                • {t('step2.aiDetails.analyzingGenre')} {scriptData.mainGenre}<br/>
-                • {t('step2.aiDetails.analyzingType')} {scriptData.projectType}<br/>
-                • {t('step2.aiDetails.creating')}
+                • {t('step2.aiDetails.analyzingGenre')} {scriptData.mainGenre}
+                <br />• {t('step2.aiDetails.analyzingType')} {scriptData.projectType}
+                <br />• {t('step2.aiDetails.creating')}
               </p>
             </div>
           </div>
@@ -476,23 +576,43 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
         <div className="lg:col-span-1">
           <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sticky top-4">
             <h3 className="text-lg font-semibold text-gray-200 mb-3 flex items-center gap-2">
-              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-5 h-5 text-cyan-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               Movie Poster
             </h3>
             <div className="aspect-[2/3] bg-gray-900/50 border-2 border-dashed border-gray-600 rounded-lg overflow-hidden">
               {scriptData.posterImage ? (
-                <img 
-                  src={scriptData.posterImage} 
-                  alt="Movie Poster" 
+                <img
+                  src={scriptData.posterImage}
+                  alt="Movie Poster"
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm text-center p-4">
                   <div>
-                    <svg className="w-12 h-12 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg
+                      className="w-12 h-12 mx-auto mb-2 text-gray-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
                     </svg>
                     <p>Generate poster in Step 1</p>
                   </div>
@@ -502,7 +622,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             <div className="mt-3 text-xs text-gray-500 text-center">
               From Step 1: Genre, story line to be told
             </div>
-            
+
             {/* Voice Reading Button */}
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
@@ -513,8 +633,18 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                   title="TTS Settings"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -525,27 +655,48 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                     ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg'
                     : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg'
                 }`}
-                title={isReading ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Read Story Aloud'}
+                title={
+                  isReading ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Read Story Aloud'
+                }
               >
                 {isReading && !isPaused ? (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span>Pause Reading</span>
                   </>
                 ) : isPaused ? (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span>Resume Reading</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <span>Read Story</span>
                   </>
@@ -560,7 +711,9 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                 </button>
               )}
               <p className="mt-2 text-xs text-gray-500 text-center">
-                {ttsSettings.engine === 'browser' ? 'Using Browser TTS' : `Using ${ttsSettings.engine.toUpperCase()} TTS`}
+                {ttsSettings.engine === 'browser'
+                  ? 'Using Browser TTS'
+                  : `Using ${ttsSettings.engine.toUpperCase()} TTS`}
               </p>
             </div>
           </div>
@@ -568,8 +721,14 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
 
         {/* RIGHT COLUMN: Story Details */}
         <div className="lg:col-span-2 space-y-6">
-          <InputField label={t('step2.fields.title')} name="title" value={scriptData.title} onChange={handleChange} onFocus={handleFocus} />
-          
+          <InputField
+            label={t('step2.fields.title')}
+            name="title"
+            value={scriptData.title}
+            onChange={handleChange}
+            onFocus={handleFocus}
+          />
+
           <InputFieldWithRegenerate
             label={t('step2.fields.bigIdea')}
             name="bigIdea"
@@ -581,7 +740,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             onRegenerate={() => handleRegenerateField('bigIdea', 'Big Idea')}
             isGenerating={generatingFields.has('bigIdea')}
           />
-          
+
           <InputFieldWithRegenerate
             label={t('step2.fields.premise')}
             name="premise"
@@ -593,13 +752,16 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             onRegenerate={() => handleRegenerateField('premise', 'Premise')}
             isGenerating={generatingFields.has('premise')}
           />
-          
+
           {/* ⭐ THEME - MOST IMPORTANT (Minimal Design) */}
           <div className="relative">
             <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
             <div className="pl-4">
               <div className="flex items-center justify-between mb-2">
-                <label htmlFor="theme" className="block text-sm font-bold text-amber-400 flex items-center gap-2">
+                <label
+                  htmlFor="theme"
+                  className="block text-sm font-bold text-amber-400 flex items-center gap-2"
+                >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
@@ -613,18 +775,23 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                   title="Regenerate Theme"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
                   <span>Regenerate</span>
                 </button>
               </div>
-              <textarea 
-                id="theme" 
-                name="theme" 
-                value={scriptData.theme} 
-                onChange={handleChange} 
-                onFocus={handleFocus} 
-                rows={3} 
+              <textarea
+                id="theme"
+                name="theme"
+                value={scriptData.theme}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                rows={3}
                 className="w-full bg-gray-700 border-2 border-amber-500/40 focus:border-amber-500 rounded-md py-3 px-4 text-white focus:ring-2 focus:ring-amber-500/50 placeholder-gray-500"
                 placeholder={t('step2.fields.themePlaceholder')}
               ></textarea>
@@ -633,7 +800,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
               </p>
             </div>
           </div>
-          
+
           <InputFieldWithRegenerate
             label={t('step2.fields.logLine')}
             name="logLine"
@@ -653,8 +820,18 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       <div className="mb-6 p-6 bg-gray-800/30 border border-gray-700 rounded-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
-            <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-5 h-5 text-cyan-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             {t('step2.fields.timeline')}
           </h3>
@@ -665,18 +842,59 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             title="Regenerate Timeline"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             <span>Regenerate</span>
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField label={t('step2.fields.movieTiming')} name="movieTiming" value={scriptData.timeline.movieTiming} onChange={handleTimelineChange} onFocus={handleFocus} />
-          <InputField label={t('step2.fields.seasons')} name="seasons" value={scriptData.timeline.seasons} onChange={handleTimelineChange} onFocus={handleFocus} />
-          <InputField label={t('step2.fields.date')} name="date" value={scriptData.timeline.date} onChange={handleTimelineChange} onFocus={handleFocus} />
-          <InputField label={t('step2.fields.social')} name="social" value={scriptData.timeline.social} onChange={handleTimelineChange} onFocus={handleFocus} />
-          <InputField label={t('step2.fields.economist')} name="economist" value={scriptData.timeline.economist} onChange={handleTimelineChange} onFocus={handleFocus} />
-          <InputField label={t('step2.fields.environment')} name="environment" value={scriptData.timeline.environment} onChange={handleTimelineChange} onFocus={handleFocus} />
+          <InputField
+            label={t('step2.fields.movieTiming')}
+            name="movieTiming"
+            value={scriptData.timeline.movieTiming}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
+          <InputField
+            label={t('step2.fields.seasons')}
+            name="seasons"
+            value={scriptData.timeline.seasons}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
+          <InputField
+            label={t('step2.fields.date')}
+            name="date"
+            value={scriptData.timeline.date}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
+          <InputField
+            label={t('step2.fields.social')}
+            name="social"
+            value={scriptData.timeline.social}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
+          <InputField
+            label={t('step2.fields.economist')}
+            name="economist"
+            value={scriptData.timeline.economist}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
+          <InputField
+            label={t('step2.fields.environment')}
+            name="environment"
+            value={scriptData.timeline.environment}
+            onChange={handleTimelineChange}
+            onFocus={handleFocus}
+          />
         </div>
       </div>
 
@@ -684,8 +902,18 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       <div className="mb-6 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-200 flex items-center gap-2">
-            <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <svg
+              className="w-6 h-6 text-cyan-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
             </svg>
             Synopsis
           </h3>
@@ -696,12 +924,17 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             title="Regenerate Synopsis"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             <span>Regenerate</span>
           </button>
         </div>
-        
+
         <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-5">
           {scriptData.synopsis ? (
             <div className="prose prose-invert max-w-none space-y-4">
@@ -709,42 +942,62 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
               {(() => {
                 const acts = scriptData.synopsis.split(/ACT [123]/i);
                 const hasActStructure = scriptData.synopsis.match(/ACT [123]/i);
-                
+
                 if (hasActStructure) {
                   // Display with 3-Act structure
-                  const actMatches = scriptData.synopsis.matchAll(/ACT ([123])\s*\(([^)]+)\):\s*([^A]*?)(?=ACT [123]|$)/gi);
+                  const actMatches = scriptData.synopsis.matchAll(
+                    /ACT ([123])\s*\(([^)]+)\):\s*([^A]*?)(?=ACT [123]|$)/gi
+                  );
                   const parsedActs = Array.from(actMatches);
-                  
+
                   if (parsedActs.length > 0) {
                     return parsedActs.map((match, index) => {
                       const actNumber = match[1];
                       const actName = match[2].trim();
                       const actContent = match[3].trim();
-                      
+
                       const actColors = [
-                        { bg: 'bg-cyan-900/20', border: 'border-cyan-500/30', text: 'text-cyan-400', icon: '🎬' },
-                        { bg: 'bg-purple-900/20', border: 'border-purple-500/30', text: 'text-purple-400', icon: '⚡' },
-                        { bg: 'bg-green-900/20', border: 'border-green-500/30', text: 'text-green-400', icon: '🎯' }
+                        {
+                          bg: 'bg-cyan-900/20',
+                          border: 'border-cyan-500/30',
+                          text: 'text-cyan-400',
+                          icon: '🎬',
+                        },
+                        {
+                          bg: 'bg-purple-900/20',
+                          border: 'border-purple-500/30',
+                          text: 'text-purple-400',
+                          icon: '⚡',
+                        },
+                        {
+                          bg: 'bg-green-900/20',
+                          border: 'border-green-500/30',
+                          text: 'text-green-400',
+                          icon: '🎯',
+                        },
                       ];
                       const color = actColors[parseInt(actNumber) - 1] || actColors[0];
-                      
+
                       return (
-                        <div key={index} className={`border-l-4 ${color.border} ${color.bg} pl-4 pr-3 py-3 rounded-r`}>
+                        <div
+                          key={index}
+                          className={`border-l-4 ${color.border} ${color.bg} pl-4 pr-3 py-3 rounded-r`}
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-xl">{color.icon}</span>
-                            <h4 className={`font-bold ${color.text} text-sm uppercase tracking-wide`}>
+                            <h4
+                              className={`font-bold ${color.text} text-sm uppercase tracking-wide`}
+                            >
                               ACT {actNumber}: {actName}
                             </h4>
                           </div>
-                          <p className="text-gray-300 leading-relaxed text-justify">
-                            {actContent}
-                          </p>
+                          <p className="text-gray-300 leading-relaxed text-justify">{actContent}</p>
                         </div>
                       );
                     });
                   }
                 }
-                
+
                 // Fallback: Display as single paragraph if no ACT structure detected
                 return (
                   <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-justify">
@@ -755,21 +1008,44 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <svg className="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-16 h-16 mx-auto mb-3 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               <p className="text-sm">Click &quot;Generate AI&quot; button to create synopsis</p>
-              <p className="text-xs mt-2 text-gray-600">Synopsis will be generated from Title, Big Idea, Premise, Theme, Log Line, and Timeline</p>
+              <p className="text-xs mt-2 text-gray-600">
+                Synopsis will be generated from Title, Big Idea, Premise, Theme, Log Line, and
+                Timeline
+              </p>
             </div>
           )}
         </div>
-        
+
         {/* Edit Synopsis Button */}
         <div className="mt-4">
           <details className="group">
             <summary className="cursor-pointer text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-2">
-              <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-4 h-4 transition-transform group-open:rotate-90"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
               Edit Synopsis Manually
             </summary>
@@ -784,7 +1060,8 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
                 placeholder="Write or edit your synopsis here..."
               ></textarea>
               <p className="mt-2 text-xs text-gray-500">
-                💡 Tip: A good synopsis should be 3-5 paragraphs, covering the beginning, middle, and end of your story.
+                💡 Tip: A good synopsis should be 3-5 paragraphs, covering the beginning, middle,
+                and end of your story.
               </p>
             </div>
           </details>
@@ -792,10 +1069,16 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
       </div>
 
       <div className="mt-8 flex justify-between">
-        <button onClick={prevStep} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+        <button
+          onClick={prevStep}
+          className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
+        >
           {t('step2.actions.back')}
         </button>
-        <button onClick={nextStep} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+        <button
+          onClick={nextStep}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
+        >
           {t('step2.actions.next')}
         </button>
       </div>
@@ -808,9 +1091,22 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
         sceneName={regenerateModal.fieldLabel}
         hasEdits={
           regenerateModal.fieldName === 'all'
-            ? !!(scriptData.bigIdea || scriptData.premise || scriptData.theme || scriptData.logLine || scriptData.synopsis)
+            ? !!(
+                scriptData.bigIdea ||
+                scriptData.premise ||
+                scriptData.theme ||
+                scriptData.logLine ||
+                scriptData.synopsis
+              )
             : regenerateModal.fieldName === 'timeline'
-              ? !!(scriptData.timeline.movieTiming || scriptData.timeline.seasons || scriptData.timeline.date || scriptData.timeline.social || scriptData.timeline.economist || scriptData.timeline.environment)
+              ? !!(
+                  scriptData.timeline.movieTiming ||
+                  scriptData.timeline.seasons ||
+                  scriptData.timeline.date ||
+                  scriptData.timeline.social ||
+                  scriptData.timeline.economist ||
+                  scriptData.timeline.environment
+                )
               : !!(scriptData as any)[regenerateModal.fieldName || '']
         }
       />
@@ -828,4 +1124,3 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({ scriptData, updateScr
 };
 
 export default Step2StoryScope;
-

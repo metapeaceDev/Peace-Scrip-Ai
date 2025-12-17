@@ -44,7 +44,7 @@ describe('firebaseAuth - Comprehensive Tests', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     mockUser = {
       uid: 'test-uid-123',
       email: 'test@example.com',
@@ -73,11 +73,7 @@ describe('firebaseAuth - Comprehensive Tests', () => {
       });
       mockUpdateProfile.mockResolvedValue(undefined);
 
-      const result = await firebaseAuth.register(
-        'new@example.com',
-        'password123',
-        'New User'
-      );
+      const result = await firebaseAuth.register('new@example.com', 'password123', 'New User');
 
       expect(result.success).toBe(true);
       expect(result.user.email).toBe('test@example.com');
@@ -105,9 +101,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/invalid-email',
       });
 
-      await expect(
-        firebaseAuth.register('invalid-email', 'password123', 'User')
-      ).rejects.toThrow('รูปแบบอีเมลไม่ถูกต้อง');
+      await expect(firebaseAuth.register('invalid-email', 'password123', 'User')).rejects.toThrow(
+        'รูปแบบอีเมลไม่ถูกต้อง'
+      );
     });
 
     it('should handle weak-password error', async () => {
@@ -115,9 +111,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/weak-password',
       });
 
-      await expect(
-        firebaseAuth.register('test@example.com', '123', 'User')
-      ).rejects.toThrow('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      await expect(firebaseAuth.register('test@example.com', '123', 'User')).rejects.toThrow(
+        'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+      );
     });
 
     it('should create user profile in Firestore', async () => {
@@ -176,9 +172,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/wrong-password',
       });
 
-      await expect(
-        firebaseAuth.login('test@example.com', 'wrongpassword')
-      ).rejects.toThrow('รหัสผ่านไม่ถูกต้อง');
+      await expect(firebaseAuth.login('test@example.com', 'wrongpassword')).rejects.toThrow(
+        'รหัสผ่านไม่ถูกต้อง'
+      );
     });
 
     it('should handle user-not-found error', async () => {
@@ -186,9 +182,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/user-not-found',
       });
 
-      await expect(
-        firebaseAuth.login('nonexistent@example.com', 'password123')
-      ).rejects.toThrow('ไม่พบอีเมลนี้ในระบบ');
+      await expect(firebaseAuth.login('nonexistent@example.com', 'password123')).rejects.toThrow(
+        'ไม่พบอีเมลนี้ในระบบ'
+      );
     });
 
     it('should handle invalid-credential error', async () => {
@@ -196,9 +192,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/invalid-credential',
       });
 
-      await expect(
-        firebaseAuth.login('test@example.com', 'wrongpassword')
-      ).rejects.toThrow('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      await expect(firebaseAuth.login('test@example.com', 'wrongpassword')).rejects.toThrow(
+        'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+      );
     });
   });
 
@@ -208,10 +204,7 @@ describe('firebaseAuth - Comprehensive Tests', () => {
 
       await firebaseAuth.loginWithGoogle();
 
-      expect(mockSignInWithRedirect).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything()
-      );
+      expect(mockSignInWithRedirect).toHaveBeenCalledWith(expect.anything(), expect.anything());
     });
 
     it('should handle Google login errors', async () => {
@@ -305,10 +298,7 @@ describe('firebaseAuth - Comprehensive Tests', () => {
 
       firebaseAuth.onAuthStateChange(callback);
 
-      expect(mockOnAuthStateChanged).toHaveBeenCalledWith(
-        expect.anything(),
-        callback
-      );
+      expect(mockOnAuthStateChanged).toHaveBeenCalledWith(expect.anything(), callback);
     });
 
     it('should return unsubscribe function', () => {
@@ -350,9 +340,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/user-not-found',
       });
 
-      await expect(
-        firebaseAuth.resetPassword('nonexistent@example.com')
-      ).rejects.toThrow('ไม่พบอีเมลนี้ในระบบ');
+      await expect(firebaseAuth.resetPassword('nonexistent@example.com')).rejects.toThrow(
+        'ไม่พบอีเมลนี้ในระบบ'
+      );
     });
 
     it('should handle network errors', async () => {
@@ -360,9 +350,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/network-request-failed',
       });
 
-      await expect(
-        firebaseAuth.resetPassword('test@example.com')
-      ).rejects.toThrow('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      await expect(firebaseAuth.resetPassword('test@example.com')).rejects.toThrow(
+        'เกิดข้อผิดพลาดในการเชื่อมต่อ'
+      );
     });
   });
 
@@ -431,9 +421,7 @@ describe('firebaseAuth - Comprehensive Tests', () => {
       it(`should translate error code ${code}`, async () => {
         mockSignInWithEmailAndPassword.mockRejectedValue({ code });
 
-        await expect(
-          firebaseAuth.login('test@example.com', 'password')
-        ).rejects.toThrow(message);
+        await expect(firebaseAuth.login('test@example.com', 'password')).rejects.toThrow(message);
       });
     });
 
@@ -442,9 +430,9 @@ describe('firebaseAuth - Comprehensive Tests', () => {
         code: 'auth/unknown-error',
       });
 
-      await expect(
-        firebaseAuth.login('test@example.com', 'password')
-      ).rejects.toThrow('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      await expect(firebaseAuth.login('test@example.com', 'password')).rejects.toThrow(
+        'เกิดข้อผิดพลาดในการเข้าสู่ระบบ'
+      );
     });
   });
 

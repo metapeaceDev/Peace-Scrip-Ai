@@ -5,8 +5,16 @@ import AuthPage from '../components/AuthPage';
 // Mock Firebase Auth
 vi.mock('../services/firebaseAuth', () => ({
   firebaseAuth: {
-    login: vi.fn(() => Promise.resolve({ user: { uid: 'test-uid', email: 'test@example.com', displayName: 'Test User' } })),
-    register: vi.fn(() => Promise.resolve({ user: { uid: 'new-uid', email: 'new@example.com', displayName: 'New User' } })),
+    login: vi.fn(() =>
+      Promise.resolve({
+        user: { uid: 'test-uid', email: 'test@example.com', displayName: 'Test User' },
+      })
+    ),
+    register: vi.fn(() =>
+      Promise.resolve({
+        user: { uid: 'new-uid', email: 'new@example.com', displayName: 'New User' },
+      })
+    ),
     loginWithGoogle: vi.fn(() => Promise.resolve()),
     resetPassword: vi.fn(() => Promise.resolve()),
   },

@@ -177,8 +177,9 @@ describe('Step1Genre - Poster Management', () => {
   });
 
   it('should render with poster when provided', () => {
-    const scriptData = createMockScriptData({ 
-      poster: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' 
+    const scriptData = createMockScriptData({
+      poster:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     });
     render(<Step1Genre {...mockProps} scriptData={scriptData} />);
     expect(mockProps.setScriptData).not.toHaveBeenCalled();
@@ -214,16 +215,16 @@ describe('Step1Genre - Story Elements', () => {
   });
 
   it('should render with premise', () => {
-    const scriptData = createMockScriptData({ 
-      premise: 'A hero must save the world from destruction' 
+    const scriptData = createMockScriptData({
+      premise: 'A hero must save the world from destruction',
     });
     render(<Step1Genre {...mockProps} scriptData={scriptData} />);
     expect(mockProps.setScriptData).not.toHaveBeenCalled();
   });
 
   it('should render with setting', () => {
-    const scriptData = createMockScriptData({ 
-      setting: 'Modern day New York City' 
+    const scriptData = createMockScriptData({
+      setting: 'Modern day New York City',
     });
     render(<Step1Genre {...mockProps} scriptData={scriptData} />);
     expect(mockProps.setScriptData).not.toHaveBeenCalled();
@@ -325,7 +326,7 @@ describe('Step1Genre - Edge Cases', () => {
   it('should handle undefined secondary genres', () => {
     const scriptData = createMockScriptData({
       mainGenre: 'Horror',
-      secondaryGenres: [],  // Changed from undefined to empty array
+      secondaryGenres: [], // Changed from undefined to empty array
     });
     const { container } = render(<Step1Genre {...mockProps} scriptData={scriptData} />);
     expect(container).toBeTruthy();

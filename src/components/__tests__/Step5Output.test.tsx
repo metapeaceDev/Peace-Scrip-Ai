@@ -37,8 +37,7 @@ vi.mock('./LanguageSwitcher', () => ({
 }));
 
 vi.mock('./RegenerateOptionsModal', () => ({
-  RegenerateOptionsModal: ({ isOpen }: any) => 
-    isOpen ? <div>Regenerate Modal</div> : null,
+  RegenerateOptionsModal: ({ isOpen }: any) => (isOpen ? <div>Regenerate Modal</div> : null),
 }));
 
 vi.mock('./MotionEditor', () => ({
@@ -165,10 +164,10 @@ describe('Step5Output - Scene Data', () => {
       createMockScene({ sceneNumber: 3 }),
     ];
     const scriptData = createMockScriptData({
-      generatedScenes: { 'Opening': scenes },
+      generatedScenes: { Opening: scenes },
     });
     render(<Step5Output {...mockProps} scriptData={scriptData} />);
-    
+
     expect(scenes[0].sceneNumber).toBe(1);
     expect(scenes[1].sceneNumber).toBe(2);
     expect(scenes[2].sceneNumber).toBe(3);
@@ -183,7 +182,7 @@ describe('Step5Output - Scene Data', () => {
       generatedScenes: { 'Act 1': scenes },
     });
     render(<Step5Output {...mockProps} scriptData={scriptData} />);
-    
+
     expect(scenes[0].location).toBe('INT. HOUSE - BEDROOM');
     expect(scenes[1].location).toBe('EXT. CITY - STREET');
   });
@@ -197,7 +196,7 @@ describe('Step5Output - Scene Data', () => {
       generatedScenes: { 'Act 2': scenes },
     });
     render(<Step5Output {...mockProps} scriptData={scriptData} />);
-    
+
     expect(scenes[0].timeOfDay).toBe('DAWN');
     expect(scenes[1].timeOfDay).toBe('NIGHT');
   });
@@ -218,7 +217,7 @@ describe('Step5Output - Characters', () => {
     ];
     const scriptData = createMockScriptData({ characters });
     render(<Step5Output {...mockProps} scriptData={scriptData} />);
-    
+
     expect(characters[0].name).toBe('Alice');
     expect(characters[1].name).toBe('Bob');
   });
@@ -230,7 +229,7 @@ describe('Step5Output - Characters', () => {
     ];
     const scriptData = createMockScriptData({ characters });
     render(<Step5Output {...mockProps} scriptData={scriptData} />);
-    
+
     expect(characters[0].role).toBe('Protagonist');
     expect(characters[1].role).toBe('Antagonist');
   });
@@ -264,9 +263,7 @@ describe('Step5Output - Navigation', () => {
 
   it('should handle returnToScene prop', () => {
     const returnToScene = { pointTitle: 'Act 1', sceneIndex: 2 };
-    const { container } = render(
-      <Step5Output {...mockProps} returnToScene={returnToScene} />
-    );
+    const { container } = render(<Step5Output {...mockProps} returnToScene={returnToScene} />);
     expect(container).toBeTruthy();
   });
 });
@@ -290,18 +287,16 @@ describe('Step5Output - Edge Cases', () => {
   });
 
   it('should handle special characters in locations', () => {
-    const scenes = [
-      createMockScene({ location: 'INT. カフェ - ห้องอาหาร™' }),
-    ];
+    const scenes = [createMockScene({ location: 'INT. カフェ - ห้องอาหาร™' })];
     const scriptData = createMockScriptData({
-      generatedScenes: { 'Opening': scenes },
+      generatedScenes: { Opening: scenes },
     });
     const { container } = render(<Step5Output {...mockProps} scriptData={scriptData} />);
     expect(container).toBeTruthy();
   });
 
   it('should handle many scenes', () => {
-    const manyScenes = Array.from({ length: 50 }, (_, i) => 
+    const manyScenes = Array.from({ length: 50 }, (_, i) =>
       createMockScene({ sceneNumber: i + 1 })
     );
     const scriptData = createMockScriptData({
@@ -369,13 +364,13 @@ describe('Step5Output - Integration', () => {
       ],
       generatedScenes: {
         'Act 1': [
-          createMockScene({ 
+          createMockScene({
             sceneNumber: 1,
             location: 'INT. HOUSE',
             timeOfDay: 'DAY',
             description: 'Hero wakes up',
           }),
-          createMockScene({ 
+          createMockScene({
             sceneNumber: 2,
             location: 'EXT. STREET',
             timeOfDay: 'DAY',

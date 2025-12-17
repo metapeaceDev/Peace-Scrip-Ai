@@ -1,6 +1,6 @@
 /**
  * Email Notification Service
- * 
+ *
  * Sends email notifications for various events:
  * - Team invitations
  * - Project updates
@@ -44,10 +44,10 @@ export async function sendEmail(notification: EmailNotification): Promise<boolea
     switch (provider) {
       case 'sendgrid':
         return await sendWithSendGrid(notification);
-      
+
       case 'ses':
         return await sendWithAWS_SES(notification);
-      
+
       case 'firebase':
       default:
         return await sendWithFirebase(notification);
@@ -94,7 +94,7 @@ async function sendWithFirebase(notification: EmailNotification): Promise<boolea
 async function sendWithSendGrid(notification: EmailNotification): Promise<boolean> {
   try {
     const apiKey = import.meta.env.VITE_SENDGRID_API_KEY;
-    
+
     if (!apiKey) {
       console.error('SendGrid API key not configured');
       return false;
@@ -103,7 +103,7 @@ async function sendWithSendGrid(notification: EmailNotification): Promise<boolea
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -154,9 +154,9 @@ async function sendWithAWS_SES(notification: EmailNotification): Promise<boolean
     // Note: AWS SDK should be used server-side, not client-side
     // This is a placeholder - implement in backend/Cloud Function
     console.warn('AWS SES should be called from backend, not frontend');
-    
+
     const backendUrl = import.meta.env.VITE_API_URL;
-    
+
     if (!backendUrl) {
       console.error('Backend API URL not configured');
       return false;
@@ -204,7 +204,7 @@ export function createTeamInvitationEmail(params: {
   invitationLink: string;
 }): EmailTemplate {
   const subject = `คำเชิญเข้าร่วมโปรเจ็ค: ${params.projectTitle}`;
-  
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -271,7 +271,7 @@ export function createPaymentReceiptEmail(params: {
   invoiceUrl?: string;
 }): EmailTemplate {
   const subject = `ใบเสร็จการชำระเงิน - ${params.tier.toUpperCase()} Plan`;
-  
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -314,11 +314,15 @@ export function createPaymentReceiptEmail(params: {
         </div>
       </div>
 
-      ${params.invoiceUrl ? `
+      ${
+        params.invoiceUrl
+          ? `
       <p style="text-align: center;">
         <a href="${params.invoiceUrl}" class="button">ดาวน์โหลดใบเสร็จ</a>
       </p>
-      ` : ''}
+      `
+          : ''
+      }
 
       <p>บัญชีของคุณได้รับการอัพเกรดเรียบร้อยแล้ว เริ่มสร้างสรรค์บทหนังได้เลย!</p>
     </div>
@@ -356,9 +360,9 @@ export function createWelcomeEmail(params: {
   referralCode: string;
 }): EmailTemplate {
   const subject = 'ยินดีต้อนรับสู่ Peace Script AI! 🎬';
-  
+
   const appUrl = import.meta.env.VITE_APP_URL || 'https://peace-script-ai.web.app';
-  
+
   const html = `
 <!DOCTYPE html>
 <html>

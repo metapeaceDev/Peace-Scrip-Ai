@@ -15,17 +15,17 @@ describe('Step1Genre', () => {
     const mockProps: any = {
       onNext: vi.fn(),
       onUpdate: vi.fn(),
-      scriptData: { 
-        genre: '', 
-        type: '', 
+      scriptData: {
+        genre: '',
+        type: '',
         title: '',
         secondaryGenres: ['', ''],
         targetAudience: '',
         tone: '',
-        themes: []
+        themes: [],
       },
     };
-    
+
     const { container } = render(<Step1Genre {...mockProps} />);
     expect(container).toBeTruthy();
   });

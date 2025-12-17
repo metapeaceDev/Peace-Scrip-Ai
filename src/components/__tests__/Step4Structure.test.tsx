@@ -23,7 +23,7 @@ vi.mock('./LanguageSwitcher', () => ({
 }));
 
 vi.mock('./RegenerateOptionsModal', () => ({
-  RegenerateOptionsModal: ({ isOpen, onClose }: any) => 
+  RegenerateOptionsModal: ({ isOpen, onClose }: any) =>
     isOpen ? <div>Regenerate Modal</div> : null,
 }));
 
@@ -55,7 +55,7 @@ const createMockScriptData = (overrides?: Partial<ScriptData>): ScriptData => ({
   },
   characters: [],
   structure: [createMockPlotPoint()],
-  scenesPerPoint: { 'Opening': 3 },
+  scenesPerPoint: { Opening: 3 },
   generatedScenes: {},
   team: [],
   ...overrides,
@@ -125,7 +125,7 @@ describe('Step4Structure - Plot Points', () => {
   it('should display plot point descriptions', () => {
     const scriptData = createMockScriptData({
       structure: [
-        createMockPlotPoint({ 
+        createMockPlotPoint({
           title: 'Climax',
           description: 'The peak of tension',
         }),
@@ -160,7 +160,7 @@ describe('Step4Structure - Scene Counts', () => {
 
   it('should handle zero scenes', () => {
     const scriptData = createMockScriptData({
-      scenesPerPoint: { 'Opening': 0 },
+      scenesPerPoint: { Opening: 0 },
     });
     render(<Step4Structure {...mockProps} scriptData={scriptData} />);
     expect(scriptData.scenesPerPoint['Opening']).toBe(0);
@@ -219,16 +219,14 @@ describe('Step4Structure - Edge Cases', () => {
 
   it('should handle special characters in titles', () => {
     const scriptData = createMockScriptData({
-      structure: [
-        createMockPlotPoint({ title: 'Act™ 1️⃣ - ภาค①' }),
-      ],
+      structure: [createMockPlotPoint({ title: 'Act™ 1️⃣ - ภาค①' })],
     });
     const { container } = render(<Step4Structure {...mockProps} scriptData={scriptData} />);
     expect(container).toBeTruthy();
   });
 
   it('should handle many plot points', () => {
-    const manyPoints = Array.from({ length: 20 }, (_, i) => 
+    const manyPoints = Array.from({ length: 20 }, (_, i) =>
       createMockPlotPoint({ title: `Point ${i + 1}` })
     );
     const scriptData = createMockScriptData({ structure: manyPoints });
@@ -253,7 +251,7 @@ describe('Step4Structure - Data Integrity', () => {
     ];
     const scriptData = createMockScriptData({ structure });
     render(<Step4Structure {...mockProps} scriptData={scriptData} />);
-    
+
     expect(scriptData.structure.length).toBe(3);
     expect(scriptData.structure[0].title).toBe('Start');
     expect(scriptData.structure[2].title).toBe('End');

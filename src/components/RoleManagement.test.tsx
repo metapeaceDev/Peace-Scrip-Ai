@@ -98,7 +98,9 @@ describe('RoleManagement', () => {
       });
 
       it('should hide permissions when showPermissions is false', () => {
-        render(<RoleSelector currentRole="admin" onChange={mockOnChange} showPermissions={false} />);
+        render(
+          <RoleSelector currentRole="admin" onChange={mockOnChange} showPermissions={false} />
+        );
         expect(screen.queryByText('สามารถแก้ไข ลบ และจัดการทีมได้ทั้งหมด')).not.toBeInTheDocument();
       });
 
@@ -109,12 +111,16 @@ describe('RoleManagement', () => {
 
       it('should display editor description', () => {
         render(<RoleSelector currentRole="editor" onChange={mockOnChange} />);
-        expect(screen.getByText('สามารถแก้ไขเนื้อหาและส่งออกได้ แต่ไม่สามารถลบหรือจัดการทีม')).toBeInTheDocument();
+        expect(
+          screen.getByText('สามารถแก้ไขเนื้อหาและส่งออกได้ แต่ไม่สามารถลบหรือจัดการทีม')
+        ).toBeInTheDocument();
       });
 
       it('should display viewer description', () => {
         render(<RoleSelector currentRole="viewer" onChange={mockOnChange} />);
-        expect(screen.getByText('สามารถดูเนื้อหาเท่านั้น ไม่สามารถแก้ไขหรือส่งออก')).toBeInTheDocument();
+        expect(
+          screen.getByText('สามารถดูเนื้อหาเท่านั้น ไม่สามารถแก้ไขหรือส่งออก')
+        ).toBeInTheDocument();
       });
     });
 
@@ -374,7 +380,11 @@ describe('RoleManagement', () => {
 
       it('should render fallback when editor lacks canManageTeam permission', () => {
         render(
-          <PermissionGuard permission="canManageTeam" userRole="editor" fallback={<div>No Access</div>}>
+          <PermissionGuard
+            permission="canManageTeam"
+            userRole="editor"
+            fallback={<div>No Access</div>}
+          >
             <div>Manage Team</div>
           </PermissionGuard>
         );
@@ -384,7 +394,11 @@ describe('RoleManagement', () => {
 
       it('should render fallback when editor lacks canManagePayments permission', () => {
         render(
-          <PermissionGuard permission="canManagePayments" userRole="editor" fallback={<div>No Access</div>}>
+          <PermissionGuard
+            permission="canManagePayments"
+            userRole="editor"
+            fallback={<div>No Access</div>}
+          >
             <div>Manage Payments</div>
           </PermissionGuard>
         );
@@ -426,7 +440,11 @@ describe('RoleManagement', () => {
 
       it('should render fallback when viewer lacks canViewAnalytics permission', () => {
         render(
-          <PermissionGuard permission="canViewAnalytics" userRole="viewer" fallback={<div>No Access</div>}>
+          <PermissionGuard
+            permission="canViewAnalytics"
+            userRole="viewer"
+            fallback={<div>No Access</div>}
+          >
             <div>View Analytics</div>
           </PermissionGuard>
         );
@@ -448,9 +466,9 @@ describe('RoleManagement', () => {
 
       it('should render custom fallback component', () => {
         render(
-          <PermissionGuard 
-            permission="canDelete" 
-            userRole="viewer" 
+          <PermissionGuard
+            permission="canDelete"
+            userRole="viewer"
             fallback={<button>Upgrade to delete</button>}
           >
             <div>Delete Content</div>

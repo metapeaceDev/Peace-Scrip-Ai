@@ -21,17 +21,17 @@ const CHECK_INTERVAL = 30000; // Re-check every 30 seconds
  */
 async function checkServiceHealth(): Promise<boolean> {
   const now = Date.now();
-  
+
   // Return cached result if checked recently
-  if (serviceAvailable !== null && (now - lastCheck) < CHECK_INTERVAL) {
+  if (serviceAvailable !== null && now - lastCheck < CHECK_INTERVAL) {
     return serviceAvailable;
   }
-  
+
   try {
     const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
       signal: AbortSignal.timeout(2000),
     });
-    
+
     serviceAvailable = response.ok;
     lastCheck = now;
     return serviceAvailable;
@@ -69,7 +69,7 @@ export async function generateImageWithBackend(
   if (!isHealthy) {
     throw new Error('ComfyUI backend service is not available');
   }
-  
+
   try {
     const idToken = await getIdToken();
 
@@ -201,7 +201,7 @@ async function pollJobStatus(
 
         if (imageUrl) {
           console.log(`🌐 Image available at Storage URL: ${imageUrl}`);
-          
+
           // Download from Storage URL and convert to base64
           try {
             const base64Data = await downloadAndConvertToBase64(imageUrl);
@@ -212,7 +212,7 @@ async function pollJobStatus(
           } catch (error) {
             console.warn('⚠️ Failed to convert Storage URL to base64:', error);
           }
-          
+
           // Fallback to imageData or return URL
           return imageData || imageUrl;
         }
@@ -266,7 +266,7 @@ async function downloadAndConvertToBase64(storageUrl: string): Promise<string | 
 
     // Get image as blob
     const blob = await response.blob();
-    
+
     // Convert blob to base64
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -314,7 +314,7 @@ export async function checkBackendStatus(silent: boolean = false) {
     if (!silent && !(error instanceof TypeError)) {
       console.warn('Backend service check failed:', error);
     }
-    
+
     return {
       running: false,
       error:

@@ -10,14 +10,15 @@ import type {
   ModelInfo,
   HealthCheckResponse,
   CleanupResponse,
-  VoiceSynthesisRequest
+  VoiceSynthesisRequest,
 } from '../types/voice-cloning';
 
 export class VoiceCloningService {
   private baseURL: string;
 
   constructor(baseURL?: string) {
-    this.baseURL = baseURL || import.meta.env.VITE_VOICE_CLONING_ENDPOINT || 'http://localhost:8001';
+    this.baseURL =
+      baseURL || import.meta.env.VITE_VOICE_CLONING_ENDPOINT || 'http://localhost:8001';
   }
 
   /**
@@ -25,11 +26,11 @@ export class VoiceCloningService {
    */
   async checkHealth(): Promise<HealthCheckResponse> {
     const response = await fetch(`${this.baseURL}/health`);
-    
+
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
@@ -38,24 +39,21 @@ export class VoiceCloningService {
    */
   async getModelInfo(): Promise<ModelInfo> {
     const response = await fetch(`${this.baseURL}/model/info`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get model info: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
   /**
    * Upload voice sample for cloning
    */
-  async uploadVoiceSample(
-    file: File,
-    voiceName?: string
-  ): Promise<VoiceUploadResponse> {
+  async uploadVoiceSample(file: File, voiceName?: string): Promise<VoiceUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     if (voiceName) {
       formData.append('voice_name', voiceName);
     }
@@ -78,11 +76,11 @@ export class VoiceCloningService {
    */
   async listVoices(): Promise<VoiceListResponse> {
     const response = await fetch(`${this.baseURL}/voice/list`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to list voices: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
@@ -134,20 +132,35 @@ export class VoiceCloningService {
     const audioBlob = await this.synthesizeSpeech(request);
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
-    
+
     return new Promise((resolve, reject) => {
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         resolve();
       };
-      
-      audio.onerror = (e) => {
+
+      audio.onerror = e => {
         URL.revokeObjectURL(audioUrl);
         reject(new Error('Audio playback failed'));
       };
-      
+
       audio.play().catch(reject);
     });
+  }
+
+  /**
+   * Get voice sample audio file URL
+   */
+  getVoiceSampleUrl(voiceId: string): string {
+    return `${this.baseURL}/voice/sample/${voiceId}`;
+  }
+
+  /**
+   * Get voice details
+   */
+  async getVoiceDetails(voiceId: string): Promise<any> {
+    const listResponse = await this.listVoices();
+    return listResponse.voices.find(v => v.voice_id === voiceId);
   }
 
   /**
@@ -185,16 +198,23 @@ export class VoiceCloningService {
    */
   validateAudioFile(file: File): { valid: boolean; error?: string } {
     const maxSize = 50 * 1024 * 1024; // 50MB
-    const allowedTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/flac', 'audio/ogg', 'audio/m4a'];
-    
+    const allowedTypes = [
+      'audio/wav',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/flac',
+      'audio/ogg',
+      'audio/m4a',
+    ];
+
     if (file.size > maxSize) {
       return { valid: false, error: 'File size exceeds 50MB limit' };
     }
-    
+
     if (!allowedTypes.includes(file.type) && !file.name.match(/\.(wav|mp3|flac|ogg|m4a)$/i)) {
       return { valid: false, error: 'Invalid file type. Allowed: WAV, MP3, FLAC, OGG, M4A' };
     }
-    
+
     return { valid: true };
   }
 

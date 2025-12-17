@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  getUserSubscription,
-  setUserTier,
-  deductCredits,
-  hasAccessToModel,
-} from '../userStore';
+import { getUserSubscription, setUserTier, deductCredits, hasAccessToModel } from '../userStore';
 import type { SubscriptionTier } from '../../../types';
 
 describe('userStore', () => {
@@ -378,7 +373,7 @@ describe('userStore', () => {
       const startingCredits = initial.credits;
 
       expect(startingCredits).toBeGreaterThan(0);
-      
+
       // Switch to basic to test model access
       setUserTier('basic');
       expect(hasAccessToModel('gemini-pro', 'image')).toBe(true);
@@ -386,7 +381,7 @@ describe('userStore', () => {
       // Switch back to enterprise for credit testing
       setUserTier('enterprise');
       const creditsBeforeDeduct = getUserSubscription().credits;
-      
+
       deductCredits(30);
       expect(getUserSubscription().credits).toBe(creditsBeforeDeduct - 30);
 
@@ -428,7 +423,7 @@ describe('userStore', () => {
       // Heavy usage
       deductCredits(1000);
       expect(getUserSubscription().credits).toBe(startingCredits - 1000);
-      
+
       deductCredits(2000);
       expect(getUserSubscription().credits).toBe(startingCredits - 3000);
     });

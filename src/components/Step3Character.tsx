@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { ScriptData, Character, GeneratedScene, DialectType, AccentType, FormalityLevel, SpeechPersonality } from '../../types';
+import type {
+  ScriptData,
+  Character,
+  GeneratedScene,
+  DialectType,
+  AccentType,
+  FormalityLevel,
+  SpeechPersonality,
+} from '../../types';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 import {
@@ -9,14 +17,23 @@ import {
   generateCostumeImage,
   generateAllCharactersFromStory,
 } from '../services/geminiService';
-import { EMPTY_CHARACTER, CHARACTER_IMAGE_STYLES, CHARACTER_ROLES, DIALECT_PRESETS, ACCENT_PATTERNS, FORMALITY_LABELS, PERSONALITY_LABELS } from '../../constants';
+import {
+  EMPTY_CHARACTER,
+  CHARACTER_IMAGE_STYLES,
+  CHARACTER_ROLES,
+  DIALECT_PRESETS,
+  ACCENT_PATTERNS,
+  FORMALITY_LABELS,
+  PERSONALITY_LABELS,
+} from '../../constants';
 import { PsychologyTestPanel } from './PsychologyTestPanel';
 import { PsychologyDisplay } from './PsychologyDisplay';
 import { PsychologyDashboard } from './PsychologyDashboard';
 import { CharacterComparison } from './CharacterComparison';
 import { PsychologyTimeline } from './PsychologyTimeline';
-import { HybridTTSService } from '../services/hybridTTSService';
+import { hybridTTS } from '../services/hybridTTSService';
 import { VoiceUploadModal } from './VoiceUploadModal';
+import { voiceCloningService } from '../services/voiceCloningService';
 import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
 
 interface Step3CharacterProps {
@@ -117,13 +134,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [activeCharIndex, setActiveCharIndex] = useState(0);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showCharactersPreview, setShowCharactersPreview] = useState(false);
 
   // Main Tabs
   const [activeTab, setActiveTab] = useState<'external' | 'internal' | 'goals'>('external');
 
   // Sub Tabs
-  const [externalSubTab, setExternalSubTab] = useState<'info' | 'physical' | 'speech' | 'costume'>('info');
+  const [externalSubTab, setExternalSubTab] = useState<'info' | 'physical' | 'speech' | 'costume'>(
+    'info'
+  );
   const [internalSubTab, setInternalSubTab] = useState<'consciousness' | 'subconscious'>(
     'consciousness'
   );
@@ -167,17 +187,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [isVoiceUploadModalOpen, setIsVoiceUploadModalOpen] = useState(false);
 
   // Ensure characters array is never empty for rendering
-  const characters = useMemo(() =>
-    scriptData.characters.length > 0
-      ? scriptData.characters
-      : [{ ...EMPTY_CHARACTER, id: 'init-char' }]
-  , [scriptData.characters]);
+  const characters = useMemo(
+    () =>
+      scriptData.characters.length > 0
+        ? scriptData.characters
+        : [{ ...EMPTY_CHARACTER, id: 'init-char' }],
+    [scriptData.characters]
+  );
 
   // Safe access to active character with fallback
-  const activeCharacter = useMemo(() =>
-    characters[activeCharIndex] ||
-    characters[0] || { ...EMPTY_CHARACTER, id: 'fallback-char' }
-  , [characters, activeCharIndex]);
+  const activeCharacter = useMemo(
+    () =>
+      characters[activeCharIndex] || characters[0] || { ...EMPTY_CHARACTER, id: 'fallback-char' },
+    [characters, activeCharIndex]
+  );
 
   // --- NAVIGATION HANDLER ---
   // If targetCharId is passed (from Step 5), switch to that character immediately
@@ -221,7 +244,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // Auto-open Psychology Timeline when navigated from Step 5 Modal
   useEffect(() => {
-    if (autoOpenPsychology && activeCharacter && scriptData.psychologyTimelines?.[activeCharacter.id]) {
+    if (
+      autoOpenPsychology &&
+      activeCharacter &&
+      scriptData.psychologyTimelines?.[activeCharacter.id]
+    ) {
       setShowPsychologyTimeline(true);
       setActiveTab('internal');
       setInternalSubTab('consciousness');
@@ -229,7 +256,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         onResetAutoOpenPsychology();
       }
     }
-  }, [autoOpenPsychology, activeCharacter, scriptData.psychologyTimelines, onResetAutoOpenPsychology]);
+  }, [
+    autoOpenPsychology,
+    activeCharacter,
+    scriptData.psychologyTimelines,
+    onResetAutoOpenPsychology,
+  ]);
 
   const updateCharacterAtIndex = (index: number, updatedFields: Partial<Character>) => {
     setScriptData(prev => {
@@ -415,9 +447,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // Handle modal confirmation
   const handleRegenerateConfirm = async (mode: RegenerationMode) => {
-    const hasExistingCharacters = characters.length > 0 && characters.some(
-      char => char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
-    );
+    const hasExistingCharacters =
+      characters.length > 0 &&
+      characters.some(
+        char =>
+          char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
+      );
 
     // Map RegenerationMode to add/replace mode
     // Fresh Start = replace all
@@ -431,7 +466,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
     try {
       setProgress(20);
-      console.log(`🎭 Generating characters from story data (Mode: ${generationMode}, RegenerationMode: ${mode})...`);
+      console.log(
+        `🎭 Generating characters from story data (Mode: ${generationMode}, RegenerationMode: ${mode})...`
+      );
 
       let newCharacters: Character[];
 
@@ -439,7 +476,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         // Import the new function for intelligent character generation
         const { generateCompatibleCharacters } = await import('../services/geminiService');
         newCharacters = await generateCompatibleCharacters(scriptData, characters);
-        console.log(`🧠 Generated ${newCharacters.length} compatible characters based on existing cast`);
+        console.log(
+          `🧠 Generated ${newCharacters.length} compatible characters based on existing cast`
+        );
       } else {
         newCharacters = await generateAllCharactersFromStory(scriptData);
         console.log(`✅ Generated ${newCharacters.length} new characters`);
@@ -474,7 +513,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       setProgress(100);
     } catch (e: unknown) {
       const error = e as Error;
-      setError(error.message || legacyT('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters'));
+      setError(
+        error.message || legacyT('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters')
+      );
       console.error('Error generating characters:', e);
     } finally {
       setIsLoading(false);
@@ -863,11 +904,210 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   // Voice Upload Handler
   const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
     if (onRegisterUndo) onRegisterUndo();
-    updateCharacterAtIndex(activeCharIndex, { 
-      voiceCloneId: voiceId 
+    updateCharacterAtIndex(activeCharIndex, {
+      voiceCloning: {
+        hasVoiceSample: true,
+        voiceSampleId: voiceId,
+        language: 'en', // Default language
+        temperature: 0.75, // Default temperature
+      },
+      voiceCloneId: voiceId, // Keep legacy field for backward compatibility
     });
     setIsVoiceUploadModalOpen(false);
   };
+
+  // Voice Preview Handler
+  const handlePlayVoiceSample = async () => {
+    if (!activeCharacter.voiceCloneId) {
+      alert('ไม่พบข้อมูลเสียงที่โคลน');
+      return;
+    }
+
+    if (isPlayingVoice && audioRef.current) {
+      // Stop playing
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlayingVoice(false);
+      return;
+    }
+
+    // Start playing
+    try {
+      // Verify voice exists first
+      const voiceDetails = await voiceCloningService.getVoiceDetails(activeCharacter.voiceCloneId);
+      if (!voiceDetails) {
+        alert('ไม่พบไฟล์เสียงที่โคลน กรุณาอัพโหลดเสียงใหม่');
+        return;
+      }
+
+      const audioUrl = voiceCloningService.getVoiceSampleUrl(activeCharacter.voiceCloneId);
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onplay = () => setIsPlayingVoice(true);
+      audio.onended = () => setIsPlayingVoice(false);
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsPlayingVoice(false);
+        alert('ไม่สามารถเล่นไฟล์เสียงได้ อาจเป็นเพราะไฟล์ถูกลบหรือเสียหาย\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง');
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing voice sample:', error);
+      setIsPlayingVoice(false);
+      alert('เกิดข้อผิดพลาดในการเล่นเสียง: ' + (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'));
+    }
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Generate introduction script from character data
+  const generateIntroductionScript = (character: Character): string => {
+    const scripts: string[] = [];
+    
+    // Basic introduction
+    if (character.name) {
+      scripts.push(`สวัสดีค่ะ ฉันชื่อ${character.name}`);
+    }
+    
+    // Age
+    if (character.age) {
+      scripts.push(`อายุ ${character.age} ปี`);
+    }
+    
+    // Personality
+    if (character.personality) {
+      const personalityMap: Record<string, string> = {
+        'brave': 'เป็นคนกล้าหาญ',
+        'kind': 'ใจดี',
+        'mysterious': 'ลึกลับ',
+        'cheerful': 'ร่าเริง',
+        'serious': 'จริงจัง',
+        'funny': 'ขี้เล่น',
+        'wise': 'ฉลาด',
+        'shy': 'ขี้อาย'
+      };
+      const desc = personalityMap[character.personality] || character.personality;
+      scripts.push(desc);
+    }
+    
+    // Goals
+    if (character.goals && character.goals.length > 0) {
+      scripts.push(`เป้าหมายของฉันคือ ${character.goals[0]}`);
+    }
+    
+    // Speech pattern
+    const sp = character.speechPattern;
+    if (sp) {
+      // Add speech tics at the end
+      if (sp.speechTics && sp.speechTics.length > 0) {
+        const tic = sp.speechTics[0];
+        const lastScript = scripts[scripts.length - 1];
+        scripts[scripts.length - 1] = `${lastScript}${tic}`;
+      }
+    }
+    
+    return scripts.join(' ');
+  };
+
+  // Test voice with introduction script
+  const [isTestingVoice, setIsTestingVoice] = useState(false);
+  const [testAudioUrl, setTestAudioUrl] = useState<string | null>(null);
+  const testAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleTestVoiceIntroduction = async () => {
+    if (!activeCharacter.voiceCloneId) {
+      alert('กรุณาอัพโหลดเสียงก่อนทดสอบ');
+      return;
+    }
+
+    if (isTestingVoice && testAudioRef.current) {
+      // Stop playing
+      testAudioRef.current.pause();
+      testAudioRef.current = null;
+      setIsTestingVoice(false);
+      setTestAudioUrl(null);
+      return;
+    }
+
+    setIsTestingVoice(true);
+    setError('');
+
+    try {
+      // Generate introduction script
+      const script = generateIntroductionScript(activeCharacter);
+      
+      if (!script) {
+        alert('ไม่สามารถสร้างสคริปต์แนะนำตัวได้ กรุณาเพิ่มข้อมูลตัวละคร');
+        setIsTestingVoice(false);
+        return;
+      }
+
+      console.log('🎬 Testing voice with script:', script);
+
+      // Note: Voice cloning TTS requires Python 3.10+ with Coqui TTS
+      // Currently using standard Thai TTS (Psychology TTS or PyThaiNLP)
+      // Voice sample is saved for future use when voice cloning is available
+      console.log('ℹ️ Using standard TTS (voice cloning not yet available)');
+      
+      const audioBlob = await hybridTTS.synthesize({
+        text: script,
+        preferredProvider: 'psychology',
+        fallbackEnabled: true,
+      });
+
+      // Create audio URL from blob
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setTestAudioUrl(audioUrl);
+
+      // Play audio
+      const audio = new Audio(audioUrl);
+      testAudioRef.current = audio;
+
+      audio.onended = () => {
+        setIsTestingVoice(false);
+        setTestAudioUrl(null);
+      };
+
+      audio.onerror = (e) => {
+        console.error('Test audio playback error:', e);
+        setIsTestingVoice(false);
+        setTestAudioUrl(null);
+        alert('ไม่สามารถเล่นเสียงทดสอบได้\nระบบอาจยังไม่รองรับ Voice Cloning TTS');
+      };
+
+      await audio.play();
+      
+    } catch (error) {
+      console.error('Error testing voice:', error);
+      setIsTestingVoice(false);
+      alert('เกิดข้อผิดพลาดในการสร้างเสียงทดสอบ: ' + (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'));
+    }
+  };
+
+  // Cleanup test audio on unmount
+  useEffect(() => {
+    return () => {
+      if (testAudioRef.current) {
+        testAudioRef.current.pause();
+        testAudioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="relative">
@@ -910,14 +1150,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-cyan-400">
-            {t('step3.title')}
-          </h2>
-          <p className="text-gray-400 mb-6">
-            {t('step3.subtitle')}
-          </p>
+          <h2 className="text-2xl font-bold text-cyan-400">{t('step3.title')}</h2>
+          <p className="text-gray-400 mb-6">{t('step3.subtitle')}</p>
         </div>
-        
+
         {/* Right Side: Gen All Characters + Compare Button */}
         <div className="flex items-start gap-3">
           {/* Gen All Characters Section with Checkbox */}
@@ -944,9 +1180,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               >
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 005 5v1H1v-1a5 5 0 015-5z" />
               </svg>
-              {isLoading ? legacyT('กำลังสร้าง...', 'Generating...') : legacyT('🎭 สร้างทั้งหมด', '🎭 Gen All')}
+              {isLoading
+                ? legacyT('กำลังสร้าง...', 'Generating...')
+                : legacyT('🎭 สร้างทั้งหมด', '🎭 Gen All')}
             </button>
-            
+
             <label className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 cursor-pointer pl-1">
               <input
                 type="checkbox"
@@ -954,9 +1192,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 onChange={e => setKeepExistingCharacters(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
               />
-              <span className="select-none">
-                {legacyT('เก็บตัวละครเดิมไว้', 'Keep existing')}
-              </span>
+              <span className="select-none">{legacyT('เก็บตัวละครเดิมไว้', 'Keep existing')}</span>
             </label>
           </div>
 
@@ -1405,6 +1641,88 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               </div>
             )}
           </div>
+
+          {/* --- VOICE CLONING SECTION --- */}
+          <div className="bg-gray-800/80 p-4 rounded-lg border border-gray-700">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-xs font-bold text-gray-400 uppercase flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-cyan-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Voice Clone
+              </h4>
+              {activeCharacter.voiceCloning?.hasVoiceSample && (
+                <button
+                  onClick={() => {
+                    const updated = { ...activeCharacter };
+                    if (updated.voiceCloning) {
+                      updated.voiceCloning.hasVoiceSample = false;
+                      updated.voiceCloning.voiceSampleId = undefined;
+                    }
+                    updateCharacterAtIndex(activeCharIndex, updated);
+                  }}
+                  className="text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-1 rounded"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-3 items-center">
+              <div className="w-16 h-16 bg-gray-900 rounded-lg border border-gray-600 flex items-center justify-center overflow-hidden shrink-0 relative">
+                {activeCharacter.voiceCloning?.hasVoiceSample ? (
+                  <div className="text-center">
+                    <div className="text-2xl mb-0.5">🎙️</div>
+                    <div className="text-[8px] text-green-400 font-bold">Ready</div>
+                  </div>
+                ) : (
+                  <span className="text-[9px] text-gray-500 text-center px-1">None</span>
+                )}
+                {activeCharacter.voiceCloning?.hasVoiceSample && (
+                  <div className="absolute inset-0 border-2 border-cyan-500 rounded-lg pointer-events-none"></div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <button
+                  onClick={() => setIsVoiceUploadModalOpen(true)}
+                  className={`w-full text-[10px] font-bold py-2 rounded flex flex-col items-center justify-center gap-1 transition-colors border ${
+                    activeCharacter.voiceCloning?.hasVoiceSample
+                      ? 'bg-cyan-700 border-cyan-600 hover:bg-cyan-600 text-white'
+                      : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {activeCharacter.voiceCloning?.hasVoiceSample ? 'Change' : 'Upload'}
+                </button>
+                {activeCharacter.voiceCloning?.hasVoiceSample && (
+                  <div className="mt-1 text-[8px] text-center text-gray-500">
+                    Port 8001 • XTTS-v2
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Descriptions & Details */}
@@ -1464,7 +1782,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     }`}
                     title={
                       fillEmptyOnly
-                        ? legacyT('เติมเฉพาะข้อมูลที่ยังว่าง', 'Fill missing character details only')
+                        ? legacyT(
+                            'เติมเฉพาะข้อมูลที่ยังว่าง',
+                            'Fill missing character details only'
+                          )
                         : legacyT(
                             'สร้างโปรไฟล์ตัวละครเต็มรูปแบบจาก AI',
                             'Generate full character profile from AI'
@@ -1653,7 +1974,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           ...activeCharacter.speechPattern,
                           dialect: e.target.value as DialectType,
                           accent: activeCharacter.speechPattern?.accent || 'none',
-                          formalityLevel: activeCharacter.speechPattern?.formalityLevel || 'informal',
+                          formalityLevel:
+                            activeCharacter.speechPattern?.formalityLevel || 'informal',
                           personality: activeCharacter.speechPattern?.personality || 'polite',
                         },
                       });
@@ -1667,21 +1989,37 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     <option value="central">ภาษากรุงเทพ (Bangkok/Central)</option>
                     <option value="custom">กำหนดเอง (Custom)</option>
                   </select>
-                  {activeCharacter.speechPattern?.dialect && activeCharacter.speechPattern.dialect !== 'standard' && (
-                    <div className="mt-2 p-3 bg-cyan-900/20 border border-cyan-700/50 rounded-lg">
-                      <div className="text-xs text-cyan-300 font-medium mb-1">
-                        {DIALECT_PRESETS[activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS]?.name}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {DIALECT_PRESETS[activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS]?.description}
-                      </div>
-                      {DIALECT_PRESETS[activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS]?.examples && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          ตัวอย่าง: {DIALECT_PRESETS[activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS].examples.slice(0, 2).join(', ')}
+                  {activeCharacter.speechPattern?.dialect &&
+                    activeCharacter.speechPattern.dialect !== 'standard' && (
+                      <div className="mt-2 p-3 bg-cyan-900/20 border border-cyan-700/50 rounded-lg">
+                        <div className="text-xs text-cyan-300 font-medium mb-1">
+                          {
+                            DIALECT_PRESETS[
+                              activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS
+                            ]?.name
+                          }
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div className="text-xs text-gray-400">
+                          {
+                            DIALECT_PRESETS[
+                              activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS
+                            ]?.description
+                          }
+                        </div>
+                        {DIALECT_PRESETS[
+                          activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS
+                        ]?.examples && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            ตัวอย่าง:{' '}
+                            {DIALECT_PRESETS[
+                              activeCharacter.speechPattern.dialect as keyof typeof DIALECT_PRESETS
+                            ].examples
+                              .slice(0, 2)
+                              .join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
                 </div>
 
                 {/* Accent Selector */}
@@ -1698,7 +2036,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           ...activeCharacter.speechPattern,
                           dialect: activeCharacter.speechPattern?.dialect || 'standard',
                           accent: e.target.value as AccentType,
-                          formalityLevel: activeCharacter.speechPattern?.formalityLevel || 'informal',
+                          formalityLevel:
+                            activeCharacter.speechPattern?.formalityLevel || 'informal',
                           personality: activeCharacter.speechPattern?.personality || 'polite',
                         },
                       });
@@ -1713,18 +2052,28 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     <option value="western">สำเนียงฝรั่ง (Western Accent)</option>
                     <option value="custom">กำหนดเอง (Custom)</option>
                   </select>
-                  {activeCharacter.speechPattern?.accent && activeCharacter.speechPattern.accent !== 'none' && ACCENT_PATTERNS[activeCharacter.speechPattern.accent as keyof typeof ACCENT_PATTERNS] && (
-                    <div className="mt-2 p-3 bg-purple-900/20 border border-purple-700/50 rounded-lg">
-                      <div className="text-xs text-purple-300 font-medium mb-1">
-                        Accent Pattern Rules
+                  {activeCharacter.speechPattern?.accent &&
+                    activeCharacter.speechPattern.accent !== 'none' &&
+                    ACCENT_PATTERNS[
+                      activeCharacter.speechPattern.accent as keyof typeof ACCENT_PATTERNS
+                    ] && (
+                      <div className="mt-2 p-3 bg-purple-900/20 border border-purple-700/50 rounded-lg">
+                        <div className="text-xs text-purple-300 font-medium mb-1">
+                          Accent Pattern Rules
+                        </div>
+                        <div className="text-xs text-gray-400 space-y-1">
+                          {ACCENT_PATTERNS[
+                            activeCharacter.speechPattern.accent as keyof typeof ACCENT_PATTERNS
+                          ]?.rules
+                            ?.slice(0, 3)
+                            .map((rule, idx) => (
+                              <div key={idx}>
+                                • {rule.pattern} → {rule.replacement}
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-400 space-y-1">
-                        {ACCENT_PATTERNS[activeCharacter.speechPattern.accent as keyof typeof ACCENT_PATTERNS]?.rules?.slice(0, 3).map((rule, idx) => (
-                          <div key={idx}>• {rule.pattern} → {rule.replacement}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
                 </div>
 
                 {/* Formality Level */}
@@ -1755,7 +2104,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </select>
                   {activeCharacter.speechPattern?.formalityLevel && (
                     <div className="mt-2 text-xs text-gray-400">
-                      {FORMALITY_LABELS[activeCharacter.speechPattern.formalityLevel as keyof typeof FORMALITY_LABELS]}
+                      {
+                        FORMALITY_LABELS[
+                          activeCharacter.speechPattern
+                            .formalityLevel as keyof typeof FORMALITY_LABELS
+                        ]
+                      }
                     </div>
                   )}
                 </div>
@@ -1774,7 +2128,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           ...activeCharacter.speechPattern,
                           dialect: activeCharacter.speechPattern?.dialect || 'standard',
                           accent: activeCharacter.speechPattern?.accent || 'none',
-                          formalityLevel: activeCharacter.speechPattern?.formalityLevel || 'informal',
+                          formalityLevel:
+                            activeCharacter.speechPattern?.formalityLevel || 'informal',
                           personality: e.target.value as SpeechPersonality,
                         },
                       });
@@ -1791,7 +2146,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </select>
                   {activeCharacter.speechPattern?.personality && (
                     <div className="mt-2 text-xs text-gray-400">
-                      {PERSONALITY_LABELS[activeCharacter.speechPattern.personality as keyof typeof PERSONALITY_LABELS]}
+                      {
+                        PERSONALITY_LABELS[
+                          activeCharacter.speechPattern
+                            .personality as keyof typeof PERSONALITY_LABELS
+                        ]
+                      }
                     </div>
                   )}
                 </div>
@@ -1805,13 +2165,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     value={activeCharacter.speechPattern?.speechTics?.join(', ') || ''}
                     onChange={e => {
                       if (onRegisterUndo) onRegisterUndo();
-                      const tics = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                      const tics = e.target.value
+                        .split(',')
+                        .map(t => t.trim())
+                        .filter(t => t);
                       updateCharacterAtIndex(activeCharIndex, {
                         speechPattern: {
                           ...activeCharacter.speechPattern,
                           dialect: activeCharacter.speechPattern?.dialect || 'standard',
                           accent: activeCharacter.speechPattern?.accent || 'none',
-                          formalityLevel: activeCharacter.speechPattern?.formalityLevel || 'informal',
+                          formalityLevel:
+                            activeCharacter.speechPattern?.formalityLevel || 'informal',
                           personality: activeCharacter.speechPattern?.personality || 'polite',
                           speechTics: tics.length > 0 ? tics : undefined,
                         },
@@ -1822,7 +2186,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="w-full bg-gray-900 text-white border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 resize-none"
                   />
                   <div className="mt-2 text-xs text-gray-500">
-                    คำพูดที่ตัวละครชอบใช้บ่อยๆ หรือพูดติดปาก เช่น &quot;เหรอคะ&quot; &quot;อะไรนะ&quot; &quot;แหมเนี่ย&quot;
+                    คำพูดที่ตัวละครชอบใช้บ่อยๆ หรือพูดติดปาก เช่น &quot;เหรอคะ&quot;
+                    &quot;อะไรนะ&quot; &quot;แหมเนี่ย&quot;
                   </div>
                 </div>
 
@@ -1835,13 +2200,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     value={activeCharacter.speechPattern?.customPhrases?.join('\n') || ''}
                     onChange={e => {
                       if (onRegisterUndo) onRegisterUndo();
-                      const phrases = e.target.value.split('\n').map(p => p.trim()).filter(p => p);
+                      const phrases = e.target.value
+                        .split('\n')
+                        .map(p => p.trim())
+                        .filter(p => p);
                       updateCharacterAtIndex(activeCharIndex, {
                         speechPattern: {
                           ...activeCharacter.speechPattern,
                           dialect: activeCharacter.speechPattern?.dialect || 'standard',
                           accent: activeCharacter.speechPattern?.accent || 'none',
-                          formalityLevel: activeCharacter.speechPattern?.formalityLevel || 'informal',
+                          formalityLevel:
+                            activeCharacter.speechPattern?.formalityLevel || 'informal',
                           personality: activeCharacter.speechPattern?.personality || 'polite',
                           customPhrases: phrases.length > 0 ? phrases : undefined,
                         },
@@ -1852,7 +2221,8 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="w-full bg-gray-900 text-white border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-cyan-500 resize-none"
                   />
                   <div className="mt-2 text-xs text-gray-500">
-                    วลีหรือประโยคที่ตัวละครชอบพูด เช่น &quot;ไปทางนั้นก็ได้นะจ๊ะ&quot; &quot;เอาล่ะๆ ไม่เป็นไรจ้า&quot;
+                    วลีหรือประโยคที่ตัวละครชอบพูด เช่น &quot;ไปทางนั้นก็ได้นะจ๊ะ&quot; &quot;เอาล่ะๆ
+                    ไม่เป็นไรจ้า&quot;
                   </div>
                 </div>
               </div>
@@ -1877,30 +2247,100 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 </div>
 
                 {activeCharacter.voiceCloneId ? (
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-purple-500/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-purple-600/20 rounded-full flex items-center justify-center">
-                          <span className="text-2xl">🎤</span>
+                  <div className="space-y-3">
+                    <div className="bg-gray-800/50 rounded-lg p-4 border border-purple-500/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-purple-600/20 rounded-full flex items-center justify-center">
+                            <span className="text-2xl">🎤</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">เสียงโคลนที่เลือก</div>
+                            <div className="text-xs text-gray-400">
+                              ID: {activeCharacter.voiceCloneId.substring(0, 16)}...
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-white">
-                            เสียงโคลนที่เลือก
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            ID: {activeCharacter.voiceCloneId.substring(0, 16)}...
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handlePlayVoiceSample}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                              isPlayingVoice
+                                ? 'bg-orange-600/20 hover:bg-orange-600/30 text-orange-400'
+                                : 'bg-green-600/20 hover:bg-green-600/30 text-green-400'
+                            }`}
+                          >
+                            <span className="text-lg">{isPlayingVoice ? '⏸' : '▶️'}</span>
+                            <span>{isPlayingVoice ? 'หยุด' : 'ฟังเสียง'}</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (onRegisterUndo) onRegisterUndo();
+                              updateCharacterAtIndex(activeCharIndex, { voiceCloneId: undefined });
+                            }}
+                            className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md text-sm font-medium transition-colors"
+                          >
+                            ลบเสียง
+                          </button>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          if (onRegisterUndo) onRegisterUndo();
-                          updateCharacterAtIndex(activeCharIndex, { voiceCloneId: undefined });
-                        }}
-                        className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-md text-xs font-medium transition-colors"
-                      >
-                        ลบเสียง
-                      </button>
+                    </div>
+
+                    {/* Test Voice Button */}
+                    <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-cyan-600/20 rounded-full flex items-center justify-center">
+                            <span className="text-xl">🔊</span>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h5 className="text-sm font-semibold text-cyan-300">
+                              ทดสอบเสียงพูดแนะนำตัว
+                            </h5>
+                            <span className="px-2 py-0.5 bg-green-600/20 text-green-400 text-xs rounded-full border border-green-500/30">
+                              ✅ Voice Cloning Active
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 mb-2">
+                            สร้างสคริปต์แนะนำตัวจากข้อมูลตัวละคร แล้วพูดด้วยเสียงโคลนของคุณ
+                          </p>
+                          <div className="mb-3 p-2 bg-green-900/10 border border-green-700/20 rounded text-xs text-green-200/80">
+                            <span className="font-semibold">✨ ระบบ Voice Cloning พร้อมใช้งาน!</span> ใช้เทคโนโลยี Coqui XTTS-v2 
+                            รองรับ 17 ภาษา รวมถึงการโคลนเสียงด้วย AI
+                            <br />
+                            <span className="text-cyan-300">🎤 อัพโหลดเสียงของคุณเพื่อสร้างตัวละครที่เหมือนจริง</span>
+                          </div>
+                          <button
+                            onClick={handleTestVoiceIntroduction}
+                            disabled={isTestingVoice}
+                            className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                              isTestingVoice
+                                ? 'bg-orange-600/30 text-orange-300 cursor-wait'
+                                : 'bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/50'
+                            }`}
+                          >
+                            {isTestingVoice ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-orange-300 border-t-transparent rounded-full animate-spin"></div>
+                                <span>กำลังสร้างเสียง...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-lg">🔊</span>
+                                <span>ทดสอบเสียงแนะนำตัว</span>
+                              </>
+                            )}
+                          </button>
+                          {testAudioUrl && (
+                            <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
+                              <span>✓</span>
+                              <span>กำลังเล่นเสียง...</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1915,15 +2355,22 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   <div className="flex items-start gap-2">
                     <span className="text-cyan-400 text-sm">💡</span>
                     <div className="text-xs text-gray-400">
-                      <strong className="text-cyan-300">คำแนะนำ:</strong> อัพโหลดไฟล์เสียงที่มีความยาว 15-20 วินาที พูดภาษาไทยชัดเจน 
-                      เพื่อผลลัพธ์ที่ดีที่สุด ระบบจะใช้เสียงนี้สร้างเสียงพูดของตัวละครโดยอัตโนมัติ
+                      <strong className="text-cyan-300">คำแนะนำ:</strong>{' '}
+                      อัพโหลดไฟล์เสียงที่มีความยาว 15-20 วินาที พูดชัดเจน
+                      เพื่อผลลัพธ์ที่ดีที่สุด
+                      <br />
+                      <span className="text-green-300/80 mt-1 inline-block">
+                        ✅ <strong>Voice Cloning ใช้งานได้แล้ว!</strong> เสียงของคุณจะถูกใช้สร้างบทพูดอัตโนมัติ
+                        รองรับหลายภาษา และสามารถปรับแต่งได้
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Preview Example */}
-              {(activeCharacter.speechPattern?.dialect !== 'standard' || activeCharacter.speechPattern?.accent !== 'none') && (
+              {(activeCharacter.speechPattern?.dialect !== 'standard' ||
+                activeCharacter.speechPattern?.accent !== 'none') && (
                 <div className="mt-6 p-4 bg-gradient-to-r from-cyan-900/20 to-purple-900/20 border border-cyan-700/50 rounded-lg">
                   <div className="text-sm font-medium text-cyan-300 mb-2">
                     💬 ตัวอย่างการแปลงภาษา
@@ -1931,14 +2378,19 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <div className="text-gray-500 text-xs mb-1">Standard:</div>
-                      <div className="text-gray-300">&quot;สวัสดีครับ ไม่รู้ว่าคุณกินข้าวหรือยัง&quot;</div>
+                      <div className="text-gray-300">
+                        &quot;สวัสดีครับ ไม่รู้ว่าคุณกินข้าวหรือยัง&quot;
+                      </div>
                     </div>
                     <div>
                       <div className="text-cyan-400 text-xs mb-1">With Dialect:</div>
                       <div className="text-white font-medium">
-                        {activeCharacter.speechPattern?.dialect === 'isaan' && '"สวัสดีเด้อ บ่รู้ว่าคุณกินข้าวแล้วบ่"'}
-                        {activeCharacter.speechPattern?.dialect === 'northern' && '"สวัสดีจ๊า บ่รู้เจ้ากินข้าวแล้วบ่"'}
-                        {activeCharacter.speechPattern?.dialect === 'southern' && '"สวัสดีแหน่ หมู่บ่ลู้ว่าแกกินข้าวยัง"'}
+                        {activeCharacter.speechPattern?.dialect === 'isaan' &&
+                          '"สวัสดีเด้อ บ่รู้ว่าคุณกินข้าวแล้วบ่"'}
+                        {activeCharacter.speechPattern?.dialect === 'northern' &&
+                          '"สวัสดีจ๊า บ่รู้เจ้ากินข้าวแล้วบ่"'}
+                        {activeCharacter.speechPattern?.dialect === 'southern' &&
+                          '"สวัสดีแหน่ หมู่บ่ลู้ว่าแกกินข้าวยัง"'}
                       </div>
                     </div>
                   </div>
@@ -2342,7 +2794,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           {/* Psychology Display at Top */}
           <div className="mb-6">
             <PsychologyDisplay character={activeCharacter} />
-            
+
             {/* Phase 3: Advanced Psychology Dashboard */}
             <button
               onClick={() => setShowPsychologyDashboard(true)}
@@ -2378,7 +2830,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 <span className="text-2xl">🗣️</span>
                 Speech Pattern & Dialect
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Dialect Selection */}
                 <div>
@@ -2387,7 +2839,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </label>
                   <select
                     value={activeCharacter.speechPattern?.dialect || 'standard'}
-                    onChange={(e) => {
+                    onChange={e => {
                       const updated = { ...activeCharacter };
                       if (!updated.speechPattern) {
                         updated.speechPattern = {
@@ -2397,7 +2849,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           personality: 'polite',
                         };
                       }
-                      updated.speechPattern.dialect = e.target.value as 'standard' | 'isaan' | 'northern' | 'southern' | 'central' | 'custom';
+                      updated.speechPattern.dialect = e.target.value as
+                        | 'standard'
+                        | 'isaan'
+                        | 'northern'
+                        | 'southern'
+                        | 'central'
+                        | 'custom';
                       updateCharacterAtIndex(activeCharIndex, updated);
                     }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -2417,7 +2875,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </label>
                   <select
                     value={activeCharacter.speechPattern?.accent || 'none'}
-                    onChange={(e) => {
+                    onChange={e => {
                       const updated = { ...activeCharacter };
                       if (!updated.speechPattern) {
                         updated.speechPattern = {
@@ -2427,7 +2885,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           personality: 'polite',
                         };
                       }
-                      updated.speechPattern.accent = e.target.value as 'none' | 'isaan' | 'northern' | 'southern' | 'chinese' | 'western' | 'custom';
+                      updated.speechPattern.accent = e.target.value as
+                        | 'none'
+                        | 'isaan'
+                        | 'northern'
+                        | 'southern'
+                        | 'chinese'
+                        | 'western'
+                        | 'custom';
                       updateCharacterAtIndex(activeCharIndex, updated);
                     }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -2448,7 +2913,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </label>
                   <select
                     value={activeCharacter.speechPattern?.formalityLevel || 'informal'}
-                    onChange={(e) => {
+                    onChange={e => {
                       const updated = { ...activeCharacter };
                       if (!updated.speechPattern) {
                         updated.speechPattern = {
@@ -2458,7 +2923,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           personality: 'polite',
                         };
                       }
-                      updated.speechPattern.formalityLevel = e.target.value as 'formal' | 'informal' | 'casual' | 'slang';
+                      updated.speechPattern.formalityLevel = e.target.value as
+                        | 'formal'
+                        | 'informal'
+                        | 'casual'
+                        | 'slang';
                       updateCharacterAtIndex(activeCharIndex, updated);
                     }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -2477,7 +2946,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </label>
                   <select
                     value={activeCharacter.speechPattern?.personality || 'polite'}
-                    onChange={(e) => {
+                    onChange={e => {
                       const updated = { ...activeCharacter };
                       if (!updated.speechPattern) {
                         updated.speechPattern = {
@@ -2487,7 +2956,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                           personality: 'polite',
                         };
                       }
-                      updated.speechPattern.personality = e.target.value as 'polite' | 'rude' | 'humorous' | 'serious' | 'childlike' | 'elderly' | 'intellectual';
+                      updated.speechPattern.personality = e.target.value as
+                        | 'polite'
+                        | 'rude'
+                        | 'humorous'
+                        | 'serious'
+                        | 'childlike'
+                        | 'elderly'
+                        | 'intellectual';
                       updateCharacterAtIndex(activeCharIndex, updated);
                     }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -2513,7 +2989,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   type="text"
                   placeholder="เช่น: เด้อ, บ่, แม่น, จ้า"
                   value={activeCharacter.speechPattern?.speechTics?.join(', ') || ''}
-                  onChange={(e) => {
+                  onChange={e => {
                     const updated = { ...activeCharacter };
                     if (!updated.speechPattern) {
                       updated.speechPattern = {
@@ -2534,17 +3010,21 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               </div>
 
               {/* Preview Example */}
-              {activeCharacter.speechPattern && activeCharacter.speechPattern.dialect !== 'standard' && (
-                <div className="mt-4 p-3 bg-gray-900/50 rounded border border-purple-500/20">
-                  <div className="text-xs text-gray-400 mb-1">ตัวอย่าง:</div>
-                  <div className="text-purple-300 font-thai">
-                    {activeCharacter.speechPattern.dialect === 'isaan' && '"บ่รู้เด้อว่าจะไปใสดี"'}
-                    {activeCharacter.speechPattern.dialect === 'northern' && '"ไปใสจ๊า กินข้าวแล้วบ่"'}
-                    {activeCharacter.speechPattern.dialect === 'southern' && '"ปะไรวะ ดีจ๋าเหา"'}
-                    {activeCharacter.speechPattern.dialect === 'central' && '"สวัสดีครับ ขอบคุณมากค่ะ"'}
+              {activeCharacter.speechPattern &&
+                activeCharacter.speechPattern.dialect !== 'standard' && (
+                  <div className="mt-4 p-3 bg-gray-900/50 rounded border border-purple-500/20">
+                    <div className="text-xs text-gray-400 mb-1">ตัวอย่าง:</div>
+                    <div className="text-purple-300 font-thai">
+                      {activeCharacter.speechPattern.dialect === 'isaan' &&
+                        '"บ่รู้เด้อว่าจะไปใสดี"'}
+                      {activeCharacter.speechPattern.dialect === 'northern' &&
+                        '"ไปใสจ๊า กินข้าวแล้วบ่"'}
+                      {activeCharacter.speechPattern.dialect === 'southern' && '"ปะไรวะ ดีจ๋าเหา"'}
+                      {activeCharacter.speechPattern.dialect === 'central' &&
+                        '"สวัสดีครับ ขอบคุณมากค่ะ"'}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
 
@@ -2725,12 +3205,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   onClick={() => setShowPsychologyDashboard(false)}
                   className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-all shadow-lg"
                 >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -2740,7 +3215,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </svg>
                 </button>
               </div>
-              
+
               {/* Dashboard */}
               <PsychologyDashboard character={activeCharacter} compact={false} />
             </div>
@@ -2761,8 +3236,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         <PsychologyTimeline
           timeline={
             scriptData.psychologyTimelines?.[activeCharacter.id] ||
-            scriptData.psychologyTimelines?.[activeCharacter.name] ||
-            {
+            scriptData.psychologyTimelines?.[activeCharacter.name] || {
               characterId: activeCharacter.id || '',
               characterName: activeCharacter.name,
               snapshots: [],
@@ -2823,7 +3297,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-lg transition-all shadow-lg flex items-center gap-2"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     <span>{legacyT('ดาวน์โหลด HTML', 'Download HTML')}</span>
                   </button>
@@ -2832,7 +3311,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-all shadow-lg"
                   >
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -2863,7 +3347,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
                       {char.description && (
                         <div className="mb-4">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">{legacyT('คำอธิบาย', 'Description')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">
+                            {legacyT('คำอธิบาย', 'Description')}
+                          </h4>
                           <p className="text-gray-300 text-sm">{char.description}</p>
                         </div>
                       )}
@@ -2873,20 +3359,32 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                         <div className="grid grid-cols-3 gap-2 mb-4">
                           {char.physical?.age && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{legacyT('อายุ', 'Age')}</div>
-                              <div className="text-sm font-bold text-white">{char.physical.age}</div>
+                              <div className="text-[10px] text-gray-500">
+                                {legacyT('อายุ', 'Age')}
+                              </div>
+                              <div className="text-sm font-bold text-white">
+                                {char.physical.age}
+                              </div>
                             </div>
                           )}
                           {char.physical?.height && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{legacyT('ส่วนสูง', 'Height')}</div>
-                              <div className="text-sm font-bold text-white">{char.physical.height}</div>
+                              <div className="text-[10px] text-gray-500">
+                                {legacyT('ส่วนสูง', 'Height')}
+                              </div>
+                              <div className="text-sm font-bold text-white">
+                                {char.physical.height}
+                              </div>
                             </div>
                           )}
                           {char.physical?.build && (
                             <div className="bg-gray-800/50 p-2 rounded text-center">
-                              <div className="text-[10px] text-gray-500">{legacyT('รูปร่าง', 'Build')}</div>
-                              <div className="text-sm font-bold text-white">{char.physical.build}</div>
+                              <div className="text-[10px] text-gray-500">
+                                {legacyT('รูปร่าง', 'Build')}
+                              </div>
+                              <div className="text-sm font-bold text-white">
+                                {char.physical.build}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2895,14 +3393,18 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       {/* Goals */}
                       {char.goals?.objective && (
                         <div className="mb-3">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">🎯 {legacyT('เป้าหมายภายนอก', 'Objective')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">
+                            🎯 {legacyT('เป้าหมายภายนอก', 'Objective')}
+                          </h4>
                           <p className="text-gray-300 text-sm">{char.goals.objective}</p>
                         </div>
                       )}
 
                       {char.goals?.need && (
                         <div className="mb-3">
-                          <h4 className="text-xs font-bold text-gray-400 mb-1">💭 {legacyT('ความต้องการ', 'Need')}</h4>
+                          <h4 className="text-xs font-bold text-gray-400 mb-1">
+                            💭 {legacyT('ความต้องการ', 'Need')}
+                          </h4>
                           <p className="text-gray-300 text-sm">{char.goals.need}</p>
                         </div>
                       )}
@@ -2910,18 +3412,28 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       {/* Psychology Summary */}
                       {char.buddhist_psychology && (
                         <div className="mt-4 pt-4 border-t border-gray-700">
-                          <h4 className="text-xs font-bold text-purple-400 mb-2">🧠 {legacyT('จิตวิทยา', 'Psychology')}</h4>
+                          <h4 className="text-xs font-bold text-purple-400 mb-2">
+                            🧠 {legacyT('จิตวิทยา', 'Psychology')}
+                          </h4>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             {char.buddhist_psychology.carita && (
                               <div className="bg-purple-900/20 p-2 rounded">
-                                <div className="text-gray-500 text-[10px]">{legacyT('จริต', 'Carita')}</div>
-                                <div className="text-purple-300 font-bold">{char.buddhist_psychology.carita}</div>
+                                <div className="text-gray-500 text-[10px]">
+                                  {legacyT('จริต', 'Carita')}
+                                </div>
+                                <div className="text-purple-300 font-bold">
+                                  {char.buddhist_psychology.carita}
+                                </div>
                               </div>
                             )}
                             {char.mind_state?.magga_stage && (
                               <div className="bg-blue-900/20 p-2 rounded">
-                                <div className="text-gray-500 text-[10px]">{legacyT('ภูมิธรรม', 'Magga')}</div>
-                                <div className="text-blue-300 font-bold">{char.mind_state.magga_stage}</div>
+                                <div className="text-gray-500 text-[10px]">
+                                  {legacyT('ภูมิธรรม', 'Magga')}
+                                </div>
+                                <div className="text-blue-300 font-bold">
+                                  {char.mind_state.magga_stage}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2957,9 +3469,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         onClose={() => setRegenerateModal({ isOpen: false })}
         onConfirm={handleRegenerateConfirm}
         sceneName="All Characters"
-        hasEdits={characters.length > 0 && characters.some(
-          char => char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
-        )}
+        hasEdits={
+          characters.length > 0 &&
+          characters.some(
+            char =>
+              char.name && char.name !== 'Character Name' && !char.name.startsWith('New Character')
+          )
+        }
       />
 
       {/* Character Details Modal */}
@@ -2968,7 +3484,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         onClose={() => setDetailsModal({ isOpen: false })}
         onConfirm={handleGenerateDetailsConfirm}
         sceneName="Character Details"
-        hasEdits={!!(activeCharacter.description || activeCharacter.external['Physical Characteristics'] || activeCharacter.physical['Facial characteristics'])}
+        hasEdits={
+          !!(
+            activeCharacter.description ||
+            activeCharacter.external['Physical Characteristics'] ||
+            activeCharacter.physical['Facial characteristics']
+          )
+        }
       />
     </div>
   );
@@ -3128,79 +3650,123 @@ const generateCharactersHTML = (characters: Character[], title: string): string 
         <div class="subtitle">${title} - ${characters.length} Characters</div>
         
         <div class="grid">
-${characters.map(char => `
+${characters
+  .map(
+    char => `
             <div class="card">
                 ${char.image ? `<img src="${char.image}" alt="${char.name}" class="card-image">` : ''}
                 <div class="card-content">
                     <div class="char-name">${char.name}</div>
                     <div class="char-role">${char.role || 'Character'}</div>
                     
-                    ${char.description ? `
+                    ${
+                      char.description
+                        ? `
                     <div class="section">
                         <div class="section-title">คำอธิบาย / Description</div>
                         <div class="section-content">${char.description}</div>
                     </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
-                    ${char.physical?.age || char.physical?.height || char.physical?.build ? `
+                    ${
+                      char.physical?.age || char.physical?.height || char.physical?.build
+                        ? `
                     <div class="stats-grid">
-                        ${char.physical?.age ? `
+                        ${
+                          char.physical?.age
+                            ? `
                         <div class="stat-box">
                             <div class="stat-label">อายุ / Age</div>
                             <div class="stat-value">${char.physical.age}</div>
                         </div>
-                        ` : ''}
-                        ${char.physical?.height ? `
+                        `
+                            : ''
+                        }
+                        ${
+                          char.physical?.height
+                            ? `
                         <div class="stat-box">
                             <div class="stat-label">ส่วนสูง / Height</div>
                             <div class="stat-value">${char.physical.height}</div>
                         </div>
-                        ` : ''}
-                        ${char.physical?.build ? `
+                        `
+                            : ''
+                        }
+                        ${
+                          char.physical?.build
+                            ? `
                         <div class="stat-box">
                             <div class="stat-label">รูปร่าง / Build</div>
                             <div class="stat-value">${char.physical.build}</div>
                         </div>
-                        ` : ''}
+                        `
+                            : ''
+                        }
                     </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
-                    ${char.goals?.objective ? `
+                    ${
+                      char.goals?.objective
+                        ? `
                     <div class="section">
                         <div class="section-title">🎯 เป้าหมาย / Objective</div>
                         <div class="section-content">${char.goals.objective}</div>
                     </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
-                    ${char.goals?.need ? `
+                    ${
+                      char.goals?.need
+                        ? `
                     <div class="section">
                         <div class="section-title">💭 ความต้องการ / Need</div>
                         <div class="section-content">${char.goals.need}</div>
                     </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
-                    ${char.buddhist_psychology ? `
+                    ${
+                      char.buddhist_psychology
+                        ? `
                     <div class="psychology">
                         <div class="psych-title">🧠 จิตวิทยา / Psychology</div>
                         <div class="psych-grid">
-                            ${char.buddhist_psychology.carita ? `
+                            ${
+                              char.buddhist_psychology.carita
+                                ? `
                             <div class="psych-box">
                                 <div class="psych-label">จริต / Carita</div>
                                 <div class="psych-value">${char.buddhist_psychology.carita}</div>
                             </div>
-                            ` : ''}
-                            ${char.mind_state?.magga_stage ? `
+                            `
+                                : ''
+                            }
+                            ${
+                              char.mind_state?.magga_stage
+                                ? `
                             <div class="psych-box">
                                 <div class="psych-label">ภูมิธรรม / Magga</div>
                                 <div class="psych-value">${char.mind_state.magga_stage}</div>
                             </div>
-                            ` : ''}
+                            `
+                                : ''
+                            }
                         </div>
                     </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                 </div>
             </div>
-`).join('')}
+`
+  )
+  .join('')}
         </div>
     </div>
 </body>
@@ -3209,21 +3775,3 @@ ${characters.map(char => `
 };
 
 export default Step3Character;
-      {/* Voice Upload Modal */}
-      {isVoiceUploadModalOpen && (
-        <VoiceUploadModal
-          isOpen={isVoiceUploadModalOpen}
-          onClose={() => setIsVoiceUploadModalOpen(false)}
-          onSuccess={handleVoiceUploadSuccess}
-          characterName={activeCharacter.name}
-        />
-      )}
-
-      {/* Rest of the component JSX... */}
-      {/* The existing return statement content should follow here */}
-    </div>
-  );
-};
-
-export default Step3Character;
-

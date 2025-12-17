@@ -55,9 +55,9 @@ describe('buildMotionContext', () => {
   it('should build motion context string', () => {
     const character = createMockCharacter();
     const shotDescription = 'Character walking through city';
-    
+
     const context = buildMotionContext(character, shotDescription);
-    
+
     expect(typeof context).toBe('string');
     expect(context.length).toBeGreaterThan(0);
   });
@@ -65,9 +65,9 @@ describe('buildMotionContext', () => {
   it('should include character action', () => {
     const character = createMockCharacter();
     const shotDescription = 'Running through forest';
-    
+
     const context = buildMotionContext(character, shotDescription);
-    
+
     expect(context).toContain('CHARACTER MOTION');
     expect(typeof context).toBe('string');
   });
@@ -75,18 +75,18 @@ describe('buildMotionContext', () => {
   it('should include motion speed based on mood', () => {
     const character = createMockCharacter();
     const shotDescription = 'Walking slowly';
-    
+
     const context = buildMotionContext(character, shotDescription);
-    
+
     expect(context.toLowerCase()).toMatch(/slow|calm|natural|realistic/);
   });
 
   it('should handle missing emotional state', () => {
     const character = { ...createMockCharacter(), emotionalState: undefined };
     const shotDescription = 'Test action';
-    
+
     const context = buildMotionContext(character, shotDescription);
-    
+
     expect(typeof context).toBe('string');
     expect(context.length).toBeGreaterThan(0);
   });
@@ -94,9 +94,9 @@ describe('buildMotionContext', () => {
   it('should include Buddhist psychology carita', () => {
     const character = createMockCharacter();
     const shotDescription = 'Meditating';
-    
+
     const context = buildMotionContext(character, shotDescription);
-    
+
     expect(typeof context).toBe('string');
   });
 });
@@ -108,9 +108,9 @@ describe('buildCameraMovementContext', () => {
       movement: 'Dolly',
       equipment: 'Dolly',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     expect(context).toContain('Dolly');
     expect(typeof context).toBe('string');
   });
@@ -120,9 +120,9 @@ describe('buildCameraMovementContext', () => {
       description: 'Test',
       movement: 'Pan',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     expect(context).toContain('Pan');
   });
 
@@ -131,9 +131,9 @@ describe('buildCameraMovementContext', () => {
       description: 'Test',
       movement: 'Static',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     expect(context).toContain('Static');
   });
 
@@ -141,9 +141,9 @@ describe('buildCameraMovementContext', () => {
     const shotData: ShotData = {
       description: 'Test',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     expect(typeof context).toBe('string');
     expect(context.length).toBeGreaterThan(0);
   });
@@ -154,9 +154,9 @@ describe('buildCameraMovementContext', () => {
       movement: 'Track',
       equipment: 'Steadicam',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     // Equipment type may be referenced in movement description
     expect(context).toBeTruthy();
     expect(context.length).toBeGreaterThan(0);
@@ -168,9 +168,9 @@ describe('buildCameraMovementContext', () => {
       movement: 'Handheld',
       equipment: 'Handheld',
     };
-    
+
     const context = buildCameraMovementContext(shotData);
-    
+
     expect(context).toContain('Handheld');
   });
 });
@@ -181,9 +181,9 @@ describe('buildTimingContext', () => {
       description: 'Test',
       durationSec: 5,
     };
-    
+
     const context = buildTimingContext(shotData);
-    
+
     expect(context).toContain('5');
     expect(typeof context).toBe('string');
   });
@@ -193,9 +193,9 @@ describe('buildTimingContext', () => {
       description: 'Test',
       durationSec: 2,
     };
-    
+
     const context = buildTimingContext(shotData);
-    
+
     expect(context).toContain('quick');
   });
 
@@ -204,9 +204,9 @@ describe('buildTimingContext', () => {
       description: 'Test',
       durationSec: 5,
     };
-    
+
     const context = buildTimingContext(shotData);
-    
+
     // Timing context should include pacing information
     expect(context).toBeTruthy();
     expect(context.toLowerCase()).toMatch(/pacing|duration|5/);
@@ -217,9 +217,9 @@ describe('buildTimingContext', () => {
       description: 'Test',
       durationSec: 10,
     };
-    
+
     const context = buildTimingContext(shotData);
-    
+
     expect(context).toContain('slow');
   });
 
@@ -227,9 +227,9 @@ describe('buildTimingContext', () => {
     const shotData: ShotData = {
       description: 'Test',
     };
-    
+
     const context = buildTimingContext(shotData);
-    
+
     expect(typeof context).toBe('string');
   });
 });
@@ -239,9 +239,9 @@ describe('buildEnvironmentalMotionContext', () => {
     const shotData: ShotData = {
       description: 'Trees swaying in wind',
     };
-    
+
     const context = buildEnvironmentalMotionContext(shotData);
-    
+
     expect(typeof context).toBe('string');
     expect(context.length).toBeGreaterThan(0);
   });
@@ -250,9 +250,9 @@ describe('buildEnvironmentalMotionContext', () => {
     const shotData: ShotData = {
       description: 'Outdoor forest scene',
     };
-    
+
     const context = buildEnvironmentalMotionContext(shotData);
-    
+
     expect(context.toLowerCase()).toMatch(/trees|leaves|wind|clouds/);
   });
 
@@ -260,9 +260,9 @@ describe('buildEnvironmentalMotionContext', () => {
     const shotData: ShotData = {
       description: 'Indoor office scene',
     };
-    
+
     const context = buildEnvironmentalMotionContext(shotData);
-    
+
     expect(typeof context).toBe('string');
   });
 
@@ -272,9 +272,9 @@ describe('buildEnvironmentalMotionContext', () => {
         location: 'Beach with ocean',
       },
     } as any;
-    
+
     const context = buildEnvironmentalMotionContext(currentScene);
-    
+
     // Water scenes should include water-related motion descriptors
     expect(context.toLowerCase()).toMatch(/water|ocean|beach|wave/);
   });
@@ -285,9 +285,9 @@ describe('buildEnvironmentalMotionContext', () => {
         location: 'City street',
       },
     } as any;
-    
+
     const context = buildEnvironmentalMotionContext(currentScene);
-    
+
     // City scenes should include urban environment descriptors
     expect(context.toLowerCase()).toMatch(/street|city|urban|car|pedestrian/);
   });
@@ -309,9 +309,9 @@ describe('buildVideoPrompt', () => {
     } as any;
     const character = createMockCharacter();
     const basePrompt = 'Test base prompt';
-    
+
     const prompt = buildVideoPrompt(shotData, currentScene, character, basePrompt);
-    
+
     expect(typeof prompt).toBe('string');
     expect(prompt.length).toBeGreaterThan(0);
   });
@@ -321,9 +321,9 @@ describe('buildVideoPrompt', () => {
     const currentScene = { sceneDesign: { location: 'City' } } as any;
     const character = createMockCharacter();
     const basePrompt = 'Unique base text';
-    
+
     const prompt = buildVideoPrompt(shotData, currentScene, character, basePrompt);
-    
+
     expect(prompt).toContain(basePrompt);
   });
 
@@ -332,9 +332,9 @@ describe('buildVideoPrompt', () => {
     const currentScene = { sceneDesign: { location: 'City' } } as any;
     const character = createMockCharacter();
     const basePrompt = 'Test';
-    
+
     const prompt = buildVideoPrompt(shotData, currentScene, character, basePrompt);
-    
+
     expect(prompt.toLowerCase()).toMatch(/motion|movement/);
   });
 
@@ -345,9 +345,9 @@ describe('buildVideoPrompt', () => {
     const currentScene = { sceneDesign: {} } as any;
     const character = createMockCharacter();
     const basePrompt = 'Test';
-    
+
     const prompt = buildVideoPrompt(shotData, currentScene, character, basePrompt);
-    
+
     expect(prompt).toContain('Test');
   });
 });
@@ -356,9 +356,9 @@ describe('getMotionModuleStrength', () => {
   it('should return strength value between 0 and 1', () => {
     const shotData = createMockShotData();
     const character = createMockCharacter();
-    
+
     const strength = getMotionModuleStrength(shotData, character);
-    
+
     expect(strength).toBeGreaterThanOrEqual(0);
     expect(strength).toBeLessThanOrEqual(1);
   });
@@ -370,9 +370,9 @@ describe('getMotionModuleStrength', () => {
     };
     const character = createMockCharacter();
     character.emotionalState = { currentMood: 'excited', energyLevel: 90 };
-    
+
     const strength = getMotionModuleStrength(shotData, character);
-    
+
     expect(strength).toBeGreaterThan(0.5);
   });
 
@@ -383,9 +383,9 @@ describe('getMotionModuleStrength', () => {
     };
     const character = createMockCharacter();
     character.emotionalState = { currentMood: 'calm', energyLevel: 20 };
-    
+
     const strength = getMotionModuleStrength(shotData, character);
-    
+
     expect(strength).toBeLessThan(0.7);
   });
 
@@ -395,9 +395,9 @@ describe('getMotionModuleStrength', () => {
       movement: 'Dolly',
     };
     const character = createMockCharacter();
-    
+
     const strength = getMotionModuleStrength(shotData, character);
-    
+
     expect(strength).toBeGreaterThan(0.3);
     expect(strength).toBeLessThan(0.9);
   });
@@ -406,9 +406,9 @@ describe('getMotionModuleStrength', () => {
 describe('getRecommendedFPS', () => {
   it('should return FPS value', () => {
     const shotData = createMockShotData();
-    
+
     const fps = getRecommendedFPS(shotData);
-    
+
     expect(fps).toBeGreaterThan(0);
     expect(Number.isInteger(fps)).toBe(true);
   });
@@ -418,9 +418,9 @@ describe('getRecommendedFPS', () => {
       description: 'Fast action sequence',
       movement: 'Handheld',
     };
-    
+
     const fps = getRecommendedFPS(shotData);
-    
+
     expect(fps).toBeGreaterThanOrEqual(12);
   });
 
@@ -429,9 +429,9 @@ describe('getRecommendedFPS', () => {
       description: 'Slow meditative scene',
       movement: 'Static',
     };
-    
+
     const fps = getRecommendedFPS(shotData);
-    
+
     expect(fps).toBeGreaterThanOrEqual(8);
     expect(fps).toBeLessThanOrEqual(16);
   });
@@ -440,9 +440,9 @@ describe('getRecommendedFPS', () => {
     const shotData: ShotData = {
       description: 'Normal scene',
     };
-    
+
     const fps = getRecommendedFPS(shotData);
-    
+
     expect(fps).toBeGreaterThanOrEqual(8);
     expect(fps).toBeLessThanOrEqual(24);
   });
@@ -455,9 +455,9 @@ describe('getRecommendedFrameCount', () => {
       durationSec: 5,
     };
     const fps = 12;
-    
+
     const frameCount = getRecommendedFrameCount(shotData, fps);
-    
+
     expect(frameCount).toBe(60); // 5 * 12
   });
 
@@ -467,9 +467,9 @@ describe('getRecommendedFrameCount', () => {
       durationSec: 2,
     };
     const fps = 12;
-    
+
     const frameCount = getRecommendedFrameCount(shotData, fps);
-    
+
     expect(frameCount).toBe(24); // 2 * 12
   });
 
@@ -479,9 +479,9 @@ describe('getRecommendedFrameCount', () => {
       durationSec: 10,
     };
     const fps = 12;
-    
+
     const frameCount = getRecommendedFrameCount(shotData, fps);
-    
+
     expect(frameCount).toBe(120); // 10 * 12
   });
 
@@ -490,9 +490,9 @@ describe('getRecommendedFrameCount', () => {
       description: 'Test',
     };
     const fps = 12;
-    
+
     const frameCount = getRecommendedFrameCount(shotData, fps);
-    
+
     expect(frameCount).toBeGreaterThan(0);
   });
 
@@ -501,10 +501,10 @@ describe('getRecommendedFrameCount', () => {
       description: 'Test',
       durationSec: 5,
     };
-    
+
     const frames12fps = getRecommendedFrameCount(shotData, 12);
     const frames24fps = getRecommendedFrameCount(shotData, 24);
-    
+
     expect(frames24fps).toBe(frames12fps * 2);
   });
 });
@@ -513,7 +513,7 @@ describe('Edge Cases', () => {
   it('should handle empty shot description', () => {
     const character = createMockCharacter();
     const shotDescription = '';
-    
+
     expect(() => buildMotionContext(character, shotDescription)).not.toThrow();
   });
 
@@ -522,7 +522,7 @@ describe('Edge Cases', () => {
       description: 'Test',
       durationSec: 60,
     };
-    
+
     const context = buildTimingContext(shotData);
     expect(context).toBeTruthy();
   });
@@ -532,7 +532,7 @@ describe('Edge Cases', () => {
       description: 'Test',
       durationSec: 0,
     };
-    
+
     const frameCount = getRecommendedFrameCount(shotData, 12);
     expect(frameCount).toBeGreaterThanOrEqual(0);
   });
@@ -542,14 +542,14 @@ describe('Edge Cases', () => {
       description: 'Test',
       movement: 'Unknown' as any,
     };
-    
+
     expect(() => buildCameraMovementContext(shotData)).not.toThrow();
   });
 
   it('should handle special characters in description', () => {
     const character = createMockCharacter();
     const shotDescription = 'Test with émojis 🎬 and special chars: <>&"\'';
-    
+
     const context = buildMotionContext(character, shotDescription);
     expect(context).toBeTruthy();
   });
@@ -559,10 +559,10 @@ describe('Integration Tests', () => {
   it('should generate consistent results for same input', () => {
     const character = createMockCharacter();
     const shotDescription = 'Walking through city';
-    
+
     const context1 = buildMotionContext(character, shotDescription);
     const context2 = buildMotionContext(character, shotDescription);
-    
+
     expect(context1).toBe(context2);
   });
 
@@ -571,7 +571,7 @@ describe('Integration Tests', () => {
     const currentScene = { sceneDesign: { location: 'City' } } as any;
     const character = createMockCharacter();
     const basePrompt = 'Test prompt';
-    
+
     const cameraContext = buildCameraMovementContext(shotData);
     const timingContext = buildTimingContext(shotData);
     const environmentalContext = buildEnvironmentalMotionContext(currentScene);
@@ -579,7 +579,7 @@ describe('Integration Tests', () => {
     const fps = getRecommendedFPS(shotData);
     const frameCount = getRecommendedFrameCount(shotData, fps);
     const strength = getMotionModuleStrength(shotData, character);
-    
+
     expect(cameraContext).toBeTruthy();
     expect(timingContext).toBeTruthy();
     expect(environmentalContext).toBeTruthy();
@@ -590,14 +590,25 @@ describe('Integration Tests', () => {
   });
 
   it('should handle multiple movement types', () => {
-    const movements = ['Dolly', 'Pan', 'Tilt', 'Track', 'Crane', 'Zoom', 'Follow', 'Arc', 'Handheld', 'Static'];
-    
+    const movements = [
+      'Dolly',
+      'Pan',
+      'Tilt',
+      'Track',
+      'Crane',
+      'Zoom',
+      'Follow',
+      'Arc',
+      'Handheld',
+      'Static',
+    ];
+
     movements.forEach(movement => {
       const shotData: ShotData = {
         description: `Test ${movement}`,
         movement,
       };
-      
+
       expect(() => buildCameraMovementContext(shotData)).not.toThrow();
     });
   });

@@ -125,9 +125,7 @@ describe('motionEditorService', () => {
       const suggestions = generateCinematicSuggestions(mockCharacter);
 
       expect(suggestions.suggested_camera).toContain(suggestions.suggested_focal_length);
-      expect(suggestions.suggested_camera).toContain(
-        suggestions.suggested_movement.toLowerCase()
-      );
+      expect(suggestions.suggested_camera).toContain(suggestions.suggested_movement.toLowerCase());
     });
 
     it('should include lighting preset based on mood', () => {

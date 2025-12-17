@@ -651,9 +651,12 @@ describe('CheckoutPage - Payment Processing', () => {
     if (payButton) {
       fireEvent.click(payButton);
 
-      await waitFor(() => {
-        expect(mockOnSuccess).toHaveBeenCalled();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(mockOnSuccess).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
     }
   });
 
@@ -677,10 +680,13 @@ describe('CheckoutPage - Payment Processing', () => {
     if (payButton) {
       fireEvent.click(payButton);
 
-      await waitFor(() => {
-        const errorTexts = screen.getAllByText(/การชำระเงินล้มเหลว/i);
-        expect(errorTexts.length).toBeGreaterThan(0);
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          const errorTexts = screen.getAllByText(/การชำระเงินล้มเหลว/i);
+          expect(errorTexts.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
     }
   });
 

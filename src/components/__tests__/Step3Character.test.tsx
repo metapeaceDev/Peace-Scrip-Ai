@@ -18,8 +18,7 @@ vi.mock('./LanguageSwitcher', () => ({
 }));
 
 vi.mock('./RegenerateOptionsModal', () => ({
-  RegenerateOptionsModal: ({ isOpen }: any) => 
-    isOpen ? <div>Regenerate Modal</div> : null,
+  RegenerateOptionsModal: ({ isOpen }: any) => (isOpen ? <div>Regenerate Modal</div> : null),
 }));
 
 vi.mock('./PsychologyTestPanel', () => ({
@@ -254,9 +253,33 @@ describe('Step3Character - Speech Patterns', () => {
 
   it('should handle different dialect types', () => {
     const characters = [
-      createMockCharacter({ id: 'c1', speechPattern: { dialect: 'standard', accent: 'none', formalityLevel: 'formal', personality: 'polite' } }),
-      createMockCharacter({ id: 'c2', speechPattern: { dialect: 'southern', accent: 'southern', formalityLevel: 'casual', personality: 'rude' } }),
-      createMockCharacter({ id: 'c3', speechPattern: { dialect: 'northern', accent: 'northern', formalityLevel: 'informal', personality: 'elderly' } }),
+      createMockCharacter({
+        id: 'c1',
+        speechPattern: {
+          dialect: 'standard',
+          accent: 'none',
+          formalityLevel: 'formal',
+          personality: 'polite',
+        },
+      }),
+      createMockCharacter({
+        id: 'c2',
+        speechPattern: {
+          dialect: 'southern',
+          accent: 'southern',
+          formalityLevel: 'casual',
+          personality: 'rude',
+        },
+      }),
+      createMockCharacter({
+        id: 'c3',
+        speechPattern: {
+          dialect: 'northern',
+          accent: 'northern',
+          formalityLevel: 'informal',
+          personality: 'elderly',
+        },
+      }),
     ];
     const scriptData = createMockScriptData({ characters });
     const { container } = render(<Step3Character {...mockProps} scriptData={scriptData} />);
@@ -278,7 +301,8 @@ describe('Step3Character - Character Images', () => {
 
   it('should handle character with profile image', () => {
     const character = createMockCharacter({
-      image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      image:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     });
     const scriptData = createMockScriptData({ characters: [character] });
     const { container } = render(<Step3Character {...mockProps} scriptData={scriptData} />);
@@ -508,9 +532,7 @@ describe('Step3Character - Integration', () => {
       fashionReferenceImage: 'data:image/png;base64,fashion',
       imageStyle: 'anime',
       preferredModel: 'comfyui-sdxl',
-      outfitCollection: [
-        { id: 'o1', description: 'Outfit 1', image: 'data:image/png;base64,o1' },
-      ],
+      outfitCollection: [{ id: 'o1', description: 'Outfit 1', image: 'data:image/png;base64,o1' }],
       external: { build: 'Athletic', height: '180cm' },
       physical: { hair: 'Black', eyes: 'Brown' },
       fashion: { style: 'Modern casual' },

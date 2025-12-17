@@ -172,11 +172,11 @@ class FirestoreService {
       try {
         const userRef = doc(db, this.USERS_COLLECTION, userId);
         const userDoc = await getDoc(userRef);
-        
+
         if (userDoc.exists()) {
           const userData = userDoc.data();
           const sharedProjectIds = userData.sharedProjects || [];
-          
+
           console.log(`🔗 Found ${sharedProjectIds.length} shared projects`);
 
           // Fetch each shared project
@@ -184,10 +184,10 @@ class FirestoreService {
             try {
               const projectRef = doc(db, this.PROJECTS_COLLECTION, projectId);
               const projectDoc = await getDoc(projectRef);
-              
+
               if (projectDoc.exists()) {
                 const data = projectDoc.data();
-                
+
                 // Get collaborator role
                 const collaboratorRef = doc(
                   db,
@@ -197,9 +197,7 @@ class FirestoreService {
                   userId
                 );
                 const collaboratorDoc = await getDoc(collaboratorRef);
-                const role = collaboratorDoc.exists() 
-                  ? collaboratorDoc.data().role 
-                  : 'viewer';
+                const role = collaboratorDoc.exists() ? collaboratorDoc.data().role : 'viewer';
 
                 projects.push({
                   id: projectDoc.id,
@@ -223,9 +221,7 @@ class FirestoreService {
       console.log(`✅ Total projects: ${projects.length}`);
 
       // Sort all projects by updatedAt
-      projects.sort((a, b) => 
-        (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0)
-      );
+      projects.sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
 
       return {
         success: true,
@@ -620,7 +616,7 @@ export async function updateUserSubscription(
 ): Promise<void> {
   try {
     const userRef = doc(db, 'users', userId);
-    
+
     const updateData: any = {
       'subscription.updatedAt': serverTimestamp(),
     };
@@ -651,7 +647,7 @@ export async function updateUserSubscription(
     }
 
     await updateDoc(userRef, updateData);
-    
+
     console.log(`✅ Updated subscription for user ${userId}:`, subscriptionData);
   } catch (error) {
     console.error('Error updating user subscription:', error);

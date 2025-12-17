@@ -105,7 +105,7 @@ describe('TeamManager - Component Rendering', () => {
     );
     const addTabElements = screen.getAllByText(/เพิ่มสมาชิกทีม/i);
     expect(addTabElements.length).toBeGreaterThan(0);
-    
+
     const teamTabElements = screen.getAllByText(/Current Team/i);
     expect(teamTabElements.length).toBeGreaterThan(0);
   });

@@ -96,7 +96,16 @@ describe('RegenerateOptionsModal', () => {
   });
 
   describe('Idea Mode Detection', () => {
-    const ideaFields = ['Big Idea', 'Premise', 'Theme', 'Log Line', 'Synopsis', 'Timeline', 'All Boundary', 'Boundary'];
+    const ideaFields = [
+      'Big Idea',
+      'Premise',
+      'Theme',
+      'Log Line',
+      'Synopsis',
+      'Timeline',
+      'All Boundary',
+      'Boundary',
+    ];
 
     ideaFields.forEach(field => {
       it(`should detect Idea mode for ${field}`, () => {
@@ -303,10 +312,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const refineButton = screen.getByText('ปรับปรุงฉากเดิม').closest('button');
       fireEvent.click(refineButton!);
-      
+
       // Should have selected styling
       expect(refineButton?.className).toContain('border-purple-500');
     });
@@ -321,10 +330,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={true}
         />
       );
-      
+
       const useEditedButton = screen.getByText('ใช้ข้อมูลที่แก้ไข').closest('button');
       fireEvent.click(useEditedButton!);
-      
+
       // Should have selected styling
       expect(useEditedButton?.className).toContain('border-green-500');
     });
@@ -339,10 +348,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const useEditedButton = screen.getByText('ใช้ข้อมูลที่แก้ไข').closest('button');
       fireEvent.click(useEditedButton!);
-      
+
       // Should still have fresh mode selected
       const freshButton = screen.getByText('เริ่มใหม่ทั้งหมด').closest('button');
       expect(freshButton?.className).toContain('border-cyan-500');
@@ -360,12 +369,12 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       // Find confirm button - it's the last button with gradient background
       const buttons = screen.getAllByRole('button');
       const confirmButton = buttons[buttons.length - 1]; // Last button is confirm
       fireEvent.click(confirmButton);
-      
+
       expect(mockOnConfirm).toHaveBeenCalledWith('fresh');
     });
 
@@ -379,16 +388,16 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       // Select refine mode
       const refineButton = screen.getByText('ปรับปรุงฉากเดิม').closest('button');
       fireEvent.click(refineButton!);
-      
+
       // Confirm - last button
       const buttons = screen.getAllByRole('button');
       const confirmButton = buttons[buttons.length - 1];
       fireEvent.click(confirmButton);
-      
+
       expect(mockOnConfirm).toHaveBeenCalledWith('refine');
     });
 
@@ -402,16 +411,16 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={true}
         />
       );
-      
+
       // Select use-edited mode
       const useEditedButton = screen.getByText('ใช้ข้อมูลที่แก้ไข').closest('button');
       fireEvent.click(useEditedButton!);
-      
+
       // Confirm - last button
       const buttons = screen.getAllByRole('button');
       const confirmButton = buttons[buttons.length - 1];
       fireEvent.click(confirmButton);
-      
+
       expect(mockOnConfirm).toHaveBeenCalledWith('use-edited');
     });
 
@@ -425,11 +434,11 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const buttons = screen.getAllByRole('button');
       const confirmButton = buttons[buttons.length - 1];
       fireEvent.click(confirmButton);
-      
+
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -445,10 +454,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const closeButton = screen.getByRole('button', { name: '' }).querySelector('svg');
       fireEvent.click(closeButton?.parentElement!);
-      
+
       expect(mockOnClose).toHaveBeenCalled();
     });
 
@@ -462,10 +471,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const cancelButton = screen.getByText('ยกเลิก');
       fireEvent.click(cancelButton);
-      
+
       expect(mockOnClose).toHaveBeenCalled();
     });
 
@@ -479,10 +488,10 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const backdrop = document.querySelector('.bg-black\\/70');
       fireEvent.click(backdrop!);
-      
+
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
@@ -498,7 +507,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       expect(screen.getByText('คำแนะนำการใช้งาน:')).toBeInTheDocument();
       // Text is in <strong> tags in list items
       const strongElements = document.querySelectorAll('strong');
@@ -645,7 +654,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       // Fresh mode is selected by default
       const radioButtons = document.querySelectorAll('.w-2\\.5.h-2\\.5.bg-white.rounded-full');
       expect(radioButtons.length).toBe(1);
@@ -661,7 +670,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       // Should have border circles for all modes
       const radioBorders = document.querySelectorAll('.rounded-full.border-2');
       expect(radioBorders.length).toBeGreaterThan(2);
@@ -679,7 +688,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const header = document.querySelector('.bg-gradient-to-r.from-cyan-900\\/50');
       expect(header).toBeInTheDocument();
     });
@@ -694,7 +703,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const backdrop = document.querySelector('.backdrop-blur-sm');
       expect(backdrop).toBeInTheDocument();
     });
@@ -709,7 +718,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const buttons = screen.getAllByRole('button');
       const confirmButton = buttons[buttons.length - 1];
       expect(confirmButton?.className).toContain('bg-gradient-to-r');
@@ -768,7 +777,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const scrollableArea = document.querySelector('.overflow-y-auto');
       expect(scrollableArea).toBeInTheDocument();
     });
@@ -783,7 +792,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      
+
       const modal = document.querySelector('.max-h-\\[90vh\\]');
       expect(modal).toBeInTheDocument();
     });

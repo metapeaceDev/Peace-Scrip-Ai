@@ -202,7 +202,9 @@ describe('TTSSettingsModal', () => {
       const azureSettings = { ...defaultSettings, engine: 'azure' as TTSEngine };
       render(<TTSSettingsModal {...propsWithOpen} currentSettings={azureSettings} />);
 
-      const keyInput = screen.getByPlaceholderText('Enter your Azure Speech key') as HTMLInputElement;
+      const keyInput = screen.getByPlaceholderText(
+        'Enter your Azure Speech key'
+      ) as HTMLInputElement;
       const regionInput = screen.getByPlaceholderText('southeastasia') as HTMLInputElement;
 
       fireEvent.change(keyInput, { target: { value: 'azure-key-123' } });

@@ -14,7 +14,7 @@ import type { ScriptData, GeneratedScene, PlotPoint, Character } from '../../../
 
 // Mock psychologyEvolution module
 vi.mock('../psychologyEvolution', () => ({
-  initializePsychologyTimeline: vi.fn((character) => ({
+  initializePsychologyTimeline: vi.fn(character => ({
     characterId: character.id,
     characterName: character.name,
     snapshots: [],
@@ -53,7 +53,7 @@ vi.mock('../psychologyEvolution', () => ({
       },
     },
   })),
-  validateCharacterArc: vi.fn((timeline) => ({
+  validateCharacterArc: vi.fn(timeline => ({
     valid: timeline.changes.length > 0,
     warnings: timeline.changes.length === 0 ? ['No changes detected'] : [],
     recommendations: ['Continue development'],
@@ -171,7 +171,7 @@ describe('psychologyIntegration', () => {
       const scriptWithTimelines = initializeProjectPsychology(mockScriptData);
       const result = updatePsychologyAfterScene(scriptWithTimelines, mockScene, mockPlotPoint);
 
-      const updatedChar = result.characters.find((c) => c.id === 'char-1');
+      const updatedChar = result.characters.find(c => c.id === 'char-1');
       expect(updatedChar?.internal?.consciousness?.['ปัญญา (Wisdom)']).toBeGreaterThan(50);
     });
 
@@ -205,7 +205,11 @@ describe('psychologyIntegration', () => {
       const scriptWithTimelines = initializeProjectPsychology(mockScriptData);
       const initialChar2Timeline = { ...scriptWithTimelines.psychologyTimelines!['char-2'] };
 
-      const result = updatePsychologyAfterScene(scriptWithTimelines, sceneWithOneChar, mockPlotPoint);
+      const result = updatePsychologyAfterScene(
+        scriptWithTimelines,
+        sceneWithOneChar,
+        mockPlotPoint
+      );
 
       // char-2 timeline should remain unchanged
       expect(result.psychologyTimelines!['char-2'].changes.length).toBe(
@@ -218,7 +222,7 @@ describe('psychologyIntegration', () => {
       const result = updatePsychologyAfterScene(scriptWithTimelines, mockScene, mockPlotPoint);
 
       expect(result.characters).toHaveLength(2);
-      expect(result.characters.find((c) => c.id === 'char-2')).toBeDefined();
+      expect(result.characters.find(c => c.id === 'char-2')).toBeDefined();
     });
   });
 

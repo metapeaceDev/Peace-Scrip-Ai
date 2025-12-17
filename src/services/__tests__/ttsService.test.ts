@@ -17,7 +17,13 @@ const mockSpeechSynthesis = {
   paused: false,
   getVoices: vi.fn(() => [
     { name: 'Kanya', lang: 'th-TH', default: false, localService: true, voiceURI: 'Kanya' },
-    { name: 'Google Thai', lang: 'th-TH', default: false, localService: false, voiceURI: 'Google Thai' },
+    {
+      name: 'Google Thai',
+      lang: 'th-TH',
+      default: false,
+      localService: false,
+      voiceURI: 'Google Thai',
+    },
     { name: 'Alex', lang: 'en-US', default: true, localService: true, voiceURI: 'Alex' },
   ]),
 };
@@ -216,8 +222,9 @@ describe('TTSService', () => {
         volume: 1.0,
       };
 
-      await expect(service.speak('test', settingsWithoutKey))
-        .rejects.toThrow('Google API Key is required');
+      await expect(service.speak('test', settingsWithoutKey)).rejects.toThrow(
+        'Google API Key is required'
+      );
     });
 
     it('should synthesize speech successfully', async () => {
@@ -276,34 +283,35 @@ describe('TTSService', () => {
         ok: false,
         status: 400,
         statusText: 'Bad Request',
-        text: async () => JSON.stringify({
-          error: { message: 'Invalid API key' },
-        }),
+        text: async () =>
+          JSON.stringify({
+            error: { message: 'Invalid API key' },
+          }),
       });
 
-      await expect(service.speak('test', googleSettings))
-        .rejects.toThrow('Google TTS API error');
+      await expect(service.speak('test', googleSettings)).rejects.toThrow('Google TTS API error');
     });
 
     it('should handle network errors', async () => {
       (global.fetch as any).mockRejectedValue(new Error('Network error'));
 
-      await expect(service.speak('test', googleSettings))
-        .rejects.toThrow();
+      await expect(service.speak('test', googleSettings)).rejects.toThrow();
     });
 
     it('should provide helpful error for invalid API key', async () => {
       (global.fetch as any).mockRejectedValue(new Error('API key not valid'));
 
-      await expect(service.speak('test', googleSettings))
-        .rejects.toThrow('Invalid Google Cloud API Key');
+      await expect(service.speak('test', googleSettings)).rejects.toThrow(
+        'Invalid Google Cloud API Key'
+      );
     });
 
     it('should provide helpful error for quota exceeded', async () => {
       (global.fetch as any).mockRejectedValue(new Error('quota exceeded'));
 
-      await expect(service.speak('test', googleSettings))
-        .rejects.toThrow('Google Cloud TTS quota exceeded');
+      await expect(service.speak('test', googleSettings)).rejects.toThrow(
+        'Google Cloud TTS quota exceeded'
+      );
     });
 
     it('should apply voice settings correctly', async () => {
@@ -332,7 +340,7 @@ describe('TTSService', () => {
 
       const fetchCall = (global.fetch as any).mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
-      
+
       expect(body.audioConfig.speakingRate).toBe(1.5);
       expect(body.audioConfig.pitch).toBeCloseTo(4, 1); // (1.2 - 1) * 20
     });
@@ -356,20 +364,21 @@ describe('TTSService', () => {
         volume: 1.0,
       };
 
-      await expect(service.speak('test', settingsWithoutKey))
-        .rejects.toThrow('Azure API Key and Region are required');
+      await expect(service.speak('test', settingsWithoutKey)).rejects.toThrow(
+        'Azure API Key and Region are required'
+      );
     });
 
     it('should synthesize speech successfully', async () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/mp3' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       });
 
       const speakPromise = service.speak('สวัสดีครับ', azureSettings);
-      
+
       // Wait a bit for async operations
       await new Promise(resolve => setTimeout(resolve, 10));
       if (mockAudio.onended) mockAudio.onended();
@@ -390,22 +399,22 @@ describe('TTSService', () => {
 
     it('should use SSML format', async () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/mp3' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       });
 
       const speakPromise = service.speak('test', azureSettings);
-      
+
       await new Promise(resolve => setTimeout(resolve, 10));
       if (mockAudio.onended) mockAudio.onended();
       await speakPromise;
 
       const fetchCall = (global.fetch as any).mock.calls[0];
       const body = fetchCall[1].body;
-      
-      expect(body).toContain('<speak version=\'1.0\'');
+
+      expect(body).toContain("<speak version='1.0'");
       expect(body).toContain('th-TH-PremwadeeNeural');
       expect(body).toContain('<prosody');
     });
@@ -416,13 +425,12 @@ describe('TTSService', () => {
         statusText: 'Unauthorized',
       });
 
-      await expect(service.speak('test', azureSettings))
-        .rejects.toThrow('Azure TTS API error');
+      await expect(service.speak('test', azureSettings)).rejects.toThrow('Azure TTS API error');
     });
 
     it('should handle audio playback errors', async () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/mp3' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
@@ -430,20 +438,19 @@ describe('TTSService', () => {
 
       mockAudio.play.mockRejectedValue(new Error('Playback failed'));
 
-      await expect(service.speak('test', azureSettings))
-        .rejects.toThrow();
+      await expect(service.speak('test', azureSettings)).rejects.toThrow();
     });
 
     it('should cleanup blob URL', async () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/mp3' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       });
 
       const speakPromise = service.speak('test', azureSettings);
-      
+
       await new Promise(resolve => setTimeout(resolve, 10));
       if (mockAudio.onended) mockAudio.onended();
       await speakPromise;
@@ -472,13 +479,15 @@ describe('TTSService', () => {
         volume: 1.0,
       };
 
-      await expect(service.speak('test', settingsWithoutCreds))
-        .rejects.toThrow('AWS credentials and region are required');
+      await expect(service.speak('test', settingsWithoutCreds)).rejects.toThrow(
+        'AWS credentials and region are required'
+      );
     });
 
     it('should throw security warning', async () => {
-      await expect(service.speak('test', awsSettings))
-        .rejects.toThrow('AWS Polly integration requires backend implementation');
+      await expect(service.speak('test', awsSettings)).rejects.toThrow(
+        'AWS Polly integration requires backend implementation'
+      );
     });
   });
 
@@ -499,13 +508,14 @@ describe('TTSService', () => {
         volume: 1.0,
       };
 
-      await expect(service.speak('test', settingsWithoutEndpoint))
-        .rejects.toThrow('PyThaiNLP endpoint is required');
+      await expect(service.speak('test', settingsWithoutEndpoint)).rejects.toThrow(
+        'PyThaiNLP endpoint is required'
+      );
     });
 
     it('should synthesize speech successfully', async () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/wav' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
@@ -513,7 +523,7 @@ describe('TTSService', () => {
       });
 
       const speakPromise = service.speak('สวัสดีครับ', pythainlpSettings);
-      
+
       await new Promise(resolve => setTimeout(resolve, 10));
       if (mockAudio.onended) mockAudio.onended();
 
@@ -537,7 +547,7 @@ describe('TTSService', () => {
       };
 
       const mockBlob = new Blob(['audio data'], { type: 'audio/wav' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
@@ -545,7 +555,7 @@ describe('TTSService', () => {
       });
 
       const speakPromise = service.speak('test', settingsWithoutProtocol);
-      
+
       await new Promise(resolve => setTimeout(resolve, 10));
       if (mockAudio.onended) mockAudio.onended();
       await speakPromise;
@@ -556,27 +566,29 @@ describe('TTSService', () => {
     it('should handle connection errors', async () => {
       (global.fetch as any).mockRejectedValue(new Error('Failed to fetch'));
 
-      await expect(service.speak('test', pythainlpSettings))
-        .rejects.toThrow('Cannot connect to PyThaiNLP server');
+      await expect(service.speak('test', pythainlpSettings)).rejects.toThrow(
+        'Cannot connect to PyThaiNLP server'
+      );
     });
 
     it('should handle empty audio response', async () => {
       const emptyBlob = new Blob([], { type: 'audio/wav' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => emptyBlob,
         headers: new Map([['content-type', 'audio/wav']]),
       });
 
-      await expect(service.speak('test', pythainlpSettings))
-        .rejects.toThrow('PyThaiNLP returned empty audio');
+      await expect(service.speak('test', pythainlpSettings)).rejects.toThrow(
+        'PyThaiNLP returned empty audio'
+      );
     });
 
     it('should split long text into chunks', async () => {
       const longText = 'a'.repeat(3500);
       const mockBlob = new Blob(['audio data'], { type: 'audio/wav' });
-      
+
       (global.fetch as any).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
@@ -609,8 +621,7 @@ describe('TTSService', () => {
         volume: 1.0,
       };
 
-      await expect(service.speak('test', invalidSettings))
-        .rejects.toThrow('Unknown TTS engine');
+      await expect(service.speak('test', invalidSettings)).rejects.toThrow('Unknown TTS engine');
     });
   });
 });

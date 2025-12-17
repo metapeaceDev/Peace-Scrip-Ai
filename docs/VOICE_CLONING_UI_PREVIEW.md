@@ -177,6 +177,7 @@ Result: Empty State Displayed
 ## 📊 Responsive Design
 
 ### Desktop (> 768px)
+
 ```
 ┌─────────────────────────────────────────┐
 │ Speech Pattern Settings                 │
@@ -196,6 +197,7 @@ Result: Empty State Displayed
 ```
 
 ### Mobile (< 768px)
+
 ```
 ┌─────────────────┐
 │ Speech Pattern  │
@@ -220,6 +222,7 @@ Result: Empty State Displayed
 ## 🎭 Animation & Transitions
 
 ### Hover Effects:
+
 ```css
 Button Hover:
   background: purple-600 → purple-700
@@ -233,6 +236,7 @@ Voice Card Hover:
 ```
 
 ### Loading States:
+
 ```
 Upload in Progress:
   ┌────────────────────────────┐
@@ -244,6 +248,7 @@ Upload in Progress:
 ## 🎯 User Journey
 
 ### First Time User:
+
 1. Sees empty state with clear call-to-action
 2. Reads help text for guidance
 3. Clicks upload button
@@ -251,6 +256,7 @@ Upload in Progress:
 5. Sees success state with voice ID
 
 ### Returning User:
+
 1. Sees selected voice immediately
 2. Can remove and upload new voice
 3. Can proceed to other settings
@@ -267,6 +273,7 @@ Upload in Progress:
 ## 🎨 Visual Consistency
 
 Matches existing design system:
+
 - ✅ Purple/Pink gradient for voice features
 - ✅ Cyan for informational elements
 - ✅ Gray-800/900 for backgrounds
@@ -275,6 +282,7 @@ Matches existing design system:
 - ✅ Consistent spacing (p-4, p-6, gap-3)
 
 ---
+
 **Created**: 17 ธันวาคม 2568  
 **Purpose**: Visual reference for Voice Cloning UI integration  
 **Status**: ✅ Complete
