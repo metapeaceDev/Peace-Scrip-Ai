@@ -291,12 +291,28 @@ class TeamCollaborationService {
   /**
    * ลบ collaborator ออกจากโปรเจ็ค
    */
-  async removeCollaborator(projectId: string, userId: string): Promise<void> {
+  async removeCollaborator(
+    projectId: string,
+    userId: string,
+    removedBy?: string
+  ): Promise<void> {
     try {
       console.log('🗑️ Removing collaborator:', userId, 'from project:', projectId);
 
-      // ลบจาก collaborators subcollection
+      // ดึงข้อมูล collaborator ก่อนลบ (เพื่อส่งอีเมล)
       const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
+      const collaboratorDoc = await getDoc(collaboratorRef);
+      
+      let memberEmail = '';
+      let memberName = '';
+      
+      if (collaboratorDoc.exists()) {
+        const data = collaboratorDoc.data();
+        memberEmail = data.email;
+        memberName = data.name;
+      }
+
+      // ลบจาก collaborators subcollection
       await deleteDoc(collaboratorRef);
       console.log('  ✅ Removed from collaborators subcollection');
 
@@ -310,6 +326,16 @@ class TeamCollaborationService {
         { merge: true }
       );
       console.log('  ✅ Removed from user sharedProjects');
+
+      // 🆕 ส่งอีเมลแจ้งเตือนการถูกลบออก (ถ้ามีข้อมูลอีเมล)
+      if (memberEmail && memberName) {
+        await this.sendRemovalNotificationEmail(
+          projectId,
+          memberEmail,
+          memberName,
+          removedBy || 'Project Owner'
+        );
+      }
 
       console.log('✅ Collaborator removed successfully');
     } catch (error) {
@@ -572,6 +598,131 @@ class TeamCollaborationService {
   }
 
   /**
+   * ส่งอีเมลแจ้งเตือนเมื่อเปลี่ยน role
+   */
+  private async sendRoleChangeNotificationEmail(
+    projectId: string,
+    userId: string,
+    memberEmail: string,
+    oldRole: string,
+    newRole: string,
+    changedBy: string
+  ): Promise<void> {
+    try {
+      const { sendEmail, createRoleChangedEmail } = await import('./emailService');
+
+      // ดึงข้อมูลโปรเจ็ค
+      const projectRef = doc(db, 'projects', projectId);
+      const projectDoc = await getDoc(projectRef);
+      
+      if (!projectDoc.exists()) {
+        console.warn('⚠️ Project not found, skipping email');
+        return;
+      }
+
+      const projectData = projectDoc.data();
+      const projectTitle = projectData.title || 'Unknown Project';
+
+      // ดึงข้อมูลผู้ที่เปลี่ยน role
+      const changedByUserRef = doc(db, 'users', changedBy);
+      const changedByUserDoc = await getDoc(changedByUserRef);
+      const changedByName = changedByUserDoc.exists() 
+        ? changedByUserDoc.data().displayName || changedByUserDoc.data().email
+        : 'Project Owner';
+
+      // ดึงข้อมูลสมาชิก
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      const memberName = userDoc.exists() 
+        ? userDoc.data().displayName || memberEmail
+        : memberEmail;
+
+      // สร้าง email template
+      const emailTemplate = createRoleChangedEmail({
+        memberName,
+        projectTitle,
+        oldRole,
+        newRole,
+        changedBy: changedByName,
+      });
+
+      // ส่งอีเมล
+      const success = await sendEmail({
+        to: memberEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      if (success) {
+        console.log(`📧 Role change notification sent to: ${memberEmail}`);
+      } else {
+        console.warn(`⚠️ Failed to send role change notification to: ${memberEmail}`);
+      }
+    } catch (error) {
+      console.error('⚠️ Error sending role change notification:', error);
+      // ไม่ throw error - email เป็น optional feature
+    }
+  }
+
+  /**
+   * ส่งอีเมลแจ้งเตือนเมื่อถูกลบออกจากโปรเจ็ค
+   */
+  private async sendRemovalNotificationEmail(
+    projectId: string,
+    memberEmail: string,
+    memberName: string,
+    removedBy: string
+  ): Promise<void> {
+    try {
+      const { sendEmail, createRemovedFromProjectEmail } = await import('./emailService');
+
+      // ดึงข้อมูลโปรเจ็ค
+      const projectRef = doc(db, 'projects', projectId);
+      const projectDoc = await getDoc(projectRef);
+      
+      if (!projectDoc.exists()) {
+        console.warn('⚠️ Project not found, skipping email');
+        return;
+      }
+
+      const projectData = projectDoc.data();
+      const projectTitle = projectData.title || 'Unknown Project';
+
+      // ดึงข้อมูลผู้ที่ลบ
+      const removedByUserRef = doc(db, 'users', removedBy);
+      const removedByUserDoc = await getDoc(removedByUserRef);
+      const removedByName = removedByUserDoc.exists() 
+        ? removedByUserDoc.data().displayName || removedByUserDoc.data().email
+        : removedBy;
+
+      // สร้าง email template
+      const emailTemplate = createRemovedFromProjectEmail({
+        memberName,
+        projectTitle,
+        removedBy: removedByName,
+      });
+
+      // ส่งอีเมล
+      const success = await sendEmail({
+        to: memberEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      if (success) {
+        console.log(`📧 Removal notification sent to: ${memberEmail}`);
+      } else {
+        console.warn(`⚠️ Failed to send removal notification to: ${memberEmail}`);
+      }
+    } catch (error) {
+      console.error('⚠️ Error sending removal notification:', error);
+      // ไม่ throw error - email เป็น optional feature
+    }
+  }
+
+  /**
    * อัพเดท role ของสมาชิกในทีม
    */
   async updateMemberRole(
@@ -634,6 +785,8 @@ class TeamCollaborationService {
         throw new Error('Collaborator not found in project');
       }
 
+      const oldRole = collaboratorDoc.data().role;
+
       await updateDoc(collaboratorRef, {
         role: newRole,
         updatedAt: Timestamp.now(),
@@ -641,6 +794,16 @@ class TeamCollaborationService {
       });
 
       console.log('✅ Member role updated successfully in subcollection');
+
+      // 🆕 ส่งอีเมลแจ้งเตือนการเปลี่ยน role
+      await this.sendRoleChangeNotificationEmail(
+        projectId,
+        userId,
+        memberEmail,
+        oldRole,
+        newRole,
+        updatedBy
+      );
 
       // อัพเดทใน top-level collection ด้วย (ถ้ามี - legacy support)
       const legacyCollaboratorId = `${projectId}_${memberEmail}`;

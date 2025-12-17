@@ -342,6 +342,185 @@ ${params.inviteeName} สามารถเข้าถึงโปรเจ็�
   return { subject, html, text };
 }
 
+/**
+ * Email template: Role Changed
+ */
+export function createRoleChangedEmail(params: {
+  memberName: string;
+  projectTitle: string;
+  oldRole: string;
+  newRole: string;
+  changedBy: string;
+}): EmailTemplate {
+  const subject = `🔄 บทบาทของคุณในโปรเจ็ค "${params.projectTitle}" ถูกเปลี่ยนแปลง`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+    .role-change { background: white; border: 2px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+    .role-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 0 10px; }
+    .old-role { background: #fee2e2; color: #991b1b; }
+    .new-role { background: #d1fae5; color: #065f46; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔄 การเปลี่ยนแปลงบทบาท</h1>
+      <p>มีการอัพเดทสิทธิ์ของคุณ</p>
+    </div>
+    <div class="content">
+      <h2>สวัสดี ${params.memberName}!</h2>
+      <p>บทบาทของคุณในโปรเจ็ค <strong>"${params.projectTitle}"</strong> ได้รับการเปลี่ยนแปลง</p>
+      
+      <div class="role-change">
+        <h3>🎭 การเปลี่ยนแปลง</h3>
+        <div style="margin: 20px 0;">
+          <span class="role-badge old-role">${params.oldRole}</span>
+          <span style="font-size: 24px;">→</span>
+          <span class="role-badge new-role">${params.newRole}</span>
+        </div>
+        <p style="color: #666; font-size: 14px;">โดย: ${params.changedBy}</p>
+      </div>
+
+      <h3>📋 สิทธิ์ใหม่ของคุณ:</h3>
+      ${params.newRole === 'admin' ? `
+        <ul style="background: #dbeafe; padding: 20px; border-radius: 8px;">
+          <li>✅ แก้ไขเนื้อหาโปรเจ็ค</li>
+          <li>✅ จัดการสมาชิกในทีม</li>
+          <li>✅ เปลี่ยนบทบาทสมาชิก</li>
+          <li>✅ ลบสมาชิกออกจากโปรเจ็ค</li>
+        </ul>
+      ` : params.newRole === 'editor' ? `
+        <ul style="background: #dbeafe; padding: 20px; border-radius: 8px;">
+          <li>✅ แก้ไขเนื้อหาโปรเจ็ค</li>
+          <li>✅ จัดการสมาชิกในทีม</li>
+          <li>✅ เปลี่ยนบทบาทสมาชิก</li>
+          <li>❌ ไม่สามารถลบสมาชิกได้</li>
+        </ul>
+      ` : `
+        <ul style="background: #fee2e2; padding: 20px; border-radius: 8px;">
+          <li>✅ ดูเนื้อหาโปรเจ็ค</li>
+          <li>❌ ไม่สามารถแก้ไขได้</li>
+          <li>❌ ไม่สามารถจัดการสมาชิกได้</li>
+        </ul>
+      `}
+    </div>
+    <div class="footer">
+      <p>© 2025 Peace Script AI. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const text = `
+Peace Script AI - การเปลี่ยนแปลงบทบาท
+
+สวัสดี ${params.memberName}!
+
+บทบาทของคุณในโปรเจ็ค "${params.projectTitle}" ได้รับการเปลี่ยนแปลง
+
+${params.oldRole} → ${params.newRole}
+
+โดย: ${params.changedBy}
+
+© 2025 Peace Script AI
+  `;
+
+  return { subject, html, text };
+}
+
+/**
+ * Email template: Removed from Project
+ */
+export function createRemovedFromProjectEmail(params: {
+  memberName: string;
+  projectTitle: string;
+  removedBy: string;
+}): EmailTemplate {
+  const subject = `⚠️ คุณถูกลบออกจากโปรเจ็ค "${params.projectTitle}"`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+    .warning-box { background: #fef2f2; border: 2px solid #ef4444; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚠️ ถูกลบออกจากโปรเจ็ค</h1>
+      <p>การเข้าถึงของคุณถูกยกเลิก</p>
+    </div>
+    <div class="content">
+      <h2>สวัสดี ${params.memberName},</h2>
+      
+      <div class="warning-box">
+        <h3 style="color: #dc2626; margin-top: 0;">📋 โปรเจ็ค</h3>
+        <p><strong>"${params.projectTitle}"</strong></p>
+        
+        <h3 style="color: #dc2626;">👤 ดำเนินการโดย</h3>
+        <p>${params.removedBy}</p>
+        
+        <h3 style="color: #dc2626;">🔒 ผลกระทบ</h3>
+        <ul>
+          <li>คุณไม่สามารถเข้าถึงโปรเจ็คนี้ได้อีกต่อไป</li>
+          <li>ข้อมูลทั้งหมดของคุณในโปรเจ็คถูกลบออกแล้ว</li>
+          <li>คุณจะไม่ได้รับการแจ้งเตือนจากโปรเจ็คนี้อีก</li>
+        </ul>
+      </div>
+
+      <p style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; margin: 20px 0;">
+        💡 <strong>หมายเหตุ:</strong><br>
+        หากคุณคิดว่านี่เป็นความผิดพลาด กรุณาติดต่อ ${params.removedBy} เพื่อขอเข้าร่วมโปรเจ็คอีกครั้ง
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2025 Peace Script AI. All rights reserved.</p>
+      <p>หากคุณมีคำถาม กรุณาติดต่อเจ้าของโปรเจ็ค</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const text = `
+Peace Script AI - ถูกลบออกจากโปรเจ็ค
+
+สวัสดี ${params.memberName},
+
+คุณถูกลบออกจากโปรเจ็ค "${params.projectTitle}"
+
+ดำเนินการโดย: ${params.removedBy}
+
+ผลกระทบ:
+- คุณไม่สามารถเข้าถึงโปรเจ็คนี้ได้อีกต่อไป
+- ข้อมูลทั้งหมดของคุณในโปรเจ็คถูกลบออกแล้ว
+- คุณจะไม่ได้รับการแจ้งเตือนจากโปรเจ็คนี้อีก
+
+หากคุณคิดว่านี่เป็นความผิดพลาด กรุณาติดต่อเจ้าของโปรเจ็ค
+
+© 2025 Peace Script AI
+  `;
+
+  return { subject, html, text };
+}
+
 export function createPaymentReceiptEmail(params: {
   userName: string;
   tier: string;
