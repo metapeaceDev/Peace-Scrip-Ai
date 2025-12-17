@@ -11,11 +11,16 @@
  * - Production-ready API
  * - Fast generation (<60s)
  *
+ * 🆕 CORS Fix: Now uses Firebase Cloud Functions as proxy
+ *
  * @author Peace Script AI Team
  * @version 1.0.0
  */
 
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
 const REPLICATE_API_URL = 'https://api.replicate.com/v1';
+const USE_CLOUD_FUNCTION = true; // Toggle to use Cloud Function proxy
 
 // Popular AnimateDiff models on Replicate
 const REPLICATE_MODELS = {
@@ -87,8 +92,12 @@ interface ReplicateResponse {
 
 /**
  * Get Replicate API key from environment
+ * Only needed for direct API calls (not used when USE_CLOUD_FUNCTION = true)
  */
 function getReplicateApiKey(): string {
+  if (USE_CLOUD_FUNCTION) {
+    return ''; // Not needed when using Cloud Function
+  }
   const apiKey = import.meta.env.VITE_REPLICATE_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -103,11 +112,45 @@ function getReplicateApiKey(): string {
 
 /**
  * Create a prediction on Replicate
+ * Uses Cloud Function proxy to avoid CORS issues
  */
 async function createPrediction(
   modelId: string,
   input: Record<string, unknown>
 ): Promise<ReplicateResponse> {
+  if (USE_CLOUD_FUNCTION) {
+    // Use Cloud Function proxy
+    try {
+      const functions = getFunctions();
+      const replicateProxy = httpsCallable(functions, 'replicateProxy');
+      
+      const result = await replicateProxy({
+        endpoint: '/v1/predictions',
+        method: 'POST',
+        body: {
+          version: modelId.split(':')[1],
+          input,
+        },
+      });
+
+      if (result.data && typeof result.data === 'object' && 'success' in result.data) {
+        const data = result.data as { success: boolean; data: ReplicateResponse };
+        if (data.success) {
+          return data.data;
+        }
+      }
+      throw new Error('Invalid response from Cloud Function');
+    } catch (error) {
+      console.error('Cloud Function error:', error);
+      throw new Error(
+        `Failed to create prediction via Cloud Function: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
+    }
+  }
+
+  // Fallback: Direct API call (may have CORS issues)
   const apiKey = getReplicateApiKey();
 
   const response = await fetch(`${REPLICATE_API_URL}/predictions`, {
@@ -153,18 +196,46 @@ async function waitForPrediction(
     }
 
     // Fetch prediction status
-    const response = await fetch(`${REPLICATE_API_URL}/predictions/${predictionId}`, {
-      headers: {
-        Authorization: `Token ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    let prediction: ReplicateResponse;
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch prediction status: ${response.statusText}`);
+    if (USE_CLOUD_FUNCTION) {
+      // Use Cloud Function to check status
+      try {
+        const functions = getFunctions();
+        const checkReplicateStatus = httpsCallable(functions, 'checkReplicateStatus');
+        const result = await checkReplicateStatus({ predictionId });
+
+        if (result.data && typeof result.data === 'object' && 'success' in result.data) {
+          const data = result.data as { success: boolean; data: ReplicateResponse };
+          if (data.success) {
+            prediction = data.data;
+          } else {
+            throw new Error('Failed to check status via Cloud Function');
+          }
+        } else {
+          throw new Error('Invalid response from Cloud Function');
+        }
+      } catch (error) {
+        console.error('Cloud Function check status error:', error);
+        throw new Error(
+          `Failed to check status: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    } else {
+      // Direct API call (fallback)
+      const response = await fetch(`${REPLICATE_API_URL}/predictions/${predictionId}`, {
+        headers: {
+          Authorization: `Token ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch prediction status: ${response.statusText}`);
+      }
+
+      prediction = await response.json();
     }
-
-    const prediction: ReplicateResponse = await response.json();
 
     // Update progress (estimate based on elapsed time)
     if (onProgress) {
