@@ -31,7 +31,7 @@ import { PsychologyDisplay } from './PsychologyDisplay';
 import { PsychologyDashboard } from './PsychologyDashboard';
 import { CharacterComparison } from './CharacterComparison';
 import { PsychologyTimeline } from './PsychologyTimeline';
-import { hybridTTS } from '../services/hybridTTSService';
+import { hybridTTS, HybridTTSService } from '../services/hybridTTSService';
 import { VoiceUploadModal } from './VoiceUploadModal';
 import { voiceCloningService } from '../services/voiceCloningService';
 import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
@@ -984,13 +984,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       scripts.push(`สวัสดีค่ะ ฉันชื่อ${character.name}`);
     }
     
-    // Age
-    if (character.age) {
+    // Age (optional field)
+    if ('age' in character && character.age) {
       scripts.push(`อายุ ${character.age} ปี`);
     }
     
-    // Personality
-    if (character.personality) {
+    // Personality (optional field)
+    if ('personality' in character && character.personality) {
       const personalityMap: Record<string, string> = {
         'brave': 'เป็นคนกล้าหาญ',
         'kind': 'ใจดี',
@@ -1001,13 +1001,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         'wise': 'ฉลาด',
         'shy': 'ขี้อาย'
       };
-      const desc = personalityMap[character.personality] || character.personality;
-      scripts.push(desc);
+      const desc = personalityMap[character.personality as string] || character.personality;
+      scripts.push(String(desc));
     }
     
     // Goals
-    if (character.goals && character.goals.length > 0) {
-      scripts.push(`เป้าหมายของฉันคือ ${character.goals[0]}`);
+    if (character.goals && typeof character.goals === 'object') {
+      const goalsObj = character.goals as { objective?: string; need?: string; action?: string; conflict?: string; backstory?: string };
+      if (goalsObj.objective) {
+        scripts.push(`เป้าหมายของฉันคือ ${goalsObj.objective}`);
+      }
     }
     
     // Speech pattern
