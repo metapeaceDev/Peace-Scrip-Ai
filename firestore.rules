@@ -14,32 +14,34 @@ service cloud.firestore {
     
     // Helper function to check if user is a collaborator
     function isCollaborator(projectId) {
-      let collaboratorId = projectId + '_' + request.auth.uid;
-      return exists(/databases/$(database)/documents/collaborators/$(collaboratorId));
+      return exists(/databases/$(database)/documents/projects/$(projectId)/collaborators/$(request.auth.uid));
     }
     
-    // Helper function to check if user has specific role in project
-    function hasRole(projectId, role) {
-      let collaboratorId = projectId + '_' + request.auth.uid;
-      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
-      return collaborator != null && collaborator.data.role == role;
+    // Helper function to check if user is project owner
+    function isProjectOwner(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+    }
+    
+    // Helper function to get collaborator role
+    function getCollaboratorRole(projectId) {
+      let collaboratorPath = /databases/$(database)/documents/projects/$(projectId)/collaborators/$(request.auth.uid);
+      return exists(collaboratorPath) ? get(collaboratorPath).data.role : 'none';
     }
     
     // Helper function to check if user is owner or admin
     function isOwnerOrAdmin(projectId) {
-      let collaboratorId = projectId + '_' + request.auth.uid;
-      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
-      return collaborator != null && (collaborator.data.role == 'owner' || collaborator.data.role == 'admin');
+      return isProjectOwner(projectId) || getCollaboratorRole(projectId) == 'admin';
     }
     
     // Helper function to check if user has permission
     function hasPermission(projectId, permission) {
-      let collaboratorId = projectId + '_' + request.auth.uid;
-      let collaborator = get(/databases/$(database)/documents/collaborators/$(collaboratorId));
-      let role = collaborator != null ? collaborator.data.role : 'none';
+      let role = getCollaboratorRole(projectId);
       
-      // Owner and Admin have all permissions
-      return role == 'owner' || role == 'admin' || 
+      // Owner has all permissions
+      return isProjectOwner(projectId) || 
+             // Admin has all permissions
+             role == 'admin' ||
+             // Editor has specific permissions
              (role == 'editor' && (permission == 'canEdit' || permission == 'canExport' || permission == 'canViewAnalytics'));
     }
     
@@ -134,10 +136,16 @@ service cloud.firestore {
     // Project Collaborators subcollection (legacy - keeping for compatibility)
     match /projects/{projectId}/collaborators/{userId} {
       // Anyone can read collaborators of a project they have access to
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid ||
+        isCollaborator(projectId)
+      );
       
-      // Project owner or admin can create/update/delete collaborators
-      allow write: if isAuthenticated();
+      // Only project owner or admin can create/update/delete collaborators
+      allow create, update, delete: if isAuthenticated() && (
+        get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid ||
+        isOwnerOrAdmin(projectId)
+      );
     }
 
     // Email collection - for Firebase Extensions (Trigger Email)
