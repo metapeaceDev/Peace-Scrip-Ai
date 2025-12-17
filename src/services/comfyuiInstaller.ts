@@ -203,6 +203,13 @@ export function saveComfyUIUrl(url: string): void {
  * Priority: .env > localStorage (to allow easy updates via .env)
  */
 export function getSavedComfyUIUrl(): string {
+  // 🔧 FORCE FIX: Clear any cached old Cloudflare URLs
+  const cached = localStorage.getItem('comfyui_url');
+  if (cached && cached.includes('trycloudflare.com')) {
+    console.warn('⚠️ Removing old Cloudflare URL from cache:', cached);
+    localStorage.removeItem('comfyui_url');
+  }
+  
   // Always prefer .env value if set (allows easy updates without clearing localStorage)
   if (COMFYUI_DEFAULT_URL !== 'http://localhost:8188') {
     return COMFYUI_DEFAULT_URL;
