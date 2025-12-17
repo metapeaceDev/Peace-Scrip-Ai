@@ -47,12 +47,19 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({
       await teamCollaborationService.acceptInvitation(invitationId, userId);
 
       // Remove from list
-      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      const remainingInvitations = invitations.filter(inv => inv.id !== invitationId);
+      setInvitations(remainingInvitations);
 
       // Notify parent to refresh projects
       onInvitationAccepted();
 
+      // Show success message
       alert('✅ ยอมรับคำเชิญเรียบร้อย! คุณสามารถเข้าถึงโปรเจ็คได้แล้ว');
+
+      // Close modal if no more invitations
+      if (remainingInvitations.length === 0) {
+        onClose();
+      }
     } catch (error) {
       console.error('❌ Error accepting invitation:', error);
       alert('เกิดข้อผิดพลาดในการยอมรับคำเชิญ');
@@ -67,9 +74,15 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({
       await teamCollaborationService.rejectInvitation(invitationId);
 
       // Remove from list
-      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      const remainingInvitations = invitations.filter(inv => inv.id !== invitationId);
+      setInvitations(remainingInvitations);
 
       alert('ปฏิเสธคำเชิญเรียบร้อย');
+
+      // Close modal if no more invitations
+      if (remainingInvitations.length === 0) {
+        onClose();
+      }
     } catch (error) {
       console.error('❌ Error rejecting invitation:', error);
       alert('เกิดข้อผิดพลาดในการปฏิเสธคำเชิญ');
