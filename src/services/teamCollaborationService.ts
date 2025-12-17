@@ -198,6 +198,10 @@ class TeamCollaborationService {
         invitation.inviterUserId
       );
 
+      // Step 3: ส่งอีเมลแจ้งเตือนให้ผู้เชิญ
+      console.log('📧 Step 3: Sending email notification to inviter...');
+      await this.sendAcceptanceNotificationEmail(invitation);
+
       console.log('✅ Invitation accepted successfully!');
       console.log('🎊 User can now access project:', invitation.projectTitle);
     } catch (error) {
@@ -512,6 +516,57 @@ class TeamCollaborationService {
       }
     } catch (error) {
       console.error('Error sending invitation email:', error);
+      // ไม่ throw error - email เป็น optional feature
+    }
+  }
+
+  /**
+   * ส่งอีเมลแจ้งเตือนเมื่อยอมรับคำเชิญ (ส่งให้ผู้เชิญ)
+   */
+  private async sendAcceptanceNotificationEmail(invitation: ProjectInvitation): Promise<void> {
+    try {
+      const { sendEmail, createInvitationAcceptedEmail } = await import('./emailService');
+
+      // ดึงข้อมูลผู้เชิญ
+      const inviterRef = doc(db, 'users', invitation.inviterUserId);
+      const inviterDoc = await getDoc(inviterRef);
+      
+      if (!inviterDoc.exists()) {
+        console.warn('⚠️ Inviter user not found, skipping email');
+        return;
+      }
+
+      const inviterData = inviterDoc.data();
+      const inviterEmail = inviterData.email;
+
+      if (!inviterEmail) {
+        console.warn('⚠️ Inviter email not found, skipping email');
+        return;
+      }
+
+      // สร้าง email template
+      const emailTemplate = createInvitationAcceptedEmail({
+        inviteeName: invitation.inviteeName || invitation.inviteeEmail,
+        inviteeEmail: invitation.inviteeEmail,
+        projectTitle: invitation.projectTitle,
+        role: invitation.role,
+      });
+
+      // ส่งอีเมล
+      const success = await sendEmail({
+        to: inviterEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      if (success) {
+        console.log(`📧 Acceptance notification sent to inviter: ${inviterEmail}`);
+      } else {
+        console.warn(`⚠️ Failed to send notification to inviter: ${inviterEmail}`);
+      }
+    } catch (error) {
+      console.error('⚠️ Error sending acceptance notification:', error);
       // ไม่ throw error - email เป็น optional feature
     }
   }

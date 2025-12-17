@@ -263,6 +263,85 @@ ${params.invitationLink}
   return { subject, html, text };
 }
 
+/**
+ * Email template: Invitation Accepted (to inviter)
+ */
+export function createInvitationAcceptedEmail(params: {
+  inviteeName: string;
+  inviteeEmail: string;
+  projectTitle: string;
+  role: string;
+}): EmailTemplate {
+  const subject = `✅ ${params.inviteeName} ยอมรับคำเชิญเข้าร่วมโปรเจ็ค: ${params.projectTitle}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+    .success-badge { background: #d1fae5; color: #065f46; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; }
+    .member-card { background: white; border: 2px solid #10b981; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 ยอมรับคำเชิญแล้ว!</h1>
+      <p>สมาชิกใหม่เข้าร่วมโปรเจ็คของคุณ</p>
+    </div>
+    <div class="content">
+      <div class="success-badge">✅ คำเชิญได้รับการยอมรับ</div>
+      
+      <div class="member-card">
+        <h3>👤 สมาชิกใหม่</h3>
+        <p><strong>ชื่อ:</strong> ${params.inviteeName}</p>
+        <p><strong>อีเมล:</strong> ${params.inviteeEmail}</p>
+        <p><strong>บทบาท:</strong> ${params.role}</p>
+      </div>
+
+      <h3>📋 โปรเจ็ค</h3>
+      <p><strong>"${params.projectTitle}"</strong></p>
+
+      <p style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; margin: 20px 0;">
+        💡 <strong>ทำได้แล้ว:</strong><br>
+        • ${params.inviteeName} สามารถเข้าถึงโปรเจ็คได้แล้ว<br>
+        • เริ่มทำงานร่วมกันได้ทันที<br>
+        • ดูกิจกรรมของสมาชิกได้ใน Team Manager
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2025 Peace Script AI. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const text = `
+Peace Script AI - คำเชิญได้รับการยอมรับ
+
+🎉 ยอมรับคำเชิญแล้ว!
+
+สมาชิกใหม่:
+- ชื่อ: ${params.inviteeName}
+- อีเมล: ${params.inviteeEmail}
+- บทบาท: ${params.role}
+
+โปรเจ็ค: "${params.projectTitle}"
+
+${params.inviteeName} สามารถเข้าถึงโปรเจ็คได้แล้ว และเริ่มทำงานร่วมกันได้ทันที
+
+© 2025 Peace Script AI
+  `;
+
+  return { subject, html, text };
+}
+
 export function createPaymentReceiptEmail(params: {
   userName: string;
   tier: string;
