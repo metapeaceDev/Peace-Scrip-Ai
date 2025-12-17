@@ -3840,12 +3840,47 @@ export async function generateStoryboardVideo(
     }
 
     if (preferredModel === 'pollinations-video') {
-      // Placeholder for Pollinations Video (if API exists, otherwise fallback)
+      // Pollinations Video not available - fallback to Replicate AnimateDiff
       console.warn(
-        '⚠️ Pollinations Video API not fully implemented, falling back to Gemini/ComfyUI logic or throwing error.'
+        '⚠️ Pollinations Video not available, falling back to Replicate AnimateDiff...'
       );
-      // For now, throw error or implement if URL known
-      throw new Error('Pollinations Video generation not yet implemented.');
+      
+      // Try Replicate AnimateDiff as fallback
+      const replicateKey = import.meta.env.VITE_REPLICATE_API_KEY;
+      if (replicateKey) {
+        try {
+          console.log('🎬 Fallback: Trying Replicate AnimateDiff (from Pollinations)...');
+          const videoUrl = await generateAnimateDiffVideo(
+            enhancedPrompt,
+            base64Image,
+            {
+              numFrames: finalFrameCount || 16,
+              fps: finalFPS || 8,
+              guidanceScale: 7.5,
+              numInferenceSteps: 25,
+            },
+            onProgress
+          );
+          
+          console.log('✅ Pollinations Fallback Success: Replicate AnimateDiff');
+          
+          // Persist video URL to permanent storage
+          const permanentUrl = await persistVideoUrl(videoUrl, {
+            projectId: options?.currentScene?.sceneDesign?.sceneName,
+            sceneId: options?.currentScene?.sceneNumber?.toString(),
+          });
+          return permanentUrl;
+        } catch (replicateError) {
+          console.error('❌ Replicate fallback failed:', replicateError);
+          throw new Error(
+            'Pollinations Video not available. Replicate fallback also failed. Please try ComfyUI or Gemini Veo instead.'
+          );
+        }
+      }
+      
+      throw new Error(
+        'Pollinations Video not available and no Replicate API key configured. Please use ComfyUI or Gemini Veo instead.'
+      );
     }
 
     if (preferredModel === 'luma-dream-machine' || preferredModel === 'runway-gen3') {
