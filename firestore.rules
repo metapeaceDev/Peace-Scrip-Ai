@@ -33,6 +33,12 @@ service cloud.firestore {
       return isProjectOwner(projectId) || getCollaboratorRole(projectId) == 'admin';
     }
     
+    // Helper function to check if user can manage team (Owner/Admin/Editor)
+    function canManageTeam(projectId) {
+      let role = getCollaboratorRole(projectId);
+      return isProjectOwner(projectId) || role == 'admin' || role == 'editor';
+    }
+    
     // Helper function to check if user has permission
     function hasPermission(projectId, permission) {
       let role = getCollaboratorRole(projectId);
@@ -141,10 +147,10 @@ service cloud.firestore {
         isCollaborator(projectId)
       );
       
-      // Only project owner or admin can create/update/delete collaborators
+      // Owner, Admin, and Editor can create/update/delete collaborators
       allow create, update, delete: if isAuthenticated() && (
         get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid ||
-        isOwnerOrAdmin(projectId)
+        canManageTeam(projectId)
       );
     }
 
