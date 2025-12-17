@@ -18,6 +18,7 @@ import {
   generateHotshotXL,
   generateLTXVideo,
 } from './replicateService';
+import { persistVideoUrl } from './videoPersistenceService';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -3623,7 +3624,14 @@ export async function generateStoryboardVideo(
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'PLACEHOLDER_KEY';
       console.log('✅ Tier 1 Success: Gemini Veo 3.1');
-      return `${videoUri}&key=${apiKey}`;
+      const veoUrl = `${videoUri}&key=${apiKey}`;
+      
+      // 🆕 Persist video URL to permanent storage
+      const permanentUrl = await persistVideoUrl(veoUrl, {
+        projectId: options?.currentScene?.sceneDesign?.sceneName,
+        sceneId: options?.currentScene?.sceneNumber?.toString(),
+      });
+      return permanentUrl;
       
       } catch (veoError: unknown) {
         const err = veoError as { message?: string };
@@ -3661,7 +3669,13 @@ export async function generateStoryboardVideo(
             );
             
             console.log('✅ Tier 2a Success: Replicate LTX-Video (High Quality)');
-            return videoUrl;
+            
+            // 🆕 Persist video URL to permanent storage
+            const permanentUrl = await persistVideoUrl(videoUrl, {
+              projectId: options?.currentScene?.sceneDesign?.sceneName,
+              sceneId: options?.currentScene?.sceneNumber?.toString(),
+            });
+            return permanentUrl;
           } catch (ltxError: unknown) {
             const err = ltxError as { message?: string };
             console.error('❌ Tier 2a (Replicate LTX-Video) failed:', err);
@@ -3688,7 +3702,13 @@ export async function generateStoryboardVideo(
             );
             
             console.log('✅ Tier 2b Success: Replicate Hotshot-XL');
-            return videoUrl;
+            
+            // 🆕 Persist video URL to permanent storage
+            const permanentUrl = await persistVideoUrl(videoUrl, {
+              projectId: options?.currentScene?.sceneDesign?.sceneName,
+              sceneId: options?.currentScene?.sceneNumber?.toString(),
+            });
+            return permanentUrl;
           } catch (hotshotError: unknown) {
             const err = hotshotError as { message?: string };
             console.error('❌ Tier 2b (Replicate Hotshot-XL) failed:', err);
@@ -3719,7 +3739,13 @@ export async function generateStoryboardVideo(
               );
               
               console.log('✅ Tier 2c Success: Replicate AnimateDiff');
-              return videoUrl;
+              
+              // 🆕 Persist video URL to permanent storage
+              const permanentUrl = await persistVideoUrl(videoUrl, {
+                projectId: options?.currentScene?.sceneDesign?.sceneName,
+                sceneId: options?.currentScene?.sceneNumber?.toString(),
+              });
+              return permanentUrl;
             } catch (animateError: unknown) {
               const err = animateError as { message?: string };
               console.error('❌ Tier 2c (Replicate AnimateDiff) failed:', err);
@@ -3754,7 +3780,13 @@ export async function generateStoryboardVideo(
               );
               
               console.log('✅ Tier 2d Success: Replicate SVD');
-              return videoUrl;
+              
+              // 🆕 Persist video URL to permanent storage
+              const permanentUrl = await persistVideoUrl(videoUrl, {
+                projectId: options?.currentScene?.sceneDesign?.sceneName,
+                sceneId: options?.currentScene?.sceneNumber?.toString(),
+              });
+              return permanentUrl;
             } catch (svdError: unknown) {
               const err = svdError as { message?: string };
               console.error('❌ Tier 2d (Replicate SVD) failed:', err);
