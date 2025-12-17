@@ -313,7 +313,15 @@ const generateStoryboardHTML = (data: ScriptData): string => {
         html += `
                     <div class="card">
                         <div class="image-container">
-                            ${sb.image ? `<img src="${sb.image}" />` : '<span style="color:white">No Image</span>'}
+                            ${
+                              sb.video
+                                ? `<video src="${sb.video}" controls style="width: 100%; height: 100%; object-fit: cover;">
+                                     Your browser does not support the video tag.
+                                   </video>`
+                                : sb.image
+                                  ? `<img src="${sb.image}" />`
+                                  : '<span style="color:white">No Media</span>'
+                            }
                         </div>
                         <div class="info">
                             <div class="shot-num">Shot ${sb.shot}</div>
@@ -2802,6 +2810,57 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                         {/* Overlay Controls */}
                         {(shotImg || shotVideo) && (
                           <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            {/* Download Button - Only for Videos */}
+                            {shotVideo && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = shotVideo;
+                                  link.download = `Shot_${shot.shot}_${scriptData.title.replace(/\s+/g, '_')}.mp4`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                className="p-2 rounded-lg bg-black/70 hover:bg-green-600 backdrop-blur-sm text-white font-bold transition-all shadow-lg"
+                                title="Download video file"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+
+                            {/* Open in New Tab Button - Only for Videos */}
+                            {shotVideo && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(shotVideo, '_blank')}
+                                className="p-2 rounded-lg bg-black/70 hover:bg-blue-600 backdrop-blur-sm text-white font-bold transition-all shadow-lg"
+                                title="Open video in new tab"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                  <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                </svg>
+                              </button>
+                            )}
+
+                            {/* Delete Button */}
                             <button
                               type="button"
                               onClick={() => handleDeleteShotImage(shot.shot)}
