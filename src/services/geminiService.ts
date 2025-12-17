@@ -3649,38 +3649,39 @@ export async function generateStoryboardVideo(
         if (useReplicateApiKey) {
           console.log('🎬 Tier 2 (Replicate): Attempting cloud generation...');
           
-          // 🆕 PRIORITY: Try LTX-Video FIRST (high quality, custom resolution)
-          try {
-            console.log('🎬 Tier 2a: Trying Replicate LTX-Video (High Quality Priority)...');
-            
-            const videoUrl = await generateLTXVideo(
-              enhancedPrompt,
-              base64Image,
-              {
-                numFrames: finalFrameCount || 25,
-                fps: finalFPS || 8,
-                guidanceScale: 3.0,
-                numInferenceSteps: 30,
-                aspectRatio: options?.aspectRatio || '16:9',
-                width: options?.width,
-                height: options?.height,
-              },
-              onProgress
-            );
-            
-            console.log('✅ Tier 2a Success: Replicate LTX-Video (High Quality)');
-            
-            // 🆕 Persist video URL to permanent storage
-            const permanentUrl = await persistVideoUrl(videoUrl, {
-              projectId: options?.currentScene?.sceneDesign?.sceneName,
-              sceneId: options?.currentScene?.sceneNumber?.toString(),
-            });
-            return permanentUrl;
-          } catch (ltxError: unknown) {
-            const err = ltxError as { message?: string };
-            console.error('❌ Tier 2a (Replicate LTX-Video) failed:', err);
-            console.log('⏭️ Falling back to Tier 2b: Hotshot-XL...');
-          }
+          // ⚠️ DISABLED: LTX-Video temporarily disabled due to model version error (422)
+          // TODO: Update to latest model version when available
+          // try {
+          //   console.log('🎬 Tier 2a: Trying Replicate LTX-Video (High Quality Priority)...');
+          //   
+          //   const videoUrl = await generateLTXVideo(
+          //     enhancedPrompt,
+          //     base64Image,
+          //     {
+          //       numFrames: finalFrameCount || 25,
+          //       fps: finalFPS || 8,
+          //       guidanceScale: 3.0,
+          //       numInferenceSteps: 30,
+          //       aspectRatio: options?.aspectRatio || '16:9',
+          //       width: options?.width,
+          //       height: options?.height,
+          //     },
+          //     onProgress
+          //   );
+          //   
+          //   console.log('✅ Tier 2a Success: Replicate LTX-Video (High Quality)');
+          //   
+          //   // 🆕 Persist video URL to permanent storage
+          //   const permanentUrl = await persistVideoUrl(videoUrl, {
+          //     projectId: options?.currentScene?.sceneDesign?.sceneName,
+          //     sceneId: options?.currentScene?.sceneNumber?.toString(),
+          //   });
+          //   return permanentUrl;
+          // } catch (ltxError: unknown) {
+          //   const err = ltxError as { message?: string };
+          //   console.error('❌ Tier 2a (Replicate LTX-Video) failed:', err);
+          //   console.log('⏭️ Falling back to Tier 2b: Hotshot-XL...');
+          // }
           
           // Try Hotshot-XL as second fallback (cheaper, still good quality)
           try {
