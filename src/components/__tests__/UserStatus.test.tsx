@@ -328,7 +328,7 @@ describe('UserStatus - Tier Colors', () => {
   it('should display FREE tier with gray gradient', () => {
     (userStore.getUserSubscription as any).mockReturnValue({
       tier: 'free',
-      credits: 10,
+      credits: 50,
       maxCredits: 50,
       features: { storageLimit: 2, maxProjects: 3 },
     });

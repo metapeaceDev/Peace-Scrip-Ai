@@ -14,8 +14,8 @@ import { db } from '../config/firebase';
 export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   free: {
     tier: 'free',
-    credits: 10,
-    maxCredits: 10,
+    credits: 50,
+    maxCredits: 50,
     features: {
       maxResolution: '1024x1024',
       allowedImageModels: ['gemini-2.0'],
@@ -460,7 +460,7 @@ export function getPlansComparison(): Array<{
       name: 'Free',
       price: '฿0/เดือน',
       features: [
-        '10 credits/เดือน',
+        '50 credits/เดือน',
         '1 โปรเจกต์',
         '3 ตัวละคร',
         '10 ซีน',

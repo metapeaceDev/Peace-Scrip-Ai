@@ -25,7 +25,7 @@ describe('subscriptionManager', () => {
     });
 
     it('should have increasing credit limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.credits).toBe(10);
+      expect(SUBSCRIPTION_PLANS.free.credits).toBe(50);
       expect(SUBSCRIPTION_PLANS.basic.credits).toBe(100);
       expect(SUBSCRIPTION_PLANS.pro.credits).toBe(500);
       expect(SUBSCRIPTION_PLANS.enterprise.credits).toBe(-1); // Unlimited
@@ -52,7 +52,7 @@ describe('subscriptionManager', () => {
     const freePlan = SUBSCRIPTION_PLANS.free;
 
     it('should have limited credits', () => {
-      expect(freePlan.credits).toBe(10);
+      expect(freePlan.credits).toBe(50);
       expect(freePlan.maxCredits).toBe(10);
     });
 
