@@ -200,7 +200,12 @@ export function saveComfyUIUrl(url: string): void {
 
 /**
  * Get saved ComfyUI URL
+ * Priority: .env > localStorage (to allow easy updates via .env)
  */
 export function getSavedComfyUIUrl(): string {
+  // Always prefer .env value if set (allows easy updates without clearing localStorage)
+  if (COMFYUI_DEFAULT_URL !== 'http://localhost:8188') {
+    return COMFYUI_DEFAULT_URL;
+  }
   return localStorage.getItem('comfyui_url') || COMFYUI_DEFAULT_URL;
 }
