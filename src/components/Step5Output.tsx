@@ -4481,12 +4481,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                           charName.includes(c.name)
                                       );
                                       if (!character) {
-                                        console.warn(
-                                          '[Psychology] Character not found:',
-                                          charName,
-                                          'Available:',
-                                          scriptData.characters.map(c => c.name)
-                                        );
+                                        // Silently skip characters not found (may be from old project data)
                                         return null;
                                       }
 
@@ -4494,10 +4489,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                         scriptData.psychologyTimelines?.[character.id] ||
                                         scriptData.psychologyTimelines?.[character.name];
                                       if (!timeline || typeof timeline !== 'object') {
-                                        console.warn(
-                                          '[Psychology] No timeline for:',
-                                          character.name
-                                        );
+                                        // Silently skip if no timeline data
+                                        return null;
                                         return null;
                                       }
                                       if (
