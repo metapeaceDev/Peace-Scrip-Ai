@@ -25,9 +25,9 @@ describe('subscriptionManager', () => {
     });
 
     it('should have increasing credit limits', () => {
-      expect(SUBSCRIPTION_PLANS.free.credits).toBe(50);
-      expect(SUBSCRIPTION_PLANS.basic.credits).toBe(100);
-      expect(SUBSCRIPTION_PLANS.pro.credits).toBe(500);
+      expect(SUBSCRIPTION_PLANS.free.credits).toBe(20);       // อัพเดตจาก 30 → 20
+      expect(SUBSCRIPTION_PLANS.basic.credits).toBe(150);
+      expect(SUBSCRIPTION_PLANS.pro.credits).toBe(600);        // อัพเดตจาก 500 → 600
       expect(SUBSCRIPTION_PLANS.enterprise.credits).toBe(-1); // Unlimited
     });
 
@@ -52,12 +52,12 @@ describe('subscriptionManager', () => {
     const freePlan = SUBSCRIPTION_PLANS.free;
 
     it('should have limited credits', () => {
-      expect(freePlan.credits).toBe(50);
-      expect(freePlan.maxCredits).toBe(10);
+      expect(freePlan.credits).toBe(30);
+      expect(freePlan.maxCredits).toBe(30);
     });
 
     it('should have basic resolution', () => {
-      expect(freePlan.features.maxResolution).toBe('1024x1024');
+      expect(freePlan.features.maxResolution).toBe('512x512');
     });
 
     it('should have limited image models', () => {
@@ -92,8 +92,8 @@ describe('subscriptionManager', () => {
     const basicPlan = SUBSCRIPTION_PLANS.basic;
 
     it('should have moderate credits', () => {
-      expect(basicPlan.credits).toBe(100);
-      expect(basicPlan.maxCredits).toBe(100);
+      expect(basicPlan.credits).toBe(150);
+      expect(basicPlan.maxCredits).toBe(150);
     });
 
     it('should have better resolution', () => {
@@ -107,8 +107,8 @@ describe('subscriptionManager', () => {
     });
 
     it('should allow basic video generation', () => {
-      expect(basicPlan.features.allowedVideoModels).toContain('gemini-veo');
-      expect(basicPlan.features.videoDurationLimit).toBe(30);
+      expect(basicPlan.features.allowedVideoModels).toContain('replicate-animatediff');
+      expect(basicPlan.features.videoDurationLimit).toBe(10);
     });
 
     it('should have 1GB storage', () => {
@@ -301,7 +301,7 @@ describe('subscriptionManager', () => {
       const plans = getPlansComparison();
 
       expect(plans[0].price).toBe('฿0/เดือน');
-      expect(plans[1].price).toBe('฿299/เดือน');
+      expect(plans[1].price).toBe('฿399/เดือน');
       expect(plans[2].price).toBe('฿999/เดือน');
       expect(plans[3].price).toBe('ติดต่อเรา');
     });

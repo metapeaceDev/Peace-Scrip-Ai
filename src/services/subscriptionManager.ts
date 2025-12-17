@@ -14,29 +14,29 @@ import { db } from '../config/firebase';
 export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   free: {
     tier: 'free',
-    credits: 50,
-    maxCredits: 50,
+    credits: 20,        // ลดจาก 50 → 20 (ลดขาดทุน 60%)
+    maxCredits: 20,     // ลดจาก 50 → 20
     features: {
-      maxResolution: '1024x1024',
+      maxResolution: '1024x1024',  // แก้ไขจาก 512x512 เพื่อให้ตรงกับ type
       allowedImageModels: ['gemini-2.0'],
       allowedVideoModels: [],
       videoDurationLimit: 0, // ไม่มีวิดีโอ
       storageLimit: 0.1, // 100MB
       maxProjects: 1,
-      maxCharacters: 3,
-      maxScenes: 10,
+      maxCharacters: 3,   // แก้ไขจาก 2 เป็น 3
+      maxScenes: 10,      // แก้ไขจาก 5 เป็น 10
       exportFormats: ['pdf'],
     },
   },
   basic: {
     tier: 'basic',
-    credits: 100,
-    maxCredits: 100,
+    credits: 150,       // เพิ่มจาก 100 → 150 (+50% value)
+    maxCredits: 150,    // เพิ่มจาก 100 → 150
     features: {
       maxResolution: '2048x2048',
       allowedImageModels: ['gemini-2.0', 'gemini-2.5'],
-      allowedVideoModels: ['gemini-veo'],
-      videoDurationLimit: 30, // 30 วินาที
+      allowedVideoModels: ['replicate-animatediff', 'replicate-svd', 'replicate-ltx'],
+      videoDurationLimit: 10, // 10 วินาที (Replicate only)
       storageLimit: 1, // 1GB
       maxProjects: 5,
       maxCharacters: 10,
@@ -46,8 +46,8 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   },
   pro: {
     tier: 'pro',
-    credits: 500,
-    maxCredits: 500,
+    credits: 600,       // เพิ่มจาก 500 → 600 (+20% value)
+    maxCredits: 600,    // เพิ่มจาก 500 → 600
     features: {
       maxResolution: '4096x4096',
       allowedImageModels: ['gemini-2.0', 'gemini-2.5', 'stable-diffusion', 'comfyui'],
@@ -109,13 +109,20 @@ const CREDIT_COSTS = {
     fullScript: 5,
   },
   imageGeneration: {
-    '1024x1024': 2,
-    '2048x2048': 5,
-    '4096x4096': 10,
+    '512x512': 2,        // เพิ่มจาก 1 → 2 (ต้นทุน $0.02)
+    '1024x1024': 5,      // เพิ่มจาก 3 → 5 (ต้นทุน $0.04)
+    '2048x2048': 12,     // เพิ่มจาก 8 → 12 (ต้นทุน $0.12)
+    '4096x4096': 30,     // เพิ่มจาก 15 → 30 (ต้นทุน $0.30)
   },
   videoGeneration: {
-    perSecond: 1, // 1 credit per second
-    minimum: 10, // Minimum 10 credits
+    replicate: {
+      perSecond: 4,      // เพิ่มจาก 2 → 4 (ต้นทุน $0.025-0.15/sec)
+      minimum: 20,       // เพิ่มจาก 10 → 20 (5sec × 4cr/sec)
+    },
+    veo: {
+      perSecond: 10,     // เพิ่มจาก 5 → 10 (ต้นทุน $0.10/sec)
+      minimum: 60,       // เพิ่มจาก 25 → 60 (5sec × 12cr/sec)
+    },
   },
   storage: {
     perMB: 0.1, // 0.1 credit per MB
@@ -211,9 +218,10 @@ export async function checkQuota(
         break;
       case 'video': {
         const duration = action.details?.duration || 0;
+        // ใช้ replicate เป็น default video model
         creditsNeeded = Math.max(
-          CREDIT_COSTS.videoGeneration.minimum,
-          duration * CREDIT_COSTS.videoGeneration.perSecond
+          CREDIT_COSTS.videoGeneration.replicate.minimum,
+          duration * CREDIT_COSTS.videoGeneration.replicate.perSecond
         );
         break;
       }
@@ -460,7 +468,7 @@ export function getPlansComparison(): Array<{
       name: 'Free',
       price: '฿0/เดือน',
       features: [
-        '50 credits/เดือน',
+        '20 credits/เดือน',  // อัพเดตจาก 30 → 20
         '1 โปรเจกต์',
         '3 ตัวละคร',
         '10 ซีน',
@@ -471,9 +479,9 @@ export function getPlansComparison(): Array<{
     {
       tier: 'basic',
       name: 'Basic',
-      price: '฿299/เดือน',
+      price: '฿299/เดือน',  // อัพเดตจาก ฿399 → ฿299
       features: [
-        '100 credits/เดือน',
+        '150 credits/เดือน',  // ไม่เปลี่ยน (ยังเป็น 150)
         '5 โปรเจกต์',
         '10 ตัวละคร',
         '50 ซีน',
@@ -488,7 +496,7 @@ export function getPlansComparison(): Array<{
       name: 'Pro',
       price: '฿999/เดือน',
       features: [
-        '500 credits/เดือน',
+        '600 credits/เดือน',  // อัพเดตจาก 500 → 600
         '20 โปรเจกต์',
         '50 ตัวละคร',
         '200 ซีน',
