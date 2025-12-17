@@ -159,24 +159,36 @@ class TeamCollaborationService {
    */
   async acceptInvitation(invitationId: string, userId: string): Promise<void> {
     try {
-      console.log('✅ Accepting invitation:', invitationId);
+      console.log('🎉 Starting invitation acceptance process...');
+      console.log('  Invitation ID:', invitationId);
+      console.log('  User ID:', userId);
 
       const invitationRef = doc(db, 'projectInvitations', invitationId);
       const invitationDoc = await getDoc(invitationRef);
 
       if (!invitationDoc.exists()) {
+        console.error('❌ Invitation not found:', invitationId);
         throw new Error('Invitation not found');
       }
 
       const invitation = invitationDoc.data() as ProjectInvitation;
+      console.log('📋 Invitation details:', {
+        projectId: invitation.projectId,
+        projectTitle: invitation.projectTitle,
+        role: invitation.role,
+        inviterName: invitation.inviterName,
+      });
 
-      // อัพเดทสถานะ invitation
+      // Step 1: อัพเดทสถานะ invitation
+      console.log('📝 Step 1: Updating invitation status to "accepted"...');
       await updateDoc(invitationRef, {
         status: 'accepted',
         respondedAt: Timestamp.now(),
       });
+      console.log('  ✅ Invitation status updated');
 
-      // เพิ่ม collaborator เข้าโปรเจ็ค
+      // Step 2: เพิ่ม collaborator เข้าโปรเจ็ค
+      console.log('👥 Step 2: Adding user as collaborator...');
       await this.addCollaboratorToProject(
         invitation.projectId,
         userId,
@@ -186,9 +198,14 @@ class TeamCollaborationService {
         invitation.inviterUserId
       );
 
-      console.log('✅ Invitation accepted successfully');
+      console.log('✅ Invitation accepted successfully!');
+      console.log('🎊 User can now access project:', invitation.projectTitle);
     } catch (error) {
       console.error('❌ Error accepting invitation:', error);
+      console.error('  Error details:', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
       throw error;
     }
   }
@@ -225,6 +242,12 @@ class TeamCollaborationService {
     addedBy: string
   ): Promise<void> {
     try {
+      console.log('➕ Adding collaborator to project...');
+      console.log('  Project ID:', projectId);
+      console.log('  User ID:', userId);
+      console.log('  Email:', email);
+      console.log('  Role:', role);
+
       const collaborator: ProjectCollaborator = {
         userId,
         email,
@@ -241,14 +264,20 @@ class TeamCollaborationService {
         ...collaborator,
         addedAt: Timestamp.fromDate(collaborator.addedAt),
       });
+      console.log('  ✅ Collaborator added to project subcollection');
 
-      // เพิ่ม projectId ใน user's sharedProjects
+      // เพิ่ม projectId ใน user's sharedProjects (use setDoc with merge to create if not exists)
       const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        sharedProjects: arrayUnion(projectId),
-      });
+      await setDoc(
+        userRef,
+        {
+          sharedProjects: arrayUnion(projectId),
+        },
+        { merge: true } // Important: Creates document if it doesn't exist
+      );
+      console.log('  ✅ Project added to user sharedProjects');
 
-      console.log('✅ Collaborator added to project:', userId);
+      console.log('✅ Collaborator added successfully:', userId);
     } catch (error) {
       console.error('❌ Error adding collaborator:', error);
       throw error;
@@ -265,14 +294,20 @@ class TeamCollaborationService {
       // ลบจาก collaborators subcollection
       const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
       await deleteDoc(collaboratorRef);
+      console.log('  ✅ Removed from collaborators subcollection');
 
-      // ลบ projectId จาก user's sharedProjects
+      // ลบ projectId จาก user's sharedProjects (use setDoc with merge to handle missing document)
       const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        sharedProjects: arrayRemove(projectId),
-      });
+      await setDoc(
+        userRef,
+        {
+          sharedProjects: arrayRemove(projectId),
+        },
+        { merge: true }
+      );
+      console.log('  ✅ Removed from user sharedProjects');
 
-      console.log('✅ Collaborator removed');
+      console.log('✅ Collaborator removed successfully');
     } catch (error) {
       console.error('❌ Error removing collaborator:', error);
       throw error;
