@@ -140,6 +140,18 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Email collection - for Firebase Extensions (Trigger Email)
+    match /mail/{emailId} {
+      // Allow authenticated users to create email documents
+      allow create: if isAuthenticated();
+      
+      // Allow users to read their own sent emails
+      allow read: if isAuthenticated();
+      
+      // Prevent updates and deletes (emails are sent once)
+      allow update, delete: if false;
+    }
+
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;

@@ -497,14 +497,38 @@ class TeamCollaborationService {
       console.log('New Role:', newRole);
       console.log('Updated by:', updatedBy);
 
-      // หา userId จาก email ก่อน
+      // 🆕 Check if this is a pending invitation (user hasn't signed up yet)
+      const invitationsRef = collection(db, 'invitations');
+      const invitationQuery = query(
+        invitationsRef,
+        where('projectId', '==', projectId),
+        where('email', '==', memberEmail),
+        where('status', '==', 'pending')
+      );
+      const invitationSnapshot = await getDocs(invitationQuery);
+
+      if (!invitationSnapshot.empty) {
+        // User hasn't signed up yet - update the invitation role instead
+        console.log('📧 User has pending invitation, updating invitation role...');
+        const invitationDoc = invitationSnapshot.docs[0];
+        await updateDoc(invitationDoc.ref, {
+          role: newRole,
+          updatedAt: Timestamp.now(),
+          updatedBy: updatedBy,
+        });
+        console.log('✅ Pending invitation role updated successfully');
+        return;
+      }
+
+      // หา userId จาก email (for registered users)
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', memberEmail));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         console.error('❌ User not found with email:', memberEmail);
-        throw new Error('User not found');
+        console.error('💡 Tip: User may not have signed up yet. Check invitations collection.');
+        throw new Error('User not found. They may not have accepted the invitation yet.');
       }
 
       const userId = querySnapshot.docs[0].id;
