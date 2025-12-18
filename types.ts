@@ -370,7 +370,10 @@ export interface UserSubscription {
     maxProjects: number; // -1 = unlimited
     maxCharacters: number; // -1 = unlimited
     maxScenes: number; // -1 = unlimited
+    maxTeamMembers: number; // -1 = unlimited (จำนวนทีมที่เพิ่มได้)
+    maxVeoVideosPerMonth: number; // จำกัดจำนวนวิดีโอ Veo ต่อเดือน (0 = ไม่มีสิทธิ์, -1 = unlimited)
     exportFormats: string[]; // ['pdf', 'fdx', 'fountain', 'production-package', 'white-label']
+    allowLocalGPU: boolean; // อนุญาตใช้ Local GPU (ไม่ตัดเครดิต)
   };
 }
 

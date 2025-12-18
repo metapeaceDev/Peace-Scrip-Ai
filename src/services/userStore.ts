@@ -15,6 +15,9 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: 1,
       maxCharacters: 3,
       maxScenes: 9,
+      maxTeamMembers: 5,
+      maxVeoVideosPerMonth: 0,
+      allowLocalGPU: true,
       exportFormats: ['pdf-watermark'],
     },
   },
@@ -31,6 +34,9 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: 5,
       maxCharacters: 10,
       maxScenes: -1, // Unlimited
+      maxTeamMembers: 15,
+      maxVeoVideosPerMonth: 0,
+      allowLocalGPU: true,
       exportFormats: ['pdf', 'fdx', 'fountain'],
     },
   },
@@ -60,6 +66,9 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: -1, // Unlimited
       maxCharacters: -1, // Unlimited
       maxScenes: -1, // Unlimited
+      maxTeamMembers: 50,
+      maxVeoVideosPerMonth: 0,
+      allowLocalGPU: true,
       exportFormats: ['pdf', 'fdx', 'fountain', 'production-package'],
     },
   },
@@ -89,6 +98,9 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
       maxProjects: -1, // Unlimited
       maxCharacters: -1, // Unlimited
       maxScenes: -1, // Unlimited
+      maxTeamMembers: -1, // Unlimited
+      maxVeoVideosPerMonth: 25, // Limited to 25 clips/month
+      allowLocalGPU: true,
       exportFormats: ['pdf', 'fdx', 'fountain', 'production-package', 'white-label'],
     },
   },

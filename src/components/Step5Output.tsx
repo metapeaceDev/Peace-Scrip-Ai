@@ -1402,13 +1402,21 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     setGeneratingVideoShotId(shotIndex);
     setProgress(0);
     try {
+      // 🔍 DEBUG: Log video generation settings (use console.warn to prevent minification)
+      console.warn('🎬 VIDEO GENERATION DEBUG:');
+      console.warn('  Model:', preferredVideoModel);
+      console.warn('  Aspect Ratio:', videoAspectRatio);
+      console.warn('  Use Image:', useImage);
+      
       // ✨ NEW: Use enhanced video prompt builder with motion, camera movement, and timing
       const prompt = buildVideoPrompt(shotData, editedScene);
+      console.warn('  Prompt:', prompt);
 
       // Use existing image as base ONLY if useImage is true and image exists
       const existingImage = useImage
         ? editedScene.storyboard?.find(s => s.shot === shotNumber)?.image
         : undefined;
+      console.warn('  Has Base Image:', !!existingImage);
 
       const videoUri = await generateStoryboardVideo(
         prompt,
@@ -1427,8 +1435,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       );
 
       // 🔍 DEBUG: Check video URL before saving
-      console.log('🎬 Video URL received:', videoUri);
-      console.log('🎬 Video URL length:', videoUri.length);
+      console.warn('🎬 Video Result:', videoUri);
       
       const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
         shot: shotNumber,
@@ -1446,10 +1453,13 @@ IMPORTANT: Show the character's emotional and psychological state through facial
 
       if (!isEditing) onSave(updatedScene);
     } catch (error) {
-      alert(
-        'Failed to generate video. Note: Video generation requires a paid Google Cloud Project.'
-      );
-      console.error(error);
+      // 🔍 Show actual error message instead of generic message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('❌ Video generation error:', error);
+      console.error('❌ Error message:', errorMessage);
+      console.error('❌ Preferred model was:', preferredVideoModel);
+      
+      alert(`Failed to generate video: ${errorMessage}`);
     } finally {
       setGeneratingVideoShotId(null);
       setProgress(0);
@@ -2568,13 +2578,25 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                         </option>
                       ))}
                     </optgroup>
-                    <optgroup label="💵 PAID MODELS">
-                      {Object.values(VIDEO_MODELS_CONFIG.PAID).map(model => {
+                    <optgroup label="💵 BASIC MODELS">
+                      {Object.values(VIDEO_MODELS_CONFIG.BASIC || {}).map(model => {
                         const hasAccess = hasAccessToModel(model.id, 'video');
                         return (
                           <option key={model.id} value={model.id} disabled={!hasAccess}>
                             {hasAccess ? '' : '🔒 '}
-                            {model.name} ({model.costPerGen} credits)
+                            {model.name} ({model.costPerGen || 0} credits)
+                            {!hasAccess && ' - Upgrade Required'}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                    <optgroup label="🚀 PRO MODELS">
+                      {Object.values(VIDEO_MODELS_CONFIG.PRO || {}).map(model => {
+                        const hasAccess = hasAccessToModel(model.id, 'video');
+                        return (
+                          <option key={model.id} value={model.id} disabled={!hasAccess}>
+                            {hasAccess ? '' : '🔒 '}
+                            {model.name} ({model.costPerGen || 0} credits)
                             {!hasAccess && ' - Upgrade Required'}
                           </option>
                         );

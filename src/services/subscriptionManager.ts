@@ -14,50 +14,59 @@ import { db } from '../config/firebase';
 export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   free: {
     tier: 'free',
-    credits: 20,        // ลดจาก 50 → 20 (ลดขาดทุน 60%)
-    maxCredits: 20,     // ลดจาก 50 → 20
+    credits: 50,        // FREE tier - Pollinations only (Local GPU ไม่ตัดเครดิต)
+    maxCredits: 50,
     features: {
-      maxResolution: '1024x1024',  // แก้ไขจาก 512x512 เพื่อให้ตรงกับ type
-      allowedImageModels: ['gemini-2.0'],
-      allowedVideoModels: [],
-      videoDurationLimit: 0, // ไม่มีวิดีโอ
-      storageLimit: 0.1, // 100MB
-      maxProjects: 1,
-      maxCharacters: 3,   // แก้ไขจาก 2 เป็น 3
-      maxScenes: 10,      // แก้ไขจาก 5 เป็น 10
+      maxResolution: '1024x1024',
+      allowedImageModels: ['pollinations'],  // ✅ Pollinations only
+      allowedVideoModels: ['pollinations-video'],  // ✅ Pollinations Video only
+      videoDurationLimit: 5, // 5 วินาที
+      storageLimit: 0.5, // 500MB
+      maxProjects: 3,     // ✅ จำกัด 3 projects
+      maxCharacters: 5,   // ✅ จำกัด 5 characters
+      maxScenes: 15,
+      maxTeamMembers: 5,  // ✅ เพิ่มทีมได้ 5 คน
+      maxVeoVideosPerMonth: 0, // ❌ ไม่มีสิทธิ์ใช้ Veo
       exportFormats: ['pdf'],
+      allowLocalGPU: true, // ✅ อนุญาตใช้ Local GPU (ไม่ตัดเครดิต)
     },
   },
   basic: {
     tier: 'basic',
-    credits: 150,       // เพิ่มจาก 100 → 150 (+50% value)
-    maxCredits: 150,    // เพิ่มจาก 100 → 150
+    credits: 200,       // BASIC tier - Replicate API (เราจ่าย, ตัดเครดิต)
+    maxCredits: 200,
     features: {
       maxResolution: '2048x2048',
-      allowedImageModels: ['gemini-2.0', 'gemini-2.5'],
-      allowedVideoModels: ['replicate-animatediff', 'replicate-svd', 'replicate-ltx'],
-      videoDurationLimit: 10, // 10 วินาที (Replicate only)
-      storageLimit: 1, // 1GB
-      maxProjects: 5,
-      maxCharacters: 10,
-      maxScenes: 50,
+      allowedImageModels: ['pollinations', 'replicate-sdxl', 'gemini-2.0'],  // ✅ Replicate + Gemini
+      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx'],  // ✅ Replicate Video
+      videoDurationLimit: 10, // 10 วินาที
+      storageLimit: 2, // 2GB
+      maxProjects: 7,     // ✅ จำกัด 7 projects
+      maxCharacters: 15,
+      maxScenes: 70,
+      maxTeamMembers: 15, // ✅ เพิ่มทีมได้ 15 คน
+      maxVeoVideosPerMonth: 0, // ❌ ไม่มีสิทธิ์ใช้ Veo (ใช้ Replicate แทน)
       exportFormats: ['pdf', 'fdx', 'fountain'],
+      allowLocalGPU: true, // ✅ อนุญาตใช้ Local GPU (ไม่ตัดเครดิต)
     },
   },
   pro: {
     tier: 'pro',
-    credits: 600,       // เพิ่มจาก 500 → 600 (+20% value)
-    maxCredits: 600,    // เพิ่มจาก 500 → 600
+    credits: 800,       // PRO tier - Replicate Pro ONLY (เราจ่าย, ตัดเครดิต)
+    maxCredits: 800,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['gemini-2.0', 'gemini-2.5', 'stable-diffusion', 'comfyui'],
-      allowedVideoModels: ['gemini-veo', 'comfyui-svd'],
+      allowedImageModels: ['pollinations', 'replicate-sdxl', 'replicate-flux', 'gemini-2.0', 'gemini-2.5', 'stable-diffusion'],  // ✅ Pro Models
+      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx'],  // ✅ Replicate ONLY (NO Veo)
       videoDurationLimit: 120, // 2 นาที
       storageLimit: 10, // 10GB
-      maxProjects: 20,
-      maxCharacters: 50,
+      maxProjects: 25,    // ✅ จำกัด 25 projects
+      maxCharacters: 50,  // ✅ จำกัด 50 characters
       maxScenes: 200,
+      maxTeamMembers: 50, // ✅ เพิ่มทีมได้ 50 คน
+      maxVeoVideosPerMonth: 0, // ❌ ไม่มีสิทธิ์ใช้ Veo (กำไรสูง 60-70%!)
       exportFormats: ['pdf', 'fdx', 'fountain', 'production-package'],
+      allowLocalGPU: true, // ✅ อนุญาตใช้ Local GPU (ไม่ตัดเครดิต)
     },
   },
   enterprise: {
@@ -66,14 +75,17 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
     maxCredits: -1,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['gemini-2.0', 'gemini-2.5', 'stable-diffusion', 'comfyui'],
-      allowedVideoModels: ['gemini-veo', 'comfyui-svd'],
+      allowedImageModels: ['pollinations', 'replicate-sdxl', 'replicate-flux', 'gemini-2.0', 'gemini-2.5', 'stable-diffusion', 'comfyui'],
+      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx', 'gemini-veo', 'comfyui-svd', 'comfyui-animatediff'],
       videoDurationLimit: -1, // Unlimited
       storageLimit: -1, // Unlimited
-      maxProjects: -1, // Unlimited
-      maxCharacters: -1, // Unlimited
-      maxScenes: -1, // Unlimited
+      maxProjects: -1,    // ✅ Unlimited
+      maxCharacters: -1,  // ✅ Unlimited
+      maxScenes: -1,
+      maxTeamMembers: -1, // ✅ Unlimited team members
+      maxVeoVideosPerMonth: 25, // ✅ จำกัด 25 คลิป Veo/เดือน (ควบคุมต้นทุน, มีกำไรดี!)
       exportFormats: ['pdf', 'fdx', 'fountain', 'production-package', 'white-label'],
+      allowLocalGPU: true, // ✅ อนุญาตใช้ Local GPU
     },
   },
 };
@@ -95,6 +107,7 @@ interface UsageRecord {
   monthlyUsage: {
     month: string; // YYYY-MM format
     creditsUsed: number;
+    veoVideosGenerated: number; // ⚠️ ติดตาม Veo usage ต่อเดือน
     resetAt: Date;
   };
   lastUpdated: Date;
@@ -168,6 +181,7 @@ export async function getUserSubscription(userId: string): Promise<UsageRecord> 
         monthlyUsage: {
           month: new Date().toISOString().slice(0, 7),
           creditsUsed: 0,
+          veoVideosGenerated: 0,  // 🆕 เพิ่ม Veo tracking
           resetAt: getNextMonthDate(),
         },
         lastUpdated: new Date(),
@@ -450,6 +464,93 @@ function suggestUpgrade(currentTier: SubscriptionTier): SubscriptionTier {
   const tiers: SubscriptionTier[] = ['free', 'basic', 'pro', 'enterprise'];
   const currentIndex = tiers.indexOf(currentTier);
   return tiers[Math.min(currentIndex + 1, tiers.length - 1)];
+}
+
+/**
+ * 🆕 Check Veo video quota (เฉพาะ PRO และ ENTERPRISE)
+ */
+export async function checkVeoQuota(userId: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+  remaining?: number;
+  limit?: number;
+}> {
+  try {
+    const userRecord = await getUserSubscription(userId);
+    const { subscription, monthlyUsage } = userRecord;
+
+    const maxVeoVideos = subscription.features.maxVeoVideosPerMonth;
+
+    // Check if tier allows Veo
+    if (maxVeoVideos === 0) {
+      return {
+        allowed: false,
+        reason: `แผน ${subscription.tier.toUpperCase()} ไม่รองรับ Veo - กรุณาใช้ Replicate หรือ upgrade เป็น PRO`,
+        remaining: 0,
+        limit: 0,
+      };
+    }
+
+    // Unlimited for special cases
+    if (maxVeoVideos === -1) {
+      return {
+        allowed: true,
+        remaining: -1,
+        limit: -1,
+      };
+    }
+
+    // Check monthly usage
+    const veoUsed = monthlyUsage.veoVideosGenerated || 0;
+    const remaining = maxVeoVideos - veoUsed;
+
+    if (remaining <= 0) {
+      return {
+        allowed: false,
+        reason: `ใช้ Veo ครบโควต้าแล้ว (${maxVeoVideos} คลิป/เดือน) - กรุณาใช้ Replicate หรือรอเดือนหน้า`,
+        remaining: 0,
+        limit: maxVeoVideos,
+      };
+    }
+
+    // Warning when close to limit
+    if (remaining <= 2 && maxVeoVideos >= 5) {
+      console.warn(`⚠️ Veo quota ใกล้หมด: เหลือ ${remaining}/${maxVeoVideos} คลิป`);
+    }
+
+    return {
+      allowed: true,
+      remaining,
+      limit: maxVeoVideos,
+    };
+  } catch (error) {
+    console.error('Error checking Veo quota:', error);
+    return {
+      allowed: false,
+      reason: 'ไม่สามารถตรวจสอบ Veo quota ได้',
+    };
+  }
+}
+
+/**
+ * 🆕 Record Veo video usage
+ */
+export async function recordVeoUsage(userId: string, credits: number): Promise<void> {
+  try {
+    const docRef = doc(db, 'subscriptions', userId);
+
+    await updateDoc(docRef, {
+      'monthlyUsage.veoVideosGenerated': increment(1),
+      'monthlyUsage.creditsUsed': increment(credits),
+      'usage.videosGenerated': increment(1),
+      lastUpdated: new Date(),
+    });
+
+    console.log(`✅ Recorded Veo usage for user ${userId}`);
+  } catch (error) {
+    console.error('Error recording Veo usage:', error);
+    throw error;
+  }
 }
 
 /**

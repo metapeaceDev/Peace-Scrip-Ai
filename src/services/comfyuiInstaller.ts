@@ -25,11 +25,29 @@ const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL; // Optional cl
  * Check if ComfyUI is installed and running
  */
 export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
+  // Helper function to silently fetch without console errors
+  const silentFetch = async (url: string, timeout: number): Promise<Response | null> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (err) {
+      // Silently ignore network errors (ERR_NAME_NOT_RESOLVED, timeouts, etc.)
+      return null;
+    }
+  };
+
   try {
     // Try local installation (silent error to avoid console spam)
-    const localResponse = await fetch(`${COMFYUI_DEFAULT_URL}/system_stats`, {
-      signal: AbortSignal.timeout(2000)
-    }).catch((): null => null);
+    const localResponse = await silentFetch(`${COMFYUI_DEFAULT_URL}/system_stats`, 2000);
     
     if (localResponse?.ok) {
       const stats = await localResponse.json();
@@ -47,9 +65,7 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
   // Try cloud fallback if configured
   if (COMFYUI_CLOUD_URL) {
     try {
-      const cloudResponse = await fetch(`${COMFYUI_CLOUD_URL}/system_stats`, {
-        signal: AbortSignal.timeout(3000)
-      }).catch((): null => null);
+      const cloudResponse = await silentFetch(`${COMFYUI_CLOUD_URL}/system_stats`, 3000);
       
       if (cloudResponse?.ok) {
         return {

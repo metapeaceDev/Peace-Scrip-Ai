@@ -27,10 +27,17 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => {
       if (!COMFYUI_ENABLED) return false;
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
-          signal: AbortSignal.timeout(3000),
-        });
-        return response.ok;
+          signal: controller.signal,
+          mode: 'cors',
+          cache: 'no-cache'
+        }).catch((): null => null); // Silent error
+        
+        clearTimeout(timeoutId);
+        return response?.ok || false;
       } catch {
         return false;
       }
@@ -115,8 +122,17 @@ const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = 
     checkAvailability: async () => {
       if (!COMFYUI_ENABLED) return false;
       try {
-        const response = await fetch(`${COMFYUI_API_URL}/system_stats`);
-        return response.ok;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
+          signal: controller.signal,
+          mode: 'cors',
+          cache: 'no-cache'
+        }).catch((): null => null); // Silent error
+        
+        clearTimeout(timeoutId);
+        return response?.ok || false;
       } catch {
         return false;
       }

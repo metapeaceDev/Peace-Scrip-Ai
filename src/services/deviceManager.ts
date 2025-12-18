@@ -278,33 +278,49 @@ export async function checkComfyUIHealth(): Promise<{
   let cloudAvailable = false;
   let resources: SystemResources | undefined;
 
+  // Helper function to silently fetch without console errors
+  const silentFetch = async (url: string, timeout: number): Promise<Response | null> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (err) {
+      // Silently ignore network errors
+      return null;
+    }
+  };
+
   // ตรวจสอบ Local ComfyUI (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
   try {
     const COMFYUI_URL = getSavedComfyUIUrl();
-    const localResponse = await fetch(`${COMFYUI_URL}/system_stats`, {
-      signal: AbortSignal.timeout(3000),
-    });
+    const localResponse = await silentFetch(`${COMFYUI_URL}/system_stats`, 3000);
 
-    if (localResponse.ok) {
+    if (localResponse?.ok) {
       localAvailable = true;
       resources = await detectSystemResources();
     }
   } catch (error) {
-    console.log('ℹ️ Local ComfyUI not available');
+    // Silent - no need to log
   }
 
   // ตรวจสอบ Cloud ComfyUI
   if (COMFYUI_CLOUD_URL) {
     try {
-      const cloudResponse = await fetch(`${COMFYUI_CLOUD_URL}/system_stats`, {
-        signal: AbortSignal.timeout(5000),
-      });
+      const cloudResponse = await silentFetch(`${COMFYUI_CLOUD_URL}/system_stats`, 5000);
 
-      if (cloudResponse.ok) {
+      if (cloudResponse?.ok) {
         cloudAvailable = true;
       }
     } catch (error) {
-      console.log('ℹ️ Cloud ComfyUI not available');
+      // Silent - no need to log
     }
   }
 

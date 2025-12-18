@@ -532,19 +532,44 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     setIsImgLoading(true);
     setProgress(0);
     try {
-      // Collect physical details for "Face Recognition" consistency (Fallback if no reference image)
+      // ✅ COMPREHENSIVE DATA: Collect ALL relevant visual information
+      // Including: External (Information), Physical, and Fashion data
+      
+      // 🇹🇭 CRITICAL: Include Ethnicity and Nationality for proper ethnicity rendering
       const facialFeatures = [
+        // External Information - ข้อมูลพื้นฐาน
+        activeCharacter.external['Ethnicity'] ? `Ethnicity: ${activeCharacter.external['Ethnicity']}` : null,
+        activeCharacter.external['Nationality'] ? `Nationality: ${activeCharacter.external['Nationality']}` : null,
+        activeCharacter.external['Date of Birth Age'],
+        activeCharacter.external['Height'] ? `Height: ${activeCharacter.external['Height']}` : null,
+        activeCharacter.external['Weight'] ? `Weight: ${activeCharacter.external['Weight']}` : null,
+        activeCharacter.external['Build'] ? `Build: ${activeCharacter.external['Build']}` : null,
+        
+        // Physical Characteristics - ลักษณะทางกายภาพ
+        activeCharacter.physical['Gender'],
         activeCharacter.physical['Facial characteristics'],
         activeCharacter.physical['Eye characteristics'],
         activeCharacter.physical['Hair style'],
         activeCharacter.physical['Skin color'],
-        activeCharacter.external['Date of Birth Age'],
-        activeCharacter.physical['Gender'],
+        activeCharacter.physical['Physical Characteristics'],
+        activeCharacter.physical['Body type'] ? `Body type: ${activeCharacter.physical['Body type']}` : null,
+        activeCharacter.physical['Distinctive features'] ? `Distinctive: ${activeCharacter.physical['Distinctive features']}` : null,
+        
+        // Fashion/Costume - เครื่องแต่งกาย (สำหรับ Portrait)
+        activeCharacter.fashion['Main Outfit'] ? `Wearing: ${activeCharacter.fashion['Main Outfit']}` : null,
+        activeCharacter.fashion['Accessories'] ? `Accessories: ${activeCharacter.fashion['Accessories']}` : null,
+        activeCharacter.fashion['Style preference'] ? `Style: ${activeCharacter.fashion['Style preference']}` : null,
       ]
         .filter(Boolean)
         .join(', ');
 
       const fullDescription = `${activeCharacter.description}. ${activeCharacter.physical['Physical Characteristics'] || ''}`;
+
+      console.log('🎨 Generating portrait with comprehensive data:');
+      console.log('📋 External:', activeCharacter.external);
+      console.log('💪 Physical:', activeCharacter.physical);
+      console.log('👔 Fashion:', activeCharacter.fashion);
+      console.log('✨ Facial Features String:', facialFeatures);
 
       const base64Image = await generateCharacterImage(
         fullDescription,

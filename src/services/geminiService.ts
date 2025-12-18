@@ -19,7 +19,7 @@ import {
   generateLTXVideo,
 } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
-import { getSavedComfyUIUrl } from './comfyuiInstaller';
+import { getSavedComfyUIUrl, checkComfyUIStatus } from './comfyuiInstaller';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -111,72 +111,103 @@ export const AI_MODELS = {
 
 export const VIDEO_MODELS_CONFIG = {
   FREE: {
-    COMFYUI_SVD: {
-      id: 'comfyui-svd',
-      name: 'ComfyUI SVD',
-      provider: 'Local/Cloud',
-      cost: 'FREE',
-      speed: '⚡⚡ Fast (1-2 min)',
-      quality: '⭐⭐ Medium (576p)',
-      duration: '3-4 sec',
-      limits: 'Unlimited (Local)',
-      description: 'Stable Video Diffusion (Image-to-Video)',
-      tier: 'free',
-      costPerGen: 0,
-    },
     POLLINATIONS_VIDEO: {
       id: 'pollinations-video',
-      name: 'Pollinations Video',
+      name: 'Pollinations Video (FREE)',
       provider: 'Pollinations.ai',
       cost: 'FREE',
       speed: '⚡⚡⚡ Very Fast (10-20s)',
-      quality: '⭐ Low-Medium',
-      duration: '2-3 sec',
+      quality: '⭐⭐ Low-Medium',
+      duration: '2-5 sec',
       limits: 'Unlimited',
-      description: 'Fast generation, lower consistency',
+      description: 'FREE tier - Fast generation, basic quality',
       tier: 'free',
       costPerGen: 0,
     },
+    LOCAL_GPU: {
+      id: 'local-gpu',
+      name: 'Local GPU (ComfyUI)',
+      provider: 'Your Computer',
+      cost: 'FREE - No Credits Used',
+      speed: '⚡⚡ Fast (depends on GPU)',
+      quality: '⭐⭐⭐⭐ High',
+      duration: 'Unlimited',
+      limits: 'Project/Character limits apply per tier',
+      description: 'Use your own GPU - No credit cost! (Install ComfyUI required)',
+      tier: 'free',
+      costPerGen: 0,
+      isLocalGPU: true,
+    },
   },
-  PAID: {
+  BASIC: {
+    REPLICATE_SVD: {
+      id: 'replicate-svd',
+      name: 'Replicate SVD',
+      provider: 'Replicate',
+      cost: '💵 Credits ($0.018/video)',
+      speed: '⚡⚡ Fast (30-60s)',
+      quality: '⭐⭐⭐ Good (576p)',
+      duration: '3-10 sec',
+      limits: 'Credit-based',
+      description: 'BASIC tier - Stable Video Diffusion',
+      tier: 'basic',
+      costPerGen: 2,
+    },
+    REPLICATE_ANIMATEDIFF: {
+      id: 'replicate-animatediff',
+      name: 'Replicate AnimateDiff',
+      provider: 'Replicate',
+      cost: '💵 Credits ($0.025/video)',
+      speed: '⚡⚡ Fast (60-90s)',
+      quality: '⭐⭐⭐ Good (512p)',
+      duration: '2-8 sec',
+      limits: 'Credit-based',
+      description: 'BASIC tier - AnimateDiff (Text/Image-to-Video)',
+      tier: 'basic',
+      costPerGen: 3,
+    },
+  },
+  PRO: {
+    REPLICATE_LTX: {
+      id: 'replicate-ltx',
+      name: 'Replicate LTX Video',
+      provider: 'Replicate',
+      cost: '💵 Credits ($0.15/video)',
+      speed: '⚡ Medium (2-3 min)',
+      quality: '⭐⭐⭐⭐ Very Good (768p)',
+      duration: '5-10 sec',
+      limits: 'Credit-based',
+      description: 'PRO tier - High quality text/image-to-video',
+      tier: 'pro',
+      costPerGen: 8,
+    },
     GEMINI_VEO: {
       id: 'gemini-veo',
-      name: 'Gemini Veo',
+      name: 'Gemini Veo 3',
       provider: 'Google',
-      cost: '💵 Paid (Quota)',
+      cost: '💵 Credits (Premium)',
       speed: '⚡⚡ Fast (30-60s)',
-      quality: '🌟🌟🌟🌟🌟 Excellent (1080p)',
-      duration: '5-10 sec',
-      limits: 'Limited Quota',
-      description: "Google's state-of-the-art video model",
-      tier: 'basic',
-      costPerGen: 5,
-    },
-    LUMA_DREAM_MACHINE: {
-      id: 'luma-dream-machine',
-      name: 'Luma Dream Machine',
-      provider: 'Luma AI',
-      cost: '💵 Paid ($0.10/video)',
-      speed: '⚡ Fast (1-2 min)',
-      quality: '🌟🌟🌟🌟🌟 Excellent',
-      duration: '5 sec',
-      limits: 'Pay per use',
-      description: 'High realism and motion quality',
+      quality: '⭐⭐⭐⭐⭐ Excellent (1080p)',
+      duration: '5-120 sec',
+      limits: 'Credit-based',
+      description: 'PRO tier - Google state-of-the-art video model',
       tier: 'pro',
-      costPerGen: 10,
+      costPerGen: 15,
     },
-    RUNWAY_GEN3: {
-      id: 'runway-gen3',
-      name: 'Runway Gen-3',
-      provider: 'RunwayML',
-      cost: '💵 Paid ($0.50/video)',
-      speed: '⚡ Fast (1-2 min)',
-      quality: '🌟🌟🌟🌟🌟 Cinematic',
-      duration: '5-10 sec',
-      limits: 'Pay per use',
-      description: 'Hollywood-grade video generation',
-      tier: 'pro',
-      costPerGen: 50,
+  },
+  ENTERPRISE: {
+    ALL_MODELS: {
+      id: 'enterprise-all',
+      name: 'All Models Unlimited',
+      provider: 'All Providers',
+      cost: 'Unlimited',
+      speed: 'Varies',
+      quality: '⭐⭐⭐⭐⭐ Best Available',
+      duration: 'Unlimited',
+      limits: 'No Limits',
+      description: 'ENTERPRISE - Access to all models without restrictions',
+      tier: 'enterprise',
+      costPerGen: 0,
     },
   },
 };
@@ -186,6 +217,7 @@ const GEMINI_25_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_20_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
 const USE_COMFYUI_BACKEND = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
 const COMFYUI_ENABLED = import.meta.env.VITE_COMFYUI_ENABLED === 'true';
+const COMFYUI_DEFAULT_URL = import.meta.env.VITE_COMFYUI_URL || import.meta.env.VITE_COMFYUI_API_URL || "http://localhost:8188";
 
 /**
  * Get ComfyUI API URL (uses getSavedComfyUIUrl for auto-cleanup of old URLs)
@@ -3100,6 +3132,33 @@ export async function generateCharacterImage(
     console.log('🔍 Extracted gender:', gender);
     console.log('🔍 Extracted age:', age);
 
+    // 🇹🇭 CRITICAL: Extract ethnicity/nationality for Thai characters
+    const ethnicityMatch = facialFeatures.match(/ethnicity[:\s]+([^,]+)/i) ||
+                          facialFeatures.match(/เชื้อชาติ[:\s]*([^,]+)/i) ||
+                          facialFeatures.match(/\b(Thai|ไทย|Southeast Asian|Asian)\b/i);
+    const nationalityMatch = facialFeatures.match(/nationality[:\s]+([^,]+)/i) ||
+                            facialFeatures.match(/สัญชาติ[:\s]*([^,]+)/i);
+    
+    let ethnicity = '';
+    if (ethnicityMatch) {
+      ethnicity = ethnicityMatch[1].trim().toLowerCase();
+      if (ethnicity === 'ไทย') ethnicity = 'thai';
+    }
+    if (nationalityMatch) {
+      const nationality = nationalityMatch[1].trim().toLowerCase();
+      if (nationality === 'ไทย' || nationality === 'thai') ethnicity = 'thai';
+    }
+
+    console.log('🇹🇭 Extracted ethnicity:', ethnicity);
+
+    // Build ethnicity-specific keywords for Thai people
+    let ethnicityKeywords = '';
+    if (ethnicity.includes('thai') || ethnicity.includes('ไทย')) {
+      ethnicityKeywords = 'Thai person, Southeast Asian features, Thai ethnicity, Asian facial features, tan skin tone, Thai face, warm skin tone, monolid eyes, black hair, Southeast Asian appearance';
+    } else if (ethnicity.includes('asian') || ethnicity.includes('เอเชีย')) {
+      ethnicityKeywords = 'Asian person, Asian facial features, monolid eyes, Asian ethnicity';
+    }
+
     // Build gender-specific keywords for stronger differentiation
     let genderKeywords = '';
     if (gender.includes('female') || gender.includes('woman') || gender.includes('girl')) {
@@ -3131,6 +3190,11 @@ export async function generateCharacterImage(
     // Build comprehensive prompt with GENDER FIRST for Pollinations.ai
     let prompt = `${uniqueMarker} `;
 
+    // 🇹🇭 CRITICAL: Ethnicity MUST be at the very start for SDXL to understand
+    if (ethnicityKeywords) {
+      prompt += `${ethnicityKeywords.split(',')[0].toUpperCase()} `; // e.g., "THAI PERSON"
+    }
+
     // CRITICAL: Gender and Age MUST be at the start for Pollinations.ai to understand
     if (genderKeywords) {
       prompt += `${genderKeywords.split(',')[0].toUpperCase()} `; // e.g., "FEMALE WOMAN" or "MALE MAN"
@@ -3161,6 +3225,11 @@ export async function generateCharacterImage(
       prompt += `Art Style: ${style}, highly detailed, vivid colors, professional illustration, clean lines, expressive features
 
 `;
+    }
+
+    // 🇹🇭 Add ethnicity description again for emphasis
+    if (ethnicityKeywords) {
+      prompt += `ETHNICITY: ${ethnicityKeywords}\n\n`;
     }
 
     // Physical features with gender emphasis
@@ -3503,6 +3572,9 @@ export async function generateStoryboardVideo(
 ): Promise<string> {
   try {
     console.log(`🎬 Generating video with model: ${preferredModel}`);
+    
+    // 🆕 Get current user ID for quota tracking
+    const currentUserId = auth.currentUser?.uid;
 
     // 🎯 NEW: Build Motion-Aware Prompt if psychology data available
     let enhancedPrompt = prompt;
@@ -3575,7 +3647,57 @@ export async function generateStoryboardVideo(
   - Character Energy: ${options.character.emotionalState?.energyLevel || 50}`);
     }
 
-    // 1. Handle User Selection - Try Veo first for 'auto' mode
+    // 1. Handle User Selection - Prioritize user's explicit choice
+    // 🔧 FIX: Check ComfyUI FIRST if user explicitly selected it
+    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff') {
+      console.warn('🎬 USER SELECTED COMFYUI:', preferredModel);
+      
+      // Check if ComfyUI is actually running (not just enabled in env)
+      const status = await checkComfyUIStatus();
+      
+      console.warn('🔍 ComfyUI Status:', status);
+      
+      if (!status.running) {
+        const errorMsg = `ComfyUI is not running. Please start ComfyUI server first.\n\nLocal: ${COMFYUI_DEFAULT_URL}\nStatus: ${status.error || 'Not responding'}`;
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
+        try {
+          const useAnimateDiff = preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
+          console.warn(`🎬 ComfyUI Mode: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          
+          const result = await generateVideoWithComfyUI(enhancedPrompt, {
+            baseImage: base64Image,
+            lora: LORA_MODELS.DETAIL_ENHANCER,
+            loraStrength: 0.8,
+            negativePrompt: 'low quality, blurry, static, watermark, frozen frames, duplicate frames',
+            frameCount: finalFrameCount || 25,
+            fps: finalFPS || 8,
+            motionStrength: finalMotionStrength || 0.8,
+            useAnimateDiff: useAnimateDiff,
+            character: options?.character,
+            shotData: options?.shotData,
+            currentScene: options?.currentScene,
+            onProgress: onProgress,
+          });
+          // Free model, no credit deduction
+          console.warn(`✅ ComfyUI Success: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          return result;
+        } catch (comfyError: unknown) {
+          const err = comfyError as { message?: string };
+          console.error('❌ ComfyUI Generation Failed:', err);
+          throw comfyError; // Don't fallback when user explicitly selected ComfyUI
+        }
+      } else {
+        const errorMsg = 'ComfyUI is not enabled in environment settings.';
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
+      }
+    }
+    
+    // 2. Try Veo for 'auto' mode or explicit selection
     if (preferredModel === 'gemini-veo' || preferredModel === 'auto') {
       try {
         // 0. Check Subscription Access for Veo (moved inside try-catch for fallback)
@@ -3585,11 +3707,22 @@ export async function generateStoryboardVideo(
           }
         }
         
+        // 🆕 1. Check Veo Quota (จำกัดจำนวนคลิปต่อเดือน)
+        const { checkVeoQuota } = await import('./subscriptionManager');
+        const veoQuotaCheck = await checkVeoQuota(currentUserId || 'anonymous');
+        
+        if (!veoQuotaCheck.allowed) {
+          console.warn('⚠️ Veo quota exceeded:', veoQuotaCheck.reason);
+          throw new Error(veoQuotaCheck.reason || 'Veo quota exceeded');
+        }
+        
+        console.log(`✅ Veo quota OK: ${veoQuotaCheck.remaining}/${veoQuotaCheck.limit} remaining`);
+        
         // Try Tier 1: Gemini Veo 3.1 (best quality, limited quota)
         console.log('🎬 Tier 1: Trying Gemini Veo 3.1...');
 
         // Check credits for paid model
-        const modelConfig = VIDEO_MODELS_CONFIG.PAID.GEMINI_VEO;
+        const modelConfig = VIDEO_MODELS_CONFIG.PRO.GEMINI_VEO;
 
       const model = 'veo-3.1-fast-generate-preview';
       type VeoParams = {
@@ -3635,8 +3768,9 @@ export async function generateStoryboardVideo(
       const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (!videoUri) throw new Error('No video URI returned');
 
-      // Deduct credits
-      deductCredits(modelConfig.costPerGen || 0);
+      // 🆕 Record Veo usage (บันทึกการใช้งาน Veo)
+      const { recordVeoUsage } = await import('./subscriptionManager');
+      await recordVeoUsage(currentUserId || 'anonymous', modelConfig.costPerGen || 0);
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'PLACEHOLDER_KEY';
       console.log('✅ Tier 1 Success: Gemini Veo 3.1');
@@ -3820,13 +3954,13 @@ export async function generateStoryboardVideo(
       }
     }
 
-    // Tier 3: ComfyUI Backend (Self-hosted or Cloud)
-    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff' || preferredModel === 'auto') {
-      // Try Tier 2: ComfyUI + AnimateDiff or SVD (if enabled)
+    // Tier 3: ComfyUI Fallback for 'auto' mode
+    if (preferredModel === 'auto') {
+      // Try ComfyUI as fallback for 'auto' mode
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
-          const useAnimateDiff = preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
-          console.log(`🎬 Tier 2: Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`);
+          const useAnimateDiff = options?.useAnimateDiff !== false;
+          console.log(`🎬 Tier 3 (Auto Fallback): Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`);
           
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
@@ -3843,16 +3977,13 @@ export async function generateStoryboardVideo(
             onProgress: onProgress,
           });
           // Free model, no credit deduction
-          console.log(`✅ Tier 2 Success: ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          console.log(`✅ Tier 3 Success: ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
           return result;
         } catch (comfyError: unknown) {
           const err = comfyError as { message?: string };
-          console.error('❌ Tier 2 failed:', err);
-          if (preferredModel !== 'auto') throw comfyError; // Don't fallback if manually selected
+          console.error('❌ Tier 3 (ComfyUI Fallback) failed:', err);
+          // Continue to other fallbacks
         }
-      } else {
-        if (preferredModel !== 'auto')
-          throw new Error('ComfyUI is not enabled. Please check your settings.');
       }
     }
 
@@ -3902,13 +4033,12 @@ export async function generateStoryboardVideo(
 
     if (preferredModel === 'luma-dream-machine' || preferredModel === 'runway-gen3') {
       // These are paid models, check credits
-      const modelConfig = Object.values(VIDEO_MODELS_CONFIG.PAID).find(
-        m => m.id === preferredModel
-      );
-      if (modelConfig) {
+      const allModels = [...Object.values(VIDEO_MODELS_CONFIG.BASIC || {}), ...Object.values(VIDEO_MODELS_CONFIG.PRO || {}), ...Object.values(VIDEO_MODELS_CONFIG.ENTERPRISE || {})];
+      const modelConfig = allModels.find(m => m.id === preferredModel);
+      if (modelConfig && modelConfig.costPerGen) {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 2000));
-        deductCredits(modelConfig.costPerGen || 0);
+        deductCredits(modelConfig.costPerGen);
         throw new Error(
           `${preferredModel} integration coming soon! Credits deducted for simulation.`
         );
@@ -3933,8 +4063,15 @@ export async function generateMoviePoster(
   try {
     let prompt = '';
     if (customPrompt && customPrompt.trim().length > 0) {
-      // User provided custom prompt
+      // User provided custom prompt - enhance it with language directive
       prompt = customPrompt;
+      
+      // 🇹🇭 CRITICAL: Add language directive based on project language
+      if (scriptData.language === 'Thai') {
+        prompt += ' TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.';
+      } else if (scriptData.language === 'English') {
+        prompt += ' TEXT IN ENGLISH ONLY. No Chinese, No Thai text.';
+      }
     } else {
       // Build comprehensive prompt from Step 1-3 data
       const parts = [
@@ -3957,10 +4094,29 @@ export async function generateMoviePoster(
         parts.push(`Concept: ${scriptData.bigIdea.substring(0, 150)}.`);
       }
 
-      // Add main character if available (Step 3)
-      const mainCharacter = scriptData.characters?.find(c => c.role === 'Protagonist');
-      if (mainCharacter && mainCharacter.name) {
-        parts.push(`Main Character: ${mainCharacter.name} - ${mainCharacter.description?.substring(0, 100) || 'protagonist'}.`);
+      // 🎭 ENHANCED: Add ALL characters from Step 3 (not just protagonist)
+      if (scriptData.characters && scriptData.characters.length > 0) {
+        const characterDescriptions = scriptData.characters
+          .filter(c => c.name && c.name.trim() !== '')
+          .slice(0, 5) // Limit to top 5 characters to avoid prompt overflow
+          .map(c => {
+            const desc = c.description?.substring(0, 80) || c.role || 'character';
+            // Include ethnicity for proper rendering
+            const ethnicity = c.external?.['Ethnicity'] || c.external?.['Nationality'] || '';
+            const ethnicityNote = ethnicity ? ` (${ethnicity})` : '';
+            return `${c.name}${ethnicityNote} - ${desc}`;
+          });
+        
+        if (characterDescriptions.length > 0) {
+          parts.push(`Characters: ${characterDescriptions.join(', ')}.`);
+        }
+      }
+
+      // 🇹🇭 CRITICAL: Add language directive based on project language
+      if (scriptData.language === 'Thai') {
+        parts.push('TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือในโปสเตอร์ต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.');
+      } else if (scriptData.language === 'English') {
+        parts.push('TEXT IN ENGLISH ONLY. No Chinese, No Thai text.');
       }
 
       // Add visual style
@@ -3972,7 +4128,7 @@ export async function generateMoviePoster(
     return await generateImageWithCascade(prompt, {
       useLora: true,
       loraType: 'DETAIL_ENHANCER',
-      negativePrompt: 'low quality, amateur, blurry, text errors, ugly',
+      negativePrompt: 'low quality, amateur, blurry, text errors, ugly, chinese characters, wrong language text',
       onProgress: onProgress,
     });
   } catch (error: unknown) {

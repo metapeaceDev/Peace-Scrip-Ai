@@ -53,17 +53,31 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
         parts.push(`${scriptData.logLine}.`);
       }
 
-      // Add main character if available
-      const mainCharacter = scriptData.characters?.find(c => c.role === 'Protagonist');
-      if (mainCharacter?.name) {
-        parts.push(`Featuring ${mainCharacter.name}.`);
+      // 🎭 ENHANCED: Add ALL characters (not just protagonist)
+      if (scriptData.characters && scriptData.characters.length > 0) {
+        const characterNames = scriptData.characters
+          .filter(c => c.name && c.name.trim() !== '')
+          .slice(0, 5) // Top 5 characters
+          .map(c => c.name)
+          .join(', ');
+        
+        if (characterNames) {
+          parts.push(`Featuring ${characterNames}.`);
+        }
+      }
+
+      // 🇹🇭 CRITICAL: Add language directive
+      if (scriptData.language === 'Thai') {
+        parts.push('TEXT IN THAI LANGUAGE. ตัวหนังสือภาษาไทยเท่านั้น.');
+      } else if (scriptData.language === 'English') {
+        parts.push('TEXT IN ENGLISH ONLY.');
       }
 
       parts.push('Style: Cinematic, High Contrast, Dramatic, 4K Resolution.');
 
       setPosterPrompt(parts.join(' '));
     }
-  }, [scriptData.title, scriptData.mainGenre, scriptData.secondaryGenres, scriptData.premise, scriptData.logLine, scriptData.characters]);
+  }, [scriptData.title, scriptData.mainGenre, scriptData.secondaryGenres, scriptData.premise, scriptData.logLine, scriptData.characters, scriptData.language]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (onRegisterUndo) onRegisterUndo();
