@@ -193,26 +193,25 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
 
 /**
  * Save ComfyUI URL to settings
+ * 🚫 DEPRECATED: No longer saves to localStorage - use .env instead
  */
 export function saveComfyUIUrl(url: string): void {
-  localStorage.setItem('comfyui_url', url);
+  console.warn('⚠️ saveComfyUIUrl() is deprecated. Please update VITE_COMFYUI_URL in .env file instead.');
+  console.info('💡 URL not saved. Current URL from .env:', COMFYUI_DEFAULT_URL);
+  // Do nothing - .env is single source of truth
 }
 
 /**
  * Get saved ComfyUI URL
- * Priority: .env > localStorage (to allow easy updates via .env)
+ * 🔥 ALWAYS use .env as single source of truth - NEVER read localStorage
  */
 export function getSavedComfyUIUrl(): string {
-  // 🔧 FORCE FIX: Clear any cached old Cloudflare URLs
-  const cached = localStorage.getItem('comfyui_url');
-  if (cached && cached.includes('trycloudflare.com')) {
-    console.warn('⚠️ Removing old Cloudflare URL from cache:', cached);
+  // 🗑️ Clean up any old localStorage values (migration cleanup)
+  if (localStorage.getItem('comfyui_url')) {
+    console.warn('🗑️ Cleaning up deprecated localStorage key: comfyui_url');
     localStorage.removeItem('comfyui_url');
   }
   
-  // Always prefer .env value if set (allows easy updates without clearing localStorage)
-  if (COMFYUI_DEFAULT_URL !== 'http://localhost:8188') {
-    return COMFYUI_DEFAULT_URL;
-  }
-  return localStorage.getItem('comfyui_url') || COMFYUI_DEFAULT_URL;
+  // ✅ ALWAYS return .env value (single source of truth)
+  return COMFYUI_DEFAULT_URL;
 }

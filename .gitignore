@@ -89,3 +89,4 @@ archive/
 test-upload.html
 start-servers.sh
 start-servers-lite.sh
+functions/.env.yaml

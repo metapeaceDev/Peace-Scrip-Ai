@@ -5,6 +5,7 @@
  */
 
 import { getSavedComfyUIUrl } from './comfyuiInstaller';
+import { parseError, retryWithBackoff, logError, type ComfyUIError } from './errorHandler';
 
 export type DeviceType = 'cpu' | 'cuda' | 'mps' | 'directml' | 'auto';
 export type ExecutionMode = 'local' | 'cloud' | 'hybrid';
@@ -49,101 +50,146 @@ const RUNPOD_URL = import.meta.env.VITE_RUNPOD_URL; // RunPod endpoint
 const REPLICATE_URL = import.meta.env.VITE_REPLICATE_URL; // Replicate API
 
 /**
+ * Parse ComfyUI stats response into SystemResources
+ */
+function parseComfyUIStats(stats: any): SystemResources {
+  // แปลงข้อมูลจาก ComfyUI
+  const devices: DeviceInfo[] = [];
+  const system = stats.system || {};
+  const deviceInfo = stats.devices || {};
+
+  // ตรวจสอบ CUDA (NVIDIA)
+  if (deviceInfo.cuda || system.cuda_version) {
+    devices.push({
+      type: 'cuda',
+      name: deviceInfo.cuda?.name || 'NVIDIA GPU',
+      available: true,
+      vram: deviceInfo.cuda?.vram_total
+        ? Math.round(deviceInfo.cuda.vram_total / 1024 / 1024)
+        : undefined,
+      utilization: deviceInfo.cuda?.gpu_utilization,
+      temperature: deviceInfo.cuda?.temperature,
+      isRecommended: true, // CUDA เป็นตัวเลือกแรกสำหรับ NVIDIA
+    });
+  }
+
+  // ตรวจสอบ MPS (Apple Silicon)
+  if (deviceInfo.mps || system.os?.includes('Darwin')) {
+    const isMac = system.os?.includes('Darwin') || navigator.platform.includes('Mac');
+    devices.push({
+      type: 'mps',
+      name: 'Apple Silicon GPU',
+      available: isMac,
+      isRecommended: isMac, // MPS เป็นตัวเลือกแรกสำหรับ Mac
+    });
+  }
+
+  // ตรวจสอบ DirectML (Windows AMD/Intel)
+  if (deviceInfo.directml || (system.os?.includes('Windows') && !deviceInfo.cuda)) {
+    devices.push({
+      type: 'directml',
+      name: 'DirectML GPU',
+      available: true,
+      isRecommended: !deviceInfo.cuda, // ใช้ DirectML ถ้าไม่มี CUDA
+    });
+  }
+
+  // CPU เป็นตัวเลือกสำรอง
+  devices.push({
+    type: 'cpu',
+    name: 'CPU',
+    available: true,
+    isRecommended: devices.length === 0, // ถ้าไม่มี GPU ให้แนะนำ CPU
+  });
+
+  // ข้อมูล CPU
+  const cpuInfo = {
+    cores: system.cpu_count || navigator.hardwareConcurrency || 4,
+    usage: deviceInfo.cpu?.usage || 0,
+  };
+
+  // ข้อมูล Memory
+  const memoryInfo = {
+    total: system.ram?.total ? Math.round(system.ram.total / 1024 / 1024) : 8192,
+    available: system.ram?.free ? Math.round(system.ram.free / 1024 / 1024) : 4096,
+    used: system.ram?.used ? Math.round(system.ram.used / 1024 / 1024) : 4096,
+  };
+
+  // ตรวจสอบ Platform
+  let platform: 'windows' | 'macos' | 'linux' | 'unknown' = 'unknown';
+  if (system.os?.includes('Windows')) platform = 'windows';
+  else if (system.os?.includes('Darwin')) platform = 'macos';
+  else if (system.os?.includes('Linux')) platform = 'linux';
+
+  return {
+    devices,
+    cpu: cpuInfo,
+    memory: memoryInfo,
+    platform,
+  };
+}
+
+/**
  * ตรวจสอบทรัพยากรระบบจาก ComfyUI
  */
 export async function detectSystemResources(): Promise<SystemResources> {
   try {
+    // 🔥 FORCE CLEANUP: Remove old Cloudflare URLs BEFORE fetching
+    const cachedUrl = localStorage.getItem('comfyui_url');
+    if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
+      console.warn('🗑️ FORCE CLEANUP in detectSystemResources: Removing old Cloudflare URL:', cachedUrl);
+      localStorage.removeItem('comfyui_url');
+    }
+    
     // ตรวจสอบ ComfyUI local (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
-    const COMFYUI_URL = getSavedComfyUIUrl();
-    const response = await fetch(`${COMFYUI_URL}/system_stats`, {
-      signal: AbortSignal.timeout(3000),
-    });
+    let COMFYUI_URL = getSavedComfyUIUrl();
+    
+    // 🛡️ NUCLEAR OPTION: If STILL Cloudflare after all cleanups, FORCE localhost
+    if (COMFYUI_URL.includes('trycloudflare.com')) {
+      console.error('❌ CRITICAL: getSavedComfyUIUrl() returned Cloudflare URL! FORCING localhost.');
+      COMFYUI_URL = 'http://localhost:8188';
+      // Also clear localStorage again as final measure
+      localStorage.removeItem('comfyui_url');
+    }
+    
+    // 🔄 Retry with exponential backoff
+    const response = await retryWithBackoff(
+      () => fetch(`${COMFYUI_URL}/system_stats`, {
+        signal: AbortSignal.timeout(3000),
+      }),
+      {
+        maxRetries: 2,
+        retryDelay: 1000,
+        logToConsole: true
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('ComfyUI not responding');
+      throw new Error(`ComfyUI returned status ${response.status}`);
     }
 
     const stats = await response.json();
     console.log('🖥️ ComfyUI System Stats:', stats);
 
-    // แปลงข้อมูลจาก ComfyUI
-    const devices: DeviceInfo[] = [];
-    const system = stats.system || {};
-    const deviceInfo = stats.devices || {};
-
-    // ตรวจสอบ CUDA (NVIDIA)
-    if (deviceInfo.cuda || system.cuda_version) {
-      devices.push({
-        type: 'cuda',
-        name: deviceInfo.cuda?.name || 'NVIDIA GPU',
-        available: true,
-        vram: deviceInfo.cuda?.vram_total
-          ? Math.round(deviceInfo.cuda.vram_total / 1024 / 1024)
-          : undefined,
-        utilization: deviceInfo.cuda?.gpu_utilization,
-        temperature: deviceInfo.cuda?.temperature,
-        isRecommended: true, // CUDA เป็นตัวเลือกแรกสำหรับ NVIDIA
-      });
-    }
-
-    // ตรวจสอบ MPS (Apple Silicon)
-    if (deviceInfo.mps || system.os?.includes('Darwin')) {
-      const isMac = system.os?.includes('Darwin') || navigator.platform.includes('Mac');
-      devices.push({
-        type: 'mps',
-        name: 'Apple Silicon GPU',
-        available: isMac,
-        isRecommended: isMac, // MPS เป็นตัวเลือกแรกสำหรับ Mac
-      });
-    }
-
-    // ตรวจสอบ DirectML (Windows AMD/Intel)
-    if (deviceInfo.directml || (system.os?.includes('Windows') && !deviceInfo.cuda)) {
-      devices.push({
-        type: 'directml',
-        name: 'DirectML GPU',
-        available: true,
-        isRecommended: !deviceInfo.cuda, // ใช้ DirectML ถ้าไม่มี CUDA
-      });
-    }
-
-    // CPU เป็นตัวเลือกสำรอง
-    devices.push({
-      type: 'cpu',
-      name: 'CPU',
-      available: true,
-      isRecommended: devices.length === 0, // ถ้าไม่มี GPU ให้แนะนำ CPU
-    });
-
-    // ข้อมูล CPU
-    const cpuInfo = {
-      cores: system.cpu_count || navigator.hardwareConcurrency || 4,
-      usage: deviceInfo.cpu?.usage || 0,
-    };
-
-    // ข้อมูล Memory
-    const memoryInfo = {
-      total: system.ram?.total ? Math.round(system.ram.total / 1024 / 1024) : 8192,
-      available: system.ram?.free ? Math.round(system.ram.free / 1024 / 1024) : 4096,
-      used: system.ram?.used ? Math.round(system.ram.used / 1024 / 1024) : 4096,
-    };
-
-    // ตรวจสอบ Platform
-    let platform: 'windows' | 'macos' | 'linux' | 'unknown' = 'unknown';
-    if (system.os?.includes('Windows')) platform = 'windows';
-    else if (system.os?.includes('Darwin')) platform = 'macos';
-    else if (system.os?.includes('Linux')) platform = 'linux';
-
-    return {
-      devices,
-      cpu: cpuInfo,
-      memory: memoryInfo,
-      platform,
-    };
+    return parseComfyUIStats(stats);
+    
   } catch (error) {
-    console.warn('⚠️ ไม่สามารถตรวจสอบทรัพยากรจาก ComfyUI:', error);
+    // Parse error and provide user-friendly message
+    const comfyError = parseError(error, 'local-comfyui');
+    
+    // Log for debugging
+    logError(comfyError, {
+      operation: 'detectSystemResources',
+      url: getSavedComfyUIUrl()
+    });
+    
+    // Show suggestion if available
+    if (comfyError.suggestion) {
+      console.warn(`💡 Suggestion: ${comfyError.suggestion}`);
+    }
 
     // Fallback: ให้ข้อมูลพื้นฐานจาก browser
+    console.info('🔄 Using fallback browser-based detection...');
     return getFallbackResources();
   }
 }

@@ -470,6 +470,13 @@ async function generateVideoWithComfyUI(
   } = {}
 ): Promise<string> {
   try {
+    // 🔥 LAYER 7: FORCE CLEANUP before video generation
+    const cachedUrl = localStorage.getItem('comfyui_url');
+    if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
+      console.warn('🗑️ LAYER 7 CLEANUP: Removing Cloudflare URL before video generation:', cachedUrl);
+      localStorage.removeItem('comfyui_url');
+    }
+
     // Determine if using AnimateDiff or SVD
     const useAnimateDiff = options.useAnimateDiff !== false; // Default to true
     

@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { detectSystemResources, type SystemResources, type DeviceType } from '../services/deviceManager';
 
 export interface BackendRecommendation {
+  name: string; // Display name
   type: 'local' | 'cloud-comfyui' | 'replicate' | 'gemini-veo' | 'huggingface';
   url?: string;
   cost: number; // USD per video
@@ -38,6 +39,13 @@ export function useDeviceDetection(): DeviceDetectionResult {
 
     async function detect() {
       try {
+        // 🔥 FORCE CLEANUP: Remove old Cloudflare URLs BEFORE detection
+        const cachedUrl = localStorage.getItem('comfyui_url');
+        if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
+          console.warn('🗑️ FORCE CLEANUP: Removing old Cloudflare URL from useDeviceDetection:', cachedUrl);
+          localStorage.removeItem('comfyui_url');
+        }
+        
         console.log('🔍 Detecting system resources...');
         const detected = await detectSystemResources();
         
@@ -104,6 +112,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
   // Priority 1: Local ComfyUI with GPU (FREE + FAST)
   if (hasGPU && isLocalComfyUIRunning()) {
     return {
+      name: 'Local ComfyUI (FREE)',
       type: 'local',
       url: 'http://localhost:8188',
       cost: 0,
@@ -118,6 +127,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
   const cloudUrl = import.meta.env.VITE_COMFYUI_CLOUD_URL;
   if (cloudUrl && cloudUrl !== '') {
     return {
+      name: 'Cloud ComfyUI',
       type: 'cloud-comfyui',
       url: cloudUrl,
       cost: 0.02,
@@ -133,6 +143,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
   const replicateKey = import.meta.env.VITE_REPLICATE_API_KEY;
   if (replicateKey && replicateKey !== '') {
     return {
+      name: 'Replicate Hotshot-XL',
       type: 'replicate',
       cost: 0.018,
       speed: 'medium',
@@ -144,6 +155,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
   // Priority 4: Gemini Veo (HIGH COST + HIGH QUALITY)
   // Note: This will be used as fallback in geminiService.ts
   return {
+    name: 'Gemini Veo 3.1',
     type: 'gemini-veo',
     cost: 0.50,
     speed: 'medium',
@@ -169,6 +181,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
   // Option 1: Local ComfyUI
   if (hasGPU) {
     options.push({
+      name: 'Local ComfyUI (FREE)',
       type: 'local',
       url: 'http://localhost:8188',
       cost: 0,
@@ -183,6 +196,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
   const cloudUrl = import.meta.env.VITE_COMFYUI_CLOUD_URL;
   if (cloudUrl && cloudUrl !== '') {
     options.push({
+      name: 'Cloud ComfyUI',
       type: 'cloud-comfyui',
       url: cloudUrl,
       cost: 0.02,
@@ -194,6 +208,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
 
   // Option 3: Replicate Hotshot-XL
   options.push({
+    name: 'Replicate Hotshot-XL',
     type: 'replicate',
     cost: 0.018,
     speed: 'medium',
@@ -203,6 +218,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
 
   // Option 4: HuggingFace (FREE but rate limited)
   options.push({
+    name: 'HuggingFace Spaces',
     type: 'huggingface',
     cost: 0,
     speed: 'slow',
@@ -212,6 +228,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
 
   // Option 5: Gemini Veo (Premium)
   options.push({
+    name: 'Gemini Veo 3.1',
     type: 'gemini-veo',
     cost: 0.50,
     speed: 'medium',

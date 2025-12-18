@@ -1,3 +1,24 @@
+// 🔥 MIGRATION CLEANUP: Remove ALL deprecated localStorage keys
+try {
+  const keysToRemove = ['comfyui_url'];
+  let cleaned = 0;
+  
+  keysToRemove.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (value) {
+      console.warn(`🗑️ Removing deprecated localStorage key '${key}':`, value);
+      localStorage.removeItem(key);
+      cleaned++;
+    }
+  });
+  
+  if (cleaned > 0) {
+    console.log(`✅ Cleaned ${cleaned} deprecated localStorage key(s). Now using .env as single source of truth.`);
+  }
+} catch (e) {
+  console.error('Failed to cleanup localStorage:', e);
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

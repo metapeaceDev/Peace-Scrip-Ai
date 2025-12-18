@@ -15,7 +15,7 @@ interface ComfyUISetupProps {
 const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
   const [status, setStatus] = useState<ComfyUIStatus | null>(null);
   const [checking, setChecking] = useState(true);
-  const [customUrl, setCustomUrl] = useState(getSavedComfyUIUrl());
+  const [customUrl, setCustomUrl] = useState(import.meta.env.VITE_COMFYUI_URL || 'http://localhost:8188');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const instructions = getInstallInstructions();
@@ -27,9 +27,11 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
     setChecking(false);
 
     if (result.running) {
-      // Auto-save the working URL
-      if (result.url) {
+      // Auto-save the working URL (but NEVER save Cloudflare URLs!)
+      if (result.url && !result.url.includes('trycloudflare.com')) {
         saveComfyUIUrl(result.url);
+      } else if (result.url?.includes('trycloudflare.com')) {
+        console.warn('⚠️ ComfyUISetup: Skipping save of Cloudflare URL:', result.url);
       }
       // Auto-close after 2 seconds
       setTimeout(onComplete, 2000);
@@ -221,6 +223,11 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
                 />
                 <button
                   onClick={() => {
+                    // 🛡️ Prevent saving Cloudflare URLs
+                    if (customUrl.includes('trycloudflare.com')) {
+                      alert('⚠️ Cloudflare Tunnel URLs are temporary and should not be saved.\n\nPlease use localhost:8188 or a permanent URL.');
+                      return;
+                    }
                     saveComfyUIUrl(customUrl);
                     checkStatus();
                   }}
