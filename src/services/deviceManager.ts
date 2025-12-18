@@ -4,6 +4,8 @@
  * จัดการการตรวจจับและเลือกใช้ทรัพยากร CPU/GPU สำหรับการ render
  */
 
+import { getSavedComfyUIUrl } from './comfyuiInstaller';
+
 export type DeviceType = 'cpu' | 'cuda' | 'mps' | 'directml' | 'auto';
 export type ExecutionMode = 'local' | 'cloud' | 'hybrid';
 export type CloudProvider = 'firebase' | 'colab' | 'runpod' | 'replicate' | 'auto';
@@ -41,7 +43,6 @@ export interface RenderSettings {
   preview: boolean;
 }
 
-const COMFYUI_URL = import.meta.env.VITE_COMFYUI_URL || 'http://localhost:8188';
 const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL;
 const COLAB_TUNNEL_URL = import.meta.env.VITE_COLAB_TUNNEL_URL; // ngrok/cloudflare tunnel from Colab
 const RUNPOD_URL = import.meta.env.VITE_RUNPOD_URL; // RunPod endpoint
@@ -52,7 +53,8 @@ const REPLICATE_URL = import.meta.env.VITE_REPLICATE_URL; // Replicate API
  */
 export async function detectSystemResources(): Promise<SystemResources> {
   try {
-    // ตรวจสอบ ComfyUI local
+    // ตรวจสอบ ComfyUI local (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
+    const COMFYUI_URL = getSavedComfyUIUrl();
     const response = await fetch(`${COMFYUI_URL}/system_stats`, {
       signal: AbortSignal.timeout(3000),
     });
@@ -222,8 +224,9 @@ export async function checkComfyUIHealth(): Promise<{
   let cloudAvailable = false;
   let resources: SystemResources | undefined;
 
-  // ตรวจสอบ Local ComfyUI
+  // ตรวจสอบ Local ComfyUI (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
   try {
+    const COMFYUI_URL = getSavedComfyUIUrl();
     const localResponse = await fetch(`${COMFYUI_URL}/system_stats`, {
       signal: AbortSignal.timeout(3000),
     });
