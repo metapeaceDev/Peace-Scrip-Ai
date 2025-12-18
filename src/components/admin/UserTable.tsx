@@ -77,8 +77,7 @@ export const UserTable: React.FC<UserTableProps> = ({
         <table className="user-table">
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Display Name</th>
+              <th>ผู้ใช้</th>
               <th>Tier</th>
               <th>Status</th>
               <th>Credits</th>
@@ -90,7 +89,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={8} className="no-data">
+                <td colSpan={7} className="no-data">
                   No users found
                 </td>
               </tr>
@@ -103,16 +102,16 @@ export const UserTable: React.FC<UserTableProps> = ({
                   title="Click to view details"
                 >
                   <td>
-                    <div className="user-email">
+                    <div className="user-info-cell">
                       {user.photoURL && (
                         <img src={user.photoURL} alt="" className="user-avatar" />
                       )}
-                      <span title={user.email}>
-                        {maskEmail(user.email)}
-                      </span>
+                      <div className="user-details">
+                        <div className="user-name">{user.displayName || 'User'}</div>
+                        <div className="user-email">{user.email}</div>
+                      </div>
                     </div>
                   </td>
-                  <td>{user.displayName}</td>
                   <td>
                     <span className={`tier-badge tier-${user.tier}`}>
                       {user.tier.toUpperCase()}
@@ -184,15 +183,6 @@ export const UserTable: React.FC<UserTableProps> = ({
 };
 
 // Helper functions
-function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  if (!local || !domain) return email;
-  
-  if (local.length <= 2) return `${local}***@${domain}`;
-  
-  return `${local.charAt(0)}***${local.charAt(local.length - 1)}@${domain}`;
-}
-
 function formatDate(date?: Date): string {
   if (!date) return '-';
   
