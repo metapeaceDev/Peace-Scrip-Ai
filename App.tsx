@@ -297,6 +297,16 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusText, setUploadStatusText] = useState('Processing...');
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  
+  // 🔧 FORCE FIX: Clear old ComfyUI URLs on app load
+  useEffect(() => {
+    const cachedUrl = localStorage.getItem('comfyui_url');
+    if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
+      console.warn('🗑️ FORCE CLEANUP: Removing old Cloudflare URL:', cachedUrl);
+      localStorage.removeItem('comfyui_url');
+    }
+  }, []);
+  
   // Sync scriptData.language with UI language
   useEffect(() => {
     const handleLanguageChange = (event: Event) => {
