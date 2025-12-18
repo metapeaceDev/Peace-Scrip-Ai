@@ -33,19 +33,58 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            // React core
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor';
             }
-            if (id.includes('@google/genai')) {
+            // AI/ML libraries
+            if (id.includes('@google/genai') || id.includes('generative-ai')) {
               return 'ai-vendor';
             }
+            // Firebase
             if (id.includes('firebase')) {
               return 'firebase-vendor';
             }
+            // Microsoft Speech SDK
+            if (id.includes('microsoft.cognitiveservices.speech')) {
+              return 'microsoft.cognitiveservices.speech.sdk';
+            }
+            // Other large libraries
+            if (id.includes('lodash')) {
+              return 'lodash-vendor';
+            }
+          }
+          
+          // Code split large app modules
+          if (id.includes('src/components/Step5Output')) {
+            return 'step5-output';
+          }
+          if (id.includes('src/components/ComfyUISettings')) {
+            return 'comfyui-settings';
+          }
+          if (id.includes('src/pages/')) {
+            return 'pages';
+          }
+          if (id.includes('src/services/geminiService')) {
+            return 'gemini-service';
+          }
+          if (id.includes('src/services/videoGenerationService')) {
+            return 'video-service';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 700,
+    chunkSizeWarningLimit: 500,
+    // Minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+      },
+    },
+    // Source maps for debugging
+    sourcemap: false, // Disable in production for smaller size
   },
 });
