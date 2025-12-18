@@ -2779,29 +2779,54 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                       {/* Media Area */}
                       <div className="aspect-video bg-black/50 relative flex items-center justify-center overflow-hidden border-b border-gray-700 group">
                         {shotVideo ? (
-                          <video
-                            src={shotVideo}
-                            controls
-                            className="w-full h-full object-cover"
-                            playsInline
-                            onError={e => {
-                              console.error(`❌ Video load error for shot ${shot.shot}`);
-                              console.error('📹 Full video URL:', shotVideo);
-                              console.error('📹 URL length:', shotVideo.length);
-                              console.error('📹 URL starts with:', shotVideo.substring(0, 100));
-                              console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
-                              console.error('📹 Has token?', shotVideo.includes('token='));
-                              // Hide broken video element
-                              e.currentTarget.style.display = 'none';
-                              // Show error message
-                              const errorDiv = e.currentTarget.parentElement?.querySelector(
-                                '.video-error-fallback'
-                              );
-                              if (errorDiv) {
-                                (errorDiv as HTMLElement).style.display = 'flex';
-                              }
-                            }}
-                          />
+                          // Check if it's a GIF (use img tag) or video (use video tag)
+                          shotVideo.endsWith('.gif') || shotVideo.includes('.gif?') ? (
+                            <img
+                              src={shotVideo}
+                              alt={`Shot ${shot.shot} video`}
+                              className="w-full h-full object-cover"
+                              onError={e => {
+                                console.error(`❌ GIF load error for shot ${shot.shot}`);
+                                console.error('📹 Full GIF URL:', shotVideo);
+                                console.error('📹 URL length:', shotVideo.length);
+                                console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
+                                console.error('📹 Has token?', shotVideo.includes('token='));
+                                // Hide broken image element
+                                e.currentTarget.style.display = 'none';
+                                // Show error message
+                                const errorDiv = e.currentTarget.parentElement?.querySelector(
+                                  '.video-error-fallback'
+                                );
+                                if (errorDiv) {
+                                  (errorDiv as HTMLElement).style.display = 'flex';
+                                }
+                              }}
+                            />
+                          ) : (
+                            <video
+                              src={shotVideo}
+                              controls
+                              className="w-full h-full object-cover"
+                              playsInline
+                              onError={e => {
+                                console.error(`❌ Video load error for shot ${shot.shot}`);
+                                console.error('📹 Full video URL:', shotVideo);
+                                console.error('📹 URL length:', shotVideo.length);
+                                console.error('📹 URL starts with:', shotVideo.substring(0, 100));
+                                console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
+                                console.error('📹 Has token?', shotVideo.includes('token='));
+                                // Hide broken video element
+                                e.currentTarget.style.display = 'none';
+                                // Show error message
+                                const errorDiv = e.currentTarget.parentElement?.querySelector(
+                                  '.video-error-fallback'
+                                );
+                                if (errorDiv) {
+                                  (errorDiv as HTMLElement).style.display = 'flex';
+                                }
+                              }}
+                            />
+                          )
                         ) : shotImg ? (
                           <img
                             src={shotImg}

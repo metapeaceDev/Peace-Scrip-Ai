@@ -100,15 +100,21 @@ export async function uploadVideoToStorage(
     const sizeMB = blob.size / (1024 * 1024);
     console.log(`📦 Video size: ${sizeMB.toFixed(2)} MB`);
 
+    // Detect actual content type from response or blob
+    const detectedType = response.headers.get('content-type') || blob.type || 'video/mp4';
+    const isGif = detectedType.includes('gif') || videoUrl.endsWith('.gif');
+    console.log(`📋 Detected content type: ${detectedType} (isGif: ${isGif})`);
+
     // Get current user ID
     const userId = auth.currentUser?.uid;
     if (!userId) {
       throw new Error('User not authenticated. Cannot upload video.');
     }
 
-    // Generate storage path
+    // Generate storage path with correct extension
     const timestamp = Date.now();
-    const filename = `video_${timestamp}.mp4`;
+    const extension = isGif ? 'gif' : 'mp4';
+    const filename = `video_${timestamp}.${extension}`;
     const storagePath = [
       'videos',
       userId,
@@ -123,10 +129,11 @@ export async function uploadVideoToStorage(
     // Upload to Firebase Storage
     const storageRef = ref(storage, storagePath);
     const snapshot = await uploadBytes(storageRef, blob, {
-      contentType: 'video/mp4',
+      contentType: detectedType, // Use detected content type instead of hardcoded 'video/mp4'
       customMetadata: {
         uploadedAt: new Date().toISOString(),
         originalUrl: videoUrl.substring(0, 200),
+        originalType: detectedType,
         projectId: projectId || 'unknown',
         sceneId: sceneId || 'unknown',
         shotId: shotId || 'unknown',
