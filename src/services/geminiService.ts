@@ -19,6 +19,7 @@ import {
   generateLTXVideo,
 } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
+import { getSavedComfyUIUrl } from './comfyuiInstaller';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -184,8 +185,14 @@ export const VIDEO_MODELS_CONFIG = {
 const GEMINI_25_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_20_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
 const USE_COMFYUI_BACKEND = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
-const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhost:8188';
 const COMFYUI_ENABLED = import.meta.env.VITE_COMFYUI_ENABLED === 'true';
+
+/**
+ * Get ComfyUI API URL (uses getSavedComfyUIUrl for auto-cleanup of old URLs)
+ */
+function getComfyUIApiUrl(): string {
+  return getSavedComfyUIUrl();
+}
 
 // Workflow Selection: 'flux' | 'sdxl' | 'auto'
 // - flux: NVIDIA/CUDA only (Float8 precision)
@@ -688,7 +695,8 @@ async function generateVideoWithComfyUI(
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for queue
     
     try {
-      const queueResponse = await fetch(`${COMFYUI_API_URL}/prompt`, {
+      const comfyuiUrl = getComfyUIApiUrl();
+      const queueResponse = await fetch(`${comfyuiUrl}/prompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: workflow }),
@@ -704,6 +712,7 @@ async function generateVideoWithComfyUI(
       const { prompt_id } = await queueResponse.json();
 
       // Poll for completion (max 120 seconds for video)
+      const comfyuiUrlForHistory = getComfyUIApiUrl();
       for (let i = 0; i < 120; i++) {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -715,14 +724,14 @@ async function generateVideoWithComfyUI(
           options.onProgress(progress);
         }
 
-        const historyResponse = await fetch(`${COMFYUI_API_URL}/history/${prompt_id}`);
+        const historyResponse = await fetch(`${comfyuiUrlForHistory}/history/${prompt_id}`);
         const history = await historyResponse.json();
 
         if (history[prompt_id]?.outputs) {
           const videos = history[prompt_id].outputs['7']?.gifs;
           if (videos && videos.length > 0) {
             // Get video from ComfyUI
-            const videoUrl = `${COMFYUI_API_URL}/view?filename=${videos[0].filename}&type=output`;
+            const videoUrl = `${comfyuiUrlForHistory}/view?filename=${videos[0].filename}&type=output`;
             const videoResponse = await fetch(videoUrl);
             const blob = await videoResponse.blob();
 
