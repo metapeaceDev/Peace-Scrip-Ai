@@ -1426,6 +1426,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
         }
       );
 
+      // 🔍 DEBUG: Check video URL before saving
+      console.log('🎬 Video URL received:', videoUri);
+      console.log('🎬 Video URL length:', videoUri.length);
+      
       const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
         shot: shotNumber,
         image: '',
@@ -2781,10 +2785,12 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                             className="w-full h-full object-cover"
                             playsInline
                             onError={e => {
-                              console.error(
-                                `❌ Video load error for shot ${shot.shot}:`,
-                                shotVideo.substring(0, 100)
-                              );
+                              console.error(`❌ Video load error for shot ${shot.shot}`);
+                              console.error('📹 Full video URL:', shotVideo);
+                              console.error('📹 URL length:', shotVideo.length);
+                              console.error('📹 URL starts with:', shotVideo.substring(0, 100));
+                              console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
+                              console.error('📹 Has token?', shotVideo.includes('token='));
                               // Hide broken video element
                               e.currentTarget.style.display = 'none';
                               // Show error message
