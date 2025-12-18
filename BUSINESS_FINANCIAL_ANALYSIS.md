@@ -119,30 +119,30 @@
 ### Scenario 1: User ใช้งานปกติ (Conservative)
 
 **FREE User:**
-- Script: 5 scenes × ฿0 = ฿0
+- Script: 10 scenes × ฿0 = ฿0
 - Images: 10 รูป × ฿0 (Pollinations) = ฿0
 - Videos: 2 คลิป × ฿0 (Pollinations) = ฿0
-- **ต้นทุนรวม:** ฿0/เดือน
+- **ต้วนทุนรวม:** ฿0/เดือน
 - **รายได้:** ฿0
 - **กำไร:** ฿0 (แต่ได้ user data + conversion potential)
 
 **BASIC User (149.5฿):**
-- Script: 10 scenes × ฿0.05 = ฿0.50
+- Script: 20 scenes × ฿0.05 = ฿1.00
 - Images: 20 รูป × ฿0.68 (Replicate SDXL) = ฿13.60
 - Videos: 3 คลิป 5s × ฿0.94 (AnimateDiff) = ฿2.82
 - Firebase: ฿5
-- **ต้นทุนรวม:** ฿21.92/เดือน
+- **ต้วนทุนรวม:** ฿22.42/เดือน
 - **รายได้:** ฿149.50
-- **กำไร:** ฿127.58 (85.3% margin) ✅
+- **กำไร:** ฿127.08 (85% margin) ✅
 
 **PRO User (499.5฿):**
-- Script: 25 scenes × ฿0.10 = ฿2.50
+- Script: 50 scenes × ฿0.10 = ฿5.00
 - Images: 50 รูป × ฿4.08 (Imagen 2048) = ฿204
 - Videos Replicate: 20 คลิป × ฿3 = ฿60
 - Firebase: ฿20
-- **ต้นทุนรวม:** ฿286.50/เดือน
+- **ต้วนทุนรวม:** ฿289/เดือน
 - **รายได้:** ฿499.50
-- **กำไร:** ฿213 (42.7% margin) ✅ **กำไรดีมาก!**
+- **กำไร:** ฿210.50 (42.1% margin) ✅ **กำไรดีมาก!**
 
 ### Scenario 2: Power User (Heavy Usage)
 
