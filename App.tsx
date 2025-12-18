@@ -29,6 +29,7 @@ import PaymentSuccess from './src/components/PaymentSuccess';
 import PaymentCancel from './src/components/PaymentCancel';
 import { LanguageSwitcher } from './src/components/LanguageSwitcher';
 import QuotaWidget from './src/components/QuotaWidget';
+import { GPUStatusBadge } from './src/components/GPUStatus';
 import VideoGenerationTestPage from './src/pages/VideoGenerationTestPage.tsx';
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
@@ -1430,6 +1431,11 @@ function App() {
             </h1>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* GPU Status Badge */}
+            <GPUStatusBadge />
+            
+            <div className="h-6 w-px bg-gray-600"></div>
+
             {/* Language & Plan - Always Visible */}
             <div className="flex items-center gap-2">
               <LanguageSwitcher compact />
