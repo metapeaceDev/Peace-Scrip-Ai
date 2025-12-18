@@ -23,6 +23,7 @@ dist-ssr
 # Firebase service accounts (CRITICAL - Contains private keys!)
 **/service-account.json
 **/serviceAccountKey.json
+service-account-key.json
 firebase-adminsdk-*.json
 
 # Debug and utility scripts with API keys

@@ -31,6 +31,8 @@ import { LanguageSwitcher } from './src/components/LanguageSwitcher';
 import QuotaWidget from './src/components/QuotaWidget';
 import { GPUStatusBadge } from './src/components/GPUStatus';
 import VideoGenerationTestPage from './src/pages/VideoGenerationTestPage.tsx';
+import { AdminRoute } from './src/components/AdminRoute';
+import { AdminDashboard } from './src/components/admin/AdminDashboard';
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
@@ -288,7 +290,7 @@ function App() {
   const [showProviderSelector, setShowProviderSelector] = useState(false);
   const [showUsageDashboard, setShowUsageDashboard] = useState(false);
 
-  const [view, setView] = useState<'studio' | 'editor' | 'video-test'>('studio');
+  const [view, setView] = useState<'studio' | 'editor' | 'video-test' | 'admin'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
@@ -1332,6 +1334,15 @@ function App() {
     );
   }
 
+  // Admin Dashboard View
+  if (view === 'admin') {
+    return (
+      <AdminRoute>
+        <AdminDashboard />
+      </AdminRoute>
+    );
+  }
+
   if (view === 'studio') {
     return (
       <>
@@ -1394,6 +1405,7 @@ function App() {
           onImportProject={handleImportProject}
           onExportProject={handleExportProjectFromStudio}
           onRefreshProjects={loadCloudProjects}
+          onViewChange={setView}
         />
       </>
     );

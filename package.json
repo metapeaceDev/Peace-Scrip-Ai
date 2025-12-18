@@ -31,10 +31,12 @@
     "@huggingface/inference": "^4.13.4",
     "@stripe/stripe-js": "^8.5.3",
     "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.47.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.10.1",
+    "recharts": "^3.6.0",
     "stripe": "^20.0.0"
   },
   "devDependencies": {

@@ -442,3 +442,223 @@ export interface CharacterPsychologyTimeline {
     interpretation: string;
   };
 }
+
+// ========================================================================
+// ADMIN ANALYTICS TYPES
+// ========================================================================
+
+/**
+ * Admin User - Authorized administrator
+ */
+export interface AdminUser {
+  userId: string;
+  email: string;
+  role: 'super-admin' | 'admin' | 'viewer';
+  permissions: {
+    canViewAnalytics: boolean;
+    canExportData: boolean;
+    canManageUsers: boolean;
+    canManageSubscriptions: boolean;
+  };
+  createdAt: Date;
+  createdBy: string; // admin who granted access
+  lastAccess?: Date;
+}
+
+/**
+ * Analytics Aggregate - Pre-computed statistics
+ */
+export interface AnalyticsAggregate {
+  period: string; // "YYYY-MM-DD" or "YYYY-MM"
+  type: 'daily' | 'monthly';
+  
+  users: {
+    total: number;
+    byTier: {
+      free: number;
+      basic: number;
+      pro: number;
+      enterprise: number;
+    };
+    active: number; // used system in this period
+    new: number; // registered in this period
+    churned: number; // canceled in this period
+  };
+  
+  revenue: {
+    mrr: number; // Monthly Recurring Revenue
+    arr: number; // Annual Recurring Revenue
+    byTier: {
+      basic: number;
+      pro: number;
+      enterprise: number;
+    };
+    new: number; // from new subscriptions
+    expansion: number; // from upgrades
+    contraction: number; // from downgrades
+    churned: number; // from cancellations
+  };
+  
+  usage: {
+    totalCredits: number;
+    veoVideos: number;
+    apiCalls: {
+      scripts: number;
+      images: number;
+      videos: number;
+    };
+    storageGB: number;
+    activeProjects: number;
+  };
+  
+  createdAt: Date;
+}
+
+/**
+ * Admin Audit Log - Security tracking
+ */
+export interface AdminAuditLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: 'view-analytics' | 'export-data' | 'view-user' | 'modify-subscription' | 'grant-admin' | 'revoke-admin';
+  targetUserId?: string; // if action affects specific user
+  timestamp: Date;
+  ipAddress?: string;
+  userAgent?: string;
+  details?: any; // additional context
+}
+
+/**
+ * User Statistics (for admin dashboard)
+ */
+export interface UserStats {
+  total: number;
+  byTier: Record<SubscriptionTier, number>;
+  byStatus: {
+    active: number;
+    canceled: number;
+    past_due: number;
+  };
+  active: number; // active in current period
+  new: number; // new registrations
+  churned: number; // cancellations
+}
+
+/**
+ * Revenue Metrics (for admin dashboard)
+ */
+export interface RevenueMetrics {
+  mrr: number; // Monthly Recurring Revenue
+  arr: number; // Annual Recurring Revenue
+  byTier: Record<'basic' | 'pro' | 'enterprise', number>;
+  growth: {
+    new: number; // from new subscriptions
+    expansion: number; // from upgrades
+    contraction: number; // from downgrades
+    churned: number; // from cancellations
+  };
+  arpu: number; // Average Revenue Per User
+}
+
+/**
+ * Usage Analytics (for admin dashboard)
+ */
+export interface UsageAnalytics {
+  credits: {
+    total: number;
+    average: number;
+    byTier: Record<SubscriptionTier, number>;
+  };
+  veoVideos: {
+    total: number;
+    byUser: Array<{ userId: string; email: string; count: number }>;
+  };
+  apiCalls: {
+    scripts: number;
+    images: number;
+    videos: number;
+  };
+  storage: {
+    totalGB: number;
+    average: number;
+  };
+}
+
+/**
+ * User List Item (for admin dashboard table)
+ */
+export interface UserListItem {
+  userId: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  tier: SubscriptionTier;
+  status: 'active' | 'canceled' | 'canceling' | 'past_due';
+  credits: {
+    used: number;
+    max: number;
+    remaining: number;
+  };
+  veoVideos: {
+    used: number;
+    max: number;
+  };
+  lastActive?: Date;
+  createdAt: Date;
+}
+
+/**
+ * User Details (for admin user detail view)
+ */
+export interface UserDetails {
+  profile: {
+    email: string;
+    displayName: string;
+    photoURL?: string;
+    createdAt: Date;
+    lastActive?: Date;
+    loginCount?: number;
+  };
+  subscription: {
+    tier: SubscriptionTier;
+    status: 'active' | 'canceled' | 'canceling' | 'past_due';
+    billingCycle?: 'monthly' | 'yearly';
+    amount?: number;
+    startDate?: Date;
+    nextBillingDate?: Date;
+    canceledAt?: Date;
+  };
+  usage: {
+    credits: {
+      used: number;
+      max: number;
+      remaining: number;
+    };
+    veoVideos: {
+      used: number;
+      max: number;
+    };
+    projects: number;
+    characters: number;
+    scenes: number;
+    storageUsed: number;
+  };
+  projects: Array<{
+    id: string;
+    title: string;
+    type: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+  usageHistory: Array<{
+    month: string; // "YYYY-MM"
+    creditsUsed: number;
+    veoVideos: number;
+    apiCalls: {
+      scripts: number;
+      images: number;
+      videos: number;
+    };
+  }>;
+}

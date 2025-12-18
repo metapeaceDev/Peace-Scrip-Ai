@@ -6,6 +6,7 @@ import InvitationsModal from './InvitationsModal';
 import { teamCollaborationService } from '../services/teamCollaborationService';
 import { auth } from '../config/firebase';
 import { PermissionGuard } from './RoleManagement';
+import { checkIsAdmin } from '../services/adminAuthService';
 
 interface StudioProps {
   projects: ProjectMetadata[];
@@ -15,6 +16,7 @@ interface StudioProps {
   onImportProject: (file: File) => void;
   onExportProject: (id: string) => void;
   onRefreshProjects?: () => void; // Add callback for refreshing projects
+  onViewChange?: (view: 'studio' | 'editor' | 'video-test' | 'admin') => void; // Add view change handler
 }
 
 const Studio: React.FC<StudioProps> = ({
@@ -25,6 +27,7 @@ const Studio: React.FC<StudioProps> = ({
   onImportProject,
   onExportProject,
   onRefreshProjects,
+  onViewChange,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInvitationsOpen, setIsInvitationsOpen] = useState(false);
@@ -34,7 +37,13 @@ const Studio: React.FC<StudioProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<ProjectType>('Movie');
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Admin state
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check admin status
+  useEffect(() => {
+    checkIsAdmin().then(setIsAdmin);
+  }, []);
 
   // Real-time listener for invitations
   useEffect(() => {
@@ -139,6 +148,24 @@ const Studio: React.FC<StudioProps> = ({
             </div>
           </div>
           <div className="flex gap-3">
+            {/* Admin Button - Only visible for admins */}
+            {isAdmin && onViewChange && (
+              <button
+                onClick={() => onViewChange('admin')}
+                className="flex items-center gap-2 bg-gradient-to-r from-red-700 to-orange-600 hover:from-red-600 hover:to-orange-500 text-white font-bold py-2 px-4 rounded-lg border border-red-600 transition-all shadow-lg text-sm"
+                title="Admin Dashboard"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+                Admin
+              </button>
+            )}
             <button
               onClick={() => {
                 setIsInvitationsOpen(true);
