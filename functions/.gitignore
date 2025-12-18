@@ -1,0 +1,5 @@
+.env.yaml
+.env
+.env.local
+*.secret
+*.key

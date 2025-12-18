@@ -54,21 +54,21 @@ export const UsageChart: React.FC<UsageChartProps> = ({ usage }) => {
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length >= 3 && payload[0]?.payload?.week) {
       return (
         <div className="chart-tooltip">
           <p className="tooltip-label">{payload[0].payload.week}</p>
           <p className="tooltip-item">
             <span className="dot" style={{ backgroundColor: '#10b981' }}></span>
-            Credits: {payload[0].value.toLocaleString()}
+            Credits: {(payload[0]?.value || 0).toLocaleString()}
           </p>
           <p className="tooltip-item">
             <span className="dot" style={{ backgroundColor: '#f59e0b' }}></span>
-            API Calls: {payload[1].value.toLocaleString()}
+            API Calls: {(payload[1]?.value || 0).toLocaleString()}
           </p>
           <p className="tooltip-item">
             <span className="dot" style={{ backgroundColor: '#ef4444' }}></span>
-            Veo Videos: {payload[2].value.toLocaleString()}
+            Veo Videos: {(payload[2]?.value || 0).toLocaleString()}
           </p>
         </div>
       );

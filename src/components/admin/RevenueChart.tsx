@@ -56,20 +56,20 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length >= 3 && payload[0]?.payload?.month) {
       return (
         <div className="chart-tooltip">
           <p className="tooltip-label">{payload[0].payload.month}</p>
           <p className="tooltip-mrr">
             <span className="dot" style={{ backgroundColor: '#667eea' }}></span>
-            MRR: ฿{payload[0].value.toLocaleString()}
+            MRR: ฿{(payload[0]?.value || 0).toLocaleString()}
           </p>
           <p className="tooltip-arr">
             <span className="dot" style={{ backgroundColor: '#764ba2' }}></span>
-            ARR: ฿{payload[1].value.toLocaleString()}
+            ARR: ฿{(payload[1]?.value || 0).toLocaleString()}
           </p>
           <p className="tooltip-active">
-            Active: {payload[2].value.toLocaleString()} users
+            Active: {(payload[2]?.value || 0).toLocaleString()} users
           </p>
         </div>
       );
