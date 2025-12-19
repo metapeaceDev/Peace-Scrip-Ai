@@ -18,7 +18,7 @@ import {
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 import type {
   UserStats,
   RevenueMetrics,
@@ -333,13 +333,34 @@ export async function getUserList(options: {
     }
 
     const snapshot = await getDocs(q);
+    
+    // Fetch all users from Firebase Auth to get email and displayName
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    const usersMap = new Map();
+    
+    usersSnapshot.docs.forEach(userDoc => {
+      const userData = userDoc.data();
+      usersMap.set(userDoc.id, {
+        email: userData.email || 'unknown@example.com',
+        displayName: userData.displayName || userData.name || 'User',
+        photoURL: userData.photoURL || userData.avatar,
+      });
+    });
+
     let users = snapshot.docs.map(doc => {
       const data = doc.data();
-      return {
-        userId: doc.id,
-        email: data.email || 'unknown',
+      const userInfo = usersMap.get(doc.id) || {
+        email: data.email || 'unknown@example.com',
         displayName: data.displayName || 'User',
         photoURL: data.photoURL,
+      };
+      
+      return {
+        userId: doc.id,
+        email: userInfo.email,
+        displayName: userInfo.displayName,
+        photoURL: userInfo.photoURL,
         tier: (data.subscription?.tier || 'free') as SubscriptionTier,
         status: (data.subscription?.status || 'active') as UserListItem['status'],
         credits: {

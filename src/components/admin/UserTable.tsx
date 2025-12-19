@@ -12,6 +12,7 @@ interface UserTableProps {
   totalUsers: number;
   currentPage: number;
   totalPages: number;
+  pageSize: number;
   searchQuery: string;
   filterTier: SubscriptionTier | 'all';
   filterStatus: string;
@@ -26,6 +27,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   totalUsers,
   currentPage,
   totalPages,
+  pageSize,
   searchQuery,
   filterTier,
   filterStatus,
@@ -77,7 +79,8 @@ export const UserTable: React.FC<UserTableProps> = ({
         <table className="user-table">
           <thead>
             <tr>
-              <th>ผู้ใช้</th>
+              <th>No.</th>
+              <th>User</th>
               <th>Tier</th>
               <th>Status</th>
               <th>Credits</th>
@@ -89,23 +92,26 @@ export const UserTable: React.FC<UserTableProps> = ({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="no-data">
+                <td colSpan={8} className="no-data">
                   No users found
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
+              users.map((user, index) => (
                 <tr
                   key={user.userId}
                   onClick={() => onUserClick?.(user.userId)}
                   style={{ cursor: onUserClick ? 'pointer' : 'default' }}
                   title="Click to view details"
                 >
+                  <td>{(currentPage - 1) * pageSize + index + 1}</td>
                   <td>
                     <div className="user-info-cell">
-                      {user.photoURL && (
-                        <img src={user.photoURL} alt="" className="user-avatar" />
-                      )}
+                      <img 
+                        src={user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email)} 
+                        alt="" 
+                        className="user-avatar" 
+                      />
                       <div className="user-details">
                         <div className="user-name">{user.displayName || 'User'}</div>
                         <div className="user-email">{user.email}</div>

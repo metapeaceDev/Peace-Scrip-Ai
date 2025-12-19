@@ -91,3 +91,35 @@ test-upload.html
 start-servers.sh
 start-servers-lite.sh
 functions/.env.yaml
+
+# Deployment logs
+/tmp/deploy*.log
+nohup.out
+
+# Temporary utility pages (removed after use)
+public/init-admin.html
+public/force-logout.html
+public/refresh-token.html
+dist/init-admin.html
+dist/force-logout.html
+dist/refresh-token.html
+
+# Build artifacts
+*.tsbuildinfo
+.vite/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+.Python
+
+# ComfyUI specific
+comfyui-service/models/
+comfyui-service/output/
+comfyui-service/input/
+comfyui-service/temp/
+
+# Firebase Functions artifacts
+functions/lib/
+functions/.runtimeconfig.json

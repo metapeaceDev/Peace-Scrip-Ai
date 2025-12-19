@@ -7,15 +7,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, auth } from '../../config/firebase';
 import { getAdminRole, logAdminAction } from '../../services/adminAuthService';
+import { getAllAdmins, removeAdmin } from '../../services/adminManagementService';
 import type { AdminUser } from '../../../types';
+import { AddAdminModal } from './AddAdminModal';
+import { EditAdminModal } from './EditAdminModal';
 
 export const AdminUserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     init();
@@ -52,23 +58,56 @@ export const AdminUserManagement: React.FC = () => {
 
   async function loadAdminUsers() {
     try {
-      const q = query(
-        collection(db, 'admin-users'),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const snapshot = await getDocs(q);
-      const users = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        userId: doc.id,
-      })) as AdminUser[];
-      
+      const users = await getAllAdmins();
       setAdminUsers(users);
     } catch (err) {
       console.error('Error loading admin users:', err);
       throw err;
     }
   }
+
+  const handleAddSuccess = async () => {
+    await loadAdminUsers();
+    setShowAddModal(false);
+  };
+
+  const handleEditSuccess = async () => {
+    await loadAdminUsers();
+    setEditingAdmin(null);
+  };
+
+  const handleDelete = async (userId: string, email: string) => {
+    // แสดง confirmation dialog ที่ละเอียดกว่า
+    const confirmed = window.confirm(
+      `⚠️ ยืนยันการลบ Admin\n\n` +
+      `คุณแน่ใจหรือไม่ที่จะลบสิทธิ์ admin:\n` +
+      `อีเมล: ${email}\n\n` +
+      `การดำเนินการนี้จะ:\n` +
+      `• ลบสิทธิ์ Admin ทันที\n` +
+      `• ส่งอีเมลแจ้งเตือนไปยังผู้ถูกลบ\n` +
+      `• ส่งอีเมลยืนยันถึงคุณ\n` +
+      `• บันทึกใน Audit Log\n\n` +
+      `กด OK เพื่อยืนยัน หรือ Cancel เพื่อยกเลิก`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+    try {
+      await removeAdmin(userId);
+      await loadAdminUsers();
+      await logAdminAction('revoke-admin', { targetUserId: userId });
+      
+      // แสดงข้อความสำเร็จ
+      alert(`✅ ลบสิทธิ์ Admin สำเร็จ\n\nอีเมลแจ้งเตือนถูกส่งไปยัง ${email} และคุณแล้ว`);
+    } catch (err: any) {
+      alert(`❌ Error: ${err.message}`);
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
 
   function formatDate(timestamp: any): string {
     if (!timestamp) return 'N/A';
@@ -139,6 +178,21 @@ export const AdminUserManagement: React.FC = () => {
         </div>
         <div className="header-actions">
           <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-add-admin"
+            title="Add new admin"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            เพิ่ม Admin
+          </button>
+          <button
             onClick={loadAdminUsers}
             className="btn-refresh"
             title="Refresh list"
@@ -153,21 +207,6 @@ export const AdminUserManagement: React.FC = () => {
             </svg>
             Refresh
           </button>
-        </div>
-      </div>
-
-      {/* Info Banner */}
-      <div className="info-banner">
-        <div className="banner-icon">ℹ️</div>
-        <div className="banner-content">
-          <strong>How to manage admin users:</strong>
-          <p>
-            To grant or revoke admin access, use the Firebase Admin SDK script:
-            <code>node scripts/set-admin-claims.js &lt;USER_ID&gt; &lt;ROLE&gt;</code>
-          </p>
-          <p className="mt-2">
-            See <strong>ADMIN_SETUP_GUIDE.md</strong> for detailed instructions.
-          </p>
         </div>
       </div>
 
@@ -238,13 +277,49 @@ export const AdminUserManagement: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Action Buttons */}
+                <div className="card-actions">
+                  <button
+                    onClick={() => setEditingAdmin(user)}
+                    className="btn-edit"
+                    disabled={user.userId === auth.currentUser?.uid}
+                    title={user.userId === auth.currentUser?.uid ? 'Cannot edit yourself' : 'Edit admin'}
+                  >
+                    ✏️ แก้ไข
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.userId, user.email)}
+                    className="btn-delete"
+                    disabled={deletingUserId === user.userId || user.userId === auth.currentUser?.uid}
+                    title={user.userId === auth.currentUser?.uid ? 'Cannot delete yourself' : 'Delete admin'}
+                  >
+                    {deletingUserId === user.userId ? '⏳ กำลังลบ...' : '🗑️ ลบ'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Help Section */}
+      {/* Modals */}
+      <AddAdminModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleAddSuccess}
+      />
+
+      <EditAdminModal
+        admin={editingAdmin}
+        isOpen={!!editingAdmin}
+        onClose={() => setEditingAdmin(null)}
+        onSuccess={handleEditSuccess}
+        currentUserId={auth.currentUser?.uid || ''}
+      />
+
+      {/* Help Section - Optional, can be removed if not needed */}
+      {/*
       <div className="help-section">
         <h3>💡 Quick Commands</h3>
         <div className="commands-list">
@@ -252,17 +327,6 @@ export const AdminUserManagement: React.FC = () => {
             <code>node scripts/set-admin-claims.js &lt;USER_ID&gt; super-admin</code>
             <p>Grant super-admin role (full access)</p>
           </div>
-          <div className="command-item">
-            <code>node scripts/set-admin-claims.js &lt;USER_ID&gt; admin</code>
-            <p>Grant admin role (cannot manage other admins)</p>
-          </div>
-          <div className="command-item">
-            <code>node scripts/set-admin-claims.js &lt;USER_ID&gt; viewer</code>
-            <p>Grant viewer role (read-only access)</p>
-          </div>
-          <div className="command-item">
-            <code>node scripts/set-admin-claims.js &lt;USER_ID&gt; revoke</code>
-            <p>Revoke admin access</p>
           </div>
           <div className="command-item">
             <code>node scripts/set-admin-claims.js list</code>
@@ -270,6 +334,7 @@ export const AdminUserManagement: React.FC = () => {
           </div>
         </div>
       </div>
+      */}
     </div>
   );
 };

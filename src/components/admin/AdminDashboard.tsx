@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { auth } from '../../config/firebase';
 import { initAdminSession, logAdminAction } from '../../services/adminAuthService';
 import {
   getUserStats,
@@ -37,6 +38,7 @@ export const AdminDashboard: React.FC = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,13 +48,44 @@ export const AdminDashboard: React.FC = () => {
   // User Details Modal
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Initialize admin session
+  // Initialize admin session with auto token refresh
   useEffect(() => {
     async function init() {
       try {
+        // Force token refresh on first load to get latest claims
+        if (auth.currentUser) {
+          console.log('🔄 Refreshing token on Admin Dashboard load...');
+          await auth.currentUser.getIdToken(true);
+          const tokenResult = await auth.currentUser.getIdTokenResult();
+          console.log('✅ Token refreshed:', {
+            email: auth.currentUser.email,
+            admin: tokenResult.claims.admin,
+            adminRole: tokenResult.claims.adminRole
+          });
+        }
+
         const session = await initAdminSession();
         
         if (!session.isAdmin) {
+          console.error('❌ Not admin:', session);
+          
+          // Check if user has claims but session failed
+          if (auth.currentUser) {
+            const tokenResult = await auth.currentUser.getIdTokenResult();
+            if (tokenResult.claims.admin) {
+              console.log('⚠️ Has admin claims but session failed, retrying...');
+              // Retry once
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              const retrySession = await initAdminSession();
+              if (retrySession.isAdmin) {
+                setAuthorized(true);
+                await loadData();
+                setLoading(false);
+                return;
+              }
+            }
+          }
+          
           setAuthorized(false);
           setLoading(false);
           return;
@@ -112,7 +145,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       const result = await getUserList({
         page,
-        limit: 20,
+        limit: pageSize,
         search: searchQuery || undefined,
         tier: filterTier !== 'all' ? filterTier : undefined,
         status: filterStatus !== 'all' ? filterStatus : undefined,
@@ -279,6 +312,7 @@ export const AdminDashboard: React.FC = () => {
         totalUsers={totalUsers}
         currentPage={currentPage}
         totalPages={totalPages}
+        pageSize={pageSize}
         searchQuery={searchQuery}
         filterTier={filterTier}
         filterStatus={filterStatus}

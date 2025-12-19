@@ -11,14 +11,31 @@ import type { AdminUser, AdminAuditLog } from '../../types';
 
 /**
  * Check if current user is admin
+ * @param forceRefresh - Force token refresh to get latest claims (default: false)
  */
-export async function checkIsAdmin(): Promise<boolean> {
+export async function checkIsAdmin(forceRefresh = false): Promise<boolean> {
   const user = auth.currentUser;
   if (!user) return false;
 
   try {
-    const tokenResult = await user.getIdTokenResult();
-    return tokenResult.claims.admin === true;
+    // Force refresh if requested to get latest claims from server
+    if (forceRefresh) {
+      await user.getIdToken(true);
+    }
+    
+    const tokenResult = await user.getIdTokenResult(forceRefresh);
+    const isAdmin = tokenResult.claims.admin === true;
+    
+    if (forceRefresh) {
+      console.log('🔍 Admin check (refreshed):', {
+        email: user.email,
+        isAdmin,
+        adminRole: tokenResult.claims.adminRole,
+        allClaims: tokenResult.claims
+      });
+    }
+    
+    return isAdmin;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;
@@ -111,15 +128,23 @@ export async function logAdminAction(
     }
 
     const logRef = doc(db, 'admin-audit-log', `${Date.now()}_${user.uid}`);
-    const logData: Omit<AdminAuditLog, 'id'> = {
+    const logData: any = {
       adminId: user.uid,
       adminEmail: user.email || 'unknown',
       action,
-      targetUserId: details?.targetUserId,
       timestamp: new Date(),
       userAgent: navigator.userAgent,
-      details: details?.data,
     };
+
+    // Only add targetUserId if it exists
+    if (details?.targetUserId) {
+      logData.targetUserId = details.targetUserId;
+    }
+
+    // Only add details if it exists
+    if (details?.data) {
+      logData.details = details.data;
+    }
 
     await setDoc(logRef, {
       ...logData,
@@ -199,9 +224,11 @@ export async function initAdminSession(): Promise<{
   role: string | null;
   permissions: AdminUser['permissions'] | null;
 }> {
-  const isAdmin = await checkIsAdmin();
+  // Always force refresh on session init to get latest claims
+  const isAdmin = await checkIsAdmin(true);
   
   if (!isAdmin) {
+    console.warn('⚠️ User is not admin or token not refreshed');
     return {
       isAdmin: false,
       role: null,

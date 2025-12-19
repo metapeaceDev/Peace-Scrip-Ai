@@ -199,6 +199,25 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Admin Invitations - for admin access verification
+    match /admin-invitations/{invitationId} {
+      // Allow authenticated users to read invitations for their email
+      allow read: if isAuthenticated() && 
+                     (request.auth.token.email == resource.data.email ||
+                      hasAdminRole('super-admin'));
+      
+      // Only Cloud Functions can create (via super-admin)
+      allow create: if false;
+      
+      // User can update their own invitation (confirm)
+      allow update: if isAuthenticated() && 
+                       request.auth.token.email == resource.data.email &&
+                       resource.data.status == 'pending';
+      
+      // Only super-admin can delete
+      allow delete: if hasAdminRole('super-admin');
+    }
+
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;

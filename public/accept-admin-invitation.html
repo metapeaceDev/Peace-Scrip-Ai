@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ยืนยันการเป็น Admin - Peace Script AI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #6b7280;
+      font-size: 16px;
+    }
+
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: #f3f4f6;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .info-box p {
+      margin: 10px 0;
+      color: #1f2937;
+      font-size: 15px;
+    }
+
+    .info-box strong {
+      color: #667eea;
+    }
+
+    .button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      transition: all 0.3s;
+    }
+
+    .button:hover:not(:disabled) {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .status {
+      text-align: center;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-weight: 500;
+    }
+
+    .status.loading {
+      background: #fffbeb;
+      border: 2px solid #fcd34d;
+      color: #92400e;
+    }
+
+    .status.success {
+      background: #d1fae5;
+      border: 2px solid #6ee7b7;
+      color: #065f46;
+    }
+
+    .status.error {
+      background: #fee2e2;
+      border: 2px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .permission-list {
+      background: #eff6ff;
+      border: 2px solid #bfdbfe;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .permission-list h3 {
+      color: #1e40af;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .permission-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .permission-list li {
+      padding: 8px 0;
+      color: #1f2937;
+      font-size: 15px;
+    }
+
+    .permission-list li:before {
+      content: "✓ ";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .note {
+      background: #fef3c7;
+      border: 2px solid #fbbf24;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #92400e;
+      font-size: 14px;
+    }
+
+    .link {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="icon" id="headerIcon">📧</div>
+      <h1 id="headerTitle">ยืนยันการเป็น Admin</h1>
+      <p id="headerSubtitle">Peace Script AI</p>
+    </div>
+
+    <div id="invitationInfo" style="display: none;">
+      <div class="info-box">
+        <p><strong>📧 อีเมล:</strong> <span id="userEmail">-</span></p>
+        <p><strong>👤 บทบาท:</strong> <span id="userRole">-</span></p>
+        <p><strong>✍️ เชิญโดย:</strong> <span id="invitedBy">-</span></p>
+      </div>
+
+      <div class="permission-list">
+        <h3>🔐 สิทธิ์ที่คุณจะได้รับ:</h3>
+        <ul id="permissionList"></ul>
+      </div>
+
+      <div class="note">
+        <strong>⚠️ โปรดทราบ:</strong><br>
+        การเป็น Admin มาพร้อมกับความรับผิดชอบสูง กรุณาใช้สิทธิ์อย่างรอบคอบและระมัดระวัง
+      </div>
+
+      <button id="confirmButton" class="button">
+        ✅ ยืนยันการเป็น Admin
+      </button>
+    </div>
+
+    <div id="statusMessage" class="status" style="display: none;"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+    import { getFirestore, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqDxVFA0oWxQrKg10JzLZJp4aTfRtqoho",
+      authDomain: "peace-script-ai.firebaseapp.com",
+      projectId: "peace-script-ai",
+      storageBucket: "peace-script-ai.firebasestorage.app",
+      messagingSenderId: "663785367659",
+      appId: "1:663785367659:web:09fdc7d6bb01a9e0b4a3e0",
+      measurementId: "G-HCN0QKJ3Q5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const functions = getFunctions(app);
+    const db = getFirestore(app);
+
+    // Get token from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const verificationToken = urlParams.get('token');
+
+    const headerIcon = document.getElementById('headerIcon');
+    const headerTitle = document.getElementById('headerTitle');
+    const headerSubtitle = document.getElementById('headerSubtitle');
+    const invitationInfo = document.getElementById('invitationInfo');
+    const statusMessage = document.getElementById('statusMessage');
+    const confirmButton = document.getElementById('confirmButton');
+
+    function showStatus(message, type = 'loading') {
+      statusMessage.textContent = message;
+      statusMessage.className = `status ${type}`;
+      statusMessage.style.display = 'block';
+    }
+
+    function showError(message) {
+      headerIcon.textContent = '❌';
+      headerTitle.textContent = 'เกิดข้อผิดพลาด';
+      showStatus(message, 'error');
+      invitationInfo.style.display = 'none';
+    }
+
+    function showSuccess(message) {
+      headerIcon.textContent = '🎉';
+      headerTitle.textContent = 'สำเร็จ!';
+      headerSubtitle.textContent = 'คุณเป็น Admin แล้ว';
+      showStatus(message, 'success');
+      invitationInfo.style.display = 'none';
+      
+      // Redirect หลัง 3 วินาที
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 3000);
+    }
+
+    async function loadInvitation() {
+      if (!verificationToken) {
+        showError('ไม่พบ Token ในลิงก์ กรุณาตรวจสอบลิงก์อีกครั้ง');
+        return;
+      }
+
+      if (!auth.currentUser) {
+        showStatus('กรุณา Login ก่อนยืนยัน...', 'loading');
+        const provider = new GoogleAuthProvider();
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (error) {
+          showError('ไม่สามารถ Login ได้: ' + error.message);
+          return;
+        }
+      }
+
+      showStatus('กำลังโหลดข้อมูลคำเชิญ...', 'loading');
+
+      try {
+        // ค้นหา invitation
+        const invitationsRef = collection(db, 'admin-invitations');
+        const q = query(
+          invitationsRef,
+          where('verificationToken', '==', verificationToken),
+          where('status', '==', 'pending')
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          showError('ไม่พบคำเชิญหรือคำเชิญนี้หมดอายุแล้ว');
+          return;
+        }
+
+        const invitationData = snapshot.docs[0].data();
+
+        // ตรวจสอบว่าหมดอายุหรือไม่
+        const expiresAt = invitationData.expiresAt.toDate();
+        if (expiresAt < new Date()) {
+          showError('คำเชิญนี้หมดอายุแล้ว');
+          return;
+        }
+
+        // ตรวจสอบว่าเป็นคนเดียวกับที่ถูกเชิญหรือไม่
+        if (invitationData.email !== auth.currentUser.email) {
+          showError(`คำเชิญนี้สำหรับ ${invitationData.email} เท่านั้น คุณกำลัง Login ด้วย ${auth.currentUser.email}`);
+          return;
+        }
+
+        // แสดงข้อมูล
+        document.getElementById('userEmail').textContent = invitationData.email;
+        
+        const roleMap = {
+          'super-admin': 'Super Admin',
+          'admin': 'Admin',
+          'viewer': 'Viewer'
+        };
+        document.getElementById('userRole').textContent = roleMap[invitationData.role] || invitationData.role;
+        document.getElementById('invitedBy').textContent = invitationData.invitedByEmail;
+
+        // แสดง permissions
+        const permissionList = document.getElementById('permissionList');
+        const permissions = [
+          { key: 'canViewAnalytics', label: '📊 ดู Analytics และสถิติระบบ' },
+          { key: 'canExportData', label: '📥 Export ข้อมูลและรายงาน' },
+          { key: 'canManageUsers', label: '👥 จัดการผู้ใช้และ Admin อื่นๆ' },
+          { key: 'canManageSubscriptions', label: '💳 จัดการ Subscriptions และแพ็คเกจ' }
+        ];
+
+        permissionList.innerHTML = '';
+        permissions.forEach(perm => {
+          if (invitationData.permissions[perm.key]) {
+            const li = document.createElement('li');
+            li.textContent = perm.label;
+            permissionList.appendChild(li);
+          }
+        });
+
+        // แสดง UI
+        statusMessage.style.display = 'none';
+        invitationInfo.style.display = 'block';
+
+      } catch (error) {
+        console.error('Error loading invitation:', error);
+        showError('เกิดข้อผิดพลาด: ' + error.message);
+      }
+    }
+
+    async function confirmInvitation() {
+      confirmButton.disabled = true;
+      showStatus('กำลังยืนยันการเป็น Admin...', 'loading');
+
+      try {
+        const confirmAdminInvitation = httpsCallable(functions, 'confirmAdminInvitation');
+        const result = await confirmAdminInvitation({ verificationToken });
+
+        console.log('✅ Invitation confirmed:', result.data);
+
+        showSuccess('ยืนยันสำเร็จ! กำลังเปลี่ยนไปที่ Admin Dashboard...');
+
+      } catch (error) {
+        console.error('❌ Error confirming invitation:', error);
+        confirmButton.disabled = false;
+        
+        let errorMsg = 'เกิดข้อผิดพลาด';
+        if (error.code === 'not-found') {
+          errorMsg = 'ไม่พบคำเชิญหรือหมดอายุแล้ว';
+        } else if (error.code === 'deadline-exceeded') {
+          errorMsg = 'คำเชิญนี้หมดอายุแล้ว';
+        } else if (error.code === 'permission-denied') {
+          errorMsg = 'คำเชิญนี้ไม่ใช่สำหรับคุณ';
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+
+        showStatus('❌ ' + errorMsg, 'error');
+      }
+    }
+
+    // Event listeners
+    confirmButton.addEventListener('click', confirmInvitation);
+
+    // ตรวจสอบ auth state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('User logged in:', user.email);
+        loadInvitation();
+      } else {
+        console.log('No user logged in');
+        loadInvitation(); // จะมี login prompt
+      }
+    });
+  </script>
+</body>
+</html>
