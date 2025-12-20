@@ -219,14 +219,15 @@ const Studio: React.FC<StudioProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
                   </div>
 
-                  <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-1">
+                  {/* Action Buttons - More Visible */}
+                  <div className="absolute top-2 right-2 z-20 flex gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                     <PermissionGuard permission="canExport" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => {
                           e.stopPropagation();
                           onExportProject(project.id);
                         }}
-                        className="bg-black/50 hover:bg-green-900/80 text-gray-300 hover:text-green-400 p-1.5 rounded-full backdrop-blur-sm transition-colors"
+                        className="bg-gray-900/90 hover:bg-green-700/90 text-gray-300 hover:text-white p-2 rounded-lg backdrop-blur-sm transition-all shadow-lg hover:shadow-green-900/50 hover:scale-110 border border-gray-700 hover:border-green-500"
                         title="Export Project (Backup)"
                       >
                         <svg
@@ -244,16 +245,16 @@ const Studio: React.FC<StudioProps> = ({
                       </button>
                     </PermissionGuard>
 
-                    {/* 2-Step Delete Button */}
+                    {/* Enhanced 2-Step Delete Button */}
                     <PermissionGuard permission="canDelete" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => handleDeleteClick(e, project.id)}
-                        className={`p-1.5 rounded-full backdrop-blur-sm transition-all flex items-center gap-1 ${
+                        className={`rounded-lg backdrop-blur-sm transition-all shadow-lg flex items-center gap-1.5 border ${
                           deleteConfirmationId === project.id
-                            ? 'bg-red-600 text-white w-auto px-3 animate-pulse'
-                            : 'bg-black/50 hover:bg-red-900/80 text-gray-300 hover:text-red-400'
+                            ? 'bg-red-600/95 hover:bg-red-700 text-white px-3 py-2 animate-pulse border-red-400 shadow-red-900/50'
+                            : 'bg-gray-900/90 hover:bg-red-700/90 text-gray-300 hover:text-white p-2 hover:scale-110 border-gray-700 hover:border-red-500 hover:shadow-red-900/50'
                         }`}
-                        title="Delete Project"
+                        title={deleteConfirmationId === project.id ? 'Click Again to Confirm Delete' : 'Delete Project'}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -268,7 +269,7 @@ const Studio: React.FC<StudioProps> = ({
                           />
                         </svg>
                         {deleteConfirmationId === project.id && (
-                          <span className="text-[10px] font-bold whitespace-nowrap">CONFIRM</span>
+                          <span className="text-[11px] font-extrabold whitespace-nowrap tracking-wide">CONFIRM?</span>
                         )}
                       </button>
                     </PermissionGuard>
