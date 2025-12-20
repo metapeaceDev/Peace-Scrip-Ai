@@ -244,12 +244,12 @@ const Studio: React.FC<StudioProps> = ({
                           e.stopPropagation();
                           onExportProject(project.id);
                         }}
-                        className="bg-gray-800/95 hover:bg-green-600 text-white p-2 rounded-lg backdrop-blur-sm transition-all shadow-lg hover:shadow-green-500/50 hover:scale-110 border-2 border-green-500/50 hover:border-green-400"
+                        className="bg-gray-800/75 hover:bg-green-600/90 text-white p-1.5 rounded-md backdrop-blur-sm transition-all opacity-75 hover:opacity-100 border border-green-500/30 hover:border-green-400/50"
                         title="Export Project (Backup)"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
+                          className="h-3.5 w-3.5"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -266,16 +266,16 @@ const Studio: React.FC<StudioProps> = ({
                     <PermissionGuard permission="canDelete" userRole={project.userRole || 'owner'}>
                       <button
                         onClick={e => handleDeleteClick(e, project.id, project.title)}
-                        className={`rounded-lg backdrop-blur-sm transition-all shadow-lg flex items-center gap-1.5 border ${
+                        className={`rounded-md backdrop-blur-sm transition-all flex items-center gap-1.5 border ${
                           deleteConfirmationId === project.id
-                            ? 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 animate-pulse border-2 border-red-300 shadow-red-500/50'
-                            : 'bg-gray-800/95 hover:bg-red-600 text-white p-2 hover:scale-110 border-2 border-red-500/50 hover:border-red-400 hover:shadow-red-500/50'
+                            ? 'bg-red-600/90 hover:bg-red-700 text-white px-2.5 py-1.5 animate-pulse border border-red-300/50 opacity-100'
+                            : 'bg-gray-800/75 hover:bg-red-600/90 text-white p-1.5 opacity-75 hover:opacity-100 border border-red-500/30 hover:border-red-400/50'
                         }`}
                         title={deleteConfirmationId === project.id ? 'Click Again to Confirm Delete' : 'Delete Project'}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 shrink-0"
+                          className="h-3.5 w-3.5 shrink-0"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
