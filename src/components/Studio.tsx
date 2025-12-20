@@ -238,7 +238,7 @@ const Studio: React.FC<StudioProps> = ({
 
                   {/* Action Buttons - Always Visible (Highest z-index) */}
                   <div className="absolute top-2 right-2 z-50 flex gap-1.5">
-                    <PermissionGuard permission="canExport" userRole={project.userRole || 'viewer'}>
+                    <PermissionGuard permission="canExport" userRole={project.userRole || 'owner'}>
                       <button
                         onClick={e => {
                           e.stopPropagation();
@@ -263,7 +263,7 @@ const Studio: React.FC<StudioProps> = ({
                     </PermissionGuard>
 
                     {/* Enhanced 2-Step Delete Button with Warning */}
-                    <PermissionGuard permission="canDelete" userRole={project.userRole || 'viewer'}>
+                    <PermissionGuard permission="canDelete" userRole={project.userRole || 'owner'}>
                       <button
                         onClick={e => handleDeleteClick(e, project.id, project.title)}
                         className={`rounded-lg backdrop-blur-sm transition-all shadow-lg flex items-center gap-1.5 border ${
