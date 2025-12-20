@@ -79,6 +79,11 @@
   gap: 1.5rem;
 }
 
+/* Column 2 - Vertical stack for generation metrics */
+.cards-column:nth-child(2) {
+  grid-template-columns: 1fr;
+}
+
 .column-header {
   font-size: 1.1rem;
   font-weight: 600;
@@ -251,8 +256,20 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
   gap: 1rem;
+}
+
+.table-header h2 {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.table-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .table-header h2 {
@@ -263,12 +280,6 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.table-controls {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .search-input {

@@ -89,7 +89,19 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
           </div>
         </div>
 
-        {/* 2. ผลรวมรูปภาพ - Total Images */}
+        {/* 2. ผลรวมเสียง - Total Audio */}
+        <div className="card">
+          <div className="card-icon">🎤</div>
+          <div className="card-content">
+            <h3>ผลรวมเสียง</h3>
+            <p className="card-value">{((usage.apiCalls as any).audio || 0).toLocaleString()}</p>
+            <p className="card-subtitle">
+              Audio generations
+            </p>
+          </div>
+        </div>
+
+        {/* 3. ผลรวมรูปภาพ - Total Images */}
         <div className="card">
           <div className="card-icon">🖼️</div>
           <div className="card-content">
@@ -101,7 +113,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
           </div>
         </div>
 
-        {/* 3. จำนวนวีดีโอรวม - Total Videos */}
+        {/* 4. จำนวนวีดีโอรวม - Total Videos */}
         <div className="card">
           <div className="card-icon">🎬</div>
           <div className="card-content">
@@ -113,14 +125,14 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
           </div>
         </div>
 
-        {/* 4. พื้นที่จัดเก็บ - Storage */}
+        {/* 5. พื้นที่จัดเก็บ - Storage */}
         <div className="card">
           <div className="card-icon">💾</div>
           <div className="card-content">
             <h3>พื้นที่จัดเก็บ</h3>
             <p className="card-value">{usage.storage.totalGB.toFixed(2)} GB</p>
             <p className="card-subtitle">
-              Avg: {usage.storage.average.toFixed(2)} GB per user
+              Used: {usage.storage.totalGB.toFixed(2)} GB | Remaining: {((stats.total * 10) - usage.storage.totalGB).toFixed(2)} GB | Total: {(stats.total * 10).toFixed(0)} GB
             </p>
           </div>
         </div>

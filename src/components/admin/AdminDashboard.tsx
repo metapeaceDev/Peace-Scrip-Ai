@@ -340,7 +340,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="chart-card">
-          <h3>Top Veo Users</h3>
+          <h3>Top Users</h3>
           {usage && (
             <div className="veo-users">
               {usage.veoVideos.byUser.slice(0, 5).map((user, index) => (
