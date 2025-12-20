@@ -229,6 +229,19 @@ export const API_PRICING = {
       freeQuota: 'None',
       description: 'Premium video generation (1080p)',
     },
+    // Legacy / Fallback Models
+    '1.5-flash': {
+      input: (0.075 * 35) / 1000000,
+      output: (0.3 * 35) / 1000000,
+      freeQuota: 'None',
+      description: 'Legacy Flash model',
+    },
+    '1.5-pro': {
+      input: (3.5 * 35) / 1000000,
+      output: (10.5 * 35) / 1000000,
+      freeQuota: 'None',
+      description: 'Legacy Pro model',
+    },
   },
   REPLICATE: {
     'stable-video-diffusion': {
@@ -245,6 +258,20 @@ export const API_PRICING = {
       perRun: 0.15 * 35, // $0.15 → ฿5.25
       avgDuration: '2-3 minutes',
       description: 'LTX Video (5-10s, 768p)',
+    },
+  },
+  COMFYUI: {
+    image: 0.5, // ฿0.50 per image (estimated cost for self-hosted/cloud GPU)
+    video: 2.0, // ฿2.00 per video
+    local: {
+      cost: 0,
+      description: 'Free (user own hardware)',
+    },
+    cloud: {
+      // RunPod pricing (if we add cloud ComfyUI)
+      rtx3090: 0.44 * 35, // $0.44/hour → ฿15.4/hour
+      rtx4090: 0.69 * 35, // $0.69/hour → ฿24.15/hour
+      description: 'Cloud GPU (future feature)',
     },
   },
   FIREBASE: {
@@ -296,18 +323,6 @@ export const API_PRICING = {
         minInstances: 0,
         maxInstances: 10,
       },
-    },
-  },
-  COMFYUI: {
-    local: {
-      cost: 0,
-      description: 'Free (user own hardware)',
-    },
-    cloud: {
-      // RunPod pricing (if we add cloud ComfyUI)
-      rtx3090: 0.44 * 35, // $0.44/hour → ฿15.4/hour
-      rtx4090: 0.69 * 35, // $0.69/hour → ฿24.15/hour
-      description: 'Cloud GPU (future feature)',
     },
   },
 } as const;

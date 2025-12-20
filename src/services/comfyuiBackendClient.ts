@@ -6,6 +6,8 @@
  */
 
 import { auth } from '../config/firebase';
+import { recordGeneration } from './modelUsageTracker';
+import { API_PRICING } from '../types/analytics';
 import { buildWorkflow, buildFluxWorkflow } from './comfyuiWorkflowBuilder';
 
 const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
@@ -64,6 +66,7 @@ export async function generateImageWithBackend(
   priority: number = 5,
   onProgress?: (progress: number) => void
 ): Promise<string> {
+  const startTime = Date.now();
   // Check service health before attempting (avoid console errors)
   const isHealthy = await checkServiceHealth();
   if (!isHealthy) {
@@ -114,7 +117,27 @@ export async function generateImageWithBackend(
     console.log(`📤 Job submitted: ${jobId}`);
 
     // Poll for result
-    return await pollJobStatus(jobId, idToken, 300000, onProgress);
+    const resultImage = await pollJobStatus(jobId, idToken, 300000, onProgress);
+
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      recordGeneration({
+        userId,
+        type: 'image',
+        modelId: 'comfyui-backend',
+        modelName: 'ComfyUI Backend',
+        provider: 'comfyui',
+        costInCredits: 1,
+        costInTHB: API_PRICING.COMFYUI?.image || 0.5,
+        success: true,
+        duration,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+
+    return resultImage;
   } catch (error: unknown) {
     console.error('❌ Backend generation failed:', error);
 

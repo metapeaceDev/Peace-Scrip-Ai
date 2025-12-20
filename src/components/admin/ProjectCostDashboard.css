@@ -219,6 +219,129 @@
   gap: 0.75rem;
 }
 
+/* Scrollable container for API details */
+.scrollable-details {
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.scrollable-details::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-details::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.scrollable-details::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.scrollable-details::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Enhanced API Detail Cards */
+.api-detail-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.api-detail-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.api-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.api-name {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.api-provider-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #667eea;
+  background: #eef2ff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.api-metrics {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.api-metric {
+  flex: 1;
+  text-align: center;
+}
+
+.api-metric-divider {
+  width: 1px;
+  height: 40px;
+  background: #e5e7eb;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.metric-value.cost {
+  color: #667eea;
+}
+
+.api-quota-badge {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quota-icon {
+  font-size: 1rem;
+}
+
 .service-item {
   background: white;
   border-radius: 8px;

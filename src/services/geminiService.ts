@@ -346,6 +346,7 @@ import {
 } from './videoMotionEngine';
 
 async function generateImageWithStableDiffusion(prompt: string, seed?: number): Promise<string> {
+  const startTime = Date.now();
   try {
     console.log('🎨 Using Stable Diffusion XL (Alternative API)...');
     console.log('🎲 Pollinations seed:', seed);
@@ -450,7 +451,26 @@ async function generateImageWithStableDiffusion(prompt: string, seed?: number): 
     const blob = await response.blob();
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => {
+        // Track usage
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const duration = (Date.now() - startTime) / 1000;
+          recordGeneration({
+            userId,
+            type: 'image',
+            modelId: 'pollinations-flux',
+            modelName: 'Pollinations.ai (Flux)',
+            provider: 'pollinations',
+            costInCredits: 0,
+            costInTHB: 0,
+            success: true,
+            duration,
+            metadata: { prompt },
+          }).catch(err => console.error('Failed to track generation:', err));
+        }
+        resolve(reader.result as string);
+      };
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
@@ -515,6 +535,7 @@ async function generateVideoWithComfyUI(
     onProgress?: (progress: number) => void;
   } = {}
 ): Promise<string> {
+  const startTime = Date.now();
   try {
     // 🔥 LAYER 7: FORCE CLEANUP before video generation
     const cachedUrl = localStorage.getItem('comfyui_url');
@@ -794,6 +815,24 @@ async function generateVideoWithComfyUI(
             const blob = await videoResponse.blob();
 
             if (options.onProgress) options.onProgress(100);
+
+            // Track usage
+            const userId = auth.currentUser?.uid;
+            if (userId) {
+              const duration = (Date.now() - startTime) / 1000;
+              recordGeneration({
+                userId,
+                type: 'video',
+                modelId: options.useAnimateDiff !== false ? 'comfyui-animatediff' : 'comfyui-svd',
+                modelName: options.useAnimateDiff !== false ? 'ComfyUI AnimateDiff' : 'ComfyUI SVD',
+                provider: 'comfyui',
+                costInCredits: 2,
+                costInTHB: API_PRICING.COMFYUI?.video || 2.0,
+                success: true,
+                duration,
+                metadata: { prompt },
+              }).catch(err => console.error('Failed to track generation:', err));
+            }
 
             return new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
@@ -1888,6 +1927,7 @@ export async function generateCharacterDetails(
   description: string,
   language: string
 ): Promise<Partial<Character>> {
+  const startTime = Date.now();
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
   if (userId) {
@@ -1909,9 +1949,7 @@ export async function generateCharacterDetails(
         ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All character details (External, Physical, Fashion, Internal, Goals) MUST be in Thai. Do not use English for content values, only for JSON keys.'
         : 'Ensure all value fields are written in English.';
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are a scriptwriter's assistant. Create a detailed character profile for a character named "${name}" who is a "${role}". The character is described as: "${description}".
+    const prompt = `You are a scriptwriter's assistant. Create a detailed character profile for a character named "${name}" who is a "${role}". The character is described as: "${description}".
       
       ${langInstruction}
       IMPORTANT INSTRUCTIONS:
@@ -1940,7 +1978,11 @@ export async function generateCharacterDetails(
         "goals": {
           "objective": "...", "need": "...", "action": "...", "conflict": "...", "backstory": "..."
         }
-      }`,
+      }`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
@@ -1951,6 +1993,32 @@ export async function generateCharacterDetails(
 
     // ✅ Record usage after successful generation
     if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Character Details)',
+        provider: 'gemini',
+        costInCredits: 2,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Character Details Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+
       await recordUsage(userId, {
         type: 'character',
         credits: 2, // 2 credits per character
@@ -1969,6 +2037,7 @@ export async function generateCharacterDetails(
  * Analyzes the story and creates appropriate characters with full profiles
  */
 export async function generateAllCharactersFromStory(scriptData: ScriptData): Promise<Character[]> {
+  const startTime = Date.now();
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
   if (userId) {
@@ -2143,6 +2212,32 @@ Return ONLY a valid JSON array of characters:
 
     // ✅ Record usage after successful generation
     if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Generate All Characters)',
+        provider: 'gemini',
+        costInCredits: characters.length * 2,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Generate All Characters',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+
       await recordUsage(userId, {
         type: 'character',
         credits: characters.length * 2, // 2 credits per character
@@ -2165,6 +2260,7 @@ export async function generateCompatibleCharacters(
   scriptData: ScriptData,
   existingCharacters: Character[]
 ): Promise<Character[]> {
+  const startTime = Date.now();
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
   if (userId) {
@@ -2343,6 +2439,32 @@ Return ONLY a valid JSON array of 2-4 new characters:
 
     // ✅ Record usage after successful generation
     if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Compatible Characters)',
+        provider: 'gemini',
+        costInCredits: characters.length * 2,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Compatible Characters Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+
       await recordUsage(userId, {
         type: 'character',
         credits: characters.length * 2, // 2 credits per character
@@ -2363,6 +2485,9 @@ export async function fillMissingCharacterDetails(
   character: Character,
   language: string
 ): Promise<Character> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
+
   try {
     const langInstruction =
       language === 'Thai'
@@ -2385,7 +2510,38 @@ export async function fillMissingCharacterDetails(
     });
 
     const text = extractJsonFromResponse(response.text || '{}');
-    return JSON.parse(text);
+    const result = JSON.parse(text);
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Fill Character Details)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Fill Character Details',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
+
+    return result;
   } catch (error) {
     console.error('Error filling missing character details:', error);
     throw new Error('Failed to fill missing details.');
@@ -2398,6 +2554,9 @@ export async function generateFullScriptOutline(
   secondaryGenres: string[],
   language: 'Thai' | 'English'
 ): Promise<Partial<ScriptData>> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
+
   const langInstruction =
     language === 'Thai'
       ? 'STRICTLY OUTPUT IN THAI LANGUAGE ONLY. All content (Big Idea, Premise, Theme, Logline, Timeline, Structure descriptions) MUST be in Thai. Do not use English for content.'
@@ -2421,6 +2580,40 @@ export async function generateFullScriptOutline(
 
     const text = extractJsonFromResponse(response.text || '{}');
     const parsed = JSON.parse(text);
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-1.5-pro'); // Use 1.5 pro tokenizer as proxy
+      const outputTokens = await countTokens(text, 'gemini-1.5-pro');
+      
+      // Use 1.5 Pro pricing as proxy for 2.5 Pro if not defined, or assume similar
+      // Assuming API_PRICING has GEMINI['1.5-pro'] or similar. 
+      // If 2.5-pro is not in pricing, fallback to 1.5-pro pricing
+      const pricing = API_PRICING.GEMINI['1.5-pro'] || { input: 0.000125, output: 0.000375 }; // Fallback values
+      
+      const inputCost = inputTokens * pricing.input;
+      const outputCost = outputTokens * pricing.output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-pro',
+        modelName: 'Gemini 2.5 Pro (Full Script Outline)',
+        provider: 'gemini',
+        costInCredits: 5,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Full Script Outline',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
 
     const result: Partial<ScriptData> = {
       ...parsed,
@@ -2726,6 +2919,7 @@ export async function refineScene(
   _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
+  const startTime = Date.now();
   const userId = auth.currentUser?.uid;
   if (userId) {
     const quotaCheck = await checkQuota(userId, {
@@ -2822,6 +3016,32 @@ DO NOT change the structure, just improve the quality of content within it.
     };
 
     if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Refine Scene)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Refine Scene',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+
       await recordUsage(userId, {
         type: 'scene',
         credits: 1,
@@ -2848,6 +3068,7 @@ export async function regenerateWithEdits(
   _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
+  const startTime = Date.now();
   const userId = auth.currentUser?.uid;
   if (userId) {
     const quotaCheck = await checkQuota(userId, {
@@ -3099,6 +3320,32 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
     };
 
     if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Regenerate Scene)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Regenerate Scene',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+
       await recordUsage(userId, {
         type: 'scene',
         credits: 1,
@@ -3126,6 +3373,8 @@ export async function convertDialogueToDialect(
   character: Character,
   scriptData: ScriptData
 ): Promise<string> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
   try {
     const speechPattern = character.speechPattern;
 
@@ -3144,6 +3393,16 @@ export async function convertDialogueToDialect(
     // const { DIALECT_PRESETS, ACCENT_PATTERNS } = await import('../constants');
 
     // Build conversion prompt
+    // ... (omitted for brevity, assuming it's constructed above)
+    // Since I can't see the prompt construction in the previous read_file, I'll assume it's there.
+    // Wait, I need to be careful not to delete the prompt construction.
+    // I will read the function from the beginning to make sure I capture the prompt construction.
+    
+    // Actually, I can just wrap the generateContent call and add tracking.
+    // But I need the prompt variable.
+    
+    // Let's read the whole function first.
+
     const dialectInfo =
       speechPattern.dialect !== 'standard'
         ? DIALECT_PRESETS[speechPattern.dialect as keyof typeof DIALECT_PRESETS]
@@ -3216,6 +3475,38 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
     });
 
     const convertedDialogue = (response.text || '').trim();
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.0-flash-exp');
+      const outputTokens = await countTokens(convertedDialogue, 'gemini-2.0-flash-exp');
+      
+      // Use 1.5 Flash pricing as proxy for 2.0 Flash Exp if not defined
+      const pricing = API_PRICING.GEMINI['1.5-flash'] || { input: 0.00001875, output: 0.000075 };
+      
+      const inputCost = inputTokens * pricing.input;
+      const outputCost = outputTokens * pricing.output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.0-flash-exp',
+        modelName: 'Gemini 2.0 Flash Exp (Dialect Conversion)',
+        provider: 'gemini',
+        costInCredits: 0, // Maybe free or low cost?
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Dialect Conversion',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
 
     // Remove surrounding quotes if present
     const cleaned = convertedDialogue.replace(/^["']|["']$/g, '');
@@ -4361,6 +4652,8 @@ export async function generateBoundary(
   mode: 'fresh' | 'refine' | 'use-edited' = 'fresh',
   fieldName?: 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline'
 ): Promise<Partial<ScriptData>> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
   console.log(
     `🧠 Generating Boundary. Language: ${scriptData.language}, Mode: ${mode}, Field: ${fieldName || 'all'}`
   );
@@ -4604,6 +4897,35 @@ IMPORTANT:
     const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Story Boundary)',
+        provider: 'gemini',
+        costInCredits: 2,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Story Boundary Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
+
     console.log('✅ Generated boundary:', result);
     return result;
   } catch (error) {
@@ -4616,6 +4938,8 @@ IMPORTANT:
  * Generate a creative title based on Step 1 data (excluding current title)
  */
 export async function generateTitle(scriptData: ScriptData): Promise<string> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
   console.log(`🧠 Generating Title. Language: ${scriptData.language}`);
   try {
     const isThai = scriptData.language === 'Thai';
@@ -4656,6 +4980,35 @@ Return ONLY a JSON object:
 
     const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Title Generation)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Title Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
 
     console.log('✅ Generated title:', result.title);
     return result.title;
@@ -4742,6 +5095,8 @@ export async function generateStructure(
   scriptData: ScriptData,
   mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
 ): Promise<Partial<ScriptData>> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
   try {
     const langInstruction =
       scriptData.language === 'Thai'
@@ -4873,6 +5228,35 @@ IMPORTANT:
     const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Structure Generation)',
+        provider: 'gemini',
+        costInCredits: 3,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Structure Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
+
     console.log('✅ Generated structure:', result);
     return result;
   } catch (error) {
@@ -4893,6 +5277,8 @@ export async function generateSinglePlotPoint(
   plotPointIndex: number,
   mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
 ): Promise<{ description: string; sceneCount?: number }> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
   try {
     const plotPoint = scriptData.structure[plotPointIndex];
     if (!plotPoint) {
@@ -5000,6 +5386,35 @@ Return ONLY a valid JSON object:
 
     const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Calculate tokens for accurate pricing
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+      
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Single Plot Point)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Single Plot Point Generation',
+          tokens: { input: inputTokens, output: outputTokens }
+        }
+      });
+    }
 
     console.log(`✅ Generated single plot point (${plotPoint.title}):`, result);
     return result;

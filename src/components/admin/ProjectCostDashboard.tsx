@@ -175,19 +175,29 @@ export const ProjectCostDashboard: React.FC = () => {
                 <div className="category-cost">฿{summary.breakdown.apis.total.toFixed(2)}</div>
               </div>
             </div>
-            <div className="category-details">
+            <div className="category-details scrollable-details">
               {summary.breakdown.apis.services.map((api, idx) => (
-                <div key={idx} className="service-item">
-                  <div className="service-name">
-                    {api.apiName}
-                    <span className="service-provider">{api.provider}</span>
+                <div key={idx} className="api-detail-card">
+                  <div className="api-card-header">
+                    <div className="api-name">{api.apiName}</div>
+                    <div className="api-provider-badge">{api.provider}</div>
                   </div>
-                  <div className="service-stats">
-                    <span className="service-calls">{api.currentMonthUsage.calls} calls</span>
-                    <span className="service-cost">฿{api.currentMonthUsage.cost.toFixed(2)}</span>
+                  <div className="api-metrics">
+                    <div className="api-metric">
+                      <div className="metric-label">จำนวนครั้ง</div>
+                      <div className="metric-value">{api.currentMonthUsage.calls.toLocaleString()}</div>
+                    </div>
+                    <div className="api-metric-divider"></div>
+                    <div className="api-metric">
+                      <div className="metric-label">ค่าใช้จ่าย</div>
+                      <div className="metric-value cost">฿{api.currentMonthUsage.cost.toFixed(2)}</div>
+                    </div>
                   </div>
-                  {api.pricing.freeQuota && (
-                    <div className="service-quota">Free quota: {api.pricing.freeQuota}</div>
+                  {api.pricing.freeQuota && api.pricing.freeQuota !== 'None' && (
+                    <div className="api-quota-badge">
+                      <span className="quota-icon">🎁</span>
+                      {api.pricing.freeQuota}
+                    </div>
                   )}
                 </div>
               ))}
