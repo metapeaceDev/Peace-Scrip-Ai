@@ -578,10 +578,13 @@ export interface UsageAnalytics {
     scripts: number;
     images: number;
     videos: number;
+    audio: number;
   };
   storage: {
     totalGB: number;
     average: number;
+    limitGB: number; // Total storage limit across all users
+    remainingGB: number; // Total remaining storage
   };
 }
 

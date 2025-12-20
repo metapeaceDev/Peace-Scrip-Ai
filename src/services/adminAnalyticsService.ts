@@ -223,10 +223,13 @@ export async function getUsageAnalytics(
         scripts: 0,
         images: 0,
         videos: 0,
+        audio: 0,
       },
       storage: {
         totalGB: 0,
         average: 0,
+        limitGB: 0,
+        remainingGB: 0,
       },
     };
 
@@ -262,16 +265,30 @@ export async function getUsageAnalytics(
         analytics.apiCalls.scripts += user.usage.scriptsGenerated || 0;
         analytics.apiCalls.images += user.usage.imagesGenerated || 0;
         analytics.apiCalls.videos += user.usage.videosGenerated || 0;
+        analytics.apiCalls.audio += user.usage.audioGenerated || 0;
       }
 
-      // Storage
+      // Storage - Calculate with proper tier limits
       const storageUsed = (user.usage?.storageUsed || 0) / 1024 / 1024 / 1024; // Convert to GB
       analytics.storage.totalGB += storageUsed;
+      
+      // Get storage limit for this user's tier
+      const tierStorageLimit = (() => {
+        switch (tier) {
+          case 'free': return 0.5; // 500 MB
+          case 'basic': return 1; // 1 GB (from userStore)
+          case 'pro': return 10; // 10 GB
+          case 'enterprise': return 100; // 100 GB
+          default: return 0.5;
+        }
+      })();
+      analytics.storage.limitGB += tierStorageLimit;
     });
 
     // Calculate averages
     analytics.credits.average = users.length > 0 ? analytics.credits.total / users.length : 0;
     analytics.storage.average = users.length > 0 ? analytics.storage.totalGB / users.length : 0;
+    analytics.storage.remainingGB = Math.max(0, analytics.storage.limitGB - analytics.storage.totalGB);
 
     // Sort Veo users by count (descending)
     analytics.veoVideos.byUser.sort((a, b) => b.count - a.count);

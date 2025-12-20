@@ -94,7 +94,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
           <div className="card-icon">🎤</div>
           <div className="card-content">
             <h3>ผลรวมเสียง</h3>
-            <p className="card-value">{((usage.apiCalls as any).audio || 0).toLocaleString()}</p>
+            <p className="card-value">{usage.apiCalls.audio.toLocaleString()}</p>
             <p className="card-subtitle">
               Audio generations
             </p>
@@ -132,7 +132,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
             <h3>พื้นที่จัดเก็บ</h3>
             <p className="card-value">{usage.storage.totalGB.toFixed(2)} GB</p>
             <p className="card-subtitle">
-              Used: {usage.storage.totalGB.toFixed(2)} GB | Remaining: {((stats.total * 10) - usage.storage.totalGB).toFixed(2)} GB | Total: {(stats.total * 10).toFixed(0)} GB
+              Used: {usage.storage.totalGB.toFixed(2)} GB | Remaining: {usage.storage.remainingGB.toFixed(2)} GB | Total: {usage.storage.limitGB.toFixed(2)} GB
             </p>
           </div>
         </div>
