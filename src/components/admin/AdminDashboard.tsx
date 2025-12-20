@@ -52,7 +52,7 @@ export const AdminDashboard: React.FC = () => {
   
   // User Details Modal
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [useEnhancedModal, setUseEnhancedModal] = useState(true);
+  const [useEnhancedModal] = useState(true); // Always use enhanced modal
 
   // Initialize admin session with auto token refresh
   useEffect(() => {
