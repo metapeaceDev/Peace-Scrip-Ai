@@ -85,67 +85,109 @@ async function calculateApiCosts(
 
     const snapshot = await getDocs(q);
 
-    // Group by provider
-    const providerStats: Record<
-      string,
-      {
-        calls: number;
-        cost: number;
-        models: Set<string>;
-      }
-    > = {};
+    // Group by provider AND model
+    const usageStats: Record<string, { calls: number; cost: number }> = {};
 
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc) => {
       const data = doc.data();
-      const provider = data.provider;
+      const provider = data.provider?.toLowerCase() || 'unknown';
+      // Normalize model name for matching
+      const model = (data.modelName || data.modelId || 'default').toLowerCase();
+      const key = `${provider}:${model}`;
 
-      if (!providerStats[provider]) {
-        providerStats[provider] = {
-          calls: 0,
-          cost: 0,
-          models: new Set(),
-        };
+      if (!usageStats[key]) {
+        usageStats[key] = { calls: 0, cost: 0 };
       }
-
-      providerStats[provider].calls++;
-      providerStats[provider].cost += data.costInTHB || 0;
-      providerStats[provider].models.add(data.modelName);
+      usageStats[key].calls++;
+      usageStats[key].cost += data.costInTHB || 0;
     });
 
-    // Build breakdown
     const services: ApiCostBreakdown[] = [];
     let total = 0;
 
-    // Gemini API
-    if (providerStats['gemini']) {
-      const stats = providerStats['gemini'];
+    // 1. Gemini Models
+    Object.entries(API_PRICING.GEMINI).forEach(([modelKey, details]) => {
+      // Find matching usage keys (flexible matching)
+      const matchingKeys = Object.keys(usageStats).filter((k) => {
+        const [p, m] = k.split(':');
+        return p === 'gemini' && m.includes(modelKey.toLowerCase());
+      });
+
+      let calls = 0;
+      let cost = 0;
+
+      matchingKeys.forEach((k) => {
+        calls += usageStats[k].calls;
+        cost += usageStats[k].cost;
+        delete usageStats[k]; // Mark as handled
+      });
+
+      // Determine rate for display
+      let rate = 0;
+      if ('input' in details) {
+        rate = details.input; // Show input cost as base rate
+      } else if ('video5s' in details) {
+        rate = details.video5s;
+      }
+
       services.push({
-        apiName: 'Gemini API',
+        apiName: `Gemini ${modelKey}`,
         provider: 'Google',
         pricing: {
-          model: 'per request/character',
-          rate: 0, // Varies by model
-          freeQuota: '1,500 requests/day (2.0 Flash)',
+          model: 'per unit',
+          rate: rate,
+          freeQuota: (details as any).freeQuota || 'None',
         },
-        currentMonthUsage: {
-          calls: stats.calls,
-          cost: stats.cost,
-        },
-        projectedMonthlyCost: stats.cost,
+        currentMonthUsage: { calls, cost },
+        projectedMonthlyCost: cost,
       });
-      total += stats.cost;
-    }
+      total += cost;
+    });
 
-    // Replicate API
-    if (providerStats['replicate']) {
-      const stats = providerStats['replicate'];
+    // 2. Replicate Models
+    Object.entries(API_PRICING.REPLICATE).forEach(([modelKey, details]) => {
+      const matchingKeys = Object.keys(usageStats).filter((k) => {
+        const [p, m] = k.split(':');
+        return p === 'replicate' && m.includes(modelKey.toLowerCase());
+      });
+
+      let calls = 0;
+      let cost = 0;
+
+      matchingKeys.forEach((k) => {
+        calls += usageStats[k].calls;
+        cost += usageStats[k].cost;
+        delete usageStats[k];
+      });
+
       services.push({
-        apiName: 'Replicate API',
+        apiName: `Replicate ${modelKey}`,
         provider: 'Replicate',
         pricing: {
-          model: 'per video generation',
-          rate: 0.63, // ฿0.63 average (SVD)
+          model: 'per run',
+          rate: details.perRun,
           freeQuota: 'None',
+        },
+        currentMonthUsage: { calls, cost },
+        projectedMonthlyCost: cost,
+      });
+      total += cost;
+    });
+
+    // 3. Handle remaining usage (Other/Unknown)
+    Object.entries(usageStats).forEach(([key, stats]) => {
+      const [provider, model] = key.split(':');
+      
+      // Skip if cost is 0 and calls are 0 (shouldn't happen based on logic but good safety)
+      if (stats.calls === 0 && stats.cost === 0) return;
+
+      services.push({
+        apiName: `${provider} ${model}`,
+        provider: provider.charAt(0).toUpperCase() + provider.slice(1),
+        pricing: {
+          model: 'unknown',
+          rate: 0,
+          freeQuota: 'Unknown',
         },
         currentMonthUsage: {
           calls: stats.calls,
@@ -154,45 +196,7 @@ async function calculateApiCosts(
         projectedMonthlyCost: stats.cost,
       });
       total += stats.cost;
-    }
-
-    // ComfyUI (Free)
-    if (providerStats['comfyui']) {
-      const stats = providerStats['comfyui'];
-      services.push({
-        apiName: 'ComfyUI (Local)',
-        provider: 'Self-hosted',
-        pricing: {
-          model: 'free',
-          rate: 0,
-          freeQuota: 'Unlimited',
-        },
-        currentMonthUsage: {
-          calls: stats.calls,
-          cost: 0,
-        },
-        projectedMonthlyCost: 0,
-      });
-    }
-
-    // Pollinations (Free)
-    if (providerStats['pollinations']) {
-      const stats = providerStats['pollinations'];
-      services.push({
-        apiName: 'Pollinations.ai',
-        provider: 'Pollinations',
-        pricing: {
-          model: 'free',
-          rate: 0,
-          freeQuota: 'Unlimited',
-        },
-        currentMonthUsage: {
-          calls: stats.calls,
-          cost: 0,
-        },
-        projectedMonthlyCost: 0,
-      });
-    }
+    });
 
     return { total, services };
   } catch (error) {
