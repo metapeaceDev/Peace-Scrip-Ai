@@ -345,7 +345,184 @@ export async function verifyLoRAModels(workerUrl, requiredModels) {
   }
 }
 
+/**
+ * Detect installed video models (AnimateDiff, SVD)
+ */
+export async function detectVideoModels(workerUrl) {
+  try {
+    const response = await axios.get(`${workerUrl}/object_info`, { timeout: 10000 });
+    const objectInfo = response.data;
+
+    const result = {
+      animateDiff: {
+        supported: false,
+        motionModels: [],
+        baseModels: []
+      },
+      svd: {
+        supported: false,
+        checkpoints: []
+      },
+      vhs: {
+        supported: false
+      }
+    };
+
+    // Check for AnimateDiff nodes
+    if (objectInfo.AnimateDiffLoaderV1 || objectInfo.AnimateDiffModelLoader) {
+      result.animateDiff.supported = true;
+      
+      // Try to get available motion models
+      if (objectInfo.AnimateDiffLoaderV1?.input?.required?.model_name) {
+        result.animateDiff.motionModels = objectInfo.AnimateDiffLoaderV1.input.required.model_name[0] || [];
+      }
+    }
+
+    // Check for SVD nodes
+    if (objectInfo.SVD_img2vid_Conditioning || objectInfo.ImageOnlyCheckpointLoader) {
+      result.svd.supported = true;
+    }
+
+    // Check for VHS Video Combine
+    if (objectInfo.VHS_VideoCombine) {
+      result.vhs.supported = true;
+    }
+
+    // Get available checkpoints
+    if (objectInfo.CheckpointLoaderSimple?.input?.required?.ckpt_name) {
+      const checkpoints = objectInfo.CheckpointLoaderSimple.input.required.ckpt_name[0] || [];
+      
+      // Filter AnimateDiff base models
+      result.animateDiff.baseModels = checkpoints.filter(name => 
+        name.includes('v1-5') || 
+        name.includes('realisticVision') ||
+        name.includes('sd15')
+      );
+      
+      // Filter SVD checkpoints
+      result.svd.checkpoints = checkpoints.filter(name => 
+        name.includes('svd') || 
+        name.toLowerCase().includes('stable-video-diffusion')
+      );
+    }
+
+    return result;
+    
+  } catch (error) {
+    console.error('❌ Failed to detect video models:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Check VRAM requirements for video generation
+ */
+export async function checkVRAMRequirements(workerUrl, videoType = 'animatediff') {
+  try {
+    const response = await axios.get(`${workerUrl}/system_stats`, { timeout: 5000 });
+    const vram = response.data.vram || {};
+    
+    // VRAM requirements (GB)
+    const requirements = {
+      animatediff: {
+        '512x512_12frames': 6,
+        '512x512_16frames': 8,
+        '768x768_16frames': 12
+      },
+      svd: {
+        '1024x576_25frames': 12,
+        '1024x576_14frames': 8
+      }
+    };
+
+    const totalVRAM = (vram.total || 0) / (1024 * 1024 * 1024); // Convert to GB
+    const freeVRAM = (vram.free || 0) / (1024 * 1024 * 1024);
+
+    const recommended = videoType === 'animatediff' 
+      ? requirements.animatediff['512x512_16frames']
+      : requirements.svd['1024x576_25frames'];
+
+    return {
+      totalVRAM: totalVRAM.toFixed(2),
+      freeVRAM: freeVRAM.toFixed(2),
+      recommended,
+      sufficient: totalVRAM >= recommended,
+      warnings: totalVRAM < recommended 
+        ? [`Insufficient VRAM: ${totalVRAM.toFixed(1)}GB available, ${recommended}GB recommended`]
+        : []
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to check VRAM:', error.message);
+    return {
+      totalVRAM: 0,
+      freeVRAM: 0,
+      recommended: 8,
+      sufficient: false,
+      warnings: ['Could not detect VRAM']
+    };
+  }
+}
+
+/**
+ * Verify video generation requirements
+ */
+export async function verifyVideoRequirements(workerUrl, videoType = 'animatediff') {
+  try {
+    const [models, vram] = await Promise.all([
+      detectVideoModels(workerUrl),
+      checkVRAMRequirements(workerUrl, videoType)
+    ]);
+
+    const issues = [];
+    const warnings = [...vram.warnings];
+
+    // Check AnimateDiff requirements
+    if (videoType === 'animatediff') {
+      if (!models.animateDiff.supported) {
+        issues.push('ComfyUI-AnimateDiff extension not installed');
+      }
+      if (models.animateDiff.motionModels.length === 0) {
+        issues.push('No motion modules found (mm_sd_v15_v2.ckpt required)');
+      }
+      if (models.animateDiff.baseModels.length === 0) {
+        warnings.push('No SD 1.5 checkpoints found (recommended: realisticVisionV51)');
+      }
+    }
+
+    // Check SVD requirements
+    if (videoType === 'svd') {
+      if (!models.svd.supported) {
+        issues.push('SVD nodes not found in ComfyUI');
+      }
+      if (models.svd.checkpoints.length === 0) {
+        issues.push('No SVD checkpoints found (svd_xt_1_1.safetensors required)');
+      }
+    }
+
+    // Check VHS
+    if (!models.vhs.supported) {
+      issues.push('ComfyUI-VideoHelperSuite not installed (required for MP4 output)');
+    }
+
+    return {
+      ready: issues.length === 0 && vram.sufficient,
+      models,
+      vram,
+      issues,
+      warnings
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to verify video requirements:', error.message);
+    throw error;
+  }
+}
+
 export default {
   generateWithComfyUI,
-  verifyLoRAModels
+  verifyLoRAModels,
+  detectVideoModels,
+  checkVRAMRequirements,
+  verifyVideoRequirements
 };

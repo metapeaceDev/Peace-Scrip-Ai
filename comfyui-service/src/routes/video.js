@@ -19,6 +19,10 @@ import {
   buildSVDWorkflow,
   VIDEO_MODELS 
 } from '../utils/workflowBuilders.js';
+import { 
+  detectVideoModels, 
+  verifyVideoRequirements 
+} from '../services/comfyuiClient.js';
 
 const router = express.Router();
 
@@ -348,6 +352,67 @@ router.post('/cancel/:jobId', authenticateOptional, async (req, res, next) => {
     res.json({
       success: true,
       message: 'Video job cancelled successfully'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/video/requirements/:videoType
+ * Check if system meets requirements for video generation
+ * 
+ * Params:
+ * - videoType: 'animatediff' | 'svd'
+ * 
+ * Returns:
+ * - ready: boolean (all requirements met)
+ * - models: detected models and extensions
+ * - vram: VRAM info and requirements
+ * - issues: critical problems (must fix)
+ * - warnings: non-critical issues (recommended to fix)
+ */
+router.get('/requirements/:videoType', async (req, res, next) => {
+  try {
+    const { videoType } = req.params;
+
+    if (!['animatediff', 'svd'].includes(videoType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid video type. Must be: animatediff or svd'
+      });
+    }
+
+    const workerManager = getWorkerManager();
+    const worker = workerManager.getNextWorker();
+
+    const requirements = await verifyVideoRequirements(worker.url, videoType);
+
+    res.json({
+      success: true,
+      data: requirements
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/video/detect-models
+ * Detect all installed video models and extensions
+ */
+router.get('/detect-models', async (req, res, next) => {
+  try {
+    const workerManager = getWorkerManager();
+    const worker = workerManager.getNextWorker();
+
+    const models = await detectVideoModels(worker.url);
+
+    res.json({
+      success: true,
+      data: models
     });
 
   } catch (error) {
