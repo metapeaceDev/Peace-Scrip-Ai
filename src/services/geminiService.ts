@@ -4117,9 +4117,16 @@ export async function generateStoryboardVideo(
     }
 
     // 1. Handle User Selection - Prioritize user's explicit choice
+    // 🔧 FIX: Map 'local-gpu' to ComfyUI
+    let mappedModel = preferredModel;
+    if (preferredModel === 'local-gpu') {
+      mappedModel = 'comfyui-animatediff'; // Default to AnimateDiff for local GPU
+      console.log('🔄 Mapping local-gpu → comfyui-animatediff');
+    }
+
     // 🔧 FIX: Check ComfyUI FIRST if user explicitly selected it
-    if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff') {
-      console.warn('🎬 USER SELECTED COMFYUI:', preferredModel);
+    if (mappedModel === 'comfyui-svd' || mappedModel === 'comfyui-animatediff') {
+      console.warn('🎬 USER SELECTED COMFYUI:', mappedModel);
 
       // Check if ComfyUI is actually running (not just enabled in env)
       const status = await checkComfyUIStatus();
@@ -4135,7 +4142,7 @@ export async function generateStoryboardVideo(
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
           const useAnimateDiff =
-            preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
+            mappedModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
           console.warn(`🎬 ComfyUI Mode: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
 
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
@@ -4159,10 +4166,24 @@ export async function generateStoryboardVideo(
         } catch (comfyError: unknown) {
           const err = comfyError as { message?: string };
           console.error('❌ ComfyUI Generation Failed:', err);
-          throw comfyError; // Don't fallback when user explicitly selected ComfyUI
+          
+          // Enhanced error message with alternatives
+          const errorMessage = err.message || 'Unknown error';
+          throw new Error(
+            `ComfyUI Error: ${errorMessage}\n\n` +
+            `💡 Try these alternatives:\n` +
+            `• Gemini Veo 2 (Best quality, PRO tier)\n` +
+            `• Replicate AnimateDiff (Good quality, BASIC tier)\n` +
+            `• Replicate SVD (Fast, BASIC tier)\n\n` +
+            `Or start ComfyUI server at: ${COMFYUI_DEFAULT_URL}`
+          );
         }
       } else {
-        const errorMsg = 'ComfyUI is not enabled in environment settings.';
+        const errorMsg = `ComfyUI is not enabled in environment settings.\n\n` +
+          `💡 Try these alternatives instead:\n` +
+          `• Gemini Veo 2 (Best quality, PRO tier)\n` +
+          `• Replicate AnimateDiff (Good quality, BASIC tier)\n` +
+          `• Replicate SVD (Fast, BASIC tier)`;
         console.error('❌', errorMsg);
         throw new Error(errorMsg);
       }
