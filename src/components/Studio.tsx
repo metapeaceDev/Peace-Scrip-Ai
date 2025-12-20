@@ -57,11 +57,28 @@ const Studio: React.FC<StudioProps> = ({
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string, projectTitle?: string) => {
     e.stopPropagation();
     if (deleteConfirmationId === id) {
-      onDeleteProject(id);
-      setDeleteConfirmationId(null);
+      // Final confirmation with warning message
+      const confirmed = window.confirm(
+        `⚠️ คำเตือน: คุณกำลังจะลบโปรเจ็ค "${projectTitle || 'Untitled'}" \n\n` +
+        `การลบโปรเจ็คนี้จะส่งผลต่อ:\n` +
+        `✗ ลบโปรเจ็คและไฟล์ทั้งหมดถาวร (ไม่สามารถกู้คืนได้)\n` +
+        `✗ จำนวนโปรเจ็คใน Enhanced User Details จะลดลง\n` +
+        `✗ จำนวนตัวละคร (Characters) จะลดลง\n` +
+        `✗ จำนวนฉาก (Scenes) จะลดลง\n` +
+        `✗ ข้อมูลการใช้งาน Storage จะอัปเดต\n\n` +
+        `⚠️ หมายเหตุ: ข้อมูลอื่นๆ เช่น Credits, API Calls, Subscription จะยังคงอยู่\n\n` +
+        `คุณแน่ใจหรือไม่ที่จะลบโปรเจ็คนี้?`
+      );
+      
+      if (confirmed) {
+        onDeleteProject(id);
+        setDeleteConfirmationId(null);
+      } else {
+        setDeleteConfirmationId(null); // Cancel
+      }
     } else {
       setDeleteConfirmationId(id);
       // Auto-reset after 3 seconds if not confirmed
@@ -219,15 +236,15 @@ const Studio: React.FC<StudioProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
                   </div>
 
-                  {/* Action Buttons - More Visible */}
-                  <div className="absolute top-2 right-2 z-20 flex gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                  {/* Action Buttons - Always Visible */}
+                  <div className="absolute top-2 right-2 z-20 flex gap-1.5">
                     <PermissionGuard permission="canExport" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => {
                           e.stopPropagation();
                           onExportProject(project.id);
                         }}
-                        className="bg-gray-900/90 hover:bg-green-700/90 text-gray-300 hover:text-white p-2 rounded-lg backdrop-blur-sm transition-all shadow-lg hover:shadow-green-900/50 hover:scale-110 border border-gray-700 hover:border-green-500"
+                        className="bg-gray-800/95 hover:bg-green-600 text-white p-2 rounded-lg backdrop-blur-sm transition-all shadow-lg hover:shadow-green-500/50 hover:scale-110 border-2 border-green-500/50 hover:border-green-400"
                         title="Export Project (Backup)"
                       >
                         <svg
@@ -245,14 +262,14 @@ const Studio: React.FC<StudioProps> = ({
                       </button>
                     </PermissionGuard>
 
-                    {/* Enhanced 2-Step Delete Button */}
+                    {/* Enhanced 2-Step Delete Button with Warning */}
                     <PermissionGuard permission="canDelete" userRole={project.userRole || 'viewer'}>
                       <button
-                        onClick={e => handleDeleteClick(e, project.id)}
+                        onClick={e => handleDeleteClick(e, project.id, project.title)}
                         className={`rounded-lg backdrop-blur-sm transition-all shadow-lg flex items-center gap-1.5 border ${
                           deleteConfirmationId === project.id
-                            ? 'bg-red-600/95 hover:bg-red-700 text-white px-3 py-2 animate-pulse border-red-400 shadow-red-900/50'
-                            : 'bg-gray-900/90 hover:bg-red-700/90 text-gray-300 hover:text-white p-2 hover:scale-110 border-gray-700 hover:border-red-500 hover:shadow-red-900/50'
+                            ? 'bg-red-600 hover:bg-red-700 text-white px-3 py-2 animate-pulse border-2 border-red-300 shadow-red-500/50'
+                            : 'bg-gray-800/95 hover:bg-red-600 text-white p-2 hover:scale-110 border-2 border-red-500/50 hover:border-red-400 hover:shadow-red-500/50'
                         }`}
                         title={deleteConfirmationId === project.id ? 'Click Again to Confirm Delete' : 'Delete Project'}
                       >
