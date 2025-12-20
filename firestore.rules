@@ -130,6 +130,22 @@ service cloud.firestore {
       allow write: if isOwner(userId);
     }
 
+    // Generations collection - AI usage tracking
+    match /generations/{generationId} {
+      // Users can read their own generations OR admin can read all
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Users can create their own generation records
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // No updates or deletes allowed (immutable records)
+      allow update, delete: if false;
+      
+      // Allow admin to list all generations for analytics
+      allow list: if isAdmin();
+    }
+
     // Project Invitations - for team collaboration
     match /projectInvitations/{invitationId} {
       // Anyone can read their own invitations (by email)
