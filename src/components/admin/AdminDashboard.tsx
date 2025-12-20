@@ -19,14 +19,18 @@ import { OverviewCards } from './OverviewCards';
 import { UserTable } from './UserTable';
 import { ExportButton } from './ExportButton';
 import { UserDetailsModal } from './UserDetailsModal';
+import { EnhancedUserDetailsModal } from './EnhancedUserDetailsModal';
 import { AdminUserManagement } from './AdminUserManagement';
 import { RevenueChart } from './RevenueChart';
 import { UsageChart } from './UsageChart';
 import { AdminAlerts } from './AdminAlerts';
+import { ProjectCostDashboard } from './ProjectCostDashboard';
+import { ProfitLossComparisonDashboard } from './ProfitLossComparisonDashboard';
 import { logger } from '../../utils/logger';
 import './AdminDashboard.css';
+import './EnhancedUserDetailsModal.css';
 
-type TabView = 'analytics' | 'users-management' | 'alerts';
+type TabView = 'analytics' | 'users-management' | 'alerts' | 'project-costs' | 'profit-loss';
 
 export const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -48,6 +52,7 @@ export const AdminDashboard: React.FC = () => {
   
   // User Details Modal
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [useEnhancedModal, setUseEnhancedModal] = useState(true);
 
   // Initialize admin session with auto token refresh
   useEffect(() => {
@@ -250,6 +255,18 @@ export const AdminDashboard: React.FC = () => {
           📊 Analytics & Users
         </button>
         <button
+          className={`tab-button ${activeTab === 'project-costs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('project-costs')}
+        >
+          💰 Project Costs
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'profit-loss' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profit-loss')}
+        >
+          📊 Profit & Loss
+        </button>
+        <button
           className={`tab-button ${activeTab === 'users-management' ? 'active' : ''}`}
           onClick={() => setActiveTab('users-management')}
         >
@@ -348,12 +365,32 @@ export const AdminDashboard: React.FC = () => {
       />
 
       {/* User Details Modal */}
-      {selectedUserId && (
+      {selectedUserId && useEnhancedModal && (
+        <EnhancedUserDetailsModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
+      )}
+      {selectedUserId && !useEnhancedModal && (
         <UserDetailsModal
           userId={selectedUserId}
           onClose={() => setSelectedUserId(null)}
         />
       )}
+        </div>
+      )}
+
+      {/* Project Costs Tab */}
+      {activeTab === 'project-costs' && (
+        <div className="tab-content">
+          <ProjectCostDashboard />
+        </div>
+      )}
+
+      {/* Profit & Loss Tab */}
+      {activeTab === 'profit-loss' && (
+        <div className="tab-content">
+          <ProfitLossComparisonDashboard />
         </div>
       )}
 
