@@ -556,6 +556,7 @@ export interface UserStats {
     past_due: number;
   };
   active: number; // active in current period
+  online: number; // online users (last active within 5 minutes)
   new: number; // new registrations
   churned: number; // cancellations
 }
@@ -574,6 +575,49 @@ export interface RevenueMetrics {
     churned: number; // from cancellations
   };
   arpu: number; // Average Revenue Per User
+}
+
+/**
+ * Tier Usage Breakdown (for detailed analytics)
+ */
+export interface TierUsageBreakdown {
+  text: {
+    count: number; // จำนวนครั้งที่ใช้ทั้งหมด
+    cost: number; // ค่าใช้จ่ายรวม (บาท)
+    revenue: number; // รายได้จาก users ใน tier นี้
+    profit: number; // กำไร/ขาดทุน (revenue - cost)
+  };
+  images: {
+    count: number;
+    cost: number;
+    revenue: number;
+    profit: number;
+  };
+  videos: {
+    count: number;
+    cost: number;
+    revenue: number;
+    profit: number;
+  };
+  audio: {
+    count: number;
+    cost: number;
+    revenue: number;
+    profit: number;
+  };
+}
+
+/**
+ * Queue Metrics (for real-time job tracking)
+ */
+export interface QueueMetrics {
+  total: number; // คิวงานทั้งหมด
+  completed: number; // เสร็จแล้ว (สีเขียว)
+  processing: number; // กำลังทำ (สีแดง)
+  queued: number; // รอคิว (สีเหลือง)
+  completedPercentage: number; // % ที่เสร็จแล้ว
+  processingPercentage: number; // % ที่กำลังทำ
+  queuedPercentage: number; // % ที่รอคิว
 }
 
 /**
@@ -601,6 +645,8 @@ export interface UsageAnalytics {
     limitGB: number; // Total storage limit across all users
     remainingGB: number; // Total remaining storage
   };
+  // NEW: Detailed breakdown by tier and type
+  tierBreakdown?: Record<SubscriptionTier, TierUsageBreakdown>;
 }
 
 /**

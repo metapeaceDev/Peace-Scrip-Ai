@@ -13,6 +13,7 @@ import {
   getUsageAnalytics,
   getUserList,
   subscribeToAnalytics,
+  getQueueMetrics,
 } from '../../services/adminAnalyticsService';
 import { getProjectCostSummary } from '../../services/projectCostMonitor';
 import type {
@@ -21,6 +22,7 @@ import type {
   UsageAnalytics,
   UserListItem,
   SubscriptionTier,
+  QueueMetrics,
 } from '../../types';
 import { OverviewCards } from './OverviewCards';
 import { UserTable } from './UserTable';
@@ -29,10 +31,14 @@ import { UserDetailsModal } from './UserDetailsModal';
 import { EnhancedUserDetailsModal } from './EnhancedUserDetailsModal';
 import { AdminUserManagement } from './AdminUserManagement';
 import { RevenueChart } from './RevenueChart';
-import { UsageChart } from './UsageChart';
+import { UsageChartsSection } from './UsageChartsSection';
+import { EnhancedUsageBarChart } from './EnhancedUsageBarChart';
+import { QueueGaugeChart } from './QueueGaugeChart';
+import { CollapsibleTierCard } from './CollapsibleTierCard';
 import { AdminAlerts } from './AdminAlerts';
 import { ProjectCostDashboard } from './ProjectCostDashboard';
 import { ProfitLossComparisonDashboard } from './ProfitLossComparisonDashboard';
+import { Top10Users } from './Top10Users';
 import { logger } from '../../utils/logger';
 import './AdminDashboard.css';
 import './EnhancedUserDetailsModal.css';
@@ -46,6 +52,7 @@ export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [revenue, setRevenue] = useState<RevenueMetrics | null>(null);
   const [usage, setUsage] = useState<UsageAnalytics | null>(null);
+  const [queueMetrics, setQueueMetrics] = useState<QueueMetrics | null>(null);
   const [averageCostPerUser, setAverageCostPerUser] = useState<number>(0);
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -138,16 +145,18 @@ export const AdminDashboard: React.FC = () => {
   // Load data
   async function loadData() {
     try {
-      const [statsData, revenueData, usageData, costData] = await Promise.all([
+      const [statsData, revenueData, usageData, queueData, costData] = await Promise.all([
         getUserStats(),
         getRevenueMetrics(),
         getUsageAnalytics(),
+        getQueueMetrics(),
         getProjectCostSummary(),
       ]);
 
       setStats(statsData);
       setRevenue(revenueData);
       setUsage(usageData);
+      setQueueMetrics(queueData);
       setAverageCostPerUser(costData.userCosts.averageCostPerUser);
 
       await loadUsers();
@@ -302,7 +311,18 @@ export const AdminDashboard: React.FC = () => {
               revenue={revenue}
               usage={usage}
               averageCostPerUser={averageCostPerUser}
+              totalCost={
+                (stats.tierMetrics?.free?.cost || 0) +
+                (stats.tierMetrics?.basic?.cost || 0) +
+                (stats.tierMetrics?.pro?.cost || 0) +
+                (stats.tierMetrics?.enterprise?.cost || 0)
+              }
             />
+          )}
+
+          {/* Usage Charts Section - Visual Analytics */}
+          {usage && (
+            <UsageChartsSection usage={usage} />
           )}
 
           {/* Analytics Charts */}
@@ -313,9 +333,18 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            {usage && (
+            {usage && revenue && stats && stats.tierMetrics && (
               <div className="chart-card full-width">
-                <UsageChart usage={usage} />
+                <EnhancedUsageBarChart 
+                  usage={usage} 
+                  revenue={revenue}
+                  totalCost={
+                    (stats.tierMetrics.free?.cost || 0) +
+                    (stats.tierMetrics.basic?.cost || 0) +
+                    (stats.tierMetrics.pro?.cost || 0) +
+                    (stats.tierMetrics.enterprise?.cost || 0)
+                  }
+                />
               </div>
             )}
           </div>
@@ -323,109 +352,51 @@ export const AdminDashboard: React.FC = () => {
           {/* Users Distribution */}
           <div className="charts-section">
             <div className="chart-card">
-              <h3>Users by Tier</h3>
-              {stats && (
-                <div className="tier-distribution">
-                  {/* FREE */}
-                  <div className="tier-item">
-                    <div className="tier-header">
-                      <span className="tier-label">FREE</span>
-                      <span className="tier-count">{stats.byTier.free}</span>
-                    </div>
-                    {stats.tierMetrics && (
-                      <div className="tier-metrics">
-                        <div className="metric-row">
-                          <span className="metric-label">Rev:</span>
-                          <span className="metric-value revenue">฿{stats.tierMetrics.free.revenue.toLocaleString()}</span>
-                        </div>
-                        <div className="metric-row">
-                          <span className="metric-label">Cost:</span>
-                          <span className="metric-value cost">฿{stats.tierMetrics.free.cost.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* BASIC */}
-                  <div className="tier-item">
-                    <div className="tier-header">
-                      <span className="tier-label">BASIC</span>
-                      <span className="tier-count">{stats.byTier.basic}</span>
-                    </div>
-                    {stats.tierMetrics && (
-                      <div className="tier-metrics">
-                        <div className="metric-row">
-                          <span className="metric-label">Rev:</span>
-                          <span className="metric-value revenue">฿{stats.tierMetrics.basic.revenue.toLocaleString()}</span>
-                        </div>
-                        <div className="metric-row">
-                          <span className="metric-label">Cost:</span>
-                          <span className="metric-value cost">฿{stats.tierMetrics.basic.cost.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* PRO */}
-                  <div className="tier-item">
-                    <div className="tier-header">
-                      <span className="tier-label">PRO</span>
-                      <span className="tier-count">{stats.byTier.pro}</span>
-                    </div>
-                    {stats.tierMetrics && (
-                      <div className="tier-metrics">
-                        <div className="metric-row">
-                          <span className="metric-label">Rev:</span>
-                          <span className="metric-value revenue">฿{stats.tierMetrics.pro.revenue.toLocaleString()}</span>
-                        </div>
-                        <div className="metric-row">
-                          <span className="metric-label">Cost:</span>
-                          <span className="metric-value cost">฿{stats.tierMetrics.pro.cost.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ENTERPRISE */}
-                  <div className="tier-item">
-                    <div className="tier-header">
-                      <span className="tier-label">ENTERPRISE</span>
-                      <span className="tier-count">{stats.byTier.enterprise}</span>
-                    </div>
-                    {stats.tierMetrics && (
-                      <div className="tier-metrics">
-                        <div className="metric-row">
-                          <span className="metric-label">Rev:</span>
-                          <span className="metric-value revenue">฿{stats.tierMetrics.enterprise.revenue.toLocaleString()}</span>
-                        </div>
-                        <div className="metric-row">
-                          <span className="metric-label">Cost:</span>
-                          <span className="metric-value cost">฿{stats.tierMetrics.enterprise.cost.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <h3>📊 Users by Tier</h3>
+              {stats && usage && usage.tierBreakdown && (
+                <div className="tier-distribution-collapsible">
+                  <CollapsibleTierCard
+                    tier="free"
+                    count={stats.byTier.free}
+                    revenue={stats.tierMetrics?.free.revenue || 0}
+                    cost={stats.tierMetrics?.free.cost || 0}
+                    breakdown={usage.tierBreakdown.free}
+                  />
+                  <CollapsibleTierCard
+                    tier="basic"
+                    count={stats.byTier.basic}
+                    revenue={stats.tierMetrics?.basic.revenue || 0}
+                    cost={stats.tierMetrics?.basic.cost || 0}
+                    breakdown={usage.tierBreakdown.basic}
+                  />
+                  <CollapsibleTierCard
+                    tier="pro"
+                    count={stats.byTier.pro}
+                    revenue={stats.tierMetrics?.pro.revenue || 0}
+                    cost={stats.tierMetrics?.pro.cost || 0}
+                    breakdown={usage.tierBreakdown.pro}
+                  />
+                  <CollapsibleTierCard
+                    tier="enterprise"
+                    count={stats.byTier.enterprise}
+                    revenue={stats.tierMetrics?.enterprise.revenue || 0}
+                    cost={stats.tierMetrics?.enterprise.cost || 0}
+                    breakdown={usage.tierBreakdown.enterprise}
+                  />
                 </div>
               )}
             </div>
 
             <div className="chart-card">
-              <h3>Top Users</h3>
-              {usage && (
-                <div className="veo-users">
-                  {usage.veoVideos.byUser.slice(0, 5).map((user: any, index: number) => (
-                    <div key={index} className="veo-user-item">
-                      <span className="user-email">{user.email}</span>
-                      <span className="user-veo-count">{user.count} videos</span>
-                    </div>
-                  ))}
-                  {usage.veoVideos.byUser.length === 0 && (
-                    <p className="no-data">No Veo videos generated yet</p>
-                  )}
-                </div>
+              {queueMetrics && <QueueGaugeChart metrics={queueMetrics} />}
+              {!queueMetrics && (
+                <div className="loading-placeholder">กำลังโหลดข้อมูลคิวงาน...</div>
               )}
             </div>
           </div>
+
+          {/* TOP 10 Users */}
+          <Top10Users />
 
           {/* User Table */}
           <UserTable

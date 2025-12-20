@@ -39,7 +39,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   return (
     <div className="user-table-section">
       <div className="table-header">
-        <h2>👥 Users ({totalUsers})</h2>
+        <h2>👥 All Users ({totalUsers})</h2>
 
         <div className="table-controls">
           <input
@@ -84,7 +84,6 @@ export const UserTable: React.FC<UserTableProps> = ({
               <th>Tier</th>
               <th>Status</th>
               <th>Credits</th>
-              <th>Veo Videos</th>
               <th>Last Active</th>
               <th>Created</th>
             </tr>
@@ -92,7 +91,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={8} className="no-data">
+                <td colSpan={7} className="no-data">
                   No users found
                 </td>
               </tr>
@@ -145,17 +144,6 @@ export const UserTable: React.FC<UserTableProps> = ({
                         />
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    {user.veoVideos.max === 0 ? (
-                      <span className="no-access">-</span>
-                    ) : user.veoVideos.max === -1 ? (
-                      <span>{user.veoVideos.used}</span>
-                    ) : (
-                      <span>
-                        {user.veoVideos.used}/{user.veoVideos.max}
-                      </span>
-                    )}
                   </td>
                   <td>{formatDate(user.lastActive)}</td>
                   <td>{formatDate(user.createdAt)}</td>

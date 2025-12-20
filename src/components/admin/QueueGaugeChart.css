@@ -1,0 +1,168 @@
+/* Queue Gauge Chart Styles */
+
+.queue-gauge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.gauge-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+}
+
+/* Gauge Chart SVG */
+.gauge-chart {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.gauge-arc-completed {
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.gauge-arc-processing {
+  transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease;
+}
+
+.gauge-arc-queued {
+  transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease;
+}
+
+.gauge-total-value {
+  font-size: 36px;
+  font-weight: 800;
+  fill: #1f2937;
+}
+
+.gauge-total-label {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #6b7280;
+  letter-spacing: 0.5px;
+}
+
+.gauge-percentage {
+  font-size: 16px;
+  font-weight: 700;
+  fill: #10b981;
+}
+
+.gauge-pointer {
+  transition: transform 0.5s ease;
+}
+
+/* Queue Details Columns */
+.queue-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.queue-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.queue-column:hover {
+  transform: translateY(-2px);
+}
+
+.completed-column {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.processing-column {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.queued-column {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.column-icon {
+  font-size: 2rem;
+}
+
+.column-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+}
+
+.column-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.column-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.column-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.completed-bar {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.processing-bar {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.queued-bar {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.column-percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .queue-details {
+    grid-template-columns: 1fr;
+  }
+
+  .gauge-chart {
+    max-width: 250px;
+  }
+
+  .column-value {
+    font-size: 1.5rem;
+  }
+}

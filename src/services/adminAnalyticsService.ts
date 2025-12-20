@@ -10,6 +10,8 @@ import {
   query,
   where,
   getDocs,
+  doc,
+  getDoc,
   Timestamp,
   onSnapshot,
   Unsubscribe,
@@ -22,9 +24,11 @@ import type {
   UserListItem,
   UserDetails,
   SubscriptionTier,
+  TierUsageBreakdown,
+  QueueMetrics,
 } from '../types';
+import { API_PRICING, SUBSCRIPTION_PRICING } from '../types/analytics';
 import { getUserSubscription } from './subscriptionManager';
-import { firestoreService } from './firestoreService';
 
 // ===== Pricing Constants =====
 const TIER_PRICES = {
@@ -76,11 +80,13 @@ export async function getUserStats(filters?: {
         past_due: 0,
       },
       active: 0,
+      online: 0,
       new: 0,
       churned: 0,
     };
 
     const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000); // 5 minutes
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -115,6 +121,11 @@ export async function getUserStats(filters?: {
 
       if (lastUpdated >= thirtyDaysAgo) {
         stats.active++;
+      }
+
+      // Count online users (active within last 5 minutes)
+      if (lastUpdated >= fiveMinutesAgo) {
+        stats.online++;
       }
 
       // Count new users (created in date range or last 30 days)
@@ -242,6 +253,56 @@ export async function getRevenueMetrics(
 /**
  * Get Usage Analytics
  */
+// Helper: คำนวณ cost จาก generation
+function calculateGenerationCost(gen: any): number {
+  const type = gen.type;
+  const modelName = (gen.modelName || '').toLowerCase();
+  const provider = (gen.provider || '').toLowerCase();
+
+  // Text (Gemini)
+  if (type === 'text') {
+    const inputTokens = gen.inputTokens || 0;
+    const outputTokens = gen.outputTokens || 0;
+    
+    if (modelName.includes('2.0-flash')) {
+      return 0; // Free tier
+    } else if (modelName.includes('2.5-flash') || modelName.includes('1.5-flash')) {
+      return inputTokens * API_PRICING.GEMINI['2.5-flash'].input + 
+             outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+    }
+  }
+  
+  // Images
+  if (type === 'image') {
+    if (provider.includes('gemini')) {
+      return API_PRICING.GEMINI['2.5-flash'].image || 0.0875;
+    } else if (provider.includes('comfyui')) {
+      return API_PRICING.COMFYUI.image || 0.5;
+    }
+  }
+  
+  // Videos
+  if (type === 'video') {
+    if (modelName.includes('veo')) {
+      const duration = gen.duration || 10;
+      return duration <= 5 ? API_PRICING.GEMINI['veo-3'].video5s : API_PRICING.GEMINI['veo-3'].video10s;
+    } else if (provider.includes('replicate')) {
+      if (modelName.includes('ltx')) return API_PRICING.REPLICATE['ltx-video'].perRun;
+      if (modelName.includes('animatediff')) return API_PRICING.REPLICATE.animatediff.perRun;
+      return API_PRICING.REPLICATE['stable-video-diffusion'].perRun;
+    } else if (provider.includes('comfyui')) {
+      return API_PRICING.COMFYUI.video || 2.0;
+    }
+  }
+  
+  // Audio (assume minimal cost)
+  if (type === 'audio') {
+    return 0.5; // ฿0.50 per audio generation
+  }
+  
+  return 0;
+}
+
 export async function getUsageAnalytics(_dateRange?: {
   start: Date;
   end: Date;
@@ -249,8 +310,41 @@ export async function getUsageAnalytics(_dateRange?: {
   try {
     console.log('📊 Fetching usage analytics...');
 
-    const snapshot = await getDocs(collection(db, 'subscriptions'));
-    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+    // Get all subscriptions for user info
+    const subscriptionsSnapshot = await getDocs(collection(db, 'subscriptions'));
+    const users = subscriptionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+
+    // Get generations data (NEW: from our tracking system)
+    const generationsSnapshot = await getDocs(collection(db, 'generations'));
+    const generations = generationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Initialize tier breakdown
+    const tierBreakdown: Record<SubscriptionTier, TierUsageBreakdown> = {
+      free: {
+        text: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        images: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        videos: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        audio: { count: 0, cost: 0, revenue: 0, profit: 0 },
+      },
+      basic: {
+        text: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        images: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        videos: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        audio: { count: 0, cost: 0, revenue: 0, profit: 0 },
+      },
+      pro: {
+        text: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        images: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        videos: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        audio: { count: 0, cost: 0, revenue: 0, profit: 0 },
+      },
+      enterprise: {
+        text: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        images: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        videos: { count: 0, cost: 0, revenue: 0, profit: 0 },
+        audio: { count: 0, cost: 0, revenue: 0, profit: 0 },
+      },
+    };
 
     const analytics: UsageAnalytics = {
       credits: {
@@ -279,6 +373,7 @@ export async function getUsageAnalytics(_dateRange?: {
         limitGB: 0,
         remainingGB: 0,
       },
+      tierBreakdown,
     };
 
     const tierCounts = {
@@ -288,32 +383,102 @@ export async function getUsageAnalytics(_dateRange?: {
       enterprise: 0,
     };
 
+    // Count API calls from generations collection AND calculate tier breakdown
+    const veoVideoCounts: Record<string, number> = {};
+    
+    generations.forEach((gen: any) => {
+      const type = gen.type;
+      const modelName = (gen.modelName || '').toLowerCase();
+      const userId = gen.userId;
+      
+      // Find user's tier
+      const user = users.find(u => u.id === userId);
+      const tier = (user?.subscription?.tier || 'free') as SubscriptionTier;
+      
+      // Calculate cost for this generation
+      const cost = calculateGenerationCost(gen);
+
+      // Count by type
+      if (type === 'text') {
+        analytics.apiCalls.scripts++;
+        tierBreakdown[tier].text.count++;
+        tierBreakdown[tier].text.cost += cost;
+      } else if (type === 'image') {
+        analytics.apiCalls.images++;
+        tierBreakdown[tier].images.count++;
+        tierBreakdown[tier].images.cost += cost;
+      } else if (type === 'video') {
+        analytics.apiCalls.videos++;
+        tierBreakdown[tier].videos.count++;
+        tierBreakdown[tier].videos.cost += cost;
+        
+        // Check if it's Veo video
+        if (modelName.includes('veo')) {
+          veoVideoCounts[userId] = (veoVideoCounts[userId] || 0) + 1;
+        }
+      } else if (type === 'audio') {
+        analytics.apiCalls.audio++;
+        tierBreakdown[tier].audio.count++;
+        tierBreakdown[tier].audio.cost += cost;
+      }
+    });
+
+    // Calculate Veo videos by user
+    Object.entries(veoVideoCounts).forEach(([userId, count]) => {
+      const user = users.find(u => u.id === userId);
+      analytics.veoVideos.total += count;
+      analytics.veoVideos.byUser.push({
+        userId,
+        email: user?.email || 'unknown',
+        count,
+      });
+    });
+
+    // Process users for credits and storage
+    const tierUserCounts: Record<SubscriptionTier, number> = {
+      free: 0,
+      basic: 0,
+      pro: 0,
+      enterprise: 0,
+    };
+    
     users.forEach(user => {
       const tier = (user.subscription?.tier || 'free') as SubscriptionTier;
       const creditsUsed = user.monthlyUsage?.creditsUsed || 0;
-      const veoVideos = user.monthlyUsage?.veoVideosGenerated || 0;
 
       // Credits
       analytics.credits.total += creditsUsed;
       analytics.credits.byTier[tier] += creditsUsed;
       tierCounts[tier]++;
+      tierUserCounts[tier]++;
 
-      // Veo Videos
-      if (veoVideos > 0) {
-        analytics.veoVideos.total += veoVideos;
-        analytics.veoVideos.byUser.push({
-          userId: user.id,
-          email: user.email || 'unknown',
-          count: veoVideos,
-        });
-      }
-
-      // API Calls
-      if (user.usage) {
-        analytics.apiCalls.scripts += user.usage.scriptsGenerated || 0;
-        analytics.apiCalls.images += user.usage.imagesGenerated || 0;
-        analytics.apiCalls.videos += user.usage.videosGenerated || 0;
-        analytics.apiCalls.audio += user.usage.audioGenerated || 0;
+      // Calculate revenue contribution
+      const billingType = user.subscription?.billingCycle || 'monthly';
+      const tierPricing = SUBSCRIPTION_PRICING[tier];
+      const monthlyRevenue = billingType === 'yearly' 
+        ? tierPricing.yearly / 12 
+        : tierPricing.monthly;
+      
+      // Distribute revenue across all types proportionally
+      // (เฉลี่ยไปที่ text, images, videos, audio ตามสัดส่วนการใช้งาน)
+      const userGenerations = generations.filter((g: any) => g.userId === user.id);
+      const userTextCount = userGenerations.filter((g: any) => g.type === 'text').length;
+      const userImageCount = userGenerations.filter((g: any) => g.type === 'image').length;
+      const userVideoCount = userGenerations.filter((g: any) => g.type === 'video').length;
+      const userAudioCount = userGenerations.filter((g: any) => g.type === 'audio').length;
+      const totalUserGens = userTextCount + userImageCount + userVideoCount + userAudioCount;
+      
+      if (totalUserGens > 0) {
+        tierBreakdown[tier].text.revenue += (userTextCount / totalUserGens) * monthlyRevenue;
+        tierBreakdown[tier].images.revenue += (userImageCount / totalUserGens) * monthlyRevenue;
+        tierBreakdown[tier].videos.revenue += (userVideoCount / totalUserGens) * monthlyRevenue;
+        tierBreakdown[tier].audio.revenue += (userAudioCount / totalUserGens) * monthlyRevenue;
+      } else {
+        // If no generations, split revenue equally
+        tierBreakdown[tier].text.revenue += monthlyRevenue / 4;
+        tierBreakdown[tier].images.revenue += monthlyRevenue / 4;
+        tierBreakdown[tier].videos.revenue += monthlyRevenue / 4;
+        tierBreakdown[tier].audio.revenue += monthlyRevenue / 4;
       }
 
       // Storage - Calculate with proper tier limits
@@ -349,10 +514,71 @@ export async function getUsageAnalytics(_dateRange?: {
     // Sort Veo users by count (descending)
     analytics.veoVideos.byUser.sort((a, b) => b.count - a.count);
 
+    // Calculate profit for each tier and type
+    (['free', 'basic', 'pro', 'enterprise'] as SubscriptionTier[]).forEach(tier => {
+      tierBreakdown[tier].text.profit = tierBreakdown[tier].text.revenue - tierBreakdown[tier].text.cost;
+      tierBreakdown[tier].images.profit = tierBreakdown[tier].images.revenue - tierBreakdown[tier].images.cost;
+      tierBreakdown[tier].videos.profit = tierBreakdown[tier].videos.revenue - tierBreakdown[tier].videos.cost;
+      tierBreakdown[tier].audio.profit = tierBreakdown[tier].audio.revenue - tierBreakdown[tier].audio.cost;
+    });
+
     console.log('✅ Usage analytics fetched:', analytics);
     return analytics;
   } catch (error) {
     console.error('❌ Error fetching usage analytics:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get Queue Metrics (for real-time job tracking)
+ */
+export async function getQueueMetrics(): Promise<QueueMetrics> {
+  try {
+    console.log('📊 Fetching queue metrics...');
+
+    // Get all generations
+    const generationsSnapshot = await getDocs(collection(db, 'generations'));
+    const generations = generationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    let completed = 0;
+    let processing = 0;
+    let queued = 0;
+
+    generations.forEach((gen: any) => {
+      const status = (gen.status || 'completed').toLowerCase();
+      
+      if (status === 'completed' || status === 'success') {
+        completed++;
+      } else if (status === 'processing' || status === 'running' || status === 'in_progress') {
+        processing++;
+      } else if (status === 'queued' || status === 'pending' || status === 'waiting') {
+        queued++;
+      } else {
+        // ถ้าไม่มี status ถือว่าเสร็จแล้ว
+        completed++;
+      }
+    });
+
+    const total = completed + processing + queued;
+    const completedPercentage = total > 0 ? (completed / total) * 100 : 0;
+    const processingPercentage = total > 0 ? (processing / total) * 100 : 0;
+    const queuedPercentage = total > 0 ? (queued / total) * 100 : 0;
+
+    const metrics: QueueMetrics = {
+      total,
+      completed,
+      processing,
+      queued,
+      completedPercentage,
+      processingPercentage,
+      queuedPercentage,
+    };
+
+    console.log('✅ Queue metrics fetched:', metrics);
+    return metrics;
+  } catch (error) {
+    console.error('❌ Error fetching queue metrics:', error);
     throw error;
   }
 }
@@ -520,26 +746,56 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
     // Get subscription data
     const userRecord = await getUserSubscription(userId);
 
-    // Get user projects
-    const projectsResult = await firestoreService.getUserProjects(userId);
-    const projects = projectsResult.projects.map(p => ({
-      id: p.id,
-      title: p.title,
-      type: p.type || 'Movie',
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    }));
+    // Get user data from users collection for real-time info
+    const userDocRef = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDocRef);
+    const userData = userDocSnap.exists() ? userDocSnap.data() : null;
 
-    // Build user details
+    // Get user projects from projects collection (real count)
+    const projectsQuery = query(
+      collection(db, 'projects'),
+      where('userId', '==', userId)
+    );
+    const projectsSnapshot = await getDocs(projectsQuery);
+    const projectsCount = projectsSnapshot.size;
+    
+    const projects = projectsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title || 'Untitled Project',
+        type: data.type || 'Movie',
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+      };
+    });
+
+    // Count characters and scenes from user's projects
+    let charactersCount = 0;
+    let scenesCount = 0;
+    projectsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.characters && Array.isArray(data.characters)) {
+        charactersCount += data.characters.length;
+      }
+      if (data.scenes && Array.isArray(data.scenes)) {
+        scenesCount += data.scenes.length;
+      }
+    });
+
+    // Build user details with real-time data
     const details: UserDetails = {
       profile: {
-        email: userRecord.userId, // We store userId, need to get email from auth or users collection
-        displayName: 'User', // TODO: Get from users collection
-        createdAt: new Date(), // TODO: Get from users collection
+        email: userData?.email || userRecord.userId,
+        displayName: userData?.displayName || 'User',
+        createdAt: userData?.createdAt || new Date(),
+        lastActive: userData?.lastActive || new Date(),
       },
       subscription: {
         tier: userRecord.subscription.tier,
-        status: 'active', // TODO: Get from billing data
+        status: 'active', // Always active if subscription exists
+        startDate: userData?.subscriptionStartDate,
+        canceledAt: userData?.subscriptionCanceledAt,
       },
       usage: {
         credits: {
@@ -551,9 +807,9 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
           used: userRecord.monthlyUsage.veoVideosGenerated,
           max: userRecord.subscription.features.maxVeoVideosPerMonth,
         },
-        projects: userRecord.usage.projectsCreated,
-        characters: userRecord.usage.charactersCreated,
-        scenes: userRecord.usage.scenesCreated,
+        projects: projectsCount,
+        characters: charactersCount,
+        scenes: scenesCount,
         storageUsed: userRecord.usage.storageUsed,
       },
       projects,
@@ -571,7 +827,11 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
       ],
     };
 
-    console.log('✅ User details fetched');
+    console.log('✅ User details fetched with real-time data:', {
+      projects: projectsCount,
+      characters: charactersCount,
+      scenes: scenesCount
+    });
     return details;
   } catch (error) {
     console.error('❌ Error fetching user details:', error);

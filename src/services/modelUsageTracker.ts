@@ -197,11 +197,15 @@ export async function getUserModelUsage(userId: string): Promise<{
   };
 }> {
   try {
-    // Get all model usage summaries for this user
-    const q = query(collection(db, 'userModelUsage'), where('userId', '==', userId));
+    // Query all generations for this user to get real-time data
+    const q = query(
+      collection(db, 'generations'),
+      where('userId', '==', userId)
+    );
     const snapshot = await getDocs(q);
 
-    const byModel: ModelUsage[] = [];
+    // Aggregate by model
+    const modelMap = new Map<string, ModelUsage>();
     let totalGenerations = 0;
     let totalCostTHB = 0;
 
@@ -213,31 +217,54 @@ export async function getUserModelUsage(userId: string): Promise<{
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      const usage: ModelUsage = {
-        modelId: data.modelId,
-        modelName: data.modelName,
-        provider: data.provider,
-        type: data.type,
-        count: data.count,
-        totalCost: data.totalCost,
-        lastUsed: data.lastUsed.toDate(),
-      };
+      const modelKey = `${data.modelId}-${data.type}`;
+      
+      if (!modelMap.has(modelKey)) {
+        modelMap.set(modelKey, {
+          modelId: data.modelId || 'unknown',
+          modelName: data.modelName || 'Unknown Model',
+          provider: data.provider || 'unknown',
+          type: data.type || 'text',
+          count: 0,
+          totalCost: 0,
+          lastUsed: data.timestamp?.toDate() || new Date(),
+        });
+      }
 
-      byModel.push(usage);
-      totalGenerations += usage.count;
-      totalCostTHB += usage.totalCost;
+      const usage = modelMap.get(modelKey)!;
+      usage.count += 1;
+      usage.totalCost += data.costInTHB || 0;
+      
+      // Update last used if this is newer
+      const timestamp = data.timestamp?.toDate() || new Date();
+      if (timestamp > usage.lastUsed) {
+        usage.lastUsed = timestamp;
+      }
+
+      totalGenerations += 1;
+      totalCostTHB += data.costInTHB || 0;
 
       // Update breakdown
-      const typeBreakdown = breakdown[usage.type];
-      typeBreakdown.count += usage.count;
-      typeBreakdown.cost += usage.totalCost;
-      if (!typeBreakdown.models.includes(usage.modelName)) {
-        typeBreakdown.models.push(usage.modelName);
+      const type = data.type || 'text';
+      const typeBreakdown = breakdown[type as keyof typeof breakdown];
+      if (typeBreakdown) {
+        typeBreakdown.count += 1;
+        typeBreakdown.cost += data.costInTHB || 0;
+        const modelName = data.modelName || 'Unknown';
+        if (!typeBreakdown.models.includes(modelName)) {
+          typeBreakdown.models.push(modelName);
+        }
       }
     });
 
-    // Sort by most used
-    byModel.sort((a, b) => b.count - a.count);
+    // Convert map to array and sort by most used
+    const byModel = Array.from(modelMap.values()).sort((a, b) => b.count - a.count);
+
+    console.log('✅ Real-time model usage fetched:', {
+      totalGenerations,
+      totalCostTHB,
+      modelCount: byModel.length
+    });
 
     return {
       byModel,

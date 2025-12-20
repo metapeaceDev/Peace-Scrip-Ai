@@ -1,0 +1,207 @@
+/* Enhanced Usage Bar Chart Styles */
+
+.enhanced-usage-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chart-header-content {
+  text-align: left;
+}
+
+.chart-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+/* View Mode Selector */
+.view-mode-selector {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.view-mode-selector button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.view-mode-selector button:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.view-mode-selector button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.chart-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Metrics Summary Cards */
+.metrics-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card.credits {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.metric-card.api {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+}
+
+.metric-card.cost {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+.metric-card.revenue {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+}
+
+.metric-card.profit.positive {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.metric-card.profit.negative {
+  background: linear-gradient(135deg, #fee2e2, #fca5a5);
+}
+
+.metric-icon {
+  font-size: 2rem;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0.25rem 0;
+}
+
+.metric-sublabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Tooltip */
+.enhanced-usage-tooltip {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.tooltip-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Chart Footer */
+.chart-footer {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.chart-note {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.chart-note strong {
+  color: #374151;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .enhanced-usage-bar-chart {
+    padding: 1rem;
+  }
+
+  .metrics-summary {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .metric-icon {
+    font-size: 1.5rem;
+  }
+
+  .metric-value {
+    font-size: 1rem;
+  }
+
+  .chart-header h3 {
+    font-size: 1.25rem;
+  }
+}
