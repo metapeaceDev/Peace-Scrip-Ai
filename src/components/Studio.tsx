@@ -57,29 +57,14 @@ const Studio: React.FC<StudioProps> = ({
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string, projectTitle?: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (deleteConfirmationId === id) {
-      // Final confirmation with warning message
-      const confirmed = window.confirm(
-        `⚠️ คำเตือน: คุณกำลังจะลบโปรเจ็ค "${projectTitle || 'Untitled'}" \n\n` +
-        `การลบโปรเจ็คนี้จะส่งผลต่อ:\n` +
-        `✗ ลบโปรเจ็คและไฟล์ทั้งหมดถาวร (ไม่สามารถกู้คืนได้)\n` +
-        `✗ จำนวนโปรเจ็คใน Enhanced User Details จะลดลง\n` +
-        `✗ จำนวนตัวละคร (Characters) จะลดลง\n` +
-        `✗ จำนวนฉาก (Scenes) จะลดลง\n` +
-        `✗ ข้อมูลการใช้งาน Storage จะอัปเดต\n\n` +
-        `⚠️ หมายเหตุ: ข้อมูลอื่นๆ เช่น Credits, API Calls, Subscription จะยังคงอยู่\n\n` +
-        `คุณแน่ใจหรือไม่ที่จะลบโปรเจ็คนี้?`
-      );
-      
-      if (confirmed) {
-        onDeleteProject(id);
-        setDeleteConfirmationId(null);
-      } else {
-        setDeleteConfirmationId(null); // Cancel
-      }
+      // Second click - delete immediately without popup
+      onDeleteProject(id);
+      setDeleteConfirmationId(null);
     } else {
+      // First click - show confirmation state
       setDeleteConfirmationId(id);
       // Auto-reset after 3 seconds if not confirmed
       setTimeout(() => setDeleteConfirmationId(prev => (prev === id ? null : prev)), 3000);
@@ -265,7 +250,7 @@ const Studio: React.FC<StudioProps> = ({
                     {/* Enhanced 2-Step Delete Button with Warning */}
                     <PermissionGuard permission="canDelete" userRole={project.userRole || 'owner'}>
                       <button
-                        onClick={e => handleDeleteClick(e, project.id, project.title)}
+                        onClick={e => handleDeleteClick(e, project.id)}
                         className={`rounded-md backdrop-blur-sm transition-all flex items-center gap-1.5 border ${
                           deleteConfirmationId === project.id
                             ? 'bg-red-600/90 hover:bg-red-700 text-white px-2.5 py-1.5 animate-pulse border border-red-300/50 opacity-100'
