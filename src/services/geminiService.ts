@@ -1878,8 +1878,8 @@ export async function parseDocumentToScript(rawText: string): Promise<Partial<Sc
       const duration = (Date.now() - startTime) / 1000;
 
       // Granular Tracking: Use Token Counting
-      const inputTokens = await countTokens(prompt, 'gemini-1.5-flash');
-      const outputTokens = await countTokens(response.text || '', 'gemini-1.5-flash');
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(response.text || '', 'gemini-2.5-flash');
 
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
@@ -2877,8 +2877,8 @@ IMPORTANT: Use these psychological profiles to:
       const duration = (Date.now() - startTime) / 1000;
 
       // Granular Tracking: Use Token Counting
-      const inputTokens = await countTokens(prompt, 'gemini-1.5-flash');
-      const outputTokens = await countTokens(response.text || '', 'gemini-1.5-flash');
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(response.text || '', 'gemini-2.5-flash');
 
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
@@ -2888,14 +2888,14 @@ IMPORTANT: Use these psychological profiles to:
         userId,
         type: 'text',
         modelId: 'gemini-2.5-flash',
-        modelName: 'Gemini 2.5 Flash',
+        modelName: 'Gemini 2.5 Flash (Scene Generation)',
         provider: 'gemini',
         costInCredits: 1,
         costInTHB: totalCost,
         success: true,
         duration,
         metadata: {
-          prompt: prompt.substring(0, 100) + '...',
+          prompt: 'Scene Generation',
           tokens: { input: inputTokens, output: outputTokens },
         },
       }).catch(err => console.error('Failed to track generation:', err));

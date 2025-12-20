@@ -106,87 +106,243 @@ async function calculateApiCosts(
     let total = 0;
 
     // 1. Gemini Models
-    Object.entries(API_PRICING.GEMINI).forEach(([modelKey, details]) => {
-      // Find matching usage keys (flexible matching)
-      const matchingKeys = Object.keys(usageStats).filter((k) => {
-        const [p, m] = k.split(':');
-        return p === 'gemini' && m.includes(modelKey.toLowerCase());
-      });
+    // Mapping from modelId format to API_PRICING key format
+    const geminiModelMap: Record<string, string> = {
+      'gemini-2.5-flash': '2.5-flash',
+      'gemini-2.0-flash-exp': '2.0-flash-exp',
+      'gemini-2.0-flash': '2.0-flash-exp', // Alias
+      'gemini-veo-3': 'veo-3',
+      'gemini-1.5-flash': '1.5-flash',
+      'gemini-1.5-pro': '1.5-pro',
+      'gemini-2.5-pro': '1.5-pro', // Use 1.5-pro pricing as fallback
+    };
 
-      let calls = 0;
-      let cost = 0;
+    // Group Gemini models
+    const geminiModels: Record<string, { calls: number; cost: number; displayName: string; pricingKey: string }> = {};
 
-      matchingKeys.forEach((k) => {
-        calls += usageStats[k].calls;
-        cost += usageStats[k].cost;
-        delete usageStats[k]; // Mark as handled
-      });
+    Object.entries(usageStats).forEach(([key, stats]) => {
+      const [p, m] = key.split(':');
+      if (p !== 'gemini') return;
+
+      // Find matching model ID
+      let pricingKey = '';
+      let displayName = m;
+
+      for (const [modelId, priceKey] of Object.entries(geminiModelMap)) {
+        if (m.includes(modelId)) {
+          pricingKey = priceKey;
+          // Extract display name from model name (e.g., "gemini 2.5 flash (character details)" -> "Character Details")
+          const match = m.match(/\(([^)]+)\)/);
+          if (match) {
+            displayName = `Gemini ${priceKey} - ${match[1]}`;
+          } else {
+            displayName = `Gemini ${priceKey}`;
+          }
+          break;
+        }
+      }
+
+      if (!pricingKey) {
+        // Unknown Gemini model - use generic
+        pricingKey = '1.5-flash'; // Fallback
+        displayName = `Gemini (${m})`;
+      }
+
+      const groupKey = displayName;
+      if (!geminiModels[groupKey]) {
+        geminiModels[groupKey] = { calls: 0, cost: 0, displayName, pricingKey };
+      }
+
+      geminiModels[groupKey].calls += stats.calls;
+      geminiModels[groupKey].cost += stats.cost;
+      delete usageStats[key]; // Mark as handled
+    });
+
+    // Create service entries for each unique Gemini usage
+    Object.values(geminiModels).forEach((model) => {
+      const details = API_PRICING.GEMINI[model.pricingKey as keyof typeof API_PRICING.GEMINI];
+      
+      if (!details) {
+        console.warn(`⚠️ No pricing found for ${model.pricingKey}`);
+        return;
+      }
 
       // Determine rate for display
       let rate = 0;
-      if ('input' in details) {
-        rate = details.input; // Show input cost as base rate
-      } else if ('video5s' in details) {
+      let rateModel = 'per token';
+      if ('input' in details && typeof details.input === 'number') {
+        rate = details.input * 1000000; // Convert to per 1M tokens
+        rateModel = 'per 1M tokens (input)';
+      } else if ('image' in details && typeof details.image === 'number') {
+        rate = details.image;
+        rateModel = 'per image';
+      } else if ('video5s' in details && typeof details.video5s === 'number') {
         rate = details.video5s;
+        rateModel = 'per 5s video';
       }
 
       services.push({
-        apiName: `Gemini ${modelKey}`,
+        apiName: model.displayName,
         provider: 'Google',
         pricing: {
-          model: 'per unit',
+          model: rateModel,
           rate: rate,
           freeQuota: (details as any).freeQuota || 'None',
         },
-        currentMonthUsage: { calls, cost },
-        projectedMonthlyCost: cost,
+        currentMonthUsage: { calls: model.calls, cost: model.cost },
+        projectedMonthlyCost: model.cost,
       });
-      total += cost;
+      total += model.cost;
     });
 
     // 2. Replicate Models
-    Object.entries(API_PRICING.REPLICATE).forEach(([modelKey, details]) => {
-      const matchingKeys = Object.keys(usageStats).filter((k) => {
-        const [p, m] = k.split(':');
-        return p === 'replicate' && m.includes(modelKey.toLowerCase());
-      });
+    const replicateModelMap: Record<string, string> = {
+      'stable-video-diffusion': 'stable-video-diffusion',
+      'svd': 'stable-video-diffusion',
+      'animatediff': 'animatediff',
+      'ltx': 'ltx-video',
+      'ltx-video': 'ltx-video',
+    };
 
-      let calls = 0;
-      let cost = 0;
+    const replicateModels: Record<string, { calls: number; cost: number; pricingKey: string }> = {};
 
-      matchingKeys.forEach((k) => {
-        calls += usageStats[k].calls;
-        cost += usageStats[k].cost;
-        delete usageStats[k];
-      });
+    Object.entries(usageStats).forEach(([key, stats]) => {
+      const [p, m] = key.split(':');
+      if (p !== 'replicate') return;
+
+      let pricingKey = '';
+      for (const [modelId, priceKey] of Object.entries(replicateModelMap)) {
+        if (m.includes(modelId)) {
+          pricingKey = priceKey;
+          break;
+        }
+      }
+
+      if (!pricingKey) {
+        pricingKey = 'animatediff'; // Default fallback
+      }
+
+      if (!replicateModels[pricingKey]) {
+        replicateModels[pricingKey] = { calls: 0, cost: 0, pricingKey };
+      }
+
+      replicateModels[pricingKey].calls += stats.calls;
+      replicateModels[pricingKey].cost += stats.cost;
+      delete usageStats[key];
+    });
+
+    Object.values(replicateModels).forEach((model) => {
+      const details = API_PRICING.REPLICATE[model.pricingKey as keyof typeof API_PRICING.REPLICATE];
+      
+      if (!details) return;
 
       services.push({
-        apiName: `Replicate ${modelKey}`,
+        apiName: `Replicate ${model.pricingKey}`,
         provider: 'Replicate',
         pricing: {
           model: 'per run',
           rate: details.perRun,
           freeQuota: 'None',
         },
-        currentMonthUsage: { calls, cost },
-        projectedMonthlyCost: cost,
+        currentMonthUsage: { calls: model.calls, cost: model.cost },
+        projectedMonthlyCost: model.cost,
       });
-      total += cost;
+      total += model.cost;
     });
 
-    // 3. Handle remaining usage (Other/Unknown)
+    // 3. ComfyUI Models
+    const comfyuiStats = { image: { calls: 0, cost: 0 }, video: { calls: 0, cost: 0 } };
+
+    Object.entries(usageStats).forEach(([key, stats]) => {
+      const [p, m] = key.split(':');
+      if (p !== 'comfyui') return;
+
+      if (m.includes('video') || m.includes('animatediff') || m.includes('svd')) {
+        comfyuiStats.video.calls += stats.calls;
+        comfyuiStats.video.cost += stats.cost;
+      } else {
+        comfyuiStats.image.calls += stats.calls;
+        comfyuiStats.image.cost += stats.cost;
+      }
+      delete usageStats[key];
+    });
+
+    if (comfyuiStats.image.calls > 0) {
+      services.push({
+        apiName: 'ComfyUI Image Generation',
+        provider: 'ComfyUI',
+        pricing: {
+          model: 'per image',
+          rate: API_PRICING.COMFYUI.image,
+          freeQuota: 'Self-hosted (GPU cost not included)',
+        },
+        currentMonthUsage: comfyuiStats.image,
+        projectedMonthlyCost: comfyuiStats.image.cost,
+      });
+      total += comfyuiStats.image.cost;
+    }
+
+    if (comfyuiStats.video.calls > 0) {
+      services.push({
+        apiName: 'ComfyUI Video Generation',
+        provider: 'ComfyUI',
+        pricing: {
+          model: 'per video',
+          rate: API_PRICING.COMFYUI.video,
+          freeQuota: 'Self-hosted (GPU cost not included)',
+        },
+        currentMonthUsage: comfyuiStats.video,
+        projectedMonthlyCost: comfyuiStats.video.cost,
+      });
+      total += comfyuiStats.video.cost;
+    }
+
+    // 4. Pollinations (Free tier)
+    const pollinationsStats = { calls: 0, cost: 0 };
+
+    Object.entries(usageStats).forEach(([key, stats]) => {
+      const [p] = key.split(':');
+      if (p !== 'pollinations') return;
+
+      pollinationsStats.calls += stats.calls;
+      pollinationsStats.cost += stats.cost;
+      delete usageStats[key];
+    });
+
+    if (pollinationsStats.calls > 0) {
+      services.push({
+        apiName: 'Pollinations.ai (Free)',
+        provider: 'Pollinations',
+        pricing: {
+          model: 'free',
+          rate: 0,
+          freeQuota: 'Unlimited (Community supported)',
+        },
+        currentMonthUsage: pollinationsStats,
+        projectedMonthlyCost: 0,
+      });
+    }
+
+    // 5. Handle remaining usage (Other/Unknown)
     Object.entries(usageStats).forEach(([key, stats]) => {
       const [provider, model] = key.split(':');
       
-      // Skip if cost is 0 and calls are 0 (shouldn't happen based on logic but good safety)
-      if (stats.calls === 0 && stats.cost === 0) return;
+      // Skip if no usage
+      if (stats.calls === 0) return;
+
+      // Capitalize provider name
+      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+      
+      // Clean up model name (remove provider prefix if duplicated)
+      let cleanModel = model.replace(provider, '').trim();
+      if (!cleanModel) cleanModel = 'Unknown Model';
 
       services.push({
-        apiName: `${provider} ${model}`,
-        provider: provider.charAt(0).toUpperCase() + provider.slice(1),
+        apiName: `${providerName} - ${cleanModel}`,
+        provider: providerName,
         pricing: {
-          model: 'unknown',
-          rate: 0,
+          model: 'tracked cost',
+          rate: stats.cost / (stats.calls || 1),
           freeQuota: 'Unknown',
         },
         currentMonthUsage: {
@@ -197,6 +353,9 @@ async function calculateApiCosts(
       });
       total += stats.cost;
     });
+
+    // Sort services by cost (highest first)
+    services.sort((a, b) => b.currentMonthUsage.cost - a.currentMonthUsage.cost);
 
     return { total, services };
   } catch (error) {
