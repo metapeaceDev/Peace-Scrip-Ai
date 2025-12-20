@@ -265,8 +265,18 @@ async function processImageGeneration(job) {
       prompt,
       workflow,
       referenceImage,
-      onProgress: async (progress) => {
+      isVideo: false,
+      metadata: {},
+      onProgress: async (progress, details) => {
         await job.progress(10 + (progress * 0.9)); // 10% to 100%
+        
+        // Broadcast detailed progress if needed
+        if (details) {
+          await updateJobStatus(job.id, 'processing', {
+            progress: 10 + (progress * 0.9),
+            details
+          });
+        }
       }
     });
     
@@ -401,8 +411,21 @@ async function processVideoGeneration(job) {
       referenceImage,
       isVideo: true,
       metadata,
-      onProgress: async (progress) => {
-        await job.progress(5 + (progress * 0.95)); // 5% to 100%
+      onProgress: async (progress, details) => {
+        const overallProgress = 5 + (progress * 0.95); // 5% to 100%
+        await job.progress(overallProgress);
+        
+        // Broadcast detailed progress with video-specific metadata
+        if (details) {
+          await updateJobStatus(job.id, 'processing', {
+            progress: overallProgress,
+            details: {
+              ...details,
+              videoType: type,
+              estimatedFrames: metadata.numFrames || 'unknown'
+            }
+          });
+        }
       }
     });
     

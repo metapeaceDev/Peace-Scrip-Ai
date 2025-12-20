@@ -15,9 +15,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { getWorkerManager } from './workerManager.js';
 
 /**
- * Generate image with ComfyUI
+ * Generate image or video with ComfyUI
  */
-export async function generateWithComfyUI({ worker, prompt, workflow, referenceImage, onProgress }) {
+export async function generateWithComfyUI({ 
+  worker, 
+  prompt, 
+  workflow, 
+  referenceImage, 
+  isVideo = false,
+  metadata = {},
+  onProgress 
+}) {
   const startTime = Date.now();
   const promptId = uuidv4();
   
@@ -30,10 +38,10 @@ export async function generateWithComfyUI({ worker, prompt, workflow, referenceI
     });
 
     console.log(`🔍 Workflow nodes: ${Object.keys(finalWorkflow).length}`);
-    console.log(`🔍 Workflow structure:`, JSON.stringify(Object.keys(finalWorkflow).reduce((acc, key) => {
-      acc[key] = finalWorkflow[key].class_type;
-      return acc;
-    }, {})));
+    console.log(`🔍 Workflow type: ${isVideo ? 'VIDEO' : 'IMAGE'}`);
+    if (isVideo && metadata) {
+      console.log(`🎬 Video config: ${metadata.numFrames} frames @ ${metadata.fps} fps`);
+    }
 
     // Submit workflow to ComfyUI
     const response = await axios.post(`${worker.url}/prompt`, {
@@ -44,8 +52,14 @@ export async function generateWithComfyUI({ worker, prompt, workflow, referenceI
     const { prompt_id } = response.data;
     console.log(`📤 Submitted workflow to ${worker.url}, prompt_id: ${prompt_id}`);
 
-    // Track progress via WebSocket
-    const result = await trackProgress(worker.url, prompt_id, onProgress);
+    // Track progress via WebSocket (enhanced for video)
+    const result = await trackProgress(
+      worker.url, 
+      prompt_id, 
+      onProgress,
+      isVideo,
+      metadata
+    );
     
     const processingTime = Date.now() - startTime;
     
@@ -133,13 +147,17 @@ async function uploadImageToComfyUI(base64Image, workerId) {
 
 /**
  * Track progress via WebSocket
+ * Enhanced for video with frame-by-frame tracking
  */
-function trackProgress(workerUrl, promptId, onProgress) {
+function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadata = {}) {
   return new Promise((resolve, reject) => {
     const wsUrl = workerUrl.replace('http://', 'ws://').replace('https://', 'wss://');
     const ws = new WebSocket(`${wsUrl}/ws?clientId=${promptId}`);
     
     let currentProgress = 0;
+    let currentNode = null;
+    let totalSteps = 0;
+    let currentStep = 0;
     
     ws.on('open', () => {
       console.log(`🔌 WebSocket connected to ${wsUrl}`);
@@ -149,30 +167,71 @@ function trackProgress(workerUrl, promptId, onProgress) {
       try {
         const message = JSON.parse(data.toString());
         
+        // Handle executing node
+        if (message.type === 'executing') {
+          currentNode = message.data.node;
+          
+          if (currentNode === null) {
+            // Execution complete
+            console.log(`✅ Execution complete for prompt ${promptId}`);
+            
+            if (onProgress) {
+              await onProgress(100);
+            }
+            
+            // Retrieve result
+            try {
+              const result = isVideo 
+                ? await retrieveVideo(workerUrl, promptId)
+                : await retrieveImage(workerUrl, promptId);
+              ws.close();
+              resolve(result);
+            } catch (error) {
+              ws.close();
+              reject(error);
+            }
+          }
+        }
+        
         // Handle different message types
         if (message.type === 'progress') {
-          const progress = Math.round((message.data.value / message.data.max) * 100);
+          currentStep = message.data.value;
+          totalSteps = message.data.max;
+          const progress = Math.round((currentStep / totalSteps) * 100);
           currentProgress = progress;
-          console.log(`📊 WebSocket Progress: ${progress}%`);
+          console.log(`📊 WebSocket Progress: ${progress}% (${currentStep}/${totalSteps})`);
           
           if (onProgress) {
-            await onProgress(progress);
+            await onProgress(progress, {
+              currentStep,
+              totalSteps,
+              currentNode,
+              isVideo,
+              numFrames: metadata.numFrames
+            });
           }
         }
         
         if (message.type === 'executing' && message.data.node === null) {
           // Execution complete
-          console.log(`✅ Execution complete for prompt ${promptId}`);
-          
+          console.log(`✅ Job completed (detected via WebSocket)`);
           if (onProgress) {
-            await onProgress(100);
+            await onProgress(100, {
+              currentStep: totalSteps,
+              totalSteps,
+              currentNode: 'complete',
+              isVideo,
+              numFrames: metadata.numFrames
+            });
           }
           
-          // Retrieve image
+          // Retrieve image or video based on type
           try {
-            const imageData = await retrieveImage(workerUrl, promptId);
+            const result = isVideo 
+              ? await retrieveVideo(workerUrl, promptId)
+              : await retrieveImage(workerUrl, promptId);
             ws.close();
-            resolve(imageData);
+            resolve(result);
           } catch (error) {
             ws.close();
             reject(error);
@@ -181,8 +240,16 @@ function trackProgress(workerUrl, promptId, onProgress) {
         
         if (message.type === 'execution_error') {
           console.error(`❌ Execution error:`, message.data);
+          const errorMsg = isVideo 
+            ? `Video generation error: ${JSON.stringify(message.data)}`
+            : `Execution error: ${JSON.stringify(message.data)}`;
           ws.close();
-          reject(new Error(`Execution error: ${JSON.stringify(message.data)}`));
+          reject(new Error(errorMsg));
+        }
+        
+        if (message.type === 'execution_cached') {
+          console.log(`📋 Cached execution detected`);
+          // Some nodes were cached, still valid completion
         }
         
       } catch (error) {
@@ -201,7 +268,7 @@ function trackProgress(workerUrl, promptId, onProgress) {
 
     // Polling fallback if WebSocket doesn't work
     let pollCount = 0;
-    const maxPolls = 300; // 300 polls * 2s = 10 minutes
+    const maxPolls = isVideo ? 600 : 300; // 20 min for video, 10 min for images
     const pollInterval = setInterval(async () => {
       pollCount++;
       
@@ -210,8 +277,14 @@ function trackProgress(workerUrl, promptId, onProgress) {
       const estimatedProgress = Math.min(90, 10 + (pollCount / maxPolls) * 80);
       
       if (onProgress && pollCount % 3 === 0) { // Update every 6 seconds
-        await onProgress(Math.floor(estimatedProgress));
-        console.log(`📊 Polling Progress (estimated): ${Math.floor(estimatedProgress)}%`);
+        await onProgress(Math.floor(estimatedProgress), {
+          currentStep: pollCount,
+          totalSteps: maxPolls,
+          currentNode: 'polling',
+          isVideo,
+          numFrames: metadata.numFrames
+        });
+        console.log(`📊 Polling Progress (estimated): ${Math.floor(estimatedProgress)}% ${isVideo ? '(video)' : ''}`);
       }
       
       try {
@@ -222,12 +295,22 @@ function trackProgress(workerUrl, promptId, onProgress) {
             // Check for outputs (success)
             if (history.outputs && Object.keys(history.outputs).length > 0) {
                 console.log(`✅ Job completed (detected via polling - outputs found)`);
-                if (onProgress) await onProgress(100);
+                if (onProgress) {
+                  await onProgress(100, {
+                    currentStep: maxPolls,
+                    totalSteps: maxPolls,
+                    currentNode: 'complete',
+                    isVideo,
+                    numFrames: metadata.numFrames
+                  });
+                }
                 clearInterval(pollInterval);
                 try {
-                    const imageData = await retrieveImage(workerUrl, promptId);
+                    const result = isVideo 
+                      ? await retrieveVideo(workerUrl, promptId)
+                      : await retrieveImage(workerUrl, promptId);
                     if (ws.readyState === WebSocket.OPEN) ws.close();
-                    resolve(imageData);
+                    resolve(result);
                 } catch (error) {
                     if (ws.readyState === WebSocket.OPEN) ws.close();
                     reject(error);
@@ -238,12 +321,22 @@ function trackProgress(workerUrl, promptId, onProgress) {
             // Check for status.completed
             if (history.status && history.status.completed) {
                 console.log(`✅ Job completed (detected via polling - status.completed)`);
-                if (onProgress) await onProgress(100);
+                if (onProgress) {
+                  await onProgress(100, {
+                    currentStep: maxPolls,
+                    totalSteps: maxPolls,
+                    currentNode: 'complete',
+                    isVideo,
+                    numFrames: metadata.numFrames
+                  });
+                }
                 clearInterval(pollInterval);
                 try {
-                    const imageData = await retrieveImage(workerUrl, promptId);
+                    const result = isVideo 
+                      ? await retrieveVideo(workerUrl, promptId)
+                      : await retrieveImage(workerUrl, promptId);
                     if (ws.readyState === WebSocket.OPEN) ws.close();
-                    resolve(imageData);
+                    resolve(result);
                 } catch (error) {
                     if (ws.readyState === WebSocket.OPEN) ws.close();
                     reject(error);
@@ -257,14 +350,18 @@ function trackProgress(workerUrl, promptId, onProgress) {
       }
     }, 2000); // Poll every 2 seconds
 
-    // Timeout after 10 minutes (increased from 5)
+    // Timeout: 20 minutes for video, 10 minutes for images
+    const timeout = isVideo ? 20 * 60 * 1000 : 10 * 60 * 1000;
     setTimeout(() => {
       clearInterval(pollInterval);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
-        reject(new Error('Generation timeout (10 minutes)'));
+        const timeoutMsg = isVideo 
+          ? 'Video generation timeout (20 minutes)' 
+          : 'Generation timeout (10 minutes)';
+        reject(new Error(timeoutMsg));
       }
-    }, 10 * 60 * 1000);
+    }, timeout);
   });
 }
 
@@ -302,6 +399,63 @@ async function retrieveImage(workerUrl, promptId) {
     const base64Image = Buffer.from(imageResponse.data).toString('base64');
     const mimeType = imageInfo.filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
     
+    return {
+      imageUrl,
+      imageData: `data:${mimeType};base64,${base64Image}`,
+      filename: imageInfo.filename
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to retrieve image:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Retrieve generated video from ComfyUI
+ */
+async function retrieveVideo(workerUrl, promptId) {
+  try {
+    // Get history to find output videos
+    const historyResponse = await axios.get(`${workerUrl}/history/${promptId}`);
+    const history = historyResponse.data[promptId];
+    
+    if (!history || !history.outputs) {
+      throw new Error('No outputs found in history');
+    }
+
+    // Find VHS_VideoCombine node output (gifs = videos in VHS)
+    let videoInfo = null;
+    for (const [, output] of Object.entries(history.outputs)) {
+      if (output.gifs && output.gifs.length > 0) {
+        videoInfo = output.gifs[0];
+        break;
+      }
+    }
+
+    if (!videoInfo) {
+      throw new Error('No video found in outputs');
+    }
+
+    // Download video
+    const videoUrl = `${workerUrl}/view?filename=${videoInfo.filename}&subfolder=${videoInfo.subfolder || ''}&type=${videoInfo.type}`;
+    const videoResponse = await axios.get(videoUrl, { responseType: 'arraybuffer' });
+    
+    // Convert to base64
+    const base64Video = Buffer.from(videoResponse.data).toString('base64');
+    const mimeType = videoInfo.filename.endsWith('.webm') ? 'video/webm' : 'video/mp4';
+    
+    return {
+      videoUrl,
+      videoData: `data:${mimeType};base64,${base64Video}`,
+      filename: videoInfo.filename
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to retrieve video:', error.message);
+    throw error;
+  }
+}
     return {
       imageUrl,
       imageData: `data:${mimeType};base64,${base64Image}`,
