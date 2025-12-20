@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ProjectMetadata, ProjectType } from '../../types';
 import { PROJECT_TYPES } from '../../constants';
 import ComfyUIStatus from './ComfyUIStatus';
-import InvitationsModal from './InvitationsModal';
-import { teamCollaborationService } from '../services/teamCollaborationService';
 import { auth } from '../config/firebase';
 import { PermissionGuard } from './RoleManagement';
 import { checkIsAdmin } from '../services/adminAuthService';
+import NotificationBell from './NotificationBell';
 
 interface StudioProps {
   projects: ProjectMetadata[];
@@ -26,14 +25,9 @@ const Studio: React.FC<StudioProps> = ({
   onDeleteProject,
   onImportProject,
   onExportProject,
-  onRefreshProjects,
   onViewChange,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isInvitationsOpen, setIsInvitationsOpen] = useState(false);
-  const [invitationCount, setInvitationCount] = useState(0);
-  const [showNotification, setShowNotification] = useState(false);
-  const [latestInvitation, setLatestInvitation] = useState<{ projectTitle: string; inviterName: string } | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<ProjectType>('Movie');
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
@@ -44,64 +38,6 @@ const Studio: React.FC<StudioProps> = ({
   useEffect(() => {
     checkIsAdmin().then(setIsAdmin);
   }, []);
-
-  // Real-time listener for invitations
-  useEffect(() => {
-    const userEmail = auth.currentUser?.email;
-    if (!userEmail) return;
-
-    console.log('🔔 Setting up real-time invitation listener for:', userEmail);
-
-    // Subscribe to real-time updates
-    const unsubscribe = teamCollaborationService.subscribeToInvitations(
-      userEmail,
-      (count, latestInvite) => {
-        console.log('🔔 Real-time update: invitation count =', count);
-        setInvitationCount(count);
-
-        // Show notification popup for new invitation
-        if (latestInvite && count > invitationCount) {
-          setLatestInvitation({
-            projectTitle: latestInvite.projectTitle,
-            inviterName: latestInvite.inviterName,
-          });
-          setShowNotification(true);
-
-          // Auto-hide notification after 5 seconds
-          setTimeout(() => {
-            setShowNotification(false);
-          }, 5000);
-        }
-      }
-    );
-
-    // Cleanup listener on unmount
-    return () => {
-      console.log('🔕 Cleaning up invitation listener');
-      unsubscribe();
-    };
-  }, [invitationCount]);
-
-  const loadInvitationCount = async () => {
-    try {
-      const userEmail = auth.currentUser?.email;
-      if (!userEmail) return;
-
-      const invitations = await teamCollaborationService.getPendingInvitations(userEmail);
-      setInvitationCount(invitations.length);
-    } catch (error) {
-      console.error('Error loading invitation count:', error);
-    }
-  };
-
-  const handleInvitationAccepted = () => {
-    // Refresh projects list when invitation is accepted
-    if (onRefreshProjects) {
-      onRefreshProjects();
-    }
-    // Reload invitation count
-    loadInvitationCount();
-  };
 
   const handleCreate = () => {
     if (!newTitle.trim()) {
@@ -143,11 +79,14 @@ const Studio: React.FC<StudioProps> = ({
             </h1>
             <div className="flex items-center gap-3">
               <p className="text-gray-400 text-sm">Manage your creative stories in one place</p>
-              {/* Minimal ComfyUI Status in Header */}
-              <ComfyUIStatus compact />
+              {/* Minimal ComfyUI Status in Header - Only show if backend service is enabled */}
+              {import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true' && <ComfyUIStatus compact />}
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {/* Notification Bell */}
+            {auth.currentUser && <NotificationBell />}
+            
             {/* Admin Button - Only visible for admins */}
             {isAdmin && onViewChange && (
               <button
@@ -166,28 +105,6 @@ const Studio: React.FC<StudioProps> = ({
                 Admin
               </button>
             )}
-            <button
-              onClick={() => {
-                setIsInvitationsOpen(true);
-                loadInvitationCount(); // Refresh count when opening
-              }}
-              className="relative flex items-center gap-2 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg border border-purple-600 transition-all shadow-md text-sm"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              คำเชิญ
-              {invitationCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                  {invitationCount}
-                </span>
-              )}
-            </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 px-4 rounded-lg border border-gray-700 transition-all shadow-md text-sm"
@@ -453,60 +370,7 @@ const Studio: React.FC<StudioProps> = ({
         </div>
       )}
 
-      {/* Invitations Modal */}
-      <InvitationsModal
-        isOpen={isInvitationsOpen}
-        onClose={() => {
-          setIsInvitationsOpen(false);
-          loadInvitationCount(); // Refresh count when closing
-        }}
-        onInvitationAccepted={handleInvitationAccepted}
-      />
-
       {/* Real-time Notification Popup */}
-      {showNotification && latestInvitation && (
-        <div className="fixed top-20 right-4 z-50 animate-slide-in-right">
-          <div className="bg-gradient-to-r from-purple-900 to-indigo-900 border-2 border-purple-500 rounded-lg shadow-2xl p-4 max-w-sm">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center animate-bounce">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex-1">
-                <h4 className="text-white font-bold text-sm mb-1">
-                  🎉 คำเชิญใหม่!
-                </h4>
-                <p className="text-purple-200 text-xs mb-1">
-                  <strong>{latestInvitation.inviterName}</strong> เชิญคุณเข้าร่วมโปรเจ็ค
-                </p>
-                <p className="text-white font-medium text-sm mb-2">
-                  &quot;{latestInvitation.projectTitle}&quot;
-                </p>
-                <button
-                  onClick={() => {
-                    setShowNotification(false);
-                    setIsInvitationsOpen(true);
-                  }}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 px-3 rounded transition-colors"
-                >
-                  ดูคำเชิญ →
-                </button>
-              </div>
-              <button
-                onClick={() => setShowNotification(false)}
-                className="text-purple-300 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

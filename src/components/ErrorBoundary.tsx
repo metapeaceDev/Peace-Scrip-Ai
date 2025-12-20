@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -33,7 +33,7 @@ class ErrorBoundary extends Component<Props, State> {
       window.Sentry.captureException(error, {
         contexts: {
           react: {
-            componentStack: errorInfo.componentStack,
+            componentStack: errorInfo.componentStack || '',
           },
         },
       });

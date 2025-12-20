@@ -5,8 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { Timestamp } from 'firebase/firestore';
 
 export interface AdminAlert {
   id: string;

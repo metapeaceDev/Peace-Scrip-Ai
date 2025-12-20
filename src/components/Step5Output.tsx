@@ -370,7 +370,6 @@ const SceneDisplay: React.FC<{
   onSave,
   allCharacters,
   onRegisterUndo,
-  _goToStep,
   onNavigateToCharacter,
   pointTitle,
   sceneIndex,
@@ -984,7 +983,7 @@ const SceneDisplay: React.FC<{
   // --- Video-Specific Context Builders ---
   const buildMotionContext = (
     shotData: any,
-    currentScene: GeneratedScene,
+    _currentScene: GeneratedScene,
     character?: Character
   ): string => {
     if (!character) return '';
@@ -3956,7 +3955,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
   const downloadScreenplayPDF = () => {
     // Generate screenplay HTML for PDF
-    const text = generateScreenplayText(scriptData);
+    // Note: generateScreenplayText() not used in PDF generation
 
     // Create HTML content styled like a screenplay
     const html = `

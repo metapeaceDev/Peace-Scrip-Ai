@@ -6,6 +6,7 @@
 
 import thTranslations from './th.json';
 import enTranslations from './en.json';
+import { logger } from '../utils/logger';
 
 export type Language = 'th' | 'en';
 export type TranslationKey = string;
@@ -63,7 +64,7 @@ export function setLanguage(lang: Language): void {
   // Trigger re-render (if using React context)
   window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
 
-  console.log(`🌐 Language changed to: ${lang}`);
+  logger.info(`Language changed to: ${lang}`);
 }
 
 /**

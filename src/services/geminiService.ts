@@ -16,7 +16,6 @@ import {
   generateAnimateDiffVideo,
   generateSVDVideo,
   generateHotshotXL,
-  generateLTXVideo,
 } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
 import { getSavedComfyUIUrl, checkComfyUIStatus } from './comfyuiInstaller';
@@ -321,10 +320,6 @@ const VIDEO_MODELS = {
 // Import video motion engine
 import {
   buildVideoPrompt,
-  buildMotionContext,
-  buildCameraMovementContext,
-  buildTimingContext,
-  buildEnvironmentalMotionContext,
   getMotionModuleStrength,
   getRecommendedFPS,
   getRecommendedFrameCount,
@@ -933,20 +928,17 @@ async function generateImageWithCascade(
   console.log(`🎯 User selected model: ${modelId}`);
 
   // Force specific provider based on model selection
-  let forceProvider: 'comfyui' | 'gemini-pro' | 'gemini-flash' | 'pollinations' | 'dalle' | null =
-    null;
+  // let forceProvider: 'comfyui' | 'gemini-pro' | 'gemini-flash' | 'pollinations' | 'dalle' | null =
+  //   null;
 
   if (modelId === 'comfyui-sdxl' || modelId === 'comfyui-flux') {
-    forceProvider = 'comfyui';
     console.log('✅ Forcing ComfyUI backend');
   } else if (modelId === 'gemini-pro') {
-    forceProvider = 'gemini-pro';
     console.log('✅ Forcing Gemini 2.5 Pro');
   } else if (modelId === 'gemini-flash') {
-    forceProvider = 'gemini-flash';
     console.log('✅ Forcing Gemini 2.0 Flash');
   } else if (modelId === 'pollinations') {
-    forceProvider = 'pollinations';
+    console.log('✅ Forcing Pollinations.ai');
     console.log('✅ Forcing Pollinations.ai');
   } else if (modelId === 'openai-dalle') {
     // Skip DALL-E for now (not implemented)
@@ -1653,7 +1645,7 @@ async function detectDocumentLanguage(text: string): Promise<'Thai' | 'English'>
       contents: `Analyze this text sample. Return JSON: { "language": "Thai" } or { "language": "English" }. Text: "${sample}"`,
       config: { responseMimeType: 'application/json' },
     });
-    const json = JSON.parse(extractJsonFromResponse(response.text));
+    const json = JSON.parse(extractJsonFromResponse(response.text || '{}'));
     return json.language === 'Thai' ? 'Thai' : 'English';
   } catch (e) {
     return 'English'; // Default
@@ -1732,7 +1724,7 @@ export async function parseDocumentToScript(rawText: string): Promise<Partial<Sc
       },
     });
 
-    const jsonStr = extractJsonFromResponse(response.text);
+    const jsonStr = extractJsonFromResponse(response.text || "{}");
     const parsedData = JSON.parse(jsonStr);
 
     return {
@@ -1815,7 +1807,7 @@ export async function generateCharacterDetails(
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const result = JSON.parse(text);
 
     // ✅ Record usage after successful generation
@@ -1980,7 +1972,7 @@ Return ONLY a valid JSON array of characters:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
 
     // Transform to full Character objects with IDs
@@ -2180,7 +2172,7 @@ Return ONLY a valid JSON array of 2-4 new characters:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
 
     // Transform to full Character objects with IDs
@@ -2253,7 +2245,7 @@ export async function fillMissingCharacterDetails(
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     return JSON.parse(text);
   } catch (error) {
     console.error('Error filling missing character details:', error);
@@ -2288,7 +2280,7 @@ export async function generateFullScriptOutline(
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const parsed = JSON.parse(text);
 
     const result: Partial<ScriptData> = {
@@ -2308,8 +2300,8 @@ export async function generateFullScriptOutline(
 export async function generateScene(
   scriptData: ScriptData,
   plotPoint: PlotPoint,
-  sceneIndex: number,
-  totalScenesForPoint: number,
+  _sceneIndex: number,
+  _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
   // ✅ Quota validation
@@ -2366,7 +2358,7 @@ IMPORTANT: Use these psychological profiles to:
   `;
 
   const prompt = `
-    Generate Scene #${sceneNumber} (${sceneIndex + 1}/${totalScenesForPoint}) for plot point: "${plotPoint.title}".
+    Generate Scene #${sceneNumber} (${_sceneIndex + 1}/${_totalScenesForPoint}) for plot point: "${plotPoint.title}".
     Context: ${plotPoint.description}
     ${languageInstruction}
     Story Bible: ${storyBible}
@@ -2520,7 +2512,7 @@ IMPORTANT: Use these psychological profiles to:
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const parsedScene = JSON.parse(text);
 
     const processedScene = {
@@ -2563,8 +2555,8 @@ export async function refineScene(
   scriptData: ScriptData,
   plotPoint: PlotPoint,
   existingScene: GeneratedScene,
-  sceneIndex: number,
-  totalScenesForPoint: number,
+  _sceneIndex: number,
+  _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
   const userId = auth.currentUser?.uid;
@@ -2633,7 +2625,7 @@ DO NOT change the structure, just improve the quality of content within it.
       throw new Error('No response from AI model');
     }
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const parsedScene = JSON.parse(text);
 
     // Validate response structure
@@ -2683,8 +2675,8 @@ export async function regenerateWithEdits(
   scriptData: ScriptData,
   plotPoint: PlotPoint,
   editedScene: GeneratedScene,
-  sceneIndex: number,
-  totalScenesForPoint: number,
+  _sceneIndex: number,
+  _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
   const userId = auth.currentUser?.uid;
@@ -2840,7 +2832,7 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
       throw new Error('No response from AI model');
     }
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const parsedScene = JSON.parse(text);
 
     // Validate response structure
@@ -3034,7 +3026,7 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
       contents: prompt,
     });
     
-    const convertedDialogue = response.text.trim();
+    const convertedDialogue = (response.text || '').trim();
 
     // Remove surrounding quotes if present
     const cleaned = convertedDialogue.replace(/^["']|["']$/g, '');
@@ -4370,7 +4362,7 @@ IMPORTANT:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const result = JSON.parse(text);
 
     console.log('✅ Generated boundary:', result);
@@ -4423,7 +4415,7 @@ Return ONLY a JSON object:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const result = JSON.parse(text);
 
     console.log('✅ Generated title:', result.title);
@@ -4634,7 +4626,7 @@ IMPORTANT:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const result = JSON.parse(text);
 
     console.log('✅ Generated structure:', result);
@@ -4757,7 +4749,7 @@ Return ONLY a valid JSON object:
       },
     });
 
-    const text = extractJsonFromResponse(response.text);
+    const text = extractJsonFromResponse(response.text || "{}");
     const result = JSON.parse(text);
 
     console.log(`✅ Generated single plot point (${plotPoint.title}):`, result);
@@ -4785,4 +4777,5 @@ function getPlotPointDefinition(title: string): string {
   };
   return definitions[title] || 'A critical point in the story structure';
 }
+
 

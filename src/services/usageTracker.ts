@@ -358,7 +358,7 @@ export function calculateCostSavings(): {
   usageHistory
     .filter(e => e.success)
     .forEach(entry => {
-      const providerLower = entry.provider.toLowerCase();
+      const providerLower = (entry.provider || '').toLowerCase();
       const isFree = freeProviders.some(fp => providerLower.includes(fp));
 
       if (isFree) {
@@ -378,7 +378,7 @@ export function calculateCostSavings(): {
           existing.estimatedCost += estimatedCost;
         } else {
           breakdown.push({
-            provider: entry.provider,
+            provider: entry.provider || 'unknown',
             timesSaved: 1,
             estimatedCost,
           });

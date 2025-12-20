@@ -185,6 +185,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   // Voice Cloning States
   const [isVoiceUploadModalOpen, setIsVoiceUploadModalOpen] = useState(false);
+  const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
 
   // Ensure characters array is never empty for rendering
   const characters = useMemo(
@@ -927,7 +928,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   };
 
   // Voice Upload Handler
-  const handleVoiceUploadSuccess = (voiceId: string, voiceName: string) => {
+  const handleVoiceUploadSuccess = (voiceId: string, _voiceName: string) => {
     if (onRegisterUndo) onRegisterUndo();
     updateCharacterAtIndex(activeCharIndex, {
       voiceCloning: {
@@ -990,6 +991,79 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     }
   };
 
+  // Preview Voice Handler - Generate and play introduction
+  const handlePreviewVoice = async () => {
+    if (!activeCharacter.voiceCloning?.hasVoiceSample || !activeCharacter.voiceCloning.voiceSampleId) {
+      alert('กรุณาอัพโหลดเสียงตัวอย่างก่อนใช้งานฟีเจอร์นี้');
+      return;
+    }
+
+    if (isPreviewingVoice) {
+      // Stop current playback
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      setIsPreviewingVoice(false);
+      return;
+    }
+
+    setIsPreviewingVoice(true);
+
+    try {
+      // Generate introduction text from character data
+      const introText = generateIntroductionScript(activeCharacter);
+      
+      if (!introText || introText.trim().length === 0) {
+        alert('ไม่สามารถสร้างข้อความแนะนำตัวได้ กรุณากรอกข้อมูลตัวละครให้ครบถ้วน');
+        setIsPreviewingVoice(false);
+        return;
+      }
+
+      console.log('🎙️ Generating voice preview with text:', introText);
+
+      // Synthesize speech using voice cloning service
+      const audioBlob = await voiceCloningService.synthesizeSpeech({
+        text: introText,
+        voice_id: activeCharacter.voiceCloning.voiceSampleId,
+        language: activeCharacter.voiceCloning.language || 'th',
+        speed: 1.0
+      });
+
+      // Create audio URL and play
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        setIsPreviewingVoice(false);
+        audioRef.current = null;
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        URL.revokeObjectURL(audioUrl);
+        setIsPreviewingVoice(false);
+        audioRef.current = null;
+        alert('ไม่สามารถเล่นเสียงได้ กรุณาลองใหม่อีกครั้ง');
+      };
+
+      await audio.play();
+      console.log('✅ Voice preview playing');
+
+    } catch (error) {
+      console.error('❌ Preview voice error:', error);
+      setIsPreviewingVoice(false);
+      
+      let errorMessage = 'เกิดข้อผิดพลาดในการสร้างเสียง';
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      }
+      alert(errorMessage);
+    }
+  };
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
@@ -1000,53 +1074,95 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     };
   }, []);
 
-  // Generate introduction script from character data
+  // Generate concise introduction script (max 400 tokens for XTTS)
   const generateIntroductionScript = (character: Character): string => {
     const scripts: string[] = [];
+    let charCount = 0;
+    const MAX_CHARS = 350; // Safe limit (~400 tokens in Thai)
     
-    // Basic introduction
+    // Helper to add text if under limit
+    const addIfSpace = (text: string) => {
+      if (charCount + text.length <= MAX_CHARS) {
+        scripts.push(text);
+        charCount += text.length;
+        return true;
+      }
+      return false;
+    };
+    
+    // 1. Basic introduction (PRIORITY) - with gender-appropriate greeting
     if (character.name) {
-      scripts.push(`สวัสดีค่ะ ฉันชื่อ${character.name}`);
+      // Check gender for appropriate greeting
+      const gender = character.external?.gender?.toLowerCase() || '';
+      const greeting = gender.includes('ชาย') || gender.includes('male') || gender.includes('man') 
+        ? 'สวัสดีครับ' 
+        : gender.includes('หญิง') || gender.includes('female') || gender.includes('woman')
+        ? 'สวัสดีค่ะ'
+        : 'สวัสดี'; // neutral if gender not specified
+      
+      addIfSpace(`${greeting} ฉันชื่อ${character.name}`);
     }
     
-    // Age (optional field)
-    if ('age' in character && character.age) {
-      scripts.push(`อายุ ${character.age} ปี`);
-    }
-    
-    // Personality (optional field)
-    if ('personality' in character && character.personality) {
-      const personalityMap: Record<string, string> = {
-        'brave': 'เป็นคนกล้าหาญ',
-        'kind': 'ใจดี',
-        'mysterious': 'ลึกลับ',
-        'cheerful': 'ร่าเริง',
-        'serious': 'จริงจัง',
-        'funny': 'ขี้เล่น',
-        'wise': 'ฉลาด',
-        'shy': 'ขี้อาย'
+    // 2. Role
+    if (character.role && charCount < MAX_CHARS) {
+      const roleMap: Record<string, string> = {
+        'protagonist': 'ตัวเอก',
+        'antagonist': 'ตัวร้าย',
+        'supporting': 'ตัวประกอบ',
+        'extra': 'ตัวเสริม'
       };
-      const desc = personalityMap[character.personality as string] || character.personality;
-      scripts.push(String(desc));
+      const roleDesc = roleMap[character.role.toLowerCase()] || '';
+      if (roleDesc) addIfSpace(`เป็น${roleDesc}`);
     }
     
-    // Goals
-    if (character.goals && typeof character.goals === 'object') {
-      const goalsObj = character.goals as { objective?: string; need?: string; action?: string; conflict?: string; backstory?: string };
-      if (goalsObj.objective) {
-        scripts.push(`เป้าหมายของฉันคือ ${goalsObj.objective}`);
+    // 3. Age & Gender
+    if (character.external && charCount < MAX_CHARS) {
+      const parts: string[] = [];
+      if (character.external.age) parts.push(`อายุ ${character.external.age} ปี`);
+      if (character.external.gender) parts.push(character.external.gender);
+      if (parts.length > 0) addIfSpace(parts.join(' '));
+    }
+    
+    // 4. Description (shortened)
+    if (character.description && charCount < MAX_CHARS - 50) {
+      const shortDesc = character.description.substring(0, 80);
+      addIfSpace(shortDesc);
+    }
+    
+    // 5. Personality traits (TOP 2)
+    if (character.internal?.consciousness && charCount < MAX_CHARS) {
+      const traits: string[] = [];
+      Object.entries(character.internal.consciousness).forEach(([key, value]) => {
+        if (typeof value === 'number' && value >= 70) {
+          const traitMap: Record<string, string> = {
+            'confidence': 'มั่นใจ',
+            'empathy': 'ใจดี',
+            'wisdom': 'ฉลาด',
+            'courage': 'กล้าหาญ'
+          };
+          if (traitMap[key]) traits.push(traitMap[key]);
+        }
+      });
+      if (traits.length > 0) {
+        addIfSpace(`เป็นคน${traits.slice(0, 2).join('และ')}`);
       }
     }
     
-    // Speech pattern
+    // 6. Main goal
+    if (character.goals && typeof character.goals === 'object' && charCount < MAX_CHARS) {
+      const goalsObj = character.goals as { objective?: string };
+      if (goalsObj.objective && goalsObj.objective.length > 0) {
+        const shortGoal = goalsObj.objective.substring(0, 80);
+        addIfSpace(`เป้าหมายคือ ${shortGoal}`);
+      }
+    }
+    
+    // 7. Speech tics (FINAL TOUCH)
     const sp = character.speechPattern;
-    if (sp) {
-      // Add speech tics at the end
-      if (sp.speechTics && sp.speechTics.length > 0) {
-        const tic = sp.speechTics[0];
-        const lastScript = scripts[scripts.length - 1];
-        scripts[scripts.length - 1] = `${lastScript}${tic}`;
-      }
+    if (sp?.speechTics && sp.speechTics.length > 0 && scripts.length > 0) {
+      const tic = sp.speechTics[0];
+      const lastScript = scripts[scripts.length - 1];
+      scripts[scripts.length - 1] = `${lastScript}${tic}`;
     }
     
     return scripts.join(' ');
@@ -1720,10 +1836,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 )}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setIsVoiceUploadModalOpen(true)}
-                  className={`w-full text-[10px] font-bold py-2 rounded flex flex-col items-center justify-center gap-1 transition-colors border ${
+                  className={`text-[10px] font-bold py-2 rounded flex flex-col items-center justify-center gap-1 transition-colors border ${
                     activeCharacter.voiceCloning?.hasVoiceSample
                       ? 'bg-cyan-700 border-cyan-600 hover:bg-cyan-600 text-white'
                       : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300'
@@ -1743,11 +1859,46 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </svg>
                   {activeCharacter.voiceCloning?.hasVoiceSample ? 'Change' : 'Upload'}
                 </button>
-                {activeCharacter.voiceCloning?.hasVoiceSample && (
-                  <div className="mt-1 text-[8px] text-center text-gray-500">
-                    Port 8001 • XTTS-v2
-                  </div>
-                )}
+                
+                {/* Preview Voice Button */}
+                <button
+                  onClick={handlePreviewVoice}
+                  disabled={!activeCharacter.voiceCloning?.hasVoiceSample}
+                  className={`text-[10px] font-bold py-2 rounded flex flex-col items-center justify-center gap-1 transition-colors border ${
+                    isPreviewingVoice
+                      ? 'bg-red-700 border-red-600 hover:bg-red-600 text-white'
+                      : activeCharacter.voiceCloning?.hasVoiceSample
+                      ? 'bg-purple-700 border-purple-600 hover:bg-purple-600 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+                  }`}
+                  title={activeCharacter.voiceCloning?.hasVoiceSample ? (
+                    isPreviewingVoice ? 'คลิกเพื่อหยุด' : 'ฟังตัวอย่างเสียงแนะนำตัว'
+                  ) : 'กรุณาอัพโหลดเสียงก่อน'}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    {isPreviewingVoice ? (
+                      // Stop icon - square
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
+                        clipRule="evenodd"
+                      />
+                    ) : (
+                      // Play icon - triangle
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clipRule="evenodd"
+                      />
+                    )}
+                  </svg>
+                  <span className="font-bold">{isPreviewingVoice ? '⏹ STOP' : '▶ พรีวิว'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2801,7 +2952,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                         />
                         {/* Tiny Sequence Number */}
                         <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 font-mono">
-                          #{activeCharacter.outfitCollection.length - i}
+                          #{(activeCharacter.outfitCollection?.length || 0) - i}
                         </div>
                         {getOutfitUsage(outfit.id || '').length > 0 && (
                           <div className="absolute top-0 right-0 w-2 h-2 bg-purple-500 rounded-bl-sm"></div>

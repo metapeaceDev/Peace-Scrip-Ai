@@ -626,7 +626,7 @@ export function applyPsychologyChanges(character: Character, change: PsychologyC
     Object.entries(change.anusaya_delta).forEach(([key, delta]) => {
       const anusayaKey = key as keyof typeof newAnusaya;
       if (newAnusaya && typeof newAnusaya[anusayaKey] === 'number' && delta !== undefined) {
-        newAnusaya[anusayaKey] = Math.max(0, Math.min(100, newAnusaya[anusayaKey] + delta));
+        (newAnusaya as any)[anusayaKey] = Math.max(0, Math.min(100, (newAnusaya[anusayaKey] as number) + delta));
       }
     });
   }

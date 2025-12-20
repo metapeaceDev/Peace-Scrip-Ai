@@ -11,6 +11,7 @@ import torchaudio
 import hashlib
 import tempfile
 import logging
+import numpy as np
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -18,6 +19,17 @@ from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+
+# Audio processing imports
+try:
+    from pydub import AudioSegment
+    from pydub.utils import which
+    # Ensure ffmpeg is available
+    AudioSegment.converter = which("ffmpeg")
+    AudioSegment.ffprobe = which("ffprobe")
+except ImportError:
+    print("WARNING: pydub not installed. Some audio formats may not work.")
+    AudioSegment = None
 
 # Coqui TTS imports
 try:
@@ -49,8 +61,11 @@ UPLOAD_FOLDER.mkdir(exist_ok=True)
 OUTPUT_FOLDER.mkdir(exist_ok=True)
 MODEL_FOLDER.mkdir(exist_ok=True)
 
-# Allowed audio formats
-ALLOWED_EXTENSIONS = {'wav', 'mp3', 'flac', 'ogg', 'm4a'}
+# Allowed audio formats (expanded to include all formats supported by ffmpeg)
+ALLOWED_EXTENSIONS = {
+    'wav', 'mp3', 'flac', 'ogg', 'm4a', 'aac', 'wma', 'opus',
+    'aiff', 'aif', 'webm', 'mp4', 'mpeg', 'mpga'
+}
 
 # Global TTS model (lazy loaded)
 tts_model: Optional[TTS] = None
@@ -78,11 +93,14 @@ def load_tts_model() -> TTS:
     logger.info("⚠️  First load will download ~1.8GB model files")
     
     try:
+        # Set environment variable to accept license automatically
+        os.environ['COQUI_TOS_AGREED'] = '1'
+        
         # Initialize XTTS-v2 model
         # This will automatically download the model if not present
         tts_model = TTS(
             model_name="tts_models/multilingual/multi-dataset/xtts_v2",
-            progress_bar=True,
+            progress_bar=False,  # Disable progress bar for production
             gpu=(device == "cuda")
         ).to(device)
         
@@ -99,40 +117,74 @@ def load_tts_model() -> TTS:
 def preprocess_audio(input_path: Path, output_path: Path) -> Path:
     """
     Preprocess audio file for voice cloning
-    - Convert to WAV format
+    - Convert any audio format to WAV (using pydub + ffmpeg)
     - Resample to 22050 Hz
     - Convert to mono
     - Normalize volume
+    
+    Supports: WAV, MP3, M4A, AAC, OGG, FLAC, and more via ffmpeg
     """
     try:
         logger.info(f"🎵 Preprocessing audio: {input_path}")
+        logger.info(f"   Format: {input_path.suffix}")
         
-        # Load audio
-        waveform, sample_rate = torchaudio.load(str(input_path))
+        # Step 1: Convert to WAV using pydub (handles all formats via ffmpeg)
+        temp_wav = None
+        try:
+            # Load audio with pydub (supports all formats)
+            audio = AudioSegment.from_file(str(input_path))
+            logger.info(f"  ✓ Loaded with pydub: {len(audio)}ms, {audio.frame_rate}Hz, {audio.channels}ch")
+            
+            # Convert to WAV for torchaudio processing
+            temp_wav = input_path.parent / f"temp_{input_path.stem}.wav"
+            audio.export(str(temp_wav), format="wav")
+            logger.info(f"  ✓ Converted to WAV: {temp_wav}")
+            
+            # Use the temp WAV file for torchaudio processing
+            input_for_torch = temp_wav
+            
+        except Exception as e:
+            logger.warning(f"⚠️  pydub conversion failed: {e}")
+            logger.info("  ℹ️  Trying direct torchaudio load...")
+            input_for_torch = input_path
         
-        # Convert to mono if stereo
+        # Step 2: Load with torchaudio
+        waveform, sample_rate = torchaudio.load(str(input_for_torch))
+        logger.info(f"  ✓ Loaded with torchaudio: {sample_rate}Hz")
+        
+        # Step 3: Convert to mono if stereo
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
             logger.info("  ✓ Converted to mono")
         
-        # Resample to 22050 Hz (XTTS requirement)
+        # Step 4: Resample to 22050 Hz (XTTS requirement)
         if sample_rate != 22050:
             resampler = torchaudio.transforms.Resample(sample_rate, 22050)
             waveform = resampler(waveform)
             logger.info(f"  ✓ Resampled: {sample_rate}Hz → 22050Hz")
         
-        # Normalize audio
-        waveform = waveform / torch.max(torch.abs(waveform))
-        logger.info("  ✓ Normalized volume")
+        # Step 5: Normalize audio
+        max_val = torch.max(torch.abs(waveform))
+        if max_val > 0:
+            waveform = waveform / max_val
+            logger.info("  ✓ Normalized volume")
         
-        # Save preprocessed audio
+        # Step 6: Save preprocessed audio
         torchaudio.save(str(output_path), waveform, 22050)
         logger.info(f"✅ Audio preprocessed: {output_path}")
+        
+        # Clean up temp file
+        if temp_wav and temp_wav.exists():
+            temp_wav.unlink()
+            logger.info("  ✓ Cleaned up temp file")
         
         return output_path
         
     except Exception as e:
-        logger.error(f"❌ Audio preprocessing failed: {e}")
+        logger.error(f"❌ Audio preprocessing failed: {e}", exc_info=True)
+        # Clean up temp file on error
+        if 'temp_wav' in locals() and temp_wav and temp_wav.exists():
+            temp_wav.unlink()
         raise
 
 
@@ -274,10 +326,11 @@ def upload_voice_sample():
         })
         
     except Exception as e:
-        logger.error(f"❌ Upload error: {e}")
+        logger.error(f"❌ Upload error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'error_type': type(e).__name__
         }), 500
 
 

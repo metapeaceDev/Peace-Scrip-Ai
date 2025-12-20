@@ -76,7 +76,7 @@ export class TanhaToUpadana_Escalator {
    * Check if current Tanha should escalate to Upadana
    */
   static checkForEscalation(
-    current_tanha_intensity: number,
+    _current_tanha_intensity: number,
     tanha_history: number[],
     tanha_target: string,
     existing_upadanas: ActiveUpadana[]
@@ -378,6 +378,15 @@ export class Kilesa_Eradication_Processor {
 
     const parami = character.parami_portfolio;
     const anusaya = character.buddhist_psychology?.anusaya;
+
+    // Validate required data
+    if (!parami || !anusaya) {
+      return {
+        can_attain: false,
+        requirements_met: [],
+        requirements_missing: ['Missing parami or anusaya data']
+      };
+    }
 
     switch (magga_stage) {
       case 'sotapatti': {

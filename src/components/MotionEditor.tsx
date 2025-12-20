@@ -12,7 +12,6 @@ import React, { useState, useEffect } from 'react';
 import {
   MotionEdit,
   CinematicSuggestions,
-  CinematicOverrides,
   ShotType,
   CameraMovement,
   CameraPerspective,
@@ -65,11 +64,11 @@ export const MotionEditor: React.FC<MotionEditorProps> = ({
   aiSuggestions,
   shotData,
   sceneTitle,
-  shotNumber,
+  shotNumber: _shotNumber,
   propList,
   sceneDetails,
   characterPsychology,
-  allCharacters,
+  allCharacters: _allCharacters,
 }) => {
   const [motionEdit, setMotionEdit] = useState<MotionEdit>(
     initialMotionEdit || DEFAULT_MOTION_EDIT

@@ -45,7 +45,9 @@ class PerformanceMonitor {
     // Keep only recent metrics
     if (this.metrics.size > this.maxMetrics) {
       const firstKey = this.metrics.keys().next().value;
-      this.metrics.delete(firstKey);
+      if (firstKey) {
+        this.metrics.delete(firstKey);
+      }
     }
 
     return metric.duration;

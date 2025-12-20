@@ -1,0 +1,48 @@
+# This file specifies files that are intentionally untracked by gcloud.
+# Do not upload these files to Cloud Build
+
+# Python virtual environments
+venv/
+venv-tts/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Model files (will be downloaded during build)
+models/
+*.pth
+*.pt
+*.safetensors
+
+# Output/Upload directories (will be created at runtime)
+outputs/
+uploads/
+temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

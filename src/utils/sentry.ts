@@ -61,7 +61,8 @@ interface SentryBreadcrumb {
   data?: Record<string, unknown>;
 }
 
-interface SentryModule {
+// Interface for Sentry module (used internally for type checking)
+export type SentryModule = {
   init: (options: SentryOptions) => void;
   captureException: (error: Error, context?: SentryContext) => void;
   captureMessage: (message: string, level?: string) => void;
@@ -70,7 +71,7 @@ interface SentryModule {
   addBreadcrumb: (breadcrumb: SentryBreadcrumb) => void;
   reactRouterV6BrowserTracingIntegration?: (config: unknown) => unknown;
   replayIntegration?: (config: unknown) => unknown;
-}
+};
 
 /**
  * Initialize Sentry if DSN is provided
@@ -218,6 +219,6 @@ export function captureMessage(message: string, level: string = 'info'): void {
   }
 }
 
-// Type guard for React import
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const React = (globalThis as any).React || { useEffect: () => {} };
+// Type guard removed - not needed
+
+

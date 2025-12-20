@@ -12,6 +12,8 @@
  *   if (isFeatureEnabled('JAVANA_DECISION_ENGINE', userId)) { ... }
  */
 
+import { logger } from '../utils/logger';
+
 export const FEATURE_FLAGS = {
   // Phase 1: Core Psychology Enhancements
   JAVANA_DECISION_ENGINE: false as boolean,
@@ -128,8 +130,8 @@ export function enableFeatureForDev(feature: FeatureFlag): void {
   if (import.meta.env.DEV) {
     // Allow mutation in dev mode only
     (FEATURE_FLAGS as Record<FeatureFlag, boolean>)[feature] = true;
-    console.log(`[FeatureFlags] Enabled ${feature} for development`);
+    logger.debug(`Enabled ${feature} for development`);
   } else {
-    console.warn(`[FeatureFlags] Cannot enable ${feature} in production`);
+    logger.warn(`Cannot enable ${feature} in production`);
   }
 }

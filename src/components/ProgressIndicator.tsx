@@ -5,7 +5,7 @@
  * Real-time progress updates with stages
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 export interface ProgressStage {
   id: string;
@@ -28,20 +28,10 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   showEstimatedTime = true,
   onCancel
 }) => {
-  const [elapsedTime, setElapsedTime] = useState(0);
+  // const [elapsedTime, setElapsedTime] = useState(0);
   const activeStage = stages.find(s => s.status === 'active');
   const completedStages = stages.filter(s => s.status === 'complete').length;
   const totalProgress = (completedStages / stages.length) * 100;
-
-  useEffect(() => {
-    if (!activeStage) return;
-
-    const interval = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeStage]);
 
   // Estimate remaining time based on average stage time
   const estimateRemainingTime = () => {
@@ -151,7 +141,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   );
 };
 
-const StageItem: React.FC<{ stage: ProgressStage; index: number }> = ({ stage, index }) => {
+const StageItem: React.FC<{ stage: ProgressStage; index: number }> = ({ stage, index: _index }) => {
   const icons = {
     pending: '⏳',
     active: '🔄',

@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { exportAnalyticsCSV } from '../../services/adminAnalyticsService';
 import { logAdminAction } from '../../services/adminAuthService';
+import { logger } from '../../utils/logger';
 
 export const ExportButton: React.FC = () => {
   const [exporting, setExporting] = useState(false);
@@ -36,9 +37,9 @@ export const ExportButton: React.FC = () => {
       link.click();
       document.body.removeChild(link);
 
-      console.log('✅ CSV exported successfully');
+      logger.info('CSV exported successfully');
     } catch (error) {
-      console.error('❌ Error exporting CSV:', error);
+      logger.error('Error exporting CSV', { error });
       alert('Failed to export data. Please try again.');
     } finally {
       setExporting(false);

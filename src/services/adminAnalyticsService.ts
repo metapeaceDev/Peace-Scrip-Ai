@@ -10,15 +10,11 @@ import {
   query,
   where,
   getDocs,
-  getDoc,
-  doc,
-  orderBy,
-  limit,
   Timestamp,
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { db } from '../config/firebase';
 import type {
   UserStats,
   RevenueMetrics,
@@ -34,12 +30,6 @@ import { firestoreService } from './firestoreService';
 const TIER_PRICES = {
   basic: 149.5, // Early Bird
   pro: 499.5, // Early Bird
-  enterprise: 8000,
-} as const;
-
-const TIER_PRICES_NORMAL = {
-  basic: 299,
-  pro: 999,
   enterprise: 8000,
 } as const;
 
@@ -206,7 +196,7 @@ export async function getRevenueMetrics(
  * Get Usage Analytics
  */
 export async function getUsageAnalytics(
-  dateRange?: { start: Date; end: Date }
+  _dateRange?: { start: Date; end: Date }
 ): Promise<UsageAnalytics> {
   try {
     console.log('📊 Fetching usage analytics...');

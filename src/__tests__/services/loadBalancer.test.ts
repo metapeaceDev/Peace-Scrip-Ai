@@ -50,6 +50,7 @@ describe('Load Balancer Integration', () => {
   afterEach(async () => {
     await balancer.shutdown();
     balancer.removeAllListeners();
+    vi.restoreAllMocks();
   });
 
   describe('Auto-scaling Up', () => {

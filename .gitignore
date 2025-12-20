@@ -98,6 +98,19 @@ nohup.out
 
 # Temporary utility pages (removed after use)
 public/init-admin.html
+
+# Build and deployment logs
+build-log.txt
+server.log
+server_start.log
+
+# Test audio files (demo purposes)
+*test*.wav
+*sample*.wav
+*demo*.wav
+
+# Commit instructions (generated docs)
+COMMIT_INSTRUCTIONS.md
 public/force-logout.html
 public/refresh-token.html
 dist/init-admin.html

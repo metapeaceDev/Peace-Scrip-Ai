@@ -12,6 +12,7 @@ import {
   getDefaultPermissionsForRole,
   getRoleDescription 
 } from '../../services/adminManagementService';
+import { logger } from '../../utils/logger';
 
 interface EditAdminModalProps {
   admin: AdminUser | null;
@@ -108,11 +109,11 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
         permissions: permissions,
       });
 
-      console.log('✅ Admin updated successfully');
+      logger.info('Admin updated successfully', { userId: admin.userId });
       onSuccess();
       handleClose();
     } catch (err: any) {
-      console.error('❌ Error updating admin:', err);
+      logger.error('Error updating admin', { error: err.message });
       setError(err.message || 'เกิดข้อผิดพลาดในการอัพเดท admin');
     } finally {
       setLoading(false);

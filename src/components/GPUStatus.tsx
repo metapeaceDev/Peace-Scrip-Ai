@@ -4,7 +4,6 @@
  * Shows real-time GPU detection status and backend recommendations
  */
 
-import React from 'react';
 import { useDeviceDetection, formatDeviceInfo, getDeviceEmoji, getBackendEmoji, type BackendRecommendation } from '../hooks/useDeviceDetection';
 
 interface GPUStatusProps {

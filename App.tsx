@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import type {
   ScriptData,
   Character,
@@ -15,24 +15,28 @@ import Step2StoryScope from './src/components/Step2StoryScope';
 import Step3Character from './src/components/Step3Character';
 import Step4Structure from './src/components/Step4Structure';
 import Step5Output from './src/components/Step5Output';
-import Studio from './src/components/Studio';
-import TeamManager from './src/components/TeamManager';
-import AuthPage from './src/components/AuthPage';
-import ComfyUISetup from './src/components/ComfyUISetup';
-import LoRASetup from './src/components/LoRASetup';
-import { ProviderSettings } from './src/components/ProviderSettings';
-import ProviderSelector from './src/components/ProviderSelector';
-import UsageDashboard from './src/components/UsageDashboard';
-import SubscriptionDashboard from './src/components/SubscriptionDashboard';
-import StripeCheckout from './src/components/StripeCheckout';
-import PaymentSuccess from './src/components/PaymentSuccess';
-import PaymentCancel from './src/components/PaymentCancel';
+
+// Lazy load large components for better performance
+const Studio = lazy(() => import('./src/components/Studio'));
+const TeamManager = lazy(() => import('./src/components/TeamManager'));
+const AuthPage = lazy(() => import('./src/components/AuthPage'));
+const ComfyUISetup = lazy(() => import('./src/components/ComfyUISetup'));
+const LoRASetup = lazy(() => import('./src/components/LoRASetup'));
+const ProviderSettings = lazy(() => import('./src/components/ProviderSettings').then(m => ({ default: m.ProviderSettings })));
+const ProviderSelector = lazy(() => import('./src/components/ProviderSelector'));
+const UsageDashboard = lazy(() => import('./src/components/UsageDashboard'));
+const SubscriptionDashboard = lazy(() => import('./src/components/SubscriptionDashboard'));
+const StripeCheckout = lazy(() => import('./src/components/StripeCheckout'));
+const PaymentSuccess = lazy(() => import('./src/components/PaymentSuccess'));
+const PaymentCancel = lazy(() => import('./src/components/PaymentCancel'));
 import { LanguageSwitcher } from './src/components/LanguageSwitcher';
 import QuotaWidget from './src/components/QuotaWidget';
 import { GPUStatusBadge } from './src/components/GPUStatus';
-import VideoGenerationTestPage from './src/pages/VideoGenerationTestPage.tsx';
-import { AdminRoute } from './src/components/AdminRoute';
-import { AdminDashboard } from './src/components/admin/AdminDashboard';
+import NotificationBell from './src/components/NotificationBell';
+
+const VideoGenerationTestPage = lazy(() => import('./src/pages/VideoGenerationTestPage.tsx'));
+const AdminRoute = lazy(() => import('./src/components/AdminRoute').then(m => ({ default: m.AdminRoute })));
+const AdminDashboard = lazy(() => import('./src/components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { api } from './src/services/api';
 import { parseDocumentToScript } from './src/services/geminiService';
 import { firebaseAuth } from './src/services/firebaseAuth';
@@ -43,7 +47,7 @@ import { getCurrentLanguage, type Language } from './src/i18n';
 import { getProviderConfig, saveProviderConfig } from './src/services/providerConfigStore';
 import type { ProviderMode, ModelPreference } from './src/services/providerConfigStore';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from './src/config/firebase';
+import { db, auth } from './src/config/firebase';
 
 interface SimpleUser {
   uid: string;
@@ -293,6 +297,41 @@ function App() {
   const [view, setView] = useState<'studio' | 'editor' | 'video-test' | 'admin'>('studio');
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  // Check for admin confirmation redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminConfirmed = urlParams.get('adminConfirmed');
+    
+    if (adminConfirmed === 'true') {
+      console.log('🎉 Admin confirmation detected - forcing token refresh');
+      
+      // Clear URL param
+      window.history.replaceState({}, document.title, '/');
+      
+      // Wait for auth to be ready, then force refresh token
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        if (user) {
+          console.log('👤 User authenticated, refreshing token...');
+          user.getIdToken(true).then(() => {
+            console.log('✅ Token refreshed successfully');
+            unsubscribe(); // Stop listening
+            setTimeout(() => {
+              console.log('🔄 Reloading page to apply admin role...');
+              window.location.reload();
+            }, 500);
+          }).catch(err => {
+            console.error('❌ Token refresh error:', err);
+            unsubscribe();
+            window.location.reload();
+          });
+        } else {
+          console.log('⚠️ No user authenticated');
+          unsubscribe();
+        }
+      });
+    }
+  }, []);
 
   const [scriptData, setScriptData] = useState<ScriptData>(INITIAL_SCRIPT_DATA);
   const [currentStep, setCurrentStep] = useState(1);
@@ -1168,24 +1207,46 @@ function App() {
 
   // Show Stripe Checkout if user clicks upgrade
   if (showStripeCheckout) {
-    return <StripeCheckout onClose={() => setShowStripeCheckout(false)} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          Loading Checkout...
+        </div>
+      }>
+        <StripeCheckout onClose={() => setShowStripeCheckout(false)} />
+      </Suspense>
+    );
   }
 
   // Show Payment Success Page
   if (showPaymentSuccess) {
-    return <PaymentSuccess onContinue={() => setShowPaymentSuccess(false)} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          Loading...
+        </div>
+      }>
+        <PaymentSuccess onContinue={() => setShowPaymentSuccess(false)} />
+      </Suspense>
+    );
   }
 
   // Show Payment Cancel Page
   if (showPaymentCancel) {
     return (
-      <PaymentCancel
-        onRetry={() => {
-          setShowPaymentCancel(false);
-          setShowStripeCheckout(true);
-        }}
-        onBack={() => setShowPaymentCancel(false)}
-      />
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          Loading...
+        </div>
+      }>
+        <PaymentCancel
+          onRetry={() => {
+            setShowPaymentCancel(false);
+            setShowStripeCheckout(true);
+          }}
+          onBack={() => setShowPaymentCancel(false)}
+        />
+      </Suspense>
     );
   }
 
@@ -1209,7 +1270,16 @@ function App() {
             </button>
           </div>
         </header>
-        <SubscriptionDashboard />
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center text-cyan-400">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p>Loading Subscription Dashboard...</p>
+            </div>
+          </div>
+        }>
+          <SubscriptionDashboard />
+        </Suspense>
       </div>
     );
   }
@@ -1217,7 +1287,15 @@ function App() {
   // Show ComfyUI Setup if not running
   if (showComfyUISetup) {
     return (
-      <ComfyUISetup
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading ComfyUI Setup...</p>
+          </div>
+        </div>
+      }>
+        <ComfyUISetup
         onComplete={() => {
           setShowComfyUISetup(false);
           setComfyUIReady(true);
@@ -1242,13 +1320,22 @@ function App() {
           window.location.reload();
         }}
       />
+      </Suspense>
     );
   }
 
   // Show LoRA Setup if required models not installed
   if (showLoRASetup) {
     return (
-      <LoRASetup
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading LoRA Setup...</p>
+          </div>
+        </div>
+      }>
+        <LoRASetup
         onComplete={() => {
           setShowLoRASetup(false);
           setLoraReady(true);
@@ -1269,6 +1356,7 @@ function App() {
           }
         }}
       />
+      </Suspense>
     );
   }
 
@@ -1292,7 +1380,15 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) return <AuthPage onLoginSuccess={handleLoginSuccess} />;
+  if (!isAuthenticated) return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+        Loading Authentication...
+      </div>
+    }>
+      <AuthPage onLoginSuccess={handleLoginSuccess} />
+    </Suspense>
+  );
 
   // Video Generation Test Page
   if (view === 'video-test') {
@@ -1329,7 +1425,16 @@ function App() {
             </button>
           </div>
         </div>
-        <VideoGenerationTestPage />
+        <Suspense fallback={
+          <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p>Loading Video Generation Test...</p>
+            </div>
+          </div>
+        }>
+          <VideoGenerationTestPage />
+        </Suspense>
       </>
     );
   }
@@ -1337,9 +1442,18 @@ function App() {
   // Admin Dashboard View
   if (view === 'admin') {
     return (
-      <AdminRoute>
-        <AdminDashboard />
-      </AdminRoute>
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading Admin Dashboard...</p>
+          </div>
+        </div>
+      }>
+        <AdminRoute>
+          <AdminDashboard />
+        </AdminRoute>
+      </Suspense>
     );
   }
 
@@ -1397,16 +1511,25 @@ function App() {
             </button>
           </div>
         </div>
-        <Studio
-          projects={projects}
-          onCreateProject={handleCreateProject}
-          onOpenProject={handleOpenProject}
-          onDeleteProject={handleDeleteProject}
-          onImportProject={handleImportProject}
-          onExportProject={handleExportProjectFromStudio}
-          onRefreshProjects={loadCloudProjects}
-          onViewChange={setView}
-        />
+        <Suspense fallback={
+          <div className="min-h-screen bg-gray-900 flex items-center justify-center text-cyan-400">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p>Loading Studio...</p>
+            </div>
+          </div>
+        }>
+          <Studio
+            projects={projects}
+            onCreateProject={handleCreateProject}
+            onOpenProject={handleOpenProject}
+            onDeleteProject={handleDeleteProject}
+            onImportProject={handleImportProject}
+            onExportProject={handleExportProjectFromStudio}
+            onRefreshProjects={loadCloudProjects}
+            onViewChange={setView}
+          />
+        </Suspense>
       </>
     );
   }
@@ -1445,6 +1568,9 @@ function App() {
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* GPU Status Badge */}
             <GPUStatusBadge />
+            
+            {/* Notification Bell */}
+            {currentUser && <NotificationBell />}
             
             <div className="h-6 w-px bg-gray-600"></div>
 
@@ -1661,12 +1787,21 @@ function App() {
         )}
 
         {isTeamManagerOpen && (
-          <TeamManager
-            scriptData={scriptData}
-            setScriptData={setScriptData}
-            onClose={() => setIsTeamManagerOpen(false)}
-            onSaveProject={saveCurrentProject}
-          />
+          <Suspense fallback={
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+              <div className="text-center text-white">
+                <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p>Loading Team Manager...</p>
+              </div>
+            </div>
+          }>
+            <TeamManager
+              scriptData={scriptData}
+              setScriptData={setScriptData}
+              onClose={() => setIsTeamManagerOpen(false)}
+              onSaveProject={saveCurrentProject}
+            />
+          </Suspense>
         )}
 
         {/* Provider Selector Modal */}

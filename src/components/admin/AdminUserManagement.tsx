@@ -6,10 +6,15 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db, auth } from '../../config/firebase';
+import { auth } from '../../config/firebase';
 import { getAdminRole, logAdminAction } from '../../services/adminAuthService';
-import { getAllAdmins, removeAdmin } from '../../services/adminManagementService';
+import { 
+  getAllAdmins, 
+  removeAdmin, 
+  getPendingInvitations, 
+  cancelInvitation,
+  type PendingInvitation 
+} from '../../services/adminManagementService';
 import type { AdminUser } from '../../../types';
 import { AddAdminModal } from './AddAdminModal';
 import { EditAdminModal } from './EditAdminModal';
@@ -17,11 +22,13 @@ import { EditAdminModal } from './EditAdminModal';
 export const AdminUserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [cancellingInvitationId, setCancellingInvitationId] = useState<string | null>(null);
 
   useEffect(() => {
     init();
@@ -60,6 +67,11 @@ export const AdminUserManagement: React.FC = () => {
     try {
       const users = await getAllAdmins();
       setAdminUsers(users);
+      
+      const invitations = await getPendingInvitations();
+      setPendingInvitations(invitations.filter(inv => inv.status === 'pending'));
+      
+      console.log(`📋 Loaded ${users.length} admin users and ${invitations.length} pending invitations`);
     } catch (err) {
       console.error('Error loading admin users:', err);
       throw err;
@@ -69,6 +81,7 @@ export const AdminUserManagement: React.FC = () => {
   const handleAddSuccess = async () => {
     await loadAdminUsers();
     setShowAddModal(false);
+    alert('✅ ส่งคำเชิญสำเร็จ! ผู้ใช้จะได้รับอีเมลและ notification เพื่อยืนยันสิทธิ์ Admin');
   };
 
   const handleEditSuccess = async () => {
@@ -106,6 +119,34 @@ export const AdminUserManagement: React.FC = () => {
       alert(`❌ Error: ${err.message}`);
     } finally {
       setDeletingUserId(null);
+    }
+  };
+
+  const handleCancelInvitation = async (invitation: PendingInvitation) => {
+    const confirmed = window.confirm(
+      `⚠️ ยืนยันการยกเลิกคำเชิญ\n\n` +
+      `คุณต้องการยกเลิกคำเชิญสำหรับ ${invitation.email} หรือไม่?\n\n` +
+      `บทบาท: ${invitation.role}\n` +
+      `เชิญโดย: ${invitation.invitedByEmail}\n\n` +
+      `การยกเลิกจะ:\n` +
+      `• ลบคำเชิญทันที\n` +
+      `• ลบ notification ของผู้ถูกเชิญ\n` +
+      `• ส่งอีเมลแจ้งเตือนให้ผู้ถูกเชิญทราบ`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCancellingInvitationId(invitation.id);
+    try {
+      await cancelInvitation(invitation.id);
+      await loadAdminUsers();
+      alert(`✅ ยกเลิกคำเชิญสำเร็จ\n\nคำเชิญสำหรับ ${invitation.email} ถูกยกเลิกแล้ว`);
+    } catch (err: any) {
+      alert(`❌ Error: ${err.message}`);
+    } finally {
+      setCancellingInvitationId(null);
     }
   };
 
@@ -224,8 +265,7 @@ export const AdminUserManagement: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="users-grid">
-            {adminUsers.map((user) => (
+          <div className="users-grid">{adminUsers.map((user) => (
               <div key={user.userId} className="admin-user-card">
                 {/* Card Header */}
                 <div className="card-header">
@@ -302,6 +342,173 @@ export const AdminUserManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pending Invitations Section */}
+      {pendingInvitations.length > 0 && (
+        <div className="pending-invitations-section" style={{ marginTop: '2rem' }}>
+          <div className="list-header">
+            <h3>📨 Pending Invitations ({pendingInvitations.length})</h3>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
+              คำเชิญที่รอการยืนยันจากผู้ใช้
+            </p>
+          </div>
+
+          <div className="invitations-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '1rem',
+            marginTop: '1rem'
+          }}>
+            {pendingInvitations.map((invitation) => {
+              const isExpired = new Date(invitation.expiresAt) < new Date();
+              return (
+                <div key={invitation.id} className="invitation-card" style={{
+                  background: isExpired ? '#fef2f2' : '#fffbeb',
+                  border: `2px solid ${isExpired ? '#fca5a5' : '#fcd34d'}`,
+                  borderRadius: '8px',
+                  padding: '1.25rem'
+                }}>
+                  {/* Header */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>
+                        {isExpired ? '⏰' : '📨'}
+                      </span>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        color: isExpired ? '#991b1b' : '#92400e'
+                      }}>
+                        {invitation.email}
+                      </h4>
+                    </div>
+                    <span className={`role-badge ${getRoleBadgeClass(invitation.role)}`} style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600'
+                    }}>
+                      {invitation.role}
+                    </span>
+                  </div>
+
+                  {/* Details */}
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: '#4b5563',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>เชิญโดย:</strong> {invitation.invitedByEmail}
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>สร้างเมื่อ:</strong> {formatDate(invitation.createdAt)}
+                    </div>
+                    <div style={{
+                      marginBottom: '0.5rem',
+                      color: isExpired ? '#991b1b' : '#92400e',
+                      fontWeight: isExpired ? '600' : '400'
+                    }}>
+                      <strong>หมดอายุ:</strong> {formatDate(invitation.expiresAt)}
+                      {isExpired && ' (Expired)'}
+                    </div>
+                  </div>
+
+                  {/* Permissions */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: '#6b7280',
+                      marginBottom: '0.5rem'
+                    }}>
+                      สิทธิ์:
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem'
+                    }}>
+                      {invitation.permissions.canViewAnalytics && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          background: '#e0e7ff',
+                          color: '#3730a3',
+                          borderRadius: '4px'
+                        }}>📊 Analytics</span>
+                      )}
+                      {invitation.permissions.canExportData && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          background: '#dbeafe',
+                          color: '#1e3a8a',
+                          borderRadius: '4px'
+                        }}>📥 Export</span>
+                      )}
+                      {invitation.permissions.canManageUsers && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          background: '#fee2e2',
+                          color: '#991b1b',
+                          borderRadius: '4px'
+                        }}>👥 Manage</span>
+                      )}
+                      {invitation.permissions.canManageSubscriptions && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          background: '#d1fae5',
+                          color: '#065f46',
+                          borderRadius: '4px'
+                        }}>💳 Subscriptions</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={() => handleCancelInvitation(invitation)}
+                    disabled={cancellingInvitationId === invitation.id}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 1rem',
+                      background: cancellingInvitationId === invitation.id ? '#9ca3af' : '#dc2626',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: cancellingInvitationId === invitation.id ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (cancellingInvitationId !== invitation.id) {
+                        e.currentTarget.style.background = '#b91c1c';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (cancellingInvitationId !== invitation.id) {
+                        e.currentTarget.style.background = '#dc2626';
+                      }
+                    }}
+                  >
+                    {cancellingInvitationId === invitation.id ? '⏳ กำลังยกเลิก...' : '❌ ยกเลิกคำเชิญ'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <AddAdminModal

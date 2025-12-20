@@ -122,7 +122,7 @@ export function calculatePsychologyProfile(character: Character): PsychologyProf
  */
 export function calculateReaction(
   character: Character,
-  eventDescription: string,
+  _eventDescription: string,
   eventIntensity: number = 5 // 1-10 scale
 ): EmotionalReaction {
   const profile = calculatePsychologyProfile(character);

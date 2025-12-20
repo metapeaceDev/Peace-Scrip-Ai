@@ -138,9 +138,9 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
     monthlyPrice: 8000, // Starting price (custom pricing)
     yearlyPrice: 80000,
     currency: 'THB',
-    earlyBirdDiscount: 0, // Enterprise: Contact Sales
-    stripeMonthlyLink: '', // TODO: Contact Sales (no direct checkout)
-    stripeYearlyLink: '', // TODO: Contact Sales (no direct checkout)
+    earlyBirdDiscount: 0, // Enterprise: Contact metapeaceofficial@gmail.com
+    stripeMonthlyLink: '', // Enterprise requires custom pricing - contact sales
+    stripeYearlyLink: '', // Enterprise requires custom pricing - contact sales
   },
 };
 

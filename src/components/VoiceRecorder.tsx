@@ -229,7 +229,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
-  const stopRecording = (shouldProcess: boolean = true) => {
+  const stopRecording = (_shouldProcess: boolean = true) => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);

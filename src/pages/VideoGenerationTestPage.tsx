@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   generateShotVideo,
   generateSceneVideos,

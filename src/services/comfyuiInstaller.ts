@@ -184,8 +184,7 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
   try {
     // This would query ComfyUI's /object_info endpoint to check available models
     const response = await fetch(`${comfyUrl}/object_info`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const data = await response.json();
+    await response.json(); // Just validate the response
     
     // Check for required checkpoint models (Flux, SDXL, etc.)
     const hasCheckpoint = true; // Simplified for now
@@ -211,7 +210,7 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
  * Save ComfyUI URL to settings
  * 🚫 DEPRECATED: No longer saves to localStorage - use .env instead
  */
-export function saveComfyUIUrl(url: string): void {
+export function saveComfyUIUrl(_url: string): void {
   console.warn('⚠️ saveComfyUIUrl() is deprecated. Please update VITE_COMFYUI_URL in .env file instead.');
   console.info('💡 URL not saved. Current URL from .env:', COMFYUI_DEFAULT_URL);
   // Do nothing - .env is single source of truth

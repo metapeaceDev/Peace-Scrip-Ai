@@ -3,7 +3,6 @@ import {
   checkComfyUIStatus,
   getInstallInstructions,
   saveComfyUIUrl,
-  getSavedComfyUIUrl,
   type ComfyUIStatus,
 } from '../services/comfyuiInstaller';
 

@@ -82,7 +82,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
 
   // State
   const [stylePreset, setStylePreset] = useState('neutral');
-  const [shotTitle, setShotTitle] = useState('Shot 1');
+  const [shotTitle] = useState('Shot 1');
 
   // Camera Settings
   const [cameraSettings, setCameraSettings] = useState({

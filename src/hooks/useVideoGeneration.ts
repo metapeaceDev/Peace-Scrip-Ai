@@ -97,7 +97,7 @@ export const useVideoGeneration = (): UseVideoGenerationResult => {
       setError(null);
       abortControllerRef.current = new AbortController();
 
-      const stages = initializeStages();
+      // const stages = initializeStages();
 
       // Stage 1: Prepare
       updateStage('prepare', { 

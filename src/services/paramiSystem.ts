@@ -403,7 +403,7 @@ export class ParamiUpdater {
   /**
    * Calculate resistance bonus for JavanaDecisionEngine
    */
-  static getResistanceBonus(parami_type: keyof ParamiPortfolio, parami_level: number): number {
+  static getResistanceBonus(_parami_type: keyof ParamiPortfolio, parami_level: number): number {
     // Each Parami level provides 10 points of resistance
     // This is used in JavanaDecisionEngine to counter kilesa
     return parami_level * 10;
@@ -464,10 +464,11 @@ export function formatParamiDisplay(parami: ParamiPortfolio): Array<{
       level: p.level,
       exp: p.exp,
       progress: Math.round(progress),
-      target_kilesa:
+      target_kilesa: String(
         ('target_kilesa' in p ? p.target_kilesa : undefined) ||
         PARAMI_KILESA_COUNTER_MAP[key]?.primary_kilesa ||
-        '',
+        ''
+      ),
     };
   });
 }

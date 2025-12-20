@@ -14,7 +14,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -558,7 +557,7 @@ class FirestoreService {
       const DB_VERSION = 1;
       const STORE_NAME = 'projects';
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onerror = () => {

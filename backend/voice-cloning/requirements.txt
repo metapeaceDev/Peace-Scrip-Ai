@@ -5,23 +5,17 @@ flask==3.0.0
 flask-cors==4.0.0
 gunicorn==21.2.0
 
-# Coqui TTS - Voice Cloning Engine (using latest compatible version)
+# Coqui TTS - Voice Cloning Engine
 TTS>=0.22.0
+transformers==4.33.0  # Pin to version compatible with TTS 0.22.0 (BeamSearchScorer available)
 
-# Audio Processing
-torch>=2.1.0
-torchaudio>=2.1.0
-librosa>=0.10.1
+# Audio Processing - Pin to PyTorch <2.6 to avoid weights_only=True issues with TTS
+torch>=2.1.0,<2.6.0
+torchaudio>=2.1.0,<2.6.0
+librosa>=0.10.0
 soundfile>=0.12.1
 pydub>=0.25.1
 
 # Utilities
 python-dotenv==1.0.0
 werkzeug==3.0.0
-
-# Note: Removed strict version pins to allow pip to resolve numpy compatibility
-# between TTS and librosa automatically
-
-# Optional: GPU Support (CUDA)
-# For GPU acceleration, install PyTorch with CUDA:
-# pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118

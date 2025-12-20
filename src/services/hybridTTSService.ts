@@ -4,7 +4,7 @@
  * Saves ฿24,000/year by using custom model first
  */
 
-import { psychologyTTS, CaritaType, PsychologyTTSOptions } from './psychologyTTSService';
+import { psychologyTTS, type CaritaType } from './psychologyTTSService';
 
 export type TTSProvider = 'psychology' | 'azure';
 

@@ -303,7 +303,7 @@ export async function* installAllRequiredModels(): AsyncGenerator<InstallProgres
         message: `Downloading ${model.displayName} (${model.size})...`
       };
       
-      await downloadLoRAModel(model, (progress) => {
+      await downloadLoRAModel(model, (_progress) => {
         // Progress callback handled by individual downloads
       });
       

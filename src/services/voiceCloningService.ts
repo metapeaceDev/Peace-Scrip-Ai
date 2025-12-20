@@ -139,7 +139,7 @@ export class VoiceCloningService {
         resolve();
       };
 
-      audio.onerror = e => {
+      audio.onerror = _e => {
         URL.revokeObjectURL(audioUrl);
         reject(new Error('Audio playback failed'));
       };

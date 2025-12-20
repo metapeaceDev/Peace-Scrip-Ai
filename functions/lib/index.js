@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAdminPermissions = exports.revokeAdminAccess = exports.grantAdminAccess = exports.checkReplicateStatus = exports.replicateProxy = exports.confirmAdminInvitation = exports.createAdminInvitation = exports.initializeSuperAdmin = void 0;
+exports.updateAdminPermissions = exports.revokeAdminAccess = exports.grantAdminAccess = exports.checkReplicateStatus = exports.replicateProxy = exports.cancelAdminInvitation = exports.confirmAdminInvitation = exports.createAdminInvitation = exports.initializeSuperAdmin = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const node_fetch_1 = __importDefault(require("node-fetch"));
@@ -199,42 +199,66 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
         });
         // สร้าง URL สำหรับยืนยัน
         const confirmUrl = `https://peace-script-ai.web.app/accept-admin-invitation?token=${verificationToken}`;
-        // ส่งอีเมลไปยังผู้ที่ถูกเชิญ
-        await admin.firestore().collection('mail').add({
-            to: email,
-            from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
-            replyTo: 'support@peace-script-ai.web.app',
-            message: {
-                subject: '🎉 คุณได้รับคำเชิญเป็น Admin - Peace Script AI',
-                html: generateAdminInvitationEmailHTML({
-                    email: email,
-                    role: role,
-                    permissions: permissions,
-                    invitedBy: callerEmail,
-                    confirmUrl: confirmUrl,
-                    expiresAt: expiresAt.toLocaleString('th-TH', {
-                        timeZone: 'Asia/Bangkok',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                    }),
-                }),
-                text: generateAdminInvitationEmailText({
-                    email: email,
-                    role: role,
-                    permissions: permissions,
-                    invitedBy: callerEmail,
-                    confirmUrl: confirmUrl,
-                    expiresAt: expiresAt.toLocaleString('th-TH', {
-                        timeZone: 'Asia/Bangkok',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                    }),
-                }),
+        // สร้าง in-app notification สำหรับ user
+        await admin.firestore().collection('notifications').add({
+            userId: targetUser.uid,
+            type: 'admin-invitation',
+            title: '🎉 คุณได้รับคำเชิญเป็น Admin',
+            message: `${callerEmail} ได้เชิญคุณเป็น ${role} ของ Peace Script AI`,
+            data: {
+                invitationId: invitationRef.id,
+                role: role,
+                permissions: permissions,
+                invitedBy: callerEmail,
+                confirmUrl: confirmUrl,
+                expiresAt: expiresAt.toISOString(),
             },
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: expiresAt,
         });
-        console.log('📧 Invitation email sent to:', email);
+        console.log('🔔 In-app notification created for:', email);
+        // ส่งอีเมลไปยังผู้ที่ถูกเชิญ (ถ้ามี Firebase Extension)
+        try {
+            await admin.firestore().collection('mail').add({
+                to: email,
+                from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
+                replyTo: 'support@peace-script-ai.web.app',
+                message: {
+                    subject: '🎉 คุณได้รับคำเชิญเป็น Admin - Peace Script AI',
+                    html: generateAdminInvitationEmailHTML({
+                        email: email,
+                        role: role,
+                        permissions: permissions,
+                        invitedBy: callerEmail,
+                        confirmUrl: confirmUrl,
+                        expiresAt: expiresAt.toLocaleString('th-TH', {
+                            timeZone: 'Asia/Bangkok',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                        }),
+                    }),
+                    text: generateAdminInvitationEmailText({
+                        email: email,
+                        role: role,
+                        permissions: permissions,
+                        invitedBy: callerEmail,
+                        confirmUrl: confirmUrl,
+                        expiresAt: expiresAt.toLocaleString('th-TH', {
+                            timeZone: 'Asia/Bangkok',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                        }),
+                    }),
+                },
+            });
+            console.log('📧 Invitation email queued for:', email);
+        }
+        catch (emailError) {
+            console.warn('⚠️ Email notification failed (continuing with in-app notification):', emailError);
+        }
         return {
             success: true,
             message: `Admin invitation sent to ${email}`,
@@ -320,6 +344,25 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             confirmedBy: userId,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+        // Mark related notifications as read
+        try {
+            const notificationsSnapshot = await admin.firestore()
+                .collection('notifications')
+                .where('data.invitationId', '==', invitationDoc.id)
+                .get();
+            if (!notificationsSnapshot.empty) {
+                const batch = admin.firestore().batch();
+                notificationsSnapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, { read: true });
+                });
+                await batch.commit();
+                console.log('✅ Marked notifications as read');
+            }
+        }
+        catch (notifyError) {
+            console.warn('⚠️ Failed to mark notifications as read:', notifyError);
+            // Non-fatal error
+        }
         // บันทึก audit log
         await admin.firestore().collection('admin-audit-log').add({
             adminId: userId,
@@ -402,6 +445,105 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             throw error;
         }
         throw new functions.https.HttpsError('internal', error instanceof Error ? error.message : 'Failed to confirm admin invitation');
+    }
+});
+/**
+ * CANCEL ADMIN INVITATION
+ * ยกเลิกคำเชิญ Admin โดย super-admin
+ */
+exports.cancelAdminInvitation = functions.https.onCall(async (data, context) => {
+    var _a;
+    // ตรวจสอบ authentication
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated to cancel invitation');
+    }
+    // ตรวจสอบว่าเป็น super-admin
+    const callerEmail = context.auth.token.email || 'unknown';
+    const callerUid = context.auth.uid;
+    const isAdmin = context.auth.token.admin === true;
+    const adminRole = context.auth.token.adminRole;
+    console.log('🔍 cancelAdminInvitation called by:', {
+        email: callerEmail,
+        uid: callerUid,
+        isAdmin: isAdmin,
+        adminRole: adminRole,
+    });
+    if (!isAdmin || adminRole !== 'super-admin') {
+        throw new functions.https.HttpsError('permission-denied', `Only super-admins can cancel admin invitations. Your role: ${adminRole || 'none'}`);
+    }
+    const { invitationId } = data;
+    if (!invitationId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invitation ID is required');
+    }
+    try {
+        // ดึงข้อมูล invitation
+        const invitationRef = admin.firestore().collection('admin-invitations').doc(invitationId);
+        const invitationDoc = await invitationRef.get();
+        if (!invitationDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Invitation not found');
+        }
+        const invitation = invitationDoc.data();
+        // อัปเดตสถานะเป็น cancelled
+        await invitationRef.update({
+            status: 'cancelled',
+            cancelledBy: callerUid,
+            cancelledByEmail: callerEmail,
+            cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        // ลบ in-app notification (ถ้ามี)
+        const notificationsSnapshot = await admin.firestore()
+            .collection('notifications')
+            .where('userId', '==', invitation === null || invitation === void 0 ? void 0 : invitation.userId)
+            .where('type', '==', 'admin-invitation')
+            .where('data.invitationId', '==', invitationId)
+            .get();
+        const deletePromises = notificationsSnapshot.docs.map(doc => doc.ref.delete());
+        await Promise.all(deletePromises);
+        // บันทึก audit log
+        await admin.firestore().collection('admin-audit-log').add({
+            adminId: callerUid,
+            adminEmail: callerEmail,
+            action: 'cancel-admin-invitation',
+            targetUserId: invitation === null || invitation === void 0 ? void 0 : invitation.userId,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            userAgent: ((_a = context.rawRequest) === null || _a === void 0 ? void 0 : _a.headers['user-agent']) || 'unknown',
+            details: {
+                invitationId: invitationId,
+                targetEmail: invitation === null || invitation === void 0 ? void 0 : invitation.email,
+                role: invitation === null || invitation === void 0 ? void 0 : invitation.role,
+            },
+        });
+        console.log('✅ Admin invitation cancelled:', invitationId);
+        // ส่งอีเมลแจ้งเตือนไปยังผู้ที่ถูกยกเลิกคำเชิญ (optional)
+        try {
+            await admin.firestore().collection('mail').add({
+                to: invitation === null || invitation === void 0 ? void 0 : invitation.email,
+                from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
+                message: {
+                    subject: '❌ คำเชิญ Admin ถูกยกเลิก - Peace Script AI',
+                    html: `
+            <h2>คำเชิญ Admin ถูกยกเลิก</h2>
+            <p>คำเชิญเป็น Admin สำหรับ ${invitation === null || invitation === void 0 ? void 0 : invitation.email} ถูกยกเลิกโดย ${callerEmail}</p>
+            <p>หากคุณมีคำถาม กรุณาติดต่อ support@peace-script-ai.web.app</p>
+          `,
+                    text: `คำเชิญ Admin ถูกยกเลิก\n\nคำเชิญเป็น Admin สำหรับ ${invitation === null || invitation === void 0 ? void 0 : invitation.email} ถูกยกเลิกโดย ${callerEmail}\n\nหากคุณมีคำถาม กรุณาติดต่อ support@peace-script-ai.web.app`,
+                },
+            });
+        }
+        catch (emailError) {
+            console.warn('⚠️ Failed to send cancellation email:', emailError);
+        }
+        return {
+            success: true,
+            message: 'Admin invitation cancelled successfully',
+        };
+    }
+    catch (error) {
+        console.error('❌ Error cancelling admin invitation:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', error instanceof Error ? error.message : 'Failed to cancel admin invitation');
     }
 });
 /**

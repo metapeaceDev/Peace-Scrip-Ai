@@ -405,7 +405,7 @@ export async function generateWithComfyUI(
       console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
       workflow = buildFluxWorkflow(prompt, {
         ...options,
-        referenceImage: referenceImage || optionsRefImage,
+        referenceImage: (referenceImage || optionsRefImage) ?? undefined,
       });
     } else {
       const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
@@ -413,7 +413,7 @@ export async function generateWithComfyUI(
       workflow = buildWorkflow(prompt, {
         ...options,
         ckpt_name: checkpointName, // Ensure checkpoint name is set
-        referenceImage: referenceImage || optionsRefImage,
+        referenceImage: (referenceImage || optionsRefImage) ?? undefined,
       });
     }
 
@@ -422,7 +422,7 @@ export async function generateWithComfyUI(
     return await generateImageWithBackend(
       prompt,
       workflow,
-      referenceImage || optionsRefImage,
+      referenceImage || optionsRefImage || undefined,
       5, // Default priority
       onProgressCallback // Pass progress callback
     );

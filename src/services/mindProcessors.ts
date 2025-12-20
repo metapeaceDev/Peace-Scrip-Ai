@@ -236,7 +236,7 @@ export class JavanaDecisionEngine {
   /**
    * Check for ActiveUpadana bonus (future implementation)
    */
-  private static checkActiveUpadana(input: SensoryInput, character: Character): number {
+  private static checkActiveUpadana(_input: SensoryInput, _character: Character): number {
     // TODO: Check if character has active upadana related to this input
     // For now, return 0
     return 0;

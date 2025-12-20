@@ -3,7 +3,7 @@
  * Manages multiple RunPod instances and distributes load
  */
 
-import { runPodService, PodInfo } from './runpod';
+import { runPodService } from './runpod';
 import { videoQueue, QueueMetrics } from './requestQueue';
 import { EventEmitter } from 'events';
 

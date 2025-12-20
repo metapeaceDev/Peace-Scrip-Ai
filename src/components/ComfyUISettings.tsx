@@ -9,7 +9,7 @@
  * - Performance settings
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDeviceDetection } from '../hooks/useDeviceDetection';
 import { GPUStatus } from './GPUStatus';
 import { CostCalculator } from './CostCalculator';
@@ -126,7 +126,7 @@ const OverviewTab: React.FC<{
   deviceInfo: any;
   backend: any;
   isDetecting: boolean;
-}> = ({ deviceInfo, backend, isDetecting }) => {
+}> = ({ deviceInfo, backend, isDetecting: _isDetecting }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* GPU Status */}

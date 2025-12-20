@@ -8,6 +8,7 @@
     "dev:backend": "cd comfyui-service && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\" --names \"frontend,backend\" --prefix-colors \"cyan,green\"",
     "build": "tsc && vite build",
+    "prebuild": "node scripts/validate-env.js",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -19,7 +20,11 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "type-check": "tsc --noEmit",
+    "validate:env": "node scripts/validate-env.js",
+    "validate:env:prod": "node scripts/validate-env.js --production",
+    "security:check": "npm audit && node scripts/validate-env.js",
     "firebase:deploy": "npm run build && firebase deploy",
+    "predeploy": "node scripts/validate-env.js --production",
     "firebase:rules": "firebase deploy --only firestore:rules,storage:rules",
     "firebase:hosting": "npm run build && firebase deploy --only hosting",
     "setup": "./setup-dev.sh",
@@ -49,8 +54,8 @@
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.0.0",
-    "@vitest/coverage-v8": "^1.6.1",
-    "@vitest/ui": "^1.0.4",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "bull": "^4.16.5",
     "concurrently": "^9.2.1",
     "eslint": "^8.55.0",
@@ -61,7 +66,7 @@
     "redis": "^5.10.0",
     "terser": "^5.44.1",
     "typescript": "^5.0.2",
-    "vite": "^4.3.9",
-    "vitest": "^1.0.4"
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16"
   }
 }

@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { auth } from '../../config/firebase';
-import { initAdminSession, logAdminAction } from '../../services/adminAuthService';
+import { initAdminSession } from '../../services/adminAuthService';
 import {
   getUserStats,
   getRevenueMetrics,
@@ -23,6 +23,7 @@ import { AdminUserManagement } from './AdminUserManagement';
 import { RevenueChart } from './RevenueChart';
 import { UsageChart } from './UsageChart';
 import { AdminAlerts } from './AdminAlerts';
+import { logger } from '../../utils/logger';
 import './AdminDashboard.css';
 
 type TabView = 'analytics' | 'users-management' | 'alerts';
@@ -54,10 +55,10 @@ export const AdminDashboard: React.FC = () => {
       try {
         // Force token refresh on first load to get latest claims
         if (auth.currentUser) {
-          console.log('🔄 Refreshing token on Admin Dashboard load...');
+          logger.debug('Refreshing token on Admin Dashboard load');
           await auth.currentUser.getIdToken(true);
           const tokenResult = await auth.currentUser.getIdTokenResult();
-          console.log('✅ Token refreshed:', {
+          logger.debug('Token refreshed', {
             email: auth.currentUser.email,
             admin: tokenResult.claims.admin,
             adminRole: tokenResult.claims.adminRole
@@ -73,7 +74,7 @@ export const AdminDashboard: React.FC = () => {
           if (auth.currentUser) {
             const tokenResult = await auth.currentUser.getIdTokenResult();
             if (tokenResult.claims.admin) {
-              console.log('⚠️ Has admin claims but session failed, retrying...');
+              logger.warn('Has admin claims but session failed, retrying');
               // Retry once
               await new Promise(resolve => setTimeout(resolve, 1000));
               const retrySession = await initAdminSession();
@@ -213,7 +214,31 @@ export const AdminDashboard: React.FC = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>📊 Admin Analytics Dashboard</h1>
-        <ExportButton />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button 
+            onClick={() => window.location.href = '/'}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              height: '40px'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+          >
+            🏠 Back to Studio
+          </button>
+          <ExportButton />
+        </div>
       </div>
 
       {/* Tab Navigation */}

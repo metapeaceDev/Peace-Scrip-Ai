@@ -106,9 +106,9 @@ export function generateCinematicSuggestions(
  * Generate sound suggestions based on scene and character
  * Simplified version
  */
-function generateSoundSuggestion(
+export function generateSoundSuggestion(
   character: Character,
-  currentScene?: GeneratedScene
+  _currentScene?: GeneratedScene
 ): string {
   const mood = character.emotionalState?.currentMood || 'neutral';
   
@@ -140,7 +140,7 @@ export interface AnimateDiffParams {
 export function motionEditToAnimateDiffParams(
   motionEdit: MotionEdit,
   character: Character,
-  currentScene?: GeneratedScene
+  _currentScene?: GeneratedScene
 ): AnimateDiffParams {
   // Create shot data for videoMotionEngine functions
   const shotData = {
@@ -183,7 +183,7 @@ export function motionEditToAnimateDiffParams(
 export function buildVideoPromptWithMotion(
   motionEdit: MotionEdit,
   character: Character,
-  currentScene?: GeneratedScene
+  _currentScene?: GeneratedScene
 ): string {
   const shotPreview = motionEdit.shot_preview_generator_panel;
   const camera = motionEdit.camera_control;

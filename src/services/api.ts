@@ -86,7 +86,7 @@ const localApi = {
         });
     },
 
-    createProject: async (title: string, type: ProjectType, data: ScriptData): Promise<string> => {
+    createProject: async (_title: string, _type: ProjectType, data: ScriptData): Promise<string> => {
         const newId = Date.now().toString();
         const newData = { ...data, id: newId, lastModified: Date.now() };
         

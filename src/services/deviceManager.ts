@@ -5,7 +5,7 @@
  */
 
 import { getSavedComfyUIUrl } from './comfyuiInstaller';
-import { parseError, retryWithBackoff, logError, type ComfyUIError } from './errorHandler';
+import { parseError, retryWithBackoff, logError } from './errorHandler';
 import { requestCache, CacheKeys, CacheTTL } from './requestCache';
 
 export type DeviceType = 'cpu' | 'cuda' | 'mps' | 'directml' | 'auto';

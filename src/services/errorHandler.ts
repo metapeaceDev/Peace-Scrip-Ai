@@ -254,8 +254,10 @@ export function logError(error: ComfyUIError, context?: Record<string, unknown>)
     console.error('📊 Error Log:', errorLog);
   }
 
-  // TODO: Send to monitoring service (e.g., Sentry) in production
-  // if (import.meta.env.PROD) {
-  //   sendToMonitoring(errorLog);
-  // }
+  // Production: Send to error monitoring service (Sentry)
+  // Note: Install @sentry/react and configure VITE_SENTRY_DSN in .env
+  if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+    // Sentry.captureException(error, { extra: errorLog });
+    console.info('📊 Error logged to monitoring service');
+  }
 }

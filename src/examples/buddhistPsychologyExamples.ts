@@ -9,6 +9,7 @@ import { classifyKarmaWithJavana, actionsToSensoryInput } from '../services/psyc
 import { calculateParamiSynergy, updateParamiFromAction } from '../services/paramiSystem';
 import { JavanaDecisionEngine } from '../services/mindProcessors';
 import { enableFeatureForDev } from '../config/featureFlags';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // EXAMPLE 1: Enable Features in Development
@@ -18,7 +19,7 @@ function enableBuddhistPsychology() {
   if (import.meta.env.DEV) {
     enableFeatureForDev('JAVANA_DECISION_ENGINE');
     enableFeatureForDev('PARAMI_SYNERGY_MATRIX');
-    console.log('✅ Buddhist Psychology features enabled');
+    logger.info('Buddhist Psychology features enabled');
   }
 }
 
@@ -30,22 +31,22 @@ function exampleParamiAnalysis(character: Character) {
   const analysis = analyzeParamiPortfolio(character);
   
   if (!analysis) {
-    console.log('❌ Character has no parami portfolio');
+    logger.warn('Character has no parami portfolio');
     return;
   }
 
-  console.log('=== PARAMI ANALYSIS ===');
-  console.log(`Total Strength: ${analysis.totalParamiStrength}`);
-  console.log(`Strongest: ${analysis.strongestParami.name} (Level ${analysis.strongestParami.level})`);
-  console.log(`Weakest: ${analysis.weakestParami.name} (Level ${analysis.weakestParami.level})`);
-  console.log(`Overall Synergy Bonus: +${analysis.overallSynergyBonus}`);
+  logger.info('=== PARAMI ANALYSIS ===');
+  logger.info(`Total Strength: ${analysis.totalParamiStrength}`);
+  logger.info(`Strongest: ${analysis.strongestParami.name} (Level ${analysis.strongestParami.level})`);
+  logger.info(`Weakest: ${analysis.weakestParami.name} (Level ${analysis.weakestParami.level})`);
+  logger.info(`Overall Synergy Bonus: +${analysis.overallSynergyBonus}`);
   
-  console.log('\nTop 5 Paramis with Synergy:');
+  logger.info('\nTop 5 Paramis with Synergy:');
   analysis.synergyAnalysis.slice(0, 5).forEach((item, idx) => {
-    console.log(
+    logger.info(
       `${idx + 1}. ${item.parami}: Lv ${item.baseLevel} + ${item.synergyBonus} = ${item.effectiveLevel}`
     );
-    console.log(`   Supported by: ${item.supportingParamis.join(', ')}`);
+    logger.info(`   Supported by: ${item.supportingParamis.join(', ')}`);
   });
 }
 
@@ -56,7 +57,7 @@ function exampleParamiAnalysis(character: Character) {
 function exampleCalculateSynergy(character: Character) {
   if (!character.parami_portfolio) return;
 
-  console.log('=== INDIVIDUAL SYNERGY CALCULATIONS ===');
+  logger.info('=== INDIVIDUAL SYNERGY CALCULATIONS ===');
   
   const paramis: Array<keyof typeof character.parami_portfolio> = [
     'dana', 'sila', 'panna', 'metta'
@@ -67,10 +68,10 @@ function exampleCalculateSynergy(character: Character) {
     const baseLevel = character.parami_portfolio![parami].level;
     const effectiveLevel = baseLevel + synergy;
     
-    console.log(`${parami}:`);
-    console.log(`  Base Level: ${baseLevel}`);
-    console.log(`  Synergy Bonus: +${synergy.toFixed(2)}`);
-    console.log(`  Effective Level: ${effectiveLevel.toFixed(2)}`);
+    logger.info(`${parami}:`);
+    logger.info(`  Base Level: ${baseLevel}`);
+    logger.info(`  Synergy Bonus: +${synergy.toFixed(2)}`);
+    logger.info(`  Effective Level: ${effectiveLevel.toFixed(2)}`);
   });
 }
 
@@ -81,7 +82,7 @@ function exampleCalculateSynergy(character: Character) {
 function exampleUpdateParami(character: Character) {
   if (!character.parami_portfolio) return;
 
-  console.log('=== PARAMI UPDATE FROM ACTIONS ===');
+  logger.info('=== PARAMI UPDATE FROM ACTIONS ===');
   
   // Example: Character performs generous action
   const generousAction = {
@@ -98,8 +99,8 @@ function exampleUpdateParami(character: Character) {
   );
   const afterDana = updatedPortfolio.dana.exp;
 
-  console.log(`Dana EXP: ${beforeDana} → ${afterDana} (+${afterDana - beforeDana})`);
-  console.log(`Dana Level: ${updatedPortfolio.dana.level}`);
+  logger.info(`Dana EXP: ${beforeDana} → ${afterDana} (+${afterDana - beforeDana})`);
+  logger.info(`Dana Level: ${updatedPortfolio.dana.level}`);
 }
 
 // ============================================================================
@@ -107,7 +108,7 @@ function exampleUpdateParami(character: Character) {
 // ============================================================================
 
 function exampleActionsToSensory() {
-  console.log('=== ACTIONS TO SENSORY INPUTS ===');
+  logger.info('=== ACTIONS TO SENSORY INPUTS ===');
   
   const actions = {
     กาย: ['ทำร้ายผู้อื่น'],
@@ -117,13 +118,13 @@ function exampleActionsToSensory() {
 
   const sensoryInputs = actionsToSensoryInput(actions);
   
-  console.log('Input Actions:', actions);
-  console.log('\nSensory Inputs:');
+  logger.info('Input Actions:', actions);
+  logger.info('\nSensory Inputs:');
   sensoryInputs.forEach((input, idx) => {
-    console.log(`${idx + 1}. ${input.senseDoor} door:`);
-    console.log(`   Type: ${input.type}`);
-    console.log(`   Object: ${input.object}`);
-    console.log(`   Intensity: ${input.intensity}/100`);
+    logger.info(`${idx + 1}. ${input.senseDoor} door:`);
+    logger.info(`   Type: ${input.type}`);
+    logger.info(`   Object: ${input.object}`);
+    logger.info(`   Intensity: ${input.intensity}/100`);
   });
 }
 

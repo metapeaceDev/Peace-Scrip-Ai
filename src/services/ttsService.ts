@@ -7,7 +7,7 @@ import type { TTSSettings } from '../components/TTSSettingsModal';
 
 export class TTSService {
   private static instance: TTSService;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  // private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   private constructor() {}
 
@@ -45,7 +45,7 @@ export class TTSService {
    */
   stop(): void {
     window.speechSynthesis.cancel();
-    this.currentUtterance = null;
+    // this.currentUtterance = null;
   }
 
   /**
@@ -74,7 +74,7 @@ export class TTSService {
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      this.currentUtterance = utterance;
+      // this.currentUtterance = utterance;
 
       // Get voices
       const voices = window.speechSynthesis.getVoices();
@@ -286,7 +286,7 @@ export class TTSService {
   /**
    * AWS Polly Text-to-Speech
    */
-  private async speakAWS(text: string, settings: TTSSettings): Promise<void> {
+  private async speakAWS(_text: string, settings: TTSSettings): Promise<void> {
     if (!settings.awsAccessKey || !settings.awsSecretKey || !settings.awsRegion) {
       throw new Error('AWS credentials and region are required');
     }

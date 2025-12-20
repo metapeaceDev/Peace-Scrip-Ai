@@ -8,6 +8,7 @@
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { AdminUser, AdminAuditLog } from '../../types';
+import { logger } from '../utils/logger';
 
 /**
  * Check if current user is admin
@@ -27,7 +28,7 @@ export async function checkIsAdmin(forceRefresh = false): Promise<boolean> {
     const isAdmin = tokenResult.claims.admin === true;
     
     if (forceRefresh) {
-      console.log('🔍 Admin check (refreshed):', {
+      logger.debug('Admin check (refreshed)', {
         email: user.email,
         isAdmin,
         adminRole: tokenResult.claims.adminRole,
@@ -37,7 +38,7 @@ export async function checkIsAdmin(forceRefresh = false): Promise<boolean> {
     
     return isAdmin;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    logger.error('Error checking admin status', { error });
     return false;
   }
 }
@@ -56,7 +57,7 @@ export async function getAdminRole(): Promise<'super-admin' | 'admin' | 'viewer'
     
     return (tokenResult.claims.adminRole as 'super-admin' | 'admin' | 'viewer') || 'viewer';
   } catch (error) {
-    console.error('Error getting admin role:', error);
+    logger.error('Error getting admin role', { error });
     return null;
   }
 }
@@ -89,7 +90,7 @@ export async function getAdminPermissions(): Promise<AdminUser['permissions'] | 
     const adminData = adminDoc.data() as AdminUser;
     return adminData.permissions;
   } catch (error) {
-    console.error('Error getting admin permissions:', error);
+    logger.error('Error getting admin permissions', { error });
     return null;
   }
 }
@@ -116,14 +117,14 @@ export async function logAdminAction(
 ): Promise<void> {
   const user = auth.currentUser;
   if (!user) {
-    console.warn('Cannot log admin action: no user logged in');
+    logger.warn('Cannot log admin action: no user logged in');
     return;
   }
 
   try {
     const isAdmin = await checkIsAdmin();
     if (!isAdmin) {
-      console.warn('Cannot log admin action: user is not admin');
+      logger.warn('Cannot log admin action: user is not admin');
       return;
     }
 
@@ -151,9 +152,9 @@ export async function logAdminAction(
       timestamp: serverTimestamp(),
     });
 
-    console.log(`✅ Admin action logged: ${action}`);
+    logger.info(`Admin action logged: ${action}`);
   } catch (error) {
-    console.error('❌ Error logging admin action:', error);
+    logger.error('Error logging admin action', { error });
     // Don't throw - logging failure shouldn't break the app
   }
 }
@@ -182,7 +183,7 @@ export async function updateAdminLastAccess(): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error updating admin last access:', error);
+    logger.error('Error updating admin last access', { error });
   }
 }
 
@@ -210,7 +211,7 @@ export async function getAdminUserData(userId?: string): Promise<AdminUser | nul
       lastAccess: data.lastAccess instanceof Timestamp ? data.lastAccess.toDate() : undefined,
     } as AdminUser;
   } catch (error) {
-    console.error('Error getting admin user data:', error);
+    logger.error('Error getting admin user data', { error });
     return null;
   }
 }
@@ -228,7 +229,7 @@ export async function initAdminSession(): Promise<{
   const isAdmin = await checkIsAdmin(true);
   
   if (!isAdmin) {
-    console.warn('⚠️ User is not admin or token not refreshed');
+    logger.warn('User is not admin or token not refreshed');
     return {
       isAdmin: false,
       role: null,

@@ -147,17 +147,21 @@ service cloud.firestore {
 
     // Notifications - for user alerts
     match /notifications/{notificationId} {
-      // Users can read their own notifications
-      allow read: if isAuthenticated();
+      // Users can read their own notifications OR notification is for them
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
       
-      // System can create notifications
-      allow create: if isAuthenticated();
+      // Cloud Functions can create notifications (no auth required)
+      // Users with admin permission can also create
+      allow create: if true; // Allow Cloud Functions to create
       
-      // Users can update (mark as read)
-      allow update: if isAuthenticated();
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid;
       
-      // Users can delete their notifications
-      allow delete: if isAuthenticated();
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid;
     }
 
     // Collaborators collection - role-based permissions

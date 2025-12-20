@@ -940,7 +940,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             <div className="prose prose-invert max-w-none space-y-4">
               {/* Parse and display synopsis with 3-Act structure */}
               {(() => {
-                const acts = scriptData.synopsis.split(/ACT [123]/i);
+                // const acts = scriptData.synopsis.split(/ACT [123]/i);
                 const hasActStructure = scriptData.synopsis.match(/ACT [123]/i);
 
                 if (hasActStructure) {

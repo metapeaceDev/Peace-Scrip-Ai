@@ -2,13 +2,27 @@
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
     "rewrites": [
+      {
+        "source": "/accept-admin-invitation",
+        "destination": "/accept-admin-invitation.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ],
     "headers": [
+      {
+        "source": "/accept-admin-invitation.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
       {
         "source": "/index.html",
         "headers": [

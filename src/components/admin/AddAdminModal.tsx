@@ -86,7 +86,33 @@ export const AddAdminModal: React.FC<AddAdminModalProps> = ({
       handleClose();
     } catch (err: any) {
       console.error('❌ Error adding admin:', err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการเพิ่ม admin');
+      
+      // ถ้าเป็น error ที่มี invitation ค้างอยู่แล้ว ให้แสดงข้อความพิเศษ
+      if (err.message?.includes('มีคำเชิญที่รออยู่แล้ว') || 
+          err.message?.includes('invitation') && err.message?.includes('pending')) {
+        const confirmMessage = 
+          `⚠️ มีคำเชิญสำหรับ ${email} ที่รอการยืนยันอยู่แล้ว\n\n` +
+          `คุณต้องการ:\n` +
+          `1. ✅ ปิดหน้านี้แล้วไปยกเลิกคำเชิญเก่า (แนะนำ)\n` +
+          `2. ❌ รอให้คำเชิญเก่าหมดอายุ (7 วัน)\n\n` +
+          `กด OK เพื่อปิดหน้านี้และไปจัดการคำเชิญเก่า`;
+        
+        if (window.confirm(confirmMessage)) {
+          handleClose();
+          // แจ้งให้ไปที่ tab Admin User Management
+          window.alert(
+            '💡 คำแนะนำ:\n\n' +
+            '1. ไปที่ tab "Admin User Management"\n' +
+            '2. Scroll ลงไปด้านล่าง\n' +
+            '3. ดูที่ส่วน "📨 Pending Invitations"\n' +
+            '4. กดปุ่ม "❌ ยกเลิกคำเชิญ"\n' +
+            '5. กลับมากดเพิ่ม Admin ใหม่อีกครั้ง'
+          );
+        }
+        setError('มีคำเชิญที่รอการยืนยันอยู่แล้ว กรุณาไปยกเลิกคำเชิญเก่าก่อน');
+      } else {
+        setError(err.message || 'เกิดข้อผิดพลาดในการเพิ่ม admin');
+      }
     } finally {
       setLoading(false);
     }
@@ -163,23 +189,6 @@ export const AddAdminModal: React.FC<AddAdminModalProps> = ({
                     {permissions.canManageSubscriptions && <li style={{ color: '#1f2937' }}>จัดการ Subscriptions</li>}
                   </ul>
                 </div>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  onClick={handleCancelConfirmation}
-                  className="btn-secondary"
-                  style={{ padding: '0.75rem 1.5rem' }}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={handleConfirmAdd}
-                  className="btn-primary"
-                  style={{ padding: '0.75rem 1.5rem' }}
-                >
-                  📧 ส่งคำเชิญ
-                </button>
               </div>
 
               <div className="modal-actions">

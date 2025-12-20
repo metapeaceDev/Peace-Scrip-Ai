@@ -6,6 +6,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { upgradeSubscription } from '../services/subscriptionManager';
+import { auth } from '../config/firebase';
 
 interface PaymentSuccessProps {
   onContinue?: () => void;
@@ -15,9 +17,29 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
-    // TODO: Update user subscription status in Firebase
-    // This should be triggered by Stripe webhook for production
-    console.log('✅ Payment successful! Updating subscription...');
+    const updateSubscription = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.error('No user logged in');
+          return;
+        }
+
+        // Get subscription tier from URL params (passed from Stripe)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tier = urlParams.get('tier') as 'basic' | 'pro' | 'enterprise';
+        
+        if (tier) {
+          console.log(`✅ Payment successful! Upgrading to ${tier}...`);
+          await upgradeSubscription(user.uid, tier);
+          console.log('✅ Subscription updated successfully');
+        }
+      } catch (error) {
+        console.error('Error updating subscription:', error);
+      }
+    };
+
+    updateSubscription();
 
     // Countdown timer
     const timer = setInterval(() => {

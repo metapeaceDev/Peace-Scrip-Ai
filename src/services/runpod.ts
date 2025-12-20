@@ -220,7 +220,7 @@ export class RunPodService {
     gpuPercent: number;
     memoryPercent: number;
   }> {
-    const status = await this.getPodStatus(podId);
+    // const status = await this.getPodStatus(podId);
     const response = await this.makeRequest(`
       query {
         pod(input: { podId: "${podId}" }) {

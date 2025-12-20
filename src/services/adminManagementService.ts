@@ -262,3 +262,83 @@ export function getRoleDescription(role: 'super-admin' | 'admin' | 'viewer'): st
       return '';
   }
 }
+
+// ===== PENDING INVITATIONS MANAGEMENT =====
+
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  userId: string;
+  role: 'super-admin' | 'admin' | 'viewer';
+  permissions: AdminPermissions;
+  invitedBy: string;
+  invitedByEmail: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+/**
+ * ดึงรายการ pending invitations ทั้งหมด
+ * เฉพาะ super-admin เท่านั้นที่สามารถเรียกใช้ได้
+ */
+export async function getPendingInvitations(): Promise<PendingInvitation[]> {
+  try {
+    const invitationsRef = collection(db, 'admin-invitations');
+    const q = query(invitationsRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+
+    const invitations: PendingInvitation[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      invitations.push({
+        id: doc.id,
+        email: data.email,
+        userId: data.userId,
+        role: data.role,
+        permissions: data.permissions,
+        invitedBy: data.invitedBy,
+        invitedByEmail: data.invitedByEmail,
+        status: data.status,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        expiresAt: data.expiresAt?.toDate() || new Date(),
+      });
+    });
+
+    console.log(`📋 Loaded ${invitations.length} pending invitations`);
+    return invitations;
+  } catch (error) {
+    console.error('❌ Error loading pending invitations:', error);
+    throw new Error('Failed to load pending invitations');
+  }
+}
+
+/**
+ * ลบ pending invitation
+ * เฉพาะ super-admin เท่านั้นที่สามารถเรียกใช้ได้
+ */
+export async function cancelInvitation(invitationId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const cancelAdminInvitation = httpsCallable(functions, 'cancelAdminInvitation');
+    const result = await cancelAdminInvitation({ invitationId });
+
+    const response = result.data as { success: boolean; message: string };
+    
+    console.log('✅ Invitation cancelled successfully:', response);
+    return response;
+  } catch (error: any) {
+    console.error('❌ Error cancelling invitation:', error);
+    
+    let errorMessage = 'ไม่สามารถยกเลิกคำเชิญได้';
+    
+    if (error.code === 'permission-denied') {
+      errorMessage = 'คุณไม่มีสิทธิ์ยกเลิกคำเชิญ (ต้องเป็น Super Admin เท่านั้น)';
+    } else if (error.code === 'not-found') {
+      errorMessage = 'ไม่พบคำเชิญที่ระบุ';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
+  }
+}

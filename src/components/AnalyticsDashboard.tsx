@@ -341,7 +341,7 @@ export const AnalyticsDashboard: React.FC = () => {
                     {entry.success ? '✓ สำเร็จ' : '✗ ล้มเหลว'}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {entry.credits > 0 && `${entry.credits} credits`}
+                    {entry.credits != null && entry.credits > 0 && `${entry.credits} credits`}
                   </p>
                 </div>
               </div>

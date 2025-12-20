@@ -221,12 +221,18 @@
       <button id="confirmButton" class="button">
         ✅ ยืนยันการเป็น Admin
       </button>
+      <button id="backButton" class="button" style="display: none; background-color: #10b981; margin-top: 15px;">
+        🏠 กลับไปหน้า Studio
+      </button>
     </div>
 
     <div id="statusMessage" class="status" style="display: none;"></div>
   </div>
 
   <script type="module">
+    // Version: 1.0.6 - Added Back to Studio Button
+    console.log('🚀 Loading Admin Confirmation Page v1.0.6');
+    
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
     import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
@@ -234,13 +240,13 @@
 
     // Firebase config
     const firebaseConfig = {
-      apiKey: "AIzaSyDqDxVFA0oWxQrKg10JzLZJp4aTfRtqoho",
+      apiKey: "AIzaSyCMZn8sVtszG_gl1NHjbViAnPy6JVeCHvo",
       authDomain: "peace-script-ai.firebaseapp.com",
       projectId: "peace-script-ai",
       storageBucket: "peace-script-ai.firebasestorage.app",
-      messagingSenderId: "663785367659",
-      appId: "1:663785367659:web:09fdc7d6bb01a9e0b4a3e0",
-      measurementId: "G-HCN0QKJ3Q5"
+      messagingSenderId: "624211706340",
+      appId: "1:624211706340:web:b46101b954cd19535187f1",
+      measurementId: "G-G9VBJB26Q8"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -258,6 +264,12 @@
     const invitationInfo = document.getElementById('invitationInfo');
     const statusMessage = document.getElementById('statusMessage');
     const confirmButton = document.getElementById('confirmButton');
+    const backButton = document.getElementById('backButton');
+
+    // Add click handler for back button
+    backButton.addEventListener('click', () => {
+      window.location.href = '/?adminConfirmed=true';
+    });
 
     function showStatus(message, type = 'loading') {
       statusMessage.textContent = message;
@@ -276,13 +288,19 @@
       headerIcon.textContent = '🎉';
       headerTitle.textContent = 'สำเร็จ!';
       headerSubtitle.textContent = 'คุณเป็น Admin แล้ว';
-      showStatus(message, 'success');
-      invitationInfo.style.display = 'none';
       
-      // Redirect หลัง 3 วินาที
+      statusMessage.textContent = message;
+      statusMessage.className = 'status success';
+      statusMessage.style.display = 'block';
+      
+      invitationInfo.style.display = 'none';
+      confirmButton.style.display = 'none';
+      backButton.style.display = 'block';
+      
+      // Auto redirect after 5 seconds (optional)
       setTimeout(() => {
-        window.location.href = '/admin';
-      }, 3000);
+        // window.location.href = '/?adminConfirmed=true';
+      }, 5000);
     }
 
     async function loadInvitation() {
@@ -310,7 +328,8 @@
         const q = query(
           invitationsRef,
           where('verificationToken', '==', verificationToken),
-          where('status', '==', 'pending')
+          where('status', '==', 'pending'),
+          where('email', '==', auth.currentUser.email)
         );
         const snapshot = await getDocs(q);
 
@@ -378,12 +397,24 @@
       showStatus('กำลังยืนยันการเป็น Admin...', 'loading');
 
       try {
+        // 1. เรียก Cloud Function เพื่อยืนยัน
         const confirmAdminInvitation = httpsCallable(functions, 'confirmAdminInvitation');
         const result = await confirmAdminInvitation({ verificationToken });
-
         console.log('✅ Invitation confirmed:', result.data);
 
-        showSuccess('ยืนยันสำเร็จ! กำลังเปลี่ยนไปที่ Admin Dashboard...');
+        // 2. บังคับ refresh Firebase Auth token
+        showStatus('กำลังอัปเดตสิทธิ์...', 'loading');
+        
+        try {
+          await auth.currentUser.getIdToken(true);
+          console.log('✅ Token refreshed successfully');
+        } catch (tokenError) {
+          console.error('⚠️ Token refresh error:', tokenError);
+          // ไม่ fatal - ดำเนินการต่อ
+        }
+
+        // 3. แสดงข้อความสำเร็จและ redirect
+        showSuccess('🎉 คุณเป็น Admin แล้ว! กำลังนำคุณไปหน้า Studio...');
 
       } catch (error) {
         console.error('❌ Error confirming invitation:', error);
