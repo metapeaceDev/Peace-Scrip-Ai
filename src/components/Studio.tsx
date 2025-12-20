@@ -233,11 +233,11 @@ const Studio: React.FC<StudioProps> = ({
                         </svg>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent z-5 pointer-events-none"></div>
                   </div>
 
-                  {/* Action Buttons - Always Visible */}
-                  <div className="absolute top-2 right-2 z-20 flex gap-1.5">
+                  {/* Action Buttons - Always Visible (Highest z-index) */}
+                  <div className="absolute top-2 right-2 z-50 flex gap-1.5">
                     <PermissionGuard permission="canExport" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => {
@@ -293,7 +293,7 @@ const Studio: React.FC<StudioProps> = ({
                   </div>
 
                   <div
-                    className="flex-1 cursor-pointer z-10 flex flex-col p-4"
+                    className="flex-1 cursor-pointer z-0 flex flex-col p-4"
                     onClick={() => onOpenProject(project.id)}
                   >
                     <div className="flex items-start justify-between mb-auto">
