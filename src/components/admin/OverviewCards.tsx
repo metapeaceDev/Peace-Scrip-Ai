@@ -52,21 +52,32 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({ stats, revenue, us
       <div className="card">
         <div className="card-icon">🎬</div>
         <div className="card-content">
-          <h3>Veo Videos</h3>
-          <p className="card-value">{usage.veoVideos.total}</p>
+          <h3>จำนวนวีดีโอรวม</h3>
+          <p className="card-value">{(usage.apiCalls.videos + usage.veoVideos.total).toLocaleString()}</p>
           <p className="card-subtitle">
-            {usage.veoVideos.byUser.length} users
+            Veo3: {usage.veoVideos.total} | Other: {usage.apiCalls.videos}
           </p>
         </div>
       </div>
 
       <div className="card">
-        <div className="card-icon">📞</div>
+        <div className="card-icon">📝</div>
         <div className="card-content">
-          <h3>API Calls</h3>
-          <p className="card-value">{(usage.apiCalls.scripts + usage.apiCalls.images + usage.apiCalls.videos).toLocaleString()}</p>
+          <h3>ผลรวมข้อความ</h3>
+          <p className="card-value">{usage.apiCalls.scripts.toLocaleString()}</p>
           <p className="card-subtitle">
-            S:{usage.apiCalls.scripts} I:{usage.apiCalls.images} V:{usage.apiCalls.videos}
+            Total text generations
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-icon">🖼️</div>
+        <div className="card-content">
+          <h3>จำนวนภาพรวม</h3>
+          <p className="card-value">{usage.apiCalls.images.toLocaleString()}</p>
+          <p className="card-subtitle">
+            Total images generated
           </p>
         </div>
       </div>
