@@ -326,21 +326,84 @@ export const AdminDashboard: React.FC = () => {
               <h3>Users by Tier</h3>
               {stats && (
                 <div className="tier-distribution">
+                  {/* FREE */}
                   <div className="tier-item">
-                    <span className="tier-label">FREE</span>
-                    <span className="tier-count">{stats.byTier.free}</span>
+                    <div className="tier-header">
+                      <span className="tier-label">FREE</span>
+                      <span className="tier-count">{stats.byTier.free}</span>
+                    </div>
+                    {stats.tierMetrics && (
+                      <div className="tier-metrics">
+                        <div className="metric-row">
+                          <span className="metric-label">Rev:</span>
+                          <span className="metric-value revenue">฿{stats.tierMetrics.free.revenue.toLocaleString()}</span>
+                        </div>
+                        <div className="metric-row">
+                          <span className="metric-label">Cost:</span>
+                          <span className="metric-value cost">฿{stats.tierMetrics.free.cost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* BASIC */}
                   <div className="tier-item">
-                    <span className="tier-label">BASIC</span>
-                    <span className="tier-count">{stats.byTier.basic}</span>
+                    <div className="tier-header">
+                      <span className="tier-label">BASIC</span>
+                      <span className="tier-count">{stats.byTier.basic}</span>
+                    </div>
+                    {stats.tierMetrics && (
+                      <div className="tier-metrics">
+                        <div className="metric-row">
+                          <span className="metric-label">Rev:</span>
+                          <span className="metric-value revenue">฿{stats.tierMetrics.basic.revenue.toLocaleString()}</span>
+                        </div>
+                        <div className="metric-row">
+                          <span className="metric-label">Cost:</span>
+                          <span className="metric-value cost">฿{stats.tierMetrics.basic.cost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* PRO */}
                   <div className="tier-item">
-                    <span className="tier-label">PRO</span>
-                    <span className="tier-count">{stats.byTier.pro}</span>
+                    <div className="tier-header">
+                      <span className="tier-label">PRO</span>
+                      <span className="tier-count">{stats.byTier.pro}</span>
+                    </div>
+                    {stats.tierMetrics && (
+                      <div className="tier-metrics">
+                        <div className="metric-row">
+                          <span className="metric-label">Rev:</span>
+                          <span className="metric-value revenue">฿{stats.tierMetrics.pro.revenue.toLocaleString()}</span>
+                        </div>
+                        <div className="metric-row">
+                          <span className="metric-label">Cost:</span>
+                          <span className="metric-value cost">฿{stats.tierMetrics.pro.cost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* ENTERPRISE */}
                   <div className="tier-item">
-                    <span className="tier-label">ENTERPRISE</span>
-                    <span className="tier-count">{stats.byTier.enterprise}</span>
+                    <div className="tier-header">
+                      <span className="tier-label">ENTERPRISE</span>
+                      <span className="tier-count">{stats.byTier.enterprise}</span>
+                    </div>
+                    {stats.tierMetrics && (
+                      <div className="tier-metrics">
+                        <div className="metric-row">
+                          <span className="metric-label">Rev:</span>
+                          <span className="metric-value revenue">฿{stats.tierMetrics.enterprise.revenue.toLocaleString()}</span>
+                        </div>
+                        <div className="metric-row">
+                          <span className="metric-label">Cost:</span>
+                          <span className="metric-value cost">฿{stats.tierMetrics.enterprise.cost.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

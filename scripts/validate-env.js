@@ -37,7 +37,7 @@ const ENV_CONFIG = {
     {
       name: 'VITE_FIREBASE_API_KEY',
       description: 'Firebase API Key',
-      example: 'AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      example: 'AIzaSy_EXAMPLE_KEY',
       validation: (val) => val && val.startsWith('AIza'),
     },
     {
@@ -73,7 +73,7 @@ const ENV_CONFIG = {
     {
       name: 'VITE_GEMINI_API_KEY',
       description: 'Google Gemini API Key',
-      example: 'AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+      example: 'AIzaSy_EXAMPLE_KEY',
       validation: (val) => val && val.startsWith('AIza'),
     },
   ],

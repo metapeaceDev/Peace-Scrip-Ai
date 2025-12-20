@@ -53,7 +53,7 @@ export async function getUserStats(filters?: {
     }
 
     const snapshot = await getDocs(q);
-    const users = snapshot.docs.map(doc => doc.data());
+    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Calculate statistics
     const stats: UserStats = {
@@ -63,6 +63,12 @@ export async function getUserStats(filters?: {
         basic: 0,
         pro: 0,
         enterprise: 0,
+      },
+      tierMetrics: {
+        free: { count: 0, revenue: 0, cost: 0 },
+        basic: { count: 0, revenue: 0, cost: 0 },
+        pro: { count: 0, revenue: 0, cost: 0 },
+        enterprise: { count: 0, revenue: 0, cost: 0 },
       },
       byStatus: {
         active: 0,
@@ -76,10 +82,24 @@ export async function getUserStats(filters?: {
 
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    users.forEach(user => {
-      const tier = user.subscription?.tier || 'free';
-      stats.byTier[tier as SubscriptionTier]++;
+    // Map userId to Tier for cost calculation
+    const userTierMap: Record<string, SubscriptionTier> = {};
+
+    users.forEach((user: any) => {
+      const tier = (user.subscription?.tier || 'free') as SubscriptionTier;
+      userTierMap[user.id] = tier;
+
+      stats.byTier[tier]++;
+
+      if (stats.tierMetrics) {
+        stats.tierMetrics[tier].count++;
+        if (user.subscription?.status === 'active') {
+          const price = TIER_PRICES[tier as keyof typeof TIER_PRICES] || 0;
+          stats.tierMetrics[tier].revenue += price;
+        }
+      }
 
       // Count by status (default to active)
       const status = user.subscription?.status || 'active';
@@ -125,6 +145,30 @@ export async function getUserStats(filters?: {
         }
       }
     });
+
+    // Calculate Costs from Generations (Current Month)
+    try {
+      const generationsRef = collection(db, 'generations');
+      const genQuery = query(
+        generationsRef,
+        where('timestamp', '>=', Timestamp.fromDate(startOfMonth))
+      );
+      
+      const genSnapshot = await getDocs(genQuery);
+      
+      genSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const userId = data.userId;
+        const cost = data.costInTHB || 0;
+        
+        if (userId && userTierMap[userId] && stats.tierMetrics) {
+          const tier = userTierMap[userId];
+          stats.tierMetrics[tier].cost += cost;
+        }
+      });
+    } catch (error) {
+      console.error('Error calculating tier costs:', error);
+    }
 
     console.log('✅ User statistics fetched:', stats);
     return stats;

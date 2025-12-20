@@ -192,22 +192,64 @@
 
 .tier-item {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.tier-header {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .tier-label {
   font-weight: 600;
-  color: #666;
+  color: #4b5563;
+  font-size: 0.9rem;
 }
 
 .tier-count {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #333;
+  color: #1f2937;
+  background: #e5e7eb;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+}
+
+.tier-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.metric-label {
+  color: #6b7280;
+}
+
+.metric-value {
+  font-weight: 600;
+}
+
+.metric-value.revenue {
+  color: #10b981;
+}
+
+.metric-value.cost {
+  color: #ef4444;
 }
 
 .veo-users {

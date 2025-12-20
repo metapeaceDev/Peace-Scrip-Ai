@@ -541,6 +541,15 @@ export interface AdminAuditLog {
 export interface UserStats {
   total: number;
   byTier: Record<SubscriptionTier, number>;
+  // NEW: Tier Economics
+  tierMetrics?: Record<
+    SubscriptionTier,
+    {
+      count: number;
+      revenue: number;
+      cost: number;
+    }
+  >;
   byStatus: {
     active: number;
     canceled: number;
