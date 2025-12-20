@@ -14,7 +14,12 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
   disabled = false,
   showPermissions = true,
 }) => {
-  const roles: Array<{ value: CollaboratorRole; label: string; description: string; color: string }> = [
+  const roles: Array<{
+    value: CollaboratorRole;
+    label: string;
+    description: string;
+    color: string;
+  }> = [
     {
       value: 'admin',
       label: 'ผู้ดูแล (Admin)',
@@ -47,11 +52,11 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       <label className="block text-sm font-medium text-gray-300">สิทธิ์การเข้าถึง</label>
       <select
         value={currentRole}
-        onChange={(e) => onChange(e.target.value as CollaboratorRole)}
+        onChange={e => onChange(e.target.value as CollaboratorRole)}
         disabled={disabled}
         className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {roles.map((role) => (
+        {roles.map(role => (
           <option key={role.value} value={role.value}>
             {role.label}
           </option>
@@ -70,10 +75,10 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
             </svg>
             <div>
               <p className="text-xs font-medium text-gray-300">
-                {roles.find((r) => r.value === currentRole)?.description}
+                {roles.find(r => r.value === currentRole)?.description}
               </p>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {permissions[currentRole]?.map((perm) => (
+                {permissions[currentRole]?.map(perm => (
                   <span
                     key={perm}
                     className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-900/30 text-cyan-300 border border-cyan-700/50"
@@ -146,7 +151,14 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, size = 'md', showIco
 };
 
 interface PermissionGuardProps {
-  permission: 'canEdit' | 'canDelete' | 'canInvite' | 'canManageTeam' | 'canExport' | 'canManagePayments' | 'canViewAnalytics';
+  permission:
+    | 'canEdit'
+    | 'canDelete'
+    | 'canInvite'
+    | 'canManageTeam'
+    | 'canExport'
+    | 'canManagePayments'
+    | 'canViewAnalytics';
   userRole: CollaboratorRole;
   children: React.ReactNode;
   fallback?: React.ReactNode;
@@ -201,3 +213,4 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
   return <>{hasPermission ? children : fallback}</>;
 };
+

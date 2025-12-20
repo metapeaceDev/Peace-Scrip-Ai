@@ -1,6 +1,6 @@
 import React from 'react';
 import { RevenueManagementPanel } from './RevenueManagementPanel';
-import type { TeamMember } from '../../types';
+import type { TeamMember } from '../types';
 
 interface RevenueManagementPageProps {
   isOpen: boolean;
@@ -53,3 +53,4 @@ export const RevenueManagementPage: React.FC<RevenueManagementPageProps> = ({
     </div>
   );
 };
+

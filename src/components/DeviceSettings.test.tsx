@@ -978,3 +978,4 @@ describe('DeviceSettings', () => {
     });
   });
 });
+

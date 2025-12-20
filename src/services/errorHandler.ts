@@ -1,6 +1,6 @@
 /**
  * Enhanced Error Handling for ComfyUI System
- * 
+ *
  * Provides:
  * - User-friendly error messages
  * - Actionable suggestions
@@ -61,11 +61,11 @@ export function parseError(error: unknown, backend: string): ComfyUIError {
         'Please start ComfyUI on localhost:8188',
         {
           label: 'How to start ComfyUI',
-          url: '/docs/comfyui-setup'
+          url: '/docs/comfyui-setup',
         }
       );
     }
-    
+
     if (backend.includes('cloud')) {
       return new ComfyUIError(
         'Cloud ComfyUI is not responding',
@@ -102,7 +102,7 @@ export function parseError(error: unknown, backend: string): ComfyUIError {
           // Clear old URL
           localStorage.removeItem('comfyui_url');
           window.location.reload();
-        }
+        },
       }
     );
   }
@@ -128,16 +128,16 @@ export function parseError(error: unknown, backend: string): ComfyUIError {
       'You have reached your API quota. Try using local ComfyUI or wait for quota reset.',
       {
         label: 'View pricing',
-        url: '/pricing'
+        url: '/pricing',
       }
     );
   }
 
   // GPU/Memory errors
-  if (error instanceof Error && (
-    error.message.includes('Out of memory') ||
-    error.message.includes('CUDA')
-  )) {
+  if (
+    error instanceof Error &&
+    (error.message.includes('Out of memory') || error.message.includes('CUDA'))
+  ) {
     return new ComfyUIError(
       'GPU out of memory',
       'OOM_ERROR',
@@ -149,7 +149,7 @@ export function parseError(error: unknown, backend: string): ComfyUIError {
         callback: () => {
           // User can reduce quality in settings
           console.info('💡 Tip: Try 512x512 resolution instead of 1024x1024');
-        }
+        },
       }
     );
   }
@@ -164,7 +164,7 @@ export function parseError(error: unknown, backend: string): ComfyUIError {
       'The required AI model is not installed. Please download it first.',
       {
         label: 'Download models',
-        url: '/docs/model-setup'
+        url: '/docs/model-setup',
       }
     );
   }
@@ -186,11 +186,7 @@ export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options: ErrorHandlingOptions = {}
 ): Promise<T> {
-  const {
-    maxRetries = 3,
-    retryDelay = 1000,
-    logToConsole = true
-  } = options;
+  const { maxRetries = 3, retryDelay = 1000, logToConsole = true } = options;
 
   let lastError: Error;
 
@@ -199,12 +195,11 @@ export async function retryWithBackoff<T>(
       if (attempt > 0 && logToConsole) {
         console.log(`🔄 Retry attempt ${attempt}/${maxRetries}...`);
       }
-      
+
       return await fn();
-      
     } catch (error) {
       lastError = error as Error;
-      
+
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s, 8s
         const delay = retryDelay * Math.pow(2, attempt);
@@ -225,11 +220,11 @@ export async function retryWithBackoff<T>(
 export function showErrorNotification(error: ComfyUIError): void {
   // This will be implemented with your existing notification system
   console.error(`❌ ${error.backend}: ${error.message}`);
-  
+
   if (error.suggestion) {
     console.info(`💡 ${error.suggestion}`);
   }
-  
+
   if (error.action) {
     console.info(`🔗 ${error.action.label}`);
   }
@@ -246,7 +241,7 @@ export function logError(error: ComfyUIError, context?: Record<string, unknown>)
     backend: error.backend,
     retriable: error.retriable,
     context,
-    stack: error.stack
+    stack: error.stack,
   };
 
   // Log to console in development
@@ -261,3 +256,4 @@ export function logError(error: ComfyUIError, context?: Record<string, unknown>)
     console.info('📊 Error logged to monitoring service');
   }
 }
+

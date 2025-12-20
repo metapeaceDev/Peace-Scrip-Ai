@@ -1,6 +1,6 @@
 /**
  * Connection Pool Service
- * 
+ *
  * Manages persistent connections to backends
  * Reduces connection overhead and improves performance
  */
@@ -30,7 +30,7 @@ class ConnectionPool {
     const now = Date.now();
 
     // Reuse existing connection if fresh
-    if (existing && (now - existing.lastUsed) < this.maxIdleTime) {
+    if (existing && now - existing.lastUsed < this.maxIdleTime) {
       existing.lastUsed = now;
       existing.useCount++;
       console.log(`🔗 Reusing connection to ${url} (used ${existing.useCount} times)`);
@@ -43,7 +43,7 @@ class ConnectionPool {
       url,
       lastUsed: now,
       useCount: 1,
-      controller
+      controller,
     });
 
     console.log(`🆕 New connection to ${url}`);
@@ -109,8 +109,10 @@ class ConnectionPool {
   getStats() {
     return {
       activeConnections: this.connections.size,
-      totalRequests: Array.from(this.connections.values())
-        .reduce((sum, conn) => sum + conn.useCount, 0)
+      totalRequests: Array.from(this.connections.values()).reduce(
+        (sum, conn) => sum + conn.useCount,
+        0
+      ),
     };
   }
 }
@@ -123,24 +125,21 @@ export default connectionPool;
 /**
  * Fetch wrapper with connection pooling
  */
-export async function pooledFetch(
-  url: string,
-  options: RequestInit = {}
-): Promise<Response> {
+export async function pooledFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = connectionPool.getConnection(url);
 
   try {
     const response = await fetch(url, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     connectionPool.releaseConnection(url);
     return response;
-
   } catch (error) {
     // Don't close connection on error - might be temporary
     connectionPool.releaseConnection(url);
     throw error;
   }
 }
+

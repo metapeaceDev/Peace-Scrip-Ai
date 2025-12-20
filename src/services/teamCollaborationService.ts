@@ -19,7 +19,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { TeamMemberPermissions } from '../../types';
+import type { TeamMemberPermissions } from '../types';
 
 export type CollaboratorRole = 'owner' | 'admin' | 'editor' | 'viewer';
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected';
@@ -291,21 +291,17 @@ class TeamCollaborationService {
   /**
    * ลบ collaborator ออกจากโปรเจ็ค
    */
-  async removeCollaborator(
-    projectId: string,
-    userId: string,
-    removedBy?: string
-  ): Promise<void> {
+  async removeCollaborator(projectId: string, userId: string, removedBy?: string): Promise<void> {
     try {
       console.log('🗑️ Removing collaborator:', userId, 'from project:', projectId);
 
       // ดึงข้อมูล collaborator ก่อนลบ (เพื่อส่งอีเมล)
       const collaboratorRef = doc(db, 'projects', projectId, 'collaborators', userId);
       const collaboratorDoc = await getDoc(collaboratorRef);
-      
+
       let memberEmail = '';
       let memberName = '';
-      
+
       if (collaboratorDoc.exists()) {
         const data = collaboratorDoc.data();
         memberEmail = data.email;
@@ -556,7 +552,7 @@ class TeamCollaborationService {
       // ดึงข้อมูลผู้เชิญ
       const inviterRef = doc(db, 'users', invitation.inviterUserId);
       const inviterDoc = await getDoc(inviterRef);
-      
+
       if (!inviterDoc.exists()) {
         console.warn('⚠️ Inviter user not found, skipping email');
         return;
@@ -614,7 +610,7 @@ class TeamCollaborationService {
       // ดึงข้อมูลโปรเจ็ค
       const projectRef = doc(db, 'projects', projectId);
       const projectDoc = await getDoc(projectRef);
-      
+
       if (!projectDoc.exists()) {
         console.warn('⚠️ Project not found, skipping email');
         return;
@@ -626,16 +622,14 @@ class TeamCollaborationService {
       // ดึงข้อมูลผู้ที่เปลี่ยน role
       const changedByUserRef = doc(db, 'users', changedBy);
       const changedByUserDoc = await getDoc(changedByUserRef);
-      const changedByName = changedByUserDoc.exists() 
+      const changedByName = changedByUserDoc.exists()
         ? changedByUserDoc.data().displayName || changedByUserDoc.data().email
         : 'Project Owner';
 
       // ดึงข้อมูลสมาชิก
       const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
-      const memberName = userDoc.exists() 
-        ? userDoc.data().displayName || memberEmail
-        : memberEmail;
+      const memberName = userDoc.exists() ? userDoc.data().displayName || memberEmail : memberEmail;
 
       // สร้าง email template
       const emailTemplate = createRoleChangedEmail({
@@ -680,7 +674,7 @@ class TeamCollaborationService {
       // ดึงข้อมูลโปรเจ็ค
       const projectRef = doc(db, 'projects', projectId);
       const projectDoc = await getDoc(projectRef);
-      
+
       if (!projectDoc.exists()) {
         console.warn('⚠️ Project not found, skipping email');
         return;
@@ -692,7 +686,7 @@ class TeamCollaborationService {
       // ดึงข้อมูลผู้ที่ลบ
       const removedByUserRef = doc(db, 'users', removedBy);
       const removedByUserDoc = await getDoc(removedByUserRef);
-      const removedByName = removedByUserDoc.exists() 
+      const removedByName = removedByUserDoc.exists()
         ? removedByUserDoc.data().displayName || removedByUserDoc.data().email
         : removedBy;
 
@@ -1015,3 +1009,4 @@ class TeamCollaborationService {
 
 export const teamCollaborationService = new TeamCollaborationService();
 export default teamCollaborationService;
+

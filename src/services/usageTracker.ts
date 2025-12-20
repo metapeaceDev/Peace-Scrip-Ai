@@ -5,7 +5,7 @@
  * Enforces tier-based limits and provides usage analytics
  */
 
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 import { getUserSubscription } from './userStore';
 
 export interface UsageStats {
@@ -428,3 +428,4 @@ export function exportUsageData(): {
     tier: subscription.tier,
   };
 }
+

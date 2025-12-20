@@ -5,6 +5,7 @@
 This guide covers deploying ComfyUI to RunPod cloud infrastructure for scalable video generation.
 
 **Target Specs:**
+
 - GPU: NVIDIA RTX 3090 (24GB VRAM)
 - Cost Target: ~$0.02 per video
 - Scaling: Auto-scale based on demand
@@ -31,6 +32,7 @@ This guide covers deploying ComfyUI to RunPod cloud infrastructure for scalable 
 ### Step 2: Select GPU Pod
 
 **Recommended Configuration:**
+
 ```
 GPU: NVIDIA RTX 3090 (24GB VRAM)
 RAM: 64GB
@@ -40,9 +42,10 @@ Price: ~$0.34/hour on-demand
 ```
 
 **Cost Calculation:**
+
 - Video generation time: ~30-45 seconds
-- Cost per video: $0.34/3600 * 45 = ~$0.00425/video (on-demand)
-- Cost per video: $0.24/3600 * 45 = ~$0.003/video (spot)
+- Cost per video: $0.34/3600 \* 45 = ~$0.00425/video (on-demand)
+- Cost per video: $0.24/3600 \* 45 = ~$0.003/video (spot)
 - Target: $0.02/video (with optimization)
 
 ### Step 3: Docker Image for RunPod
@@ -133,6 +136,7 @@ docker push yourusername/peace-comfyui:latest
 ### Step 5: Deploy to RunPod
 
 **Option A: Via RunPod Console**
+
 1. Go to: https://www.runpod.io/console/pods
 2. Click "Deploy"
 3. Select "RTX 3090"
@@ -183,7 +187,7 @@ async function deployPod(config: RunPodConfig) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey}`,
+      Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({ query: mutation }),
   });
@@ -220,18 +224,18 @@ async function getPodStatus(podId: string, apiKey: string) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ query }),
   });
 
   const data = await response.json();
   const pod = data.data.pod;
-  
+
   // Get public URL
   const httpPort = pod.runtime.ports.find((p: any) => p.privatePort === 8188);
   const publicUrl = `https://${podId}-8188.proxy.runpod.net`;
-  
+
   return {
     id: pod.id,
     status: pod.desiredStatus,
@@ -284,7 +288,7 @@ export const BACKEND_CONFIG = {
     url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
     timeout: 60000,
     maxRetries: 2,
-    costPerVideo: 0.50, // $0.50 per video
+    costPerVideo: 0.5, // $0.50 per video
   },
 };
 ```
@@ -294,16 +298,18 @@ export const BACKEND_CONFIG = {
 ## 📊 Cost Optimization
 
 ### 1. Use Spot Instances
+
 - Save ~30% compared to on-demand
 - Risk: Can be interrupted (rare for short jobs)
 
 ### 2. Auto-shutdown
+
 ```typescript
 // Shutdown pod after 5 minutes of inactivity
 async function autoShutdownPod(podId: string, apiKey: string, idleMinutes: number = 5) {
   const lastActivity = getLastActivityTime();
   const idleTime = Date.now() - lastActivity;
-  
+
   if (idleTime > idleMinutes * 60 * 1000) {
     await stopPod(podId, apiKey);
   }
@@ -311,12 +317,14 @@ async function autoShutdownPod(podId: string, apiKey: string, idleMinutes: numbe
 ```
 
 ### 3. Batch Processing
+
 - Queue multiple videos
 - Start pod once
 - Process batch
 - Shutdown
 
 ### 4. Model Optimization
+
 - Use FLUX.1-schnell (fastest)
 - Reduce inference steps (4-8 steps)
 - Lower resolution when acceptable
@@ -334,28 +342,28 @@ export class CloudHealthMonitor {
   private podId: string;
   private apiKey: string;
   private checkInterval: number = 30000; // 30 seconds
-  
+
   async checkHealth(): Promise<boolean> {
     try {
       const status = await getPodStatus(this.podId, this.apiKey);
-      
+
       // Check if pod is running
       if (status.status !== 'RUNNING') {
         return false;
       }
-      
+
       // Check ComfyUI API
       const response = await fetch(`${status.url}/system_stats`, {
         timeout: 5000,
       });
-      
+
       return response.ok;
     } catch (error) {
       console.error('Health check failed:', error);
       return false;
     }
   }
-  
+
   async startMonitoring(onHealthChange: (healthy: boolean) => void) {
     setInterval(async () => {
       const healthy = await this.checkHealth();
@@ -370,18 +378,21 @@ export class CloudHealthMonitor {
 ## 🚦 Next Steps
 
 ### Phase 2.2: Hybrid Backend Implementation
+
 - [ ] Create backend selection logic
 - [ ] Implement fallback mechanism
 - [ ] Add backend status monitoring
 - [ ] Create UI for backend switching
 
 ### Phase 2.3: Load Balancing & Auto-scaling
+
 - [ ] Implement request queuing
 - [ ] Auto-scale based on queue length
 - [ ] Load balancer for multiple pods
 - [ ] Cost tracking per backend
 
 ### Phase 2.4: Cloud Integration Testing
+
 - [ ] Test video generation on cloud
 - [ ] Verify fallback logic
 - [ ] Performance benchmarks

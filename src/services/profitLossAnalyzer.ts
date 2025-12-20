@@ -1,6 +1,6 @@
 /**
  * Profit & Loss Analyzer Service
- * 
+ *
  * คำนวณกำไร-ขาดทุน พร้อมภาษีตามกฎหมายไทย
  * วิเคราะห์เปรียบเทียบรายงวด และส่งออกรายงาน
  */
@@ -27,14 +27,24 @@ function getDateRange(
 ): { start: Date; end: Date; label: string } {
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
-  
+
   switch (periodType) {
     case 'month': {
       const start = new Date(year, month, 1);
       const end = new Date(year, month + 1, 0, 23, 59, 59);
       const thaiMonths = [
-        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
       ];
       const thaiYear = year + 543;
       return {
@@ -43,7 +53,7 @@ function getDateRange(
         label: `${thaiMonths[month]} ${thaiYear}`,
       };
     }
-    
+
     case 'quarter': {
       const quarter = Math.floor(month / 3);
       const start = new Date(year, quarter * 3, 1);
@@ -55,7 +65,7 @@ function getDateRange(
         label: `Q${quarter + 1} ${thaiYear}`,
       };
     }
-    
+
     case 'year': {
       const start = new Date(year, 0, 1);
       const end = new Date(year, 11, 31, 23, 59, 59);
@@ -66,7 +76,7 @@ function getDateRange(
         label: `ปี ${thaiYear}`,
       };
     }
-    
+
     default: {
       // Custom - return current month as fallback
       const start = new Date(year, month, 1);
@@ -85,25 +95,25 @@ function getPreviousPeriod(
 ): { start: Date; end: Date; label: string } {
   const year = currentStart.getFullYear();
   const month = currentStart.getMonth();
-  
+
   switch (periodType) {
     case 'month': {
       const prevMonth = month === 0 ? 11 : month - 1;
       const prevYear = month === 0 ? year - 1 : year;
       return getDateRange('month', new Date(prevYear, prevMonth, 1));
     }
-    
+
     case 'quarter': {
       const quarter = Math.floor(month / 3);
       const prevQuarterMonth = quarter === 0 ? 9 : (quarter - 1) * 3;
       const prevYear = quarter === 0 ? year - 1 : year;
       return getDateRange('quarter', new Date(prevYear, prevQuarterMonth, 1));
     }
-    
+
     case 'year': {
       return getDateRange('year', new Date(year - 1, 0, 1));
     }
-    
+
     default:
       return getDateRange('month', new Date(year, month - 1, 1));
   }
@@ -119,32 +129,29 @@ async function calculateRevenue(
   try {
     // Get subscription data from Firestore
     const subscriptionsRef = collection(db, 'subscriptions');
-    const q = query(
-      subscriptionsRef,
-      where('subscription.status', '==', 'active')
-    );
-    
+    const q = query(subscriptionsRef, where('subscription.status', '==', 'active'));
+
     const snapshot = await getDocs(q);
     let subscriptions = 0;
-    
+
     snapshot.docs.forEach(doc => {
       const data = doc.data();
       const tier = data.subscription?.tier as keyof typeof SUBSCRIPTION_PRICING;
-      
+
       if (tier && tier !== 'free') {
         // Assume monthly billing for simplicity
         subscriptions += SUBSCRIPTION_PRICING[tier].monthly;
       }
-      
+
       // Check for addon purchases (credits bought beyond subscription)
       // TODO: Implement addon tracking in separate collection
       // For now, estimate based on usage patterns
     });
-    
+
     const addons = 0; // TODO: Calculate addon revenue from separate collection
     const other = 0; // Other revenue sources (future: white-label, consulting)
     const total = subscriptions + addons + other;
-    
+
     return { subscriptions, addons, other, total };
   } catch (error) {
     console.error('Error calculating revenue:', error);
@@ -165,16 +172,16 @@ function calculateOperatingExpenses(revenueTotal: number): {
 } {
   // These should be manually entered or tracked separately
   // For now, we'll use conservative estimates based on startup standards
-  
+
   // Typical SaaS startup expense ratios:
   const salaries = 0; // Pre-revenue stage - founders working for equity
   const marketing = revenueTotal * 0.15; // 15% of revenue on marketing (growth stage)
   const infrastructure = 2000; // Fixed ฿2,000/month (domains, SSL, monitoring tools)
   const software = 1500; // Fixed ฿1,500/month (GitHub, analytics, email service)
   const other = 1000; // Misc expenses ฿1,000/month
-  
+
   const total = salaries + marketing + infrastructure + software + other;
-  
+
   return {
     salaries,
     marketing,
@@ -203,20 +210,20 @@ function calculateTaxes(
   // VAT (7% on revenue - but we collect from customers, so neutral if handled correctly)
   // For simplicity, we'll show VAT payable on output (revenue)
   const vat = revenue * taxRates.vat;
-  
+
   // Corporate Tax (20% on net profit before tax)
   // Only applicable if profit > 0
   const corporateTax = netProfitBeforeTax > 0 ? netProfitBeforeTax * taxRates.corporateTax : 0;
-  
+
   // Withholding Tax (3% on API services we pay)
   // Assuming we pay to foreign providers (Gemini, Replicate)
   const withholdingTax = 0; // Not applicable for B2B software services to foreign entities
-  
+
   // Social Security (5% on salaries, capped at ฿750/person/month)
   const socialSecurity = salaries > 0 ? Math.min(salaries * taxRates.socialSecurity, 750) : 0;
-  
+
   const total = vat + corporateTax + withholdingTax + socialSecurity;
-  
+
   return {
     vat,
     corporateTax,
@@ -236,13 +243,13 @@ export async function calculateProfitLoss(
   referenceDate?: Date
 ): Promise<ProfitLossStatement> {
   const { start, end, label } = getDateRange(periodType, referenceDate);
-  
+
   // Get revenue data
   const revenue = await calculateRevenue(start, end);
-  
+
   // Get cost data from existing projectCostMonitor
   const costSummary = await getProjectCostSummary();
-  
+
   // COGS (Cost of Goods Sold) - direct costs to deliver service
   const cogs = {
     apiCosts: costSummary.breakdown.apis.total,
@@ -252,28 +259,28 @@ export async function calculateProfitLoss(
     bandwidthCosts: costSummary.breakdown.bandwidth.total,
     total: costSummary.totalMonthlyCost - costSummary.breakdown.other.total, // Exclude "other" from COGS
   };
-  
+
   // Gross Profit
   const grossProfit = revenue.total - cogs.total;
   const grossMargin = revenue.total > 0 ? (grossProfit / revenue.total) * 100 : 0;
-  
+
   // Operating Expenses
   const operatingExpenses = calculateOperatingExpenses(revenue.total);
-  
+
   // EBITDA
   const ebitda = grossProfit - operatingExpenses.total;
   const ebitdaMargin = revenue.total > 0 ? (ebitda / revenue.total) * 100 : 0;
-  
+
   // Net Profit Before Tax (assuming no interest, depreciation for software business)
   const netProfitBeforeTax = ebitda;
-  
+
   // Calculate Taxes
   const taxes = calculateTaxes(revenue.total, netProfitBeforeTax, operatingExpenses.salaries);
-  
+
   // Net Profit After Tax
   const netProfitAfterTax = netProfitBeforeTax - taxes.corporateTax;
   const netMargin = revenue.total > 0 ? (netProfitAfterTax / revenue.total) * 100 : 0;
-  
+
   return {
     period: {
       type: periodType,
@@ -304,18 +311,18 @@ export async function getComparison(
 ): Promise<PeriodComparison> {
   // Get current period P&L
   const current = await calculateProfitLoss(periodType, referenceDate);
-  
+
   // Get previous period P&L
   const prevPeriod = getPreviousPeriod(periodType, current.period.start);
   const previous = await calculateProfitLoss(periodType, prevPeriod.start);
-  
+
   // Calculate changes
   const calculateChange = (current: number, previous: number) => {
     const amount = current - previous;
     const percentage = previous !== 0 ? (amount / previous) * 100 : 0;
     return { amount, percentage };
   };
-  
+
   return {
     current,
     previous,
@@ -323,7 +330,10 @@ export async function getComparison(
       revenue: calculateChange(current.revenue.total, previous.revenue.total),
       cogs: calculateChange(current.cogs.total, previous.cogs.total),
       grossProfit: calculateChange(current.grossProfit, previous.grossProfit),
-      operatingExpenses: calculateChange(current.operatingExpenses.total, previous.operatingExpenses.total),
+      operatingExpenses: calculateChange(
+        current.operatingExpenses.total,
+        previous.operatingExpenses.total
+      ),
       ebitda: calculateChange(current.ebitda, previous.ebitda),
       netProfitAfterTax: calculateChange(current.netProfitAfterTax, previous.netProfitAfterTax),
     },
@@ -339,17 +349,17 @@ export async function getHistoricalData(
 ): Promise<HistoricalProfitLoss> {
   const periods: ProfitLossStatement[] = [];
   const currentDate = new Date();
-  
+
   // Get P&L for each period going backwards
   for (let i = 0; i < periodsCount; i++) {
     let referenceDate: Date;
-    
+
     switch (periodType) {
       case 'month':
         referenceDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
         break;
       case 'quarter':
-        referenceDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - (i * 3), 1);
+        referenceDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i * 3, 1);
         break;
       case 'year':
         referenceDate = new Date(currentDate.getFullYear() - i, 0, 1);
@@ -357,43 +367,42 @@ export async function getHistoricalData(
       default:
         referenceDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
     }
-    
+
     const pnl = await calculateProfitLoss(periodType, referenceDate);
     periods.unshift(pnl); // Add to beginning to maintain chronological order
   }
-  
+
   // Calculate trends
   const revenueGrowth: number[] = [];
   const profitMargins: number[] = [];
   const costRatios: number[] = [];
-  
+
   for (let i = 1; i < periods.length; i++) {
     const current = periods[i];
     const previous = periods[i - 1];
-    
+
     // Revenue growth %
-    const growth = previous.revenue.total > 0
-      ? ((current.revenue.total - previous.revenue.total) / previous.revenue.total) * 100
-      : 0;
+    const growth =
+      previous.revenue.total > 0
+        ? ((current.revenue.total - previous.revenue.total) / previous.revenue.total) * 100
+        : 0;
     revenueGrowth.push(growth);
-    
+
     // Profit margin %
     profitMargins.push(current.netMargin);
-    
+
     // Cost ratio (COGS as % of revenue)
-    const costRatio = current.revenue.total > 0
-      ? (current.cogs.total / current.revenue.total) * 100
-      : 0;
+    const costRatio =
+      current.revenue.total > 0 ? (current.cogs.total / current.revenue.total) * 100 : 0;
     costRatios.push(costRatio);
   }
-  
+
   // Add first period's margin and cost ratio
   profitMargins.unshift(periods[0].netMargin);
-  const firstCostRatio = periods[0].revenue.total > 0
-    ? (periods[0].cogs.total / periods[0].revenue.total) * 100
-    : 0;
+  const firstCostRatio =
+    periods[0].revenue.total > 0 ? (periods[0].cogs.total / periods[0].revenue.total) * 100 : 0;
   costRatios.unshift(firstCostRatio);
-  
+
   return {
     periods,
     trends: {
@@ -409,13 +418,15 @@ export async function getHistoricalData(
  */
 export function exportProfitLossReport(pnl: ProfitLossStatement): string {
   const csv: string[] = [];
-  
+
   // Header
   csv.push('Peace Script AI - Profit & Loss Statement');
   csv.push(`Period: ${pnl.period.label}`);
-  csv.push(`From: ${pnl.period.start.toLocaleDateString('th-TH')} To: ${pnl.period.end.toLocaleDateString('th-TH')}`);
+  csv.push(
+    `From: ${pnl.period.start.toLocaleDateString('th-TH')} To: ${pnl.period.end.toLocaleDateString('th-TH')}`
+  );
   csv.push('');
-  
+
   // Revenue section
   csv.push('=== REVENUE (รายได้) ===');
   csv.push(`Subscriptions,${pnl.revenue.subscriptions.toFixed(2)}`);
@@ -423,7 +434,7 @@ export function exportProfitLossReport(pnl: ProfitLossStatement): string {
   csv.push(`Other,${pnl.revenue.other.toFixed(2)}`);
   csv.push(`Total Revenue,${pnl.revenue.total.toFixed(2)}`);
   csv.push('');
-  
+
   // COGS section
   csv.push('=== COST OF GOODS SOLD (ต้นทุนขาย) ===');
   csv.push(`API Costs,${pnl.cogs.apiCosts.toFixed(2)}`);
@@ -433,13 +444,13 @@ export function exportProfitLossReport(pnl: ProfitLossStatement): string {
   csv.push(`Bandwidth Costs,${pnl.cogs.bandwidthCosts.toFixed(2)}`);
   csv.push(`Total COGS,${pnl.cogs.total.toFixed(2)}`);
   csv.push('');
-  
+
   // Gross Profit
   csv.push('=== GROSS PROFIT (กำไรขั้นต้น) ===');
   csv.push(`Gross Profit,${pnl.grossProfit.toFixed(2)}`);
   csv.push(`Gross Margin,${pnl.grossMargin.toFixed(2)}%`);
   csv.push('');
-  
+
   // Operating Expenses
   csv.push('=== OPERATING EXPENSES (ค่าใช้จ่ายดำเนินงาน) ===');
   csv.push(`Salaries,${pnl.operatingExpenses.salaries.toFixed(2)}`);
@@ -449,13 +460,13 @@ export function exportProfitLossReport(pnl: ProfitLossStatement): string {
   csv.push(`Other,${pnl.operatingExpenses.other.toFixed(2)}`);
   csv.push(`Total OpEx,${pnl.operatingExpenses.total.toFixed(2)}`);
   csv.push('');
-  
+
   // EBITDA
   csv.push('=== EBITDA ===');
   csv.push(`EBITDA,${pnl.ebitda.toFixed(2)}`);
   csv.push(`EBITDA Margin,${pnl.ebitdaMargin.toFixed(2)}%`);
   csv.push('');
-  
+
   // Taxes
   csv.push('=== TAXES (ภาษี) ===');
   csv.push(`VAT (7%),${pnl.taxes.vat.toFixed(2)}`);
@@ -464,16 +475,17 @@ export function exportProfitLossReport(pnl: ProfitLossStatement): string {
   csv.push(`Social Security (5%),${pnl.taxes.socialSecurity.toFixed(2)}`);
   csv.push(`Total Taxes,${pnl.taxes.total.toFixed(2)}`);
   csv.push('');
-  
+
   // Net Profit
   csv.push('=== NET PROFIT (กำไรสุทธิ) ===');
   csv.push(`Net Profit Before Tax,${pnl.netProfitBeforeTax.toFixed(2)}`);
   csv.push(`Net Profit After Tax,${pnl.netProfitAfterTax.toFixed(2)}`);
   csv.push(`Net Margin,${pnl.netMargin.toFixed(2)}%`);
   csv.push('');
-  
+
   csv.push('Generated by Peace Script AI Admin Dashboard');
   csv.push(`Export Date: ${new Date().toLocaleString('th-TH')}`);
-  
+
   return csv.join('\n');
 }
+

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import App from '../../App';
+import App from '../App';
 
 // Mock Firebase
 vi.mock('../services/firebaseAuth', () => ({
@@ -36,3 +36,4 @@ describe('App', () => {
     expect(mainDiv).toBeInTheDocument();
   });
 });
+

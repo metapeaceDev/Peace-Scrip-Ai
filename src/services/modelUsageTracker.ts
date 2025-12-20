@@ -1,6 +1,6 @@
 /**
  * Model Usage Tracking Service
- * 
+ *
  * บันทึกการใช้งานโมเดล AI แต่ละครั้ง พร้อมคำนวณต้นทุน
  */
 
@@ -20,11 +20,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type {
-  ModelUsage,
-  GenerationDetails,
-  UserOfflineActivity,
-} from '../types/analytics';
+import type { ModelUsage, GenerationDetails, UserOfflineActivity } from '../types/analytics';
 import { API_PRICING } from '../types/analytics';
 
 /**
@@ -46,6 +42,8 @@ export async function recordGeneration(params: {
     duration?: string;
     projectId?: string;
     sceneId?: string;
+    tokens?: { input: number; output: number };
+    characters?: number;
   };
 }): Promise<void> {
   try {
@@ -80,10 +78,62 @@ export async function recordGeneration(params: {
       params.costInTHB
     );
 
+    // Check Global Daily Budget
+    if (params.costInTHB > 0) {
+      checkGlobalDailyBudget().catch(err => console.error('Budget check failed:', err));
+    }
+
     // Success - no logging needed in production
   } catch (error) {
     // Error - log silently
     void error;
+  }
+}
+
+const DAILY_BUDGET_LIMIT_THB = 500;
+
+async function checkGlobalDailyBudget(): Promise<void> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const q = query(
+      collection(db, 'generations'),
+      where('timestamp', '>=', Timestamp.fromDate(today))
+    );
+
+    const snapshot = await getDocs(q);
+    let totalCost = 0;
+    snapshot.forEach(doc => {
+      totalCost += doc.data().costInTHB || 0;
+    });
+
+    if (totalCost > DAILY_BUDGET_LIMIT_THB) {
+      console.warn(
+        `⚠️ DAILY BUDGET EXCEEDED: ฿${totalCost.toFixed(2)} / ฿${DAILY_BUDGET_LIMIT_THB}`
+      );
+
+      // Check if alert already sent today to avoid spam
+      const alertQ = query(
+        collection(db, 'system_alerts'),
+        where('type', '==', 'budget_exceeded'),
+        where('timestamp', '>=', Timestamp.fromDate(today))
+      );
+      const alertSnapshot = await getDocs(alertQ);
+
+      if (alertSnapshot.empty) {
+        await addDoc(collection(db, 'system_alerts'), {
+          type: 'budget_exceeded',
+          message: `Daily budget exceeded: ฿${totalCost.toFixed(2)} (Limit: ฿${DAILY_BUDGET_LIMIT_THB})`,
+          threshold: DAILY_BUDGET_LIMIT_THB,
+          currentCost: totalCost,
+          timestamp: Timestamp.now(),
+          read: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check daily budget:', error);
   }
 }
 
@@ -148,10 +198,7 @@ export async function getUserModelUsage(userId: string): Promise<{
 }> {
   try {
     // Get all model usage summaries for this user
-    const q = query(
-      collection(db, 'userModelUsage'),
-      where('userId', '==', userId)
-    );
+    const q = query(collection(db, 'userModelUsage'), where('userId', '==', userId));
     const snapshot = await getDocs(q);
 
     const byModel: ModelUsage[] = [];
@@ -164,7 +211,7 @@ export async function getUserModelUsage(userId: string): Promise<{
       video: { count: 0, cost: 0, models: [] as string[] },
     };
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
       const usage: ModelUsage = {
         modelId: data.modelId,
@@ -231,7 +278,7 @@ export async function getRecentGenerations(
     const snapshot = await getDocs(q);
     const generations: GenerationDetails[] = [];
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
       generations.push({
         id: doc.id,
@@ -285,8 +332,7 @@ export async function recordUserActivity(params: {
         sessionCount: increment(1),
         totalTimeSpent: increment(params.sessionDuration),
         avgSessionDuration:
-          (current.totalTimeSpent + params.sessionDuration) /
-          (current.sessionCount + 1),
+          (current.totalTimeSpent + params.sessionDuration) / (current.sessionCount + 1),
         deviceInfo: params.deviceInfo,
         locationData: params.locationData || current.locationData,
       });
@@ -318,9 +364,7 @@ export async function recordUserActivity(params: {
 /**
  * Get user offline activity
  */
-export async function getUserOfflineActivity(
-  userId: string
-): Promise<UserOfflineActivity | null> {
+export async function getUserOfflineActivity(userId: string): Promise<UserOfflineActivity | null> {
   try {
     const activityRef = doc(db, 'userActivity', userId);
     const activityDoc = await getDoc(activityRef);
@@ -451,6 +495,7 @@ export async function trackGeneration<T>(
       success,
       duration,
       metadata,
-    }).catch((err) => console.error('Failed to track generation:', err));
+    }).catch(err => console.error('Failed to track generation:', err));
   }
 }
+

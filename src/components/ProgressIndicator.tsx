@@ -1,6 +1,6 @@
 /**
  * Progress Indicator Components
- * 
+ *
  * แสดงความคืบหน้าของการสร้างวิดีโอ
  * Real-time progress updates with stages
  */
@@ -26,7 +26,7 @@ interface ProgressIndicatorProps {
 export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   stages,
   showEstimatedTime = true,
-  onCancel
+  onCancel,
 }) => {
   // const [elapsedTime, setElapsedTime] = useState(0);
   const activeStage = stages.find(s => s.status === 'active');
@@ -35,16 +35,17 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
 
   // Estimate remaining time based on average stage time
   const estimateRemainingTime = () => {
-    const completedWithTime = stages.filter(s => 
-      s.status === 'complete' && s.startTime && s.endTime
+    const completedWithTime = stages.filter(
+      s => s.status === 'complete' && s.startTime && s.endTime
     );
-    
+
     if (completedWithTime.length === 0) return null;
 
-    const avgStageTime = completedWithTime.reduce((sum, stage) => {
-      const duration = stage.endTime!.getTime() - stage.startTime!.getTime();
-      return sum + duration;
-    }, 0) / completedWithTime.length;
+    const avgStageTime =
+      completedWithTime.reduce((sum, stage) => {
+        const duration = stage.endTime!.getTime() - stage.startTime!.getTime();
+        return sum + duration;
+      }, 0) / completedWithTime.length;
 
     const remainingStages = stages.length - completedStages;
     return Math.round((avgStageTime * remainingStages) / 1000); // seconds
@@ -57,9 +58,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-1">
-            🎬 Generating Video
-          </h3>
+          <h3 className="text-lg font-semibold text-white mb-1">🎬 Generating Video</h3>
           <p className="text-sm text-gray-400">
             Step {completedStages + 1} of {stages.length}
           </p>
@@ -79,9 +78,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-400">Overall Progress</span>
-          <span className="text-sm font-semibold text-white">
-            {Math.round(totalProgress)}%
-          </span>
+          <span className="text-sm font-semibold text-white">{Math.round(totalProgress)}%</span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
           <div
@@ -101,11 +98,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {/* Stage List */}
       <div className="space-y-3">
         {stages.map((stage, index) => (
-          <StageItem
-            key={stage.id}
-            stage={stage}
-            index={index}
-          />
+          <StageItem key={stage.id} stage={stage} index={index} />
         ))}
       </div>
 
@@ -115,13 +108,9 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           <div className="flex items-start gap-3">
             <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-white font-medium mb-1">
-                {activeStage.label}
-              </p>
+              <p className="text-white font-medium mb-1">{activeStage.label}</p>
               {activeStage.message && (
-                <p className="text-sm text-gray-300">
-                  {activeStage.message}
-                </p>
+                <p className="text-sm text-gray-300">{activeStage.message}</p>
               )}
               {activeStage.progress !== undefined && (
                 <div className="mt-2">
@@ -146,34 +135,29 @@ const StageItem: React.FC<{ stage: ProgressStage; index: number }> = ({ stage, i
     pending: '⏳',
     active: '🔄',
     complete: '✅',
-    error: '❌'
+    error: '❌',
   };
 
   const colors = {
     pending: 'text-gray-500',
     active: 'text-blue-400',
     complete: 'text-green-400',
-    error: 'text-red-400'
+    error: 'text-red-400',
   };
 
-  const duration = stage.startTime && stage.endTime
-    ? Math.round((stage.endTime.getTime() - stage.startTime.getTime()) / 1000)
-    : null;
+  const duration =
+    stage.startTime && stage.endTime
+      ? Math.round((stage.endTime.getTime() - stage.startTime.getTime()) / 1000)
+      : null;
 
   return (
     <div className={`flex items-center gap-3 ${colors[stage.status]}`}>
       <span className="text-lg">{icons[stage.status]}</span>
       <div className="flex-1">
         <p className="font-medium text-sm">{stage.label}</p>
-        {stage.message && (
-          <p className="text-xs text-gray-400 mt-0.5">{stage.message}</p>
-        )}
+        {stage.message && <p className="text-xs text-gray-400 mt-0.5">{stage.message}</p>}
       </div>
-      {duration !== null && (
-        <span className="text-xs text-gray-400">
-          {formatTime(duration)}
-        </span>
-      )}
+      {duration !== null && <span className="text-xs text-gray-400">{formatTime(duration)}</span>}
     </div>
   );
 };
@@ -181,22 +165,22 @@ const StageItem: React.FC<{ stage: ProgressStage; index: number }> = ({ stage, i
 /**
  * Simple loading spinner
  */
-export const LoadingSpinner: React.FC<{ 
+export const LoadingSpinner: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   message?: string;
 }> = ({ size = 'md', message }) => {
   const sizes = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
-    lg: 'h-12 w-12'
+    lg: 'h-12 w-12',
   };
 
   return (
     <div className="flex flex-col items-center justify-center gap-3">
-      <div className={`animate-spin ${sizes[size]} border-2 border-blue-500 border-t-transparent rounded-full`} />
-      {message && (
-        <p className="text-sm text-gray-400">{message}</p>
-      )}
+      <div
+        className={`animate-spin ${sizes[size]} border-2 border-blue-500 border-t-transparent rounded-full`}
+      />
+      {message && <p className="text-sm text-gray-400">{message}</p>}
     </div>
   );
 };
@@ -242,14 +226,8 @@ export const CircularProgress: React.FC<{
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-white">
-          {Math.round(progress)}%
-        </span>
-        {label && (
-          <span className="text-xs text-gray-400 mt-1">
-            {label}
-          </span>
-        )}
+        <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
+        {label && <span className="text-xs text-gray-400 mt-1">{label}</span>}
       </div>
     </div>
   );
@@ -267,12 +245,7 @@ interface ToastProps {
   duration?: number; // ms
 }
 
-export const Toast: React.FC<ToastProps> = ({ 
-  type, 
-  message, 
-  onClose,
-  duration = 5000 
-}) => {
+export const Toast: React.FC<ToastProps> = ({ type, message, onClose, duration = 5000 }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
@@ -282,24 +255,23 @@ export const Toast: React.FC<ToastProps> = ({
     success: 'bg-green-500/20 border-green-500 text-green-400',
     error: 'bg-red-500/20 border-red-500 text-red-400',
     warning: 'bg-yellow-500/20 border-yellow-500 text-yellow-400',
-    info: 'bg-blue-500/20 border-blue-500 text-blue-400'
+    info: 'bg-blue-500/20 border-blue-500 text-blue-400',
   };
 
   const icons = {
     success: '✅',
     error: '❌',
     warning: '⚠️',
-    info: 'ℹ️'
+    info: 'ℹ️',
   };
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${styles[type]} animate-slide-in`}>
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${styles[type]} animate-slide-in`}
+    >
       <span className="text-xl">{icons[type]}</span>
       <p className="flex-1 text-sm font-medium">{message}</p>
-      <button
-        onClick={onClose}
-        className="text-gray-400 hover:text-white transition-colors"
-      >
+      <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
         ✕
       </button>
     </div>
@@ -309,7 +281,7 @@ export const Toast: React.FC<ToastProps> = ({
 /**
  * Toast container for managing multiple toasts
  */
-export const ToastContainer: React.FC<{ 
+export const ToastContainer: React.FC<{
   toasts: Array<{ id: string; type: ToastType; message: string }>;
   onRemove: (id: string) => void;
 }> = ({ toasts, onRemove }) => {
@@ -334,3 +306,4 @@ const formatTime = (seconds: number): string => {
   const secs = seconds % 60;
   return `${minutes}m ${secs}s`;
 };
+

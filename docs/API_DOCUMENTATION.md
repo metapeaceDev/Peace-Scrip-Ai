@@ -37,6 +37,7 @@ if (data) {
 ```
 
 **Parameters**:
+
 - `key`: Cache key (string)
 
 **Returns**: Cached data or `undefined` if not found/expired
@@ -52,6 +53,7 @@ requestCache.set('systemResources', gpuData, 30000); // 30 seconds
 ```
 
 **Parameters**:
+
 - `key`: Cache key
 - `data`: Data to cache (any type)
 - `ttl`: Time to live in milliseconds (default: 5 minutes)
@@ -76,6 +78,7 @@ const getSystemInfo = async () => {
 ```
 
 **Parameters**:
+
 - `key`: Cache key
 - `fn`: Async function to execute if cache miss
 - `ttl`: Time to live (milliseconds)
@@ -83,6 +86,7 @@ const getSystemInfo = async () => {
 **Returns**: Promise resolving to cached or fresh data
 
 **Flow**:
+
 1. Check cache with key
 2. If found and not expired → return cached
 3. If not found or expired → execute fn
@@ -104,6 +108,7 @@ requestCache.clear('comfyui_'); // Clears all keys starting with 'comfyui_'
 ```
 
 **Parameters**:
+
 - `pattern`: Optional regex pattern to match keys
 
 ---
@@ -131,12 +136,13 @@ console.log(`Total entries: ${stats.size}`);
 ```
 
 **Returns**:
+
 ```typescript
 {
-  size: number;      // Total entries
-  hits: number;      // Cache hits
-  misses: number;    // Cache misses
-  hitRate: number;   // Percentage (0-100)
+  size: number; // Total entries
+  hits: number; // Cache hits
+  misses: number; // Cache misses
+  hitRate: number; // Percentage (0-100)
 }
 ```
 
@@ -158,10 +164,10 @@ export const CacheKeys = {
 
 ```typescript
 export const CacheTTL = {
-  short: 30 * 1000,      // 30 seconds
-  medium: 5 * 60 * 1000,  // 5 minutes
-  long: 30 * 60 * 1000,   // 30 minutes
-  hour: 60 * 60 * 1000,   // 1 hour
+  short: 30 * 1000, // 30 seconds
+  medium: 5 * 60 * 1000, // 5 minutes
+  long: 30 * 60 * 1000, // 30 minutes
+  hour: 60 * 60 * 1000, // 1 hour
   day: 24 * 60 * 60 * 1000, // 24 hours
 };
 ```
@@ -223,12 +229,14 @@ const response = await pooledFetch('https://api.example.com/submit', {
 ```
 
 **Parameters**:
+
 - `url`: Request URL
 - `options`: Standard Fetch API options
 
 **Returns**: Promise<Response>
 
 **Features**:
+
 - Automatic connection reuse
 - AbortController for timeout
 - Auto cleanup of idle connections (5 min)
@@ -269,13 +277,14 @@ console.log(`Reuse rate: ${stats.reuseRate}%`);
 ```
 
 **Returns**:
+
 ```typescript
 {
-  active: number;        // Active connections
-  idle: number;          // Idle connections
+  active: number; // Active connections
+  idle: number; // Idle connections
   totalRequests: number; // Total requests made
   reusedConnections: number; // Connections reused
-  reuseRate: number;     // Percentage (0-100)
+  reuseRate: number; // Percentage (0-100)
 }
 ```
 
@@ -352,6 +361,7 @@ console.log('Result:', result);
 ```
 
 **Parameters**:
+
 - `name`: Operation name
 - `fn`: Async function to measure
 - `metadata`: Optional context data
@@ -359,6 +369,7 @@ console.log('Result:', result);
 **Returns**: Promise resolving to function result
 
 **Auto-tracked**:
+
 - Duration (ms)
 - Success/failure status
 - Error details (if failed)
@@ -380,6 +391,7 @@ if (metric) {
 ```
 
 **Returns**:
+
 ```typescript
 {
   name: string;
@@ -430,19 +442,29 @@ console.log('Performance Summary:', summary);
 ```
 
 **Returns**:
+
 ```typescript
 {
   totalOperations: number;
-  successRate: number;      // Percentage
-  failureRate: number;      // Percentage
-  averageDuration: number;  // ms
-  slowestOperation: { name: string; duration: number };
-  fastestOperation: { name: string; duration: number };
-  operationsByName: Map<string, {
-    count: number;
-    averageDuration: number;
-    successRate: number;
-  }>;
+  successRate: number; // Percentage
+  failureRate: number; // Percentage
+  averageDuration: number; // ms
+  slowestOperation: {
+    name: string;
+    duration: number;
+  }
+  fastestOperation: {
+    name: string;
+    duration: number;
+  }
+  operationsByName: Map<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+      successRate: number;
+    }
+  >;
 }
 ```
 
@@ -556,6 +578,7 @@ console.log('Memory:', `${resources.memory}GB`);
 ```
 
 **Returns**:
+
 ```typescript
 {
   device: 'cuda' | 'mps' | 'directml' | 'cpu';
@@ -584,6 +607,7 @@ if (health.status === 'healthy') {
 ```
 
 **Returns**:
+
 ```typescript
 {
   status: 'healthy' | 'unhealthy' | 'unknown';
@@ -609,6 +633,7 @@ console.log(`Recommended: ${backend}`);
 **Returns**: `'local' | 'cloud' | 'replicate' | 'gemini'`
 
 **Logic**:
+
 - CUDA with 8+ GB VRAM → Local
 - MPS (Apple Silicon) → Local
 - No GPU or <6 GB VRAM → Gemini or Cloud
@@ -637,7 +662,7 @@ try {
     userMessage: 'Failed to load data',
     retryable: true,
   });
-  
+
   console.error(handled.message);
   if (handled.retryable) {
     // Show retry button
@@ -646,10 +671,12 @@ try {
 ```
 
 **Parameters**:
+
 - `error`: Error object
 - `context`: Optional error context
 
 **Returns**:
+
 ```typescript
 {
   type: 'network' | 'validation' | 'comfyui' | 'api' | 'unknown';
@@ -676,8 +703,8 @@ const data = await retryOperation(
   },
   {
     maxRetries: 3,
-    initialDelay: 1000,    // 1 second
-    maxDelay: 10000,       // 10 seconds
+    initialDelay: 1000, // 1 second
+    maxDelay: 10000, // 10 seconds
     onRetry: (attempt, error) => {
       console.log(`Retry ${attempt}:`, error.message);
     },
@@ -686,10 +713,12 @@ const data = await retryOperation(
 ```
 
 **Parameters**:
+
 - `fn`: Async function to retry
 - `options`: Retry configuration
 
 **Options**:
+
 ```typescript
 {
   maxRetries?: number;      // Default: 3
@@ -721,6 +750,7 @@ import { LoadingFallback } from '@/components/LoadingFallback';
 ```
 
 **Props**:
+
 ```typescript
 {
   message?: string; // Default: "Loading..."
@@ -742,6 +772,7 @@ import { GPUStatus } from '@/components/GPUStatus';
 ```
 
 **Features**:
+
 - Real-time device detection
 - Backend status badge
 - Quick backend switching
@@ -764,12 +795,14 @@ import { SystemHealthDashboard } from '@/components/SystemHealthDashboard';
 ```
 
 **Features**:
+
 - CPU/Memory/GPU usage
 - ComfyUI health
 - Performance metrics
 - Real-time updates (every 5s)
 
 **Props**:
+
 ```typescript
 {
   refreshInterval?: number; // ms, default: 5000
@@ -791,6 +824,7 @@ import { CostCalculator } from '@/components/CostCalculator';
 ```
 
 **Features**:
+
 - Monthly cost projections
 - Backend comparison
 - ROI calculation
@@ -815,6 +849,7 @@ import { ComfyUISettings } from '@/lazyComponents';
 ```
 
 **Features**:
+
 - 4 tabs: Overview, Backend, Cost, Advanced
 - Device detection
 - Backend configuration
@@ -838,10 +873,10 @@ import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 function MyComponent() {
   const { device, gpu, isLoading, error, refresh } = useDeviceDetection();
-  
+
   if (isLoading) return <LoadingFallback />;
   if (error) return <div>Error: {error}</div>;
-  
+
   return (
     <div>
       <p>Device: {device}</p>
@@ -853,6 +888,7 @@ function MyComponent() {
 ```
 
 **Returns**:
+
 ```typescript
 {
   device: 'cuda' | 'mps' | 'directml' | 'cpu';
@@ -868,6 +904,7 @@ function MyComponent() {
 ```
 
 **Features**:
+
 - Auto-detects on mount
 - Cached results (30s)
 - Manual refresh
@@ -886,22 +923,23 @@ import { usePerformanceTracking } from '@/hooks/usePerformanceTracking';
 
 function VideoGenerator() {
   const { measureAsync, getMetrics } = usePerformanceTracking('VideoGenerator');
-  
+
   const handleGenerate = async () => {
     await measureAsync('generation', async () => {
       // Your generation logic
       await generateVideo();
     });
-    
+
     const metrics = getMetrics();
     console.log('Average generation time:', metrics.average);
   };
-  
+
   return <button onClick={handleGenerate}>Generate</button>;
 }
 ```
 
 **Returns**:
+
 ```typescript
 {
   measure: (name: string, fn: () => T) => T;
@@ -931,10 +969,10 @@ function DataComponent() {
     },
     { ttl: CacheTTL.medium }
   );
-  
+
   if (isLoading) return <LoadingFallback />;
   if (error) return <div>Error: {error.message}</div>;
-  
+
   return (
     <div>
       <pre>{JSON.stringify(data, null, 2)}</pre>
@@ -945,11 +983,13 @@ function DataComponent() {
 ```
 
 **Parameters**:
+
 - `key`: Cache key
 - `fn`: Data fetching function
 - `options`: `{ ttl?: number; enabled?: boolean }`
 
 **Returns**:
+
 ```typescript
 {
   data: T | undefined;
@@ -984,6 +1024,7 @@ import {
 ```
 
 **Benefits**:
+
 - Reduces initial bundle size
 - Faster page load
 - Auto code-splitting
@@ -1110,12 +1151,12 @@ import { pooledFetch } from '@/services/connectionPool';
 async function uploadVideo(file: File) {
   const formData = new FormData();
   formData.append('video', file);
-  
+
   const response = await pooledFetch('/api/upload', {
     method: 'POST',
     body: formData,
   });
-  
+
   return response.json();
 }
 
@@ -1203,19 +1244,19 @@ async function generateVideoWithOptimizations(prompt: string) {
         console.log('Returning cached video');
         return cached;
       }
-      
+
       // 3. Use pooled fetch for API call
       const response = await pooledFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
       });
-      
+
       const result = await response.json();
-      
+
       // 4. Cache result for 1 hour
       requestCache.set(cacheKey, result, CacheTTL.hour);
-      
+
       return result;
     },
     { prompt }
@@ -1238,31 +1279,31 @@ import { PerformanceMonitor } from '@/services/performanceMonitor';
 function OptimizedVideoGenerator() {
   // 1. Device detection
   const { device, gpu, isLoading: deviceLoading } = useDeviceDetection();
-  
+
   // 2. Performance tracking
   const { measureAsync } = usePerformanceTracking('VideoGenerator');
-  
+
   // 3. Cached data
   const { data: systemInfo, isLoading: dataLoading } = useRequestCache(
     'systemInfo',
     fetchSystemInfo,
     { ttl: 30000 }
   );
-  
+
   const handleGenerate = async (prompt: string) => {
     await measureAsync('generation', async () => {
       // Your generation logic
     });
-    
+
     // Show summary
     const summary = PerformanceMonitor.getSummary();
     alert(`Success rate: ${summary.successRate}%`);
   };
-  
+
   if (deviceLoading || dataLoading) {
     return <LoadingFallback message="Initializing..." />;
   }
-  
+
   return (
     <div>
       <p>Device: {device}</p>
@@ -1283,11 +1324,13 @@ function OptimizedVideoGenerator() {
 ### From Manual Fetch to Pooled Fetch
 
 **Before**:
+
 ```typescript
 const response = await fetch(url);
 ```
 
 **After**:
+
 ```typescript
 import { pooledFetch } from '@/services/connectionPool';
 const response = await pooledFetch(url);
@@ -1298,6 +1341,7 @@ const response = await pooledFetch(url);
 ### From No Caching to Cached
 
 **Before**:
+
 ```typescript
 async function getData() {
   const response = await fetch('/api/data');
@@ -1306,6 +1350,7 @@ async function getData() {
 ```
 
 **After**:
+
 ```typescript
 import { requestCache, CacheKeys, CacheTTL } from '@/services/requestCache';
 
@@ -1326,6 +1371,7 @@ async function getData() {
 ### From No Tracking to Performance Monitoring
 
 **Before**:
+
 ```typescript
 async function process() {
   // Do work
@@ -1334,6 +1380,7 @@ async function process() {
 ```
 
 **After**:
+
 ```typescript
 import { PerformanceMonitor } from '@/services/performanceMonitor';
 

@@ -482,3 +482,4 @@ export interface BuddhistValidation {
     realistic_transformation: boolean;
   };
 }
+

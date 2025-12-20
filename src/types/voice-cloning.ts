@@ -66,3 +66,4 @@ export interface CleanupResponse {
   freed_space_mb: number;
   max_age_hours: number;
 }
+

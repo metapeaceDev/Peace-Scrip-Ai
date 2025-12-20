@@ -9,6 +9,7 @@
 ## ⚠️ ปัญหาที่พบ
 
 พบไฟล์ `service-account-key.json` อยู่ในโฟลเดอร์โปรเจ็ค ซึ่ง:
+
 - ✅ มีการป้องกันใน `.gitignore` แล้ว
 - ⚠️ แต่ไม่สามารถตรวจสอบ Git history ได้ (Git ไม่อยู่ใน PATH)
 - ⚠️ ควรดำเนินการเพื่อความปลอดภัย
@@ -46,6 +47,7 @@
 #### สำหรับ Windows PowerShell:
 
 **วิธีที่ 1: ตั้งค่าชั่วคราว (Session)**
+
 ```powershell
 # ตั้งค่าสำหรับ session ปัจจุบัน
 $env:GOOGLE_APPLICATION_CREDENTIALS="C:\firebase-keys\service-account-key.json"
@@ -55,6 +57,7 @@ echo $env:GOOGLE_APPLICATION_CREDENTIALS
 ```
 
 **วิธีที่ 2: ตั้งค่าถาวร (System)**
+
 ```powershell
 # ตั้งค่าถาวรสำหรับ User
 [Environment]::SetEnvironmentVariable(
@@ -123,7 +126,7 @@ const admin = require('firebase-admin');
 
 // ถ้ามี GOOGLE_APPLICATION_CREDENTIALS จะใช้อันนั้นอัตโนมัติ
 admin.initializeApp({
-  credential: admin.credential.applicationDefault()
+  credential: admin.credential.applicationDefault(),
 });
 
 console.log('✅ Firebase Admin SDK initialized successfully!');
@@ -131,6 +134,7 @@ console.log('Project ID:', admin.app().options.projectId);
 ```
 
 รัน:
+
 ```powershell
 node test-firebase-admin.js
 ```
@@ -172,12 +176,14 @@ Get-Content .gitignore | Select-String "service-account"
 ## 🚨 สิ่งที่ต้องระวัง
 
 ### ❌ อย่าทำ:
+
 - ❌ เก็บ service account key ในโฟลเดอร์โปรเจ็ค
 - ❌ Commit key เข้า Git
 - ❌ แชร์ key ใน chat, email, หรือ public
 - ❌ Hard-code path ใน code (ใช้ environment variable)
 
 ### ✅ ควรทำ:
+
 - ✅ เก็บ key นอกโปรเจ็ค
 - ✅ ใช้ environment variable
 - ✅ เพิ่มใน .gitignore

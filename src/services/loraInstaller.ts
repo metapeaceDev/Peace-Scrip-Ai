@@ -28,7 +28,7 @@ export interface InstallProgress {
   error?: string;
 }
 
-const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || "http://localhost:8188";
+const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhost:8188';
 
 /**
  * Required LoRA Models for Peace Script AI
@@ -42,7 +42,7 @@ export const REQUIRED_LORA_MODELS: LoRAModel[] = [
     downloadUrl: 'https://civitai.com/api/download/models/123456', // Replace with actual URL
     size: '150 MB',
     required: true,
-    category: 'character'
+    category: 'character',
   },
   {
     name: 'CINEMATIC_STYLE',
@@ -52,7 +52,7 @@ export const REQUIRED_LORA_MODELS: LoRAModel[] = [
     downloadUrl: 'https://civitai.com/api/download/models/234567',
     size: '180 MB',
     required: false,
-    category: 'style'
+    category: 'style',
   },
   {
     name: 'THAI_STYLE',
@@ -62,7 +62,7 @@ export const REQUIRED_LORA_MODELS: LoRAModel[] = [
     downloadUrl: 'https://civitai.com/api/download/models/345678',
     size: '165 MB',
     required: false,
-    category: 'style'
+    category: 'style',
   },
   {
     name: 'FLUX_LORA',
@@ -72,8 +72,8 @@ export const REQUIRED_LORA_MODELS: LoRAModel[] = [
     downloadUrl: 'https://civitai.com/api/download/models/456789',
     size: '200 MB',
     required: false,
-    category: 'general'
-  }
+    category: 'general',
+  },
 ];
 
 /**
@@ -82,48 +82,48 @@ export const REQUIRED_LORA_MODELS: LoRAModel[] = [
 export async function checkLoRAModels(): Promise<Record<string, LoRAStatus>> {
   try {
     console.log('🔍 Checking installed LoRA models...');
-    
+
     // Query ComfyUI for available models (silent error)
     const response = await fetch(`${COMFYUI_API_URL}/object_info/LoraLoader`, {
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(3000),
     }).catch((): null => null);
-    
+
     if (!response?.ok) {
       throw new Error('Failed to query ComfyUI LoRA list');
     }
-    
+
     const data = await response.json();
     const availableLoras = data?.LoraLoader?.input?.required?.lora_name?.[0] || [];
-    
+
     console.log('📋 Available LoRAs in ComfyUI:', availableLoras.length);
-    
+
     const status: Record<string, LoRAStatus> = {};
-    
+
     for (const model of REQUIRED_LORA_MODELS) {
       const installed = availableLoras.includes(model.filename);
       status[model.name] = {
         installed,
-        available: true
+        available: true,
       };
-      
+
       if (installed) {
         console.log(`✅ ${model.displayName}: Installed`);
       } else {
         console.log(`❌ ${model.displayName}: Not installed`);
       }
     }
-    
+
     return status;
   } catch (error: any) {
     console.error('❌ Failed to check LoRA models:', error);
-    
+
     // Return error status for all models
     const status: Record<string, LoRAStatus> = {};
     for (const model of REQUIRED_LORA_MODELS) {
       status[model.name] = {
         installed: false,
         available: false,
-        error: error.message
+        error: error.message,
       };
     }
     return status;
@@ -139,7 +139,7 @@ export async function downloadLoRAModel(
 ): Promise<void> {
   try {
     console.log(`⬇️ Downloading ${model.displayName}...`);
-    
+
     // Method 1: Try using ComfyUI Manager's download API
     try {
       const managerResponse = await fetch(`${COMFYUI_API_URL}/manager/download_lora`, {
@@ -147,10 +147,10 @@ export async function downloadLoRAModel(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: model.downloadUrl,
-          filename: model.filename
-        })
+          filename: model.filename,
+        }),
       });
-      
+
       if (managerResponse.ok) {
         console.log(`✅ ${model.displayName} downloaded via ComfyUI Manager`);
         return;
@@ -158,56 +158,56 @@ export async function downloadLoRAModel(
     } catch (managerError) {
       console.log('ComfyUI Manager not available, trying direct download...');
     }
-    
+
     // Method 2: Direct download via browser (with CORS limitations)
     const response = await fetch(model.downloadUrl);
-    
+
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status} ${response.statusText}`);
     }
-    
+
     const reader = response.body?.getReader();
     const contentLength = parseInt(response.headers.get('Content-Length') || '0');
-    
+
     if (!reader) {
       throw new Error('Unable to read download stream');
     }
-    
+
     let receivedLength = 0;
     const chunks: BlobPart[] = [];
-    
+
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const { done, value } = await reader.read();
-      
+
       if (done) break;
-      
+
       chunks.push(value);
       receivedLength += value.length;
-      
+
       if (contentLength > 0 && onProgress) {
         const progress = (receivedLength / contentLength) * 100;
         onProgress(progress);
       }
     }
-    
+
     // Combine chunks
     const blob = new Blob(chunks);
-    
+
     // Save to ComfyUI via upload endpoint
     const formData = new FormData();
     formData.append('file', blob, model.filename);
     formData.append('subfolder', 'loras');
-    
+
     const uploadResponse = await fetch(`${COMFYUI_API_URL}/upload/image`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
-    
+
     if (!uploadResponse.ok) {
       throw new Error('Failed to upload LoRA to ComfyUI');
     }
-    
+
     console.log(`✅ ${model.displayName} installed successfully`);
   } catch (error: any) {
     console.error(`❌ Failed to download ${model.displayName}:`, error);
@@ -224,15 +224,15 @@ export function getManualInstallInstructions(model: LoRAModel): {
 } {
   const isWindows = navigator.userAgent.toLowerCase().includes('win');
   const isMac = navigator.userAgent.toLowerCase().includes('mac');
-  
+
   let loraFolder = 'ComfyUI/models/loras/';
-  
+
   if (isWindows) {
     loraFolder = 'C:\\ComfyUI\\models\\loras\\';
   } else if (isMac) {
     loraFolder = '~/ComfyUI/models/loras/';
   }
-  
+
   return {
     loraFolder,
     steps: [
@@ -244,10 +244,10 @@ export function getManualInstallInstructions(model: LoRAModel): {
       `3. Move the file to ComfyUI's LoRA folder:`,
       `   ${loraFolder}`,
       '',
-      '4. Restart ComfyUI if it\'s already running',
+      "4. Restart ComfyUI if it's already running",
       '',
-      '5. Return to Peace Script AI and click "Check Again"'
-    ]
+      '5. Return to Peace Script AI and click "Check Again"',
+    ],
   };
 }
 
@@ -260,10 +260,10 @@ export async function checkAllRequiredModels(): Promise<{
   installed: LoRAModel[];
 }> {
   const status = await checkLoRAModels();
-  
+
   const missing: LoRAModel[] = [];
   const installed: LoRAModel[] = [];
-  
+
   for (const model of REQUIRED_LORA_MODELS) {
     if (model.required) {
       if (status[model.name]?.installed) {
@@ -273,11 +273,11 @@ export async function checkAllRequiredModels(): Promise<{
       }
     }
   }
-  
+
   return {
     allInstalled: missing.length === 0,
     missing,
-    installed
+    installed,
   };
 }
 
@@ -286,32 +286,32 @@ export async function checkAllRequiredModels(): Promise<{
  */
 export async function* installAllRequiredModels(): AsyncGenerator<InstallProgress> {
   const { missing } = await checkAllRequiredModels();
-  
+
   for (const model of missing) {
     yield {
       modelName: model.displayName,
       progress: 0,
       status: 'pending',
-      message: `Preparing to download ${model.displayName}...`
+      message: `Preparing to download ${model.displayName}...`,
     };
-    
+
     try {
       yield {
         modelName: model.displayName,
         progress: 0,
         status: 'downloading',
-        message: `Downloading ${model.displayName} (${model.size})...`
+        message: `Downloading ${model.displayName} (${model.size})...`,
       };
-      
-      await downloadLoRAModel(model, (_progress) => {
+
+      await downloadLoRAModel(model, _progress => {
         // Progress callback handled by individual downloads
       });
-      
+
       yield {
         modelName: model.displayName,
         progress: 100,
         status: 'completed',
-        message: `${model.displayName} installed successfully!`
+        message: `${model.displayName} installed successfully!`,
       };
     } catch (error: any) {
       yield {
@@ -319,7 +319,7 @@ export async function* installAllRequiredModels(): AsyncGenerator<InstallProgres
         progress: 0,
         status: 'error',
         message: `Failed to install ${model.displayName}`,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -338,3 +338,4 @@ export function setAutoInstallLoRA(enabled: boolean): void {
 export function getAutoInstallLoRA(): boolean {
   return localStorage.getItem('peace_auto_install_lora') !== 'false'; // Default: true
 }
+

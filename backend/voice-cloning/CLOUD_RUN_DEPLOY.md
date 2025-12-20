@@ -90,6 +90,7 @@ gcloud run deploy voice-cloning \
 ```
 
 ### คำอธิบาย Parameters:
+
 - `--memory 4Gi` - RAM 4GB (พอสำหรับ voice cloning model)
 - `--cpu 2` - 2 vCPUs (ทำงานเร็วขึ้น)
 - `--timeout 300` - Timeout 5 นาที (voice cloning ใช้เวลา 5-15 วินาทีต่อประโยค)
@@ -99,6 +100,7 @@ gcloud run deploy voice-cloning \
 - `--port 8001` - Port ที่ Flask server listen
 
 ### Output ที่จะได้:
+
 ```
 Deploying container to Cloud Run service [voice-cloning] in project [peace-script-ai] region [us-central1]
 ✓ Deploying new service... Done.
@@ -178,14 +180,15 @@ firebase deploy --only hosting
 
 ### Cloud Run Pricing (us-central1):
 
-| Resource | Price | Usage (1,000 requests/เดือน) | Cost |
-|----------|-------|------------------------------|------|
-| CPU | $0.00002400/vCPU-second | 2 vCPU × 15s × 1,000 | $0.72 |
-| Memory | $0.00000250/GiB-second | 4 GiB × 15s × 1,000 | $0.15 |
-| Requests | $0.40/million | 1,000 requests | $0.0004 |
-| **Total** | | | **~$0.87/เดือน** |
+| Resource  | Price                   | Usage (1,000 requests/เดือน) | Cost             |
+| --------- | ----------------------- | ---------------------------- | ---------------- |
+| CPU       | $0.00002400/vCPU-second | 2 vCPU × 15s × 1,000         | $0.72            |
+| Memory    | $0.00000250/GiB-second  | 4 GiB × 15s × 1,000          | $0.15            |
+| Requests  | $0.40/million           | 1,000 requests               | $0.0004          |
+| **Total** |                         |                              | **~$0.87/เดือน** |
 
 ### Free Tier (ฟรีทุกเดือน):
+
 - ✓ 2 ล้าน requests
 - ✓ 360,000 vCPU-seconds
 - ✓ 180,000 GiB-seconds
@@ -197,18 +200,22 @@ firebase deploy --only hosting
 ## 🔧 การจัดการ Service
 
 ### ดู logs:
+
 ```powershell
 gcloud run services logs read voice-cloning --region us-central1
 ```
 
 ### ดู metrics:
+
 ```powershell
 # เปิด Cloud Console
 gcloud run services describe voice-cloning --region us-central1 --format="value(status.url)"
 ```
+
 จากนั้นไปที่: https://console.cloud.google.com/run
 
 ### Update service (เปลี่ยน memory/cpu):
+
 ```powershell
 gcloud run services update voice-cloning \
   --region us-central1 \
@@ -217,6 +224,7 @@ gcloud run services update voice-cloning \
 ```
 
 ### ลบ service:
+
 ```powershell
 gcloud run services delete voice-cloning --region us-central1
 ```
@@ -226,34 +234,45 @@ gcloud run services delete voice-cloning --region us-central1
 ## 🐛 Troubleshooting
 
 ### ปัญหา: Build ล้มเหลว
+
 ```
 ERROR: failed to solve: failed to compute cache key
 ```
+
 **แก้ไข:** ตรวจสอบ Dockerfile และ requirements.txt มีอยู่ครบ
 
 ### ปัญหา: Service timeout
+
 ```
 Error: The request was aborted because it took too long
 ```
+
 **แก้ไข:** เพิ่ม timeout:
+
 ```powershell
 gcloud run services update voice-cloning --timeout 600 --region us-central1
 ```
 
 ### ปัญหา: Out of memory
+
 ```
 Container failed to allocate memory
 ```
+
 **แก้ไข:** เพิ่ม memory:
+
 ```powershell
 gcloud run services update voice-cloning --memory 8Gi --region us-central1
 ```
 
 ### ปัญหา: Permission denied
+
 ```
 ERROR: (gcloud.run.deploy) User [xxx@gmail.com] does not have permission
 ```
+
 **แก้ไข:** Enable APIs:
+
 ```powershell
 gcloud services enable run.googleapis.com
 gcloud services enable cloudbuild.googleapis.com

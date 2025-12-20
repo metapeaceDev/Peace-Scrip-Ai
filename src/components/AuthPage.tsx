@@ -96,7 +96,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       setResetEmail('');
     } catch (err: unknown) {
       console.error('Password reset failed:', err);
-      const errorMessage = (err as Error).message || 'เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่อีกครั้ง';
+      const errorMessage =
+        (err as Error).message || 'เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่อีกครั้ง';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -304,7 +305,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
 
@@ -320,8 +326,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             {resetSuccess && (
               <div className="bg-green-900/30 border border-green-500/50 text-green-200 p-4 rounded-lg mb-4">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mt-0.5 flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   <div className="text-sm">
                     <p className="font-semibold mb-1">✅ ส่งอีเมลสำเร็จ!</p>
@@ -418,3 +432,4 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 };
 
 export default AuthPage;
+

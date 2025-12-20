@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { PsychologyDashboard } from '../PsychologyDashboard';
-import type { Character } from '../../../types';
+import type { Character } from '../types';
 
 // Mock character for testing
 const mockCharacter: Character = {
@@ -60,14 +60,14 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
   describe('Component Rendering', () => {
     it('should render fallback when all features are disabled', () => {
       render(<PsychologyDashboard character={mockCharacter} />);
-      
+
       // Since all feature flags are OFF, should show fallback message
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
 
     it('should show feature flag disabled message when all features are off', () => {
       render(<PsychologyDashboard character={mockCharacter} userId="non-beta-user" />);
-      
+
       // Should show disabled message since all feature flags are OFF by default
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
       expect(screen.getByText(/in development/)).toBeTruthy();
@@ -75,7 +75,7 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
 
     it('should render in compact mode with fallback', () => {
       render(<PsychologyDashboard character={mockCharacter} compact={true} />);
-      
+
       // Even in compact mode, fallback should be shown when features are disabled
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
@@ -84,7 +84,7 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
   describe('View Tabs', () => {
     it('should have overview tab as default', () => {
       const { container } = render(<PsychologyDashboard character={mockCharacter} />);
-      
+
       // Check if overview is the default active view (implementation may vary based on feature flags)
       expect(container).toBeTruthy();
     });
@@ -93,33 +93,33 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
   describe('Data Handling', () => {
     it('should handle character without parami_portfolio gracefully', () => {
       const charWithoutParami = { ...mockCharacter, parami_portfolio: undefined };
-      
+
       render(<PsychologyDashboard character={charWithoutParami} />);
-      
+
       // Should not crash, should show fallback (features disabled)
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
 
     it('should handle character without anusaya profile gracefully', () => {
-      const charWithoutAnusaya = { 
-        ...mockCharacter, 
-        buddhist_psychology: undefined 
+      const charWithoutAnusaya = {
+        ...mockCharacter,
+        buddhist_psychology: undefined,
       };
-      
+
       render(<PsychologyDashboard character={charWithoutAnusaya} />);
-      
+
       // Should not crash, should show fallback
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
 
     it('should generate sample karma actions when no timeline exists', () => {
-      const charWithoutTimeline = { 
-        ...mockCharacter, 
-        psychology_timeline: undefined 
+      const charWithoutTimeline = {
+        ...mockCharacter,
+        psychology_timeline: undefined,
       };
-      
+
       render(<PsychologyDashboard character={charWithoutTimeline} />);
-      
+
       // Should not crash - component renders with fallback
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
@@ -128,21 +128,21 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
   describe('Default Values', () => {
     it('should provide default parami portfolio when missing', () => {
       const charWithoutParami = { ...mockCharacter, parami_portfolio: undefined };
-      
+
       const { container } = render(<PsychologyDashboard character={charWithoutParami} />);
-      
+
       // Verify component renders without errors
       expect(container.firstChild).toBeTruthy();
     });
 
     it('should provide default anusaya profile when missing', () => {
-      const charWithoutAnusaya = { 
-        ...mockCharacter, 
-        buddhist_psychology: undefined 
+      const charWithoutAnusaya = {
+        ...mockCharacter,
+        buddhist_psychology: undefined,
       };
-      
+
       const { container } = render(<PsychologyDashboard character={charWithoutAnusaya} />);
-      
+
       // Verify component renders without errors
       expect(container.firstChild).toBeTruthy();
     });
@@ -152,14 +152,14 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
     it('should respect feature flag settings', () => {
       // Since all flags are OFF by default, should show fallback
       render(<PsychologyDashboard character={mockCharacter} />);
-      
+
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
 
     it('should show fallback for non-beta users', () => {
       // Non-beta users see fallback message
       render(<PsychologyDashboard character={mockCharacter} userId="beta-user-1" />);
-      
+
       // Still shows fallback since feature flags are globally OFF
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
@@ -189,9 +189,9 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
           },
         },
       };
-      
+
       render(<PsychologyDashboard character={charWithEmptyTimeline} />);
-      
+
       // Shows fallback when features are disabled
       expect(screen.getByText(/Buddhist Psychology Features/)).toBeTruthy();
     });
@@ -220,9 +220,9 @@ describe('Phase 4: PsychologyDashboard Integration', () => {
           backstory: '',
         },
       };
-      
+
       const { container } = render(<PsychologyDashboard character={minimalCharacter} />);
-      
+
       expect(container.firstChild).toBeTruthy();
     });
   });
@@ -242,3 +242,4 @@ describe('Phase 4: Step3Character Integration', () => {
     });
   });
 });
+

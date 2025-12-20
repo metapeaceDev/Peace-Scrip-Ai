@@ -3,6 +3,7 @@
 ## Overview
 
 Peace Script AI includes comprehensive monitoring for production environments:
+
 - ✅ Performance monitoring
 - ✅ Error tracking
 - ✅ User analytics
@@ -15,6 +16,7 @@ Peace Script AI includes comprehensive monitoring for production environments:
 ### Setup
 
 1. **Create Sentry Account**
+
    ```
    https://sentry.io/signup/
    ```
@@ -28,25 +30,25 @@ Peace Script AI includes comprehensive monitoring for production environments:
    - Format: `https://xxxxx@xxxxx.ingest.sentry.io/xxxxx`
 
 4. **Install Sentry**
+
    ```bash
    npm install @sentry/react @sentry/vite-plugin
    ```
 
 5. **Configure Environment Variable**
+
    ```env
    VITE_SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
    ```
 
 6. **Initialize in App** (Add to `index.tsx`)
+
    ```typescript
-   import * as Sentry from "@sentry/react";
+   import * as Sentry from '@sentry/react';
 
    Sentry.init({
      dsn: import.meta.env.VITE_SENTRY_DSN,
-     integrations: [
-       new Sentry.BrowserTracing(),
-       new Sentry.Replay()
-     ],
+     integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
      tracesSampleRate: 1.0,
      replaysSessionSampleRate: 0.1,
      replaysOnErrorSampleRate: 1.0,
@@ -60,6 +62,7 @@ Peace Script AI includes comprehensive monitoring for production environments:
 ### Setup
 
 1. **Create GA4 Property**
+
    ```
    https://analytics.google.com/
    ```
@@ -68,31 +71,35 @@ Peace Script AI includes comprehensive monitoring for production environments:
    - Format: `G-XXXXXXXXXX`
 
 3. **Add to HTML** (in `index.html`)
+
    ```html
    <!-- Google tag (gtag.js) -->
    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
    <script>
      window.dataLayer = window.dataLayer || [];
-     function gtag(){dataLayer.push(arguments);}
+     function gtag() {
+       dataLayer.push(arguments);
+     }
      gtag('js', new Date());
      gtag('config', 'G-XXXXXXXXXX');
    </script>
    ```
 
 4. **Track Events**
+
    ```typescript
    import { trackEvent } from './utils/monitoring';
 
    // Character generation
    trackEvent('character_generated', {
      genre: 'Drama',
-     role: 'protagonist'
+     role: 'protagonist',
    });
 
    // Export
    trackEvent('script_exported', {
      format: 'txt',
-     scene_count: 25
+     scene_count: 25,
    });
    ```
 
@@ -103,6 +110,7 @@ Peace Script AI includes comprehensive monitoring for production environments:
 ### Core Web Vitals
 
 The app automatically tracks:
+
 - **LCP** (Largest Contentful Paint)
 - **FID** (First Input Delay)
 - **CLS** (Cumulative Layout Shift)
@@ -129,7 +137,7 @@ import { trackAIUsage } from './utils/monitoring';
 trackAIUsage('character_generation', {
   genre: 'Drama',
   success: true,
-  duration_ms: 1250
+  duration_ms: 1250,
 });
 ```
 
@@ -168,6 +176,7 @@ function App() {
 ```
 
 All errors will be:
+
 1. Displayed to users gracefully
 2. Logged to console (development)
 3. Sent to Sentry (production)
@@ -179,6 +188,7 @@ All errors will be:
 ### 1. Sentry Dashboard
 
 Track:
+
 - Error frequency
 - Affected users
 - Error stack traces
@@ -188,6 +198,7 @@ Track:
 ### 2. Google Analytics Dashboard
 
 Track:
+
 - User sessions
 - Page views
 - Event conversions
@@ -197,6 +208,7 @@ Track:
 ### 3. Vercel/Netlify Analytics
 
 Built-in tracking for:
+
 - Page load times
 - Bandwidth usage
 - Geographic distribution
@@ -220,22 +232,26 @@ Before deploying:
 ## 📈 Key Metrics to Monitor
 
 ### Performance
+
 - Bundle size: <600KB ✅
 - LCP: <2.5s
 - FID: <100ms
 - CLS: <0.1
 
 ### Errors
+
 - Error rate: <0.1%
 - Crash-free sessions: >99.9%
 
 ### User Engagement
+
 - Session duration
 - AI feature usage
 - Export conversions
 - Bounce rate
 
 ### AI Operations
+
 - Character generation success rate
 - Scene generation time
 - Image generation failures
@@ -248,6 +264,7 @@ Before deploying:
 ### Sentry Alerts
 
 Set up alerts for:
+
 1. **Critical Errors**: >10 errors/hour
 2. **Performance Issues**: LCP >3s
 3. **API Failures**: >5% error rate
@@ -255,6 +272,7 @@ Set up alerts for:
 ### Email Notifications
 
 Configure in Sentry → Alerts:
+
 ```
 Alert Name: Critical Production Error
 Condition: Issue is first seen
@@ -277,9 +295,9 @@ Action: Send email to team@peacescript.ai
 ```typescript
 // In GA4 config
 gtag('config', 'G-XXXXXXXXXX', {
-  'anonymize_ip': true,
-  'allow_google_signals': false,
-  'allow_ad_personalization_signals': false
+  anonymize_ip: true,
+  allow_google_signals: false,
+  allow_ad_personalization_signals: false,
 });
 ```
 
@@ -303,7 +321,7 @@ gtag('config', 'G-XXXXXXXXXX', {
 ```typescript
 // Verify in browser console
 window.gtag('event', 'test_event', {
-  test: true
+  test: true,
 });
 ```
 
@@ -336,4 +354,4 @@ npm run build -- --report
 
 ---
 
-*Last Updated: 30 พฤศจิกายน 2568*
+_Last Updated: 30 พฤศจิกายน 2568_

@@ -39,3 +39,4 @@ describe('StepIndicator', () => {
     expect(container).toBeTruthy();
   });
 });
+

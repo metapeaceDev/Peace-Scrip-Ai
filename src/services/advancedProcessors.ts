@@ -7,7 +7,7 @@
  * 2. Kilesa_Eradication_Processor - Permanent kilesa removal via Magga-ñāṇa
  */
 
-import type { Character, AnusayaProfile } from '../../types';
+import type { Character, AnusayaProfile } from '../types';
 
 // ========================================================================
 // TYPES
@@ -384,7 +384,7 @@ export class Kilesa_Eradication_Processor {
       return {
         can_attain: false,
         requirements_met: [],
-        requirements_missing: ['Missing parami or anusaya data']
+        requirements_missing: ['Missing parami or anusaya data'],
       };
     }
 
@@ -558,3 +558,4 @@ export function getMaggaDescription(stage: MaggaStage): string {
 
   return descriptions[stage];
 }
+

@@ -3,6 +3,7 @@
 ## 📋 ก่อนย้ายเครื่อง (เครื่องเก่า)
 
 ### 1. Backup ไฟล์สำคัญ
+
 - [ ] **`.env`** - สำรองไฟล์ environment variables
 - [ ] **`functions/.env`** - สำรอง SMTP และ Admin email config
 - [ ] **`functions/service-account-key.json`** - สำรอง Firebase service account key
@@ -14,6 +15,7 @@
   - Google Cloud credentials
 
 ### 2. ตรวจสอบข้อมูล Git
+
 - [x] ✅ Git commit ครบทุกไฟล์
 - [x] ✅ Git push ไป GitHub แล้ว
 - [ ] ตรวจสอบ commit ล่าสุด:
@@ -23,6 +25,7 @@
   ```
 
 ### 3. ตรวจสอบ Deployment
+
 - [x] ✅ Firebase Functions deployed
 - [x] ✅ Firebase Hosting deployed
 - [x] ✅ Firestore Rules deployed
@@ -30,12 +33,14 @@
 - [ ] ทดสอบ Admin Dashboard: https://peace-script-ai.web.app/admin
 
 ### 4. บันทึกข้อมูล Firebase Project
+
 - [ ] **Project ID**: `peace-script-ai`
 - [ ] **Project Number**: `663785367659`
 - [ ] **Region**: `asia-southeast1`
 - [ ] **Super Admin Email**: (บันทึกไว้)
 
 ### 5. สำรองไฟล์เพิ่มเติม (ถ้ามี)
+
 - [ ] ComfyUI Models (ถ้าดาวน์โหลดไว้)
 - [ ] Voice Cloning Models
 - [ ] ไฟล์ทดสอบและ sample data
@@ -45,6 +50,7 @@
 ## 🖥️ ที่เครื่องใหม่
 
 ### 1. ติดตั้ง Software ที่จำเป็น
+
 - [ ] **Node.js v18+**
   ```bash
   node --version  # ตรวจสอบว่าเป็น v18.x.x+
@@ -68,6 +74,7 @@
   ```
 
 ### 2. Clone Project
+
 - [ ] Clone repository:
   ```bash
   git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
@@ -79,6 +86,7 @@
   ```
 
 ### 3. ติดตั้ง Dependencies
+
 - [ ] Install frontend dependencies:
   ```bash
   npm install
@@ -93,6 +101,7 @@
 ### 4. กู้คืนไฟล์ที่ Backup ไว้
 
 #### ไฟล์ `.env` (Root)
+
 - [ ] สร้างไฟล์ `.env` ที่ root:
   ```bash
   touch .env
@@ -104,6 +113,7 @@
   ```
 
 #### ไฟล์ `functions/.env`
+
 - [ ] สร้างไฟล์ `functions/.env`:
   ```bash
   touch functions/.env
@@ -115,19 +125,23 @@
   ```
 
 #### Service Account Key
+
 - [ ] Copy `service-account-key.json` ไปที่ `functions/`:
+
   ```bash
   # ตรวจสอบว่าไฟล์อยู่ที่ถูกต้อง
   ls -la functions/service-account-key.json
-  
+
   # ตรวจสอบว่าเป็น JSON ที่ถูกต้อง
   cat functions/service-account-key.json | grep private_key_id
   ```
+
 - [ ] **⚠️ ห้าม commit ไฟล์นี้!** (อยู่ใน .gitignore แล้ว)
 
 ### 5. เชื่อมต่อ Firebase และ Google Cloud
 
 #### Firebase Login
+
 - [ ] Login:
   ```bash
   firebase login
@@ -143,6 +157,7 @@
   ```
 
 #### Google Cloud Login
+
 - [ ] Login:
   ```bash
   gcloud auth login
@@ -157,6 +172,7 @@
   ```
 
 ### 6. ทดสอบ Local Development
+
 - [ ] Start dev server:
   ```bash
   npm run dev
@@ -166,6 +182,7 @@
 - [ ] ทดสอบ admin access (ถ้าคุณเป็น super admin)
 
 ### 7. ทดสอบ Functions (Optional)
+
 - [ ] Build functions:
   ```bash
   cd functions
@@ -178,6 +195,7 @@
   ```
 
 ### 8. ตรวจสอบ Git Configuration
+
 - [ ] ตั้งค่า Git user:
   ```bash
   git config user.name "Your Name"
@@ -221,17 +239,20 @@
 ## 📝 Notes
 
 **ไฟล์ที่ต้อง Backup** (ห้าม commit):
+
 - `.env`
 - `functions/.env`
 - `functions/service-account-key.json`
 
 **ไฟล์ที่อยู่ใน Git** (Clone มาได้เลย):
+
 - Source code ทั้งหมด
 - `SETUP.md` (คู่มือนี้)
 - Documentation files
 - Firebase configuration files (firebase.json, firestore.rules, etc.)
 
 **คำแนะนำ**:
+
 - ใช้ Password Manager (1Password, Bitwarden, etc.) เก็บ API keys และรหัสผ่าน
 - สำรองไฟล์ `.env` และ service account key ไว้ในที่ปลอดภัย (เช่น encrypted USB, cloud storage ที่ secure)
 - อย่าส่งไฟล์ sensitive ผ่าน email หรือ messaging apps
@@ -241,6 +262,7 @@
 ## 🆘 Troubleshooting
 
 ### ปัญหา: npm install ล้มเหลว
+
 ```bash
 # ลบ node_modules และ package-lock.json
 rm -rf node_modules package-lock.json
@@ -248,12 +270,14 @@ npm install
 ```
 
 ### ปัญหา: Firebase login ไม่ได้
+
 ```bash
 firebase logout
 firebase login --reauth
 ```
 
 ### ปัญหา: Functions build failed
+
 ```bash
 cd functions
 rm -rf node_modules package-lock.json
@@ -263,6 +287,7 @@ cd ..
 ```
 
 ### ปัญหา: Git clone ช้า
+
 ```bash
 # Clone แบบ shallow (ไม่เอา history เก่า)
 git clone --depth 1 https://github.com/metapeaceDev/Peace-Scrip-Ai.git

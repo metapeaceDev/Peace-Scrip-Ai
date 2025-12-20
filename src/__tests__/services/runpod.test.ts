@@ -15,7 +15,7 @@ describe('RunPod Service Integration', () => {
   const mockPodId = 'test_pod_123';
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     service = new RunPodService(mockApiKey);
   });
 
@@ -243,10 +243,6 @@ describe('RunPod Service Integration', () => {
       (global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockStatusResponse,
-        })
-        .mockResolvedValueOnce({
-          ok: true,
           json: async () => mockUtilResponse,
         });
 
@@ -376,3 +372,4 @@ describe('RunPod Service Integration', () => {
     });
   });
 });
+

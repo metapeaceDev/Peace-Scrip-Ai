@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import Step3Character from '../Step3Character';
-import type { ScriptData, Character } from '../../types';
+import type { ScriptData, Character } from '../types';
 
 // Mock dependencies
 vi.mock('./LanguageSwitcher', () => ({
@@ -589,3 +589,4 @@ describe('Step3Character - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

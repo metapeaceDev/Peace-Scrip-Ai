@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import Step2StoryScope from '../Step2StoryScope';
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 
 // Mock window.speechSynthesis
 global.window.speechSynthesis = {
@@ -451,3 +451,4 @@ describe('Step2StoryScope - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

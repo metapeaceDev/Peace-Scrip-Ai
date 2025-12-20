@@ -1,6 +1,6 @@
 /**
  * ParamiEvolutionChart Component
- * 
+ *
  * Interactive visualization of 10 Parami (Buddhist Perfections) evolution
  * Features:
  * - Real-time level display (0-100)
@@ -9,12 +9,12 @@
  * - Hover tooltips with detailed stats
  * - Smooth animations
  * - Responsive design
- * 
+ *
  * Phase 3: Advanced UI Features
  */
 
 import React, { useState, useMemo } from 'react';
-import type { ParamiPortfolio } from '../../../types';
+import type { ParamiPortfolio } from '../../types';
 import { isFeatureEnabled } from '../../config/featureFlags';
 
 interface ParamiEvolutionChartProps {
@@ -119,10 +119,7 @@ const PARAMI_INFO: ParamiInfo[] = [
 /**
  * Calculate synergy bonus for a parami based on supporting paramis
  */
-function calculateSynergyBonus(
-  parami: ParamiInfo,
-  portfolio: ParamiPortfolio
-): number {
+function calculateSynergyBonus(parami: ParamiInfo, portfolio: ParamiPortfolio): number {
   let totalBonus = 0;
   for (const supportingKey of parami.synergyWith) {
     const supportingLevel = portfolio[supportingKey]?.level || 0;
@@ -141,14 +138,14 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
   animated = true,
 }) => {
   const [hoveredParami, setHoveredParami] = useState<keyof ParamiPortfolio | null>(null);
-  
+
   // Check feature flag
   const isEnabled = isFeatureEnabled('PARAMI_SYNERGY_MATRIX');
-  
+
   // Calculate synergy bonuses
   const synergyData = useMemo(() => {
     if (!showSynergy || !isEnabled) return {};
-    
+
     const data: Record<string, number> = {};
     for (const parami of PARAMI_INFO) {
       data[parami.key as string] = calculateSynergyBonus(parami, portfolio);
@@ -166,19 +163,16 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
     return (
       <div className="parami-chart-compact">
         <div className="grid grid-cols-2 gap-2">
-          {PARAMI_INFO.map((parami) => {
+          {PARAMI_INFO.map(parami => {
             const data = portfolio[parami.key] || { level: 0, exp: 0 };
             const synergy = synergyData[parami.key as string] || 0;
-            
+
             return (
               <div
                 key={parami.key as string}
                 className="flex items-center gap-2 p-2 rounded bg-gray-800/50"
               >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: parami.color }}
-                />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: parami.color }} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-gray-200 truncate">
                     {parami.nameThai}
@@ -202,12 +196,11 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
     <div className="parami-evolution-chart p-6 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg shadow-xl">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-2xl font-bold text-white mb-2">
-          Parami Evolution
-        </h3>
+        <h3 className="text-2xl font-bold text-white mb-2">Parami Evolution</h3>
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <div>
-            Average Level: <span className="text-white font-semibold">{averageLevel.toFixed(1)}</span>
+            Average Level:{' '}
+            <span className="text-white font-semibold">{averageLevel.toFixed(1)}</span>
           </div>
           {showSynergy && isEnabled && (
             <div className="flex items-center gap-1">
@@ -220,7 +213,7 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
 
       {/* Parami Bars */}
       <div className="space-y-4">
-        {PARAMI_INFO.map((parami) => {
+        {PARAMI_INFO.map(parami => {
           const data = portfolio[parami.key] || { level: 0, exp: 0 };
           const synergy = synergyData[parami.key as string] || 0;
           const isHovered = hoveredParami === parami.key;
@@ -228,9 +221,7 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
           return (
             <div
               key={parami.key as string}
-              className={`parami-item transition-all duration-300 ${
-                isHovered ? 'scale-102' : ''
-              }`}
+              className={`parami-item transition-all duration-300 ${isHovered ? 'scale-102' : ''}`}
               onMouseEnter={() => setHoveredParami(parami.key)}
               onMouseLeave={() => setHoveredParami(null)}
             >
@@ -251,9 +242,7 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
                       {parami.nameThai} ({parami.nameEnglish})
                     </div>
                     {isHovered && (
-                      <div className="text-xs text-gray-400 mt-1">
-                        {parami.description}
-                      </div>
+                      <div className="text-xs text-gray-400 mt-1">{parami.description}</div>
                     )}
                   </div>
                 </div>
@@ -352,3 +341,4 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
 };
 
 export default ParamiEvolutionChart;
+

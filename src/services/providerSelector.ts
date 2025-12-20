@@ -3,7 +3,7 @@ import type {
   VideoProvider,
   AutoSelectionCriteria,
   ProviderStatus,
-} from '../../types';
+} from '../types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhost:8188';
@@ -29,13 +29,13 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
           signal: controller.signal,
           mode: 'cors',
-          cache: 'no-cache'
+          cache: 'no-cache',
         }).catch((): null => null); // Silent error
-        
+
         clearTimeout(timeoutId);
         return response?.ok || false;
       } catch {
@@ -124,13 +124,13 @@ const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = 
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
           signal: controller.signal,
           mode: 'cors',
-          cache: 'no-cache'
+          cache: 'no-cache',
         }).catch((): null => null); // Silent error
-        
+
         clearTimeout(timeoutId);
         return response?.ok || false;
       } catch {
@@ -299,3 +299,4 @@ export async function selectProvider(
     displayName: statuses[0]?.displayName || providers[0],
   };
 }
+

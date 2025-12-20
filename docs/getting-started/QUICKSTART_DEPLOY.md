@@ -229,20 +229,20 @@ export async function generateVideoWithReplicate(
   baseImage: string
 ): Promise<string> {
   const output = await replicate.run(
-    "stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
+    'stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438',
     {
       input: {
         input_image: baseImage,
         cond_aug: 0.02,
         decoding_t: 14,
-        video_length: "14_frames_with_svd",
-        sizing_strategy: "maintain_aspect_ratio",
+        video_length: '14_frames_with_svd',
+        sizing_strategy: 'maintain_aspect_ratio',
         motion_bucket_id: 127,
         frames_per_second: 6,
-      }
+      },
     }
   );
-  
+
   return output as string;
 }
 ```
@@ -279,12 +279,12 @@ VITE_REPLICATE_API_KEY=r8_xxxxxxxxxxxx
 
 ## 📊 Cost Comparison
 
-| Platform | Setup Time | Monthly Cost | Best For |
-|----------|------------|--------------|----------|
-| **RunPod RTX 3090** | 30 min | $320 | Production (>1700 videos/mo) |
-| **Replicate** | 5 min | $16/1000 videos | Low volume, testing |
-| **HF Spaces Free** | 20 min | $0 (limited) | Demo only |
-| **Local GPU** | 1 hour | $0 (electricity) | Development |
+| Platform            | Setup Time | Monthly Cost     | Best For                     |
+| ------------------- | ---------- | ---------------- | ---------------------------- |
+| **RunPod RTX 3090** | 30 min     | $320             | Production (>1700 videos/mo) |
+| **Replicate**       | 5 min      | $16/1000 videos  | Low volume, testing          |
+| **HF Spaces Free**  | 20 min     | $0 (limited)     | Demo only                    |
+| **Local GPU**       | 1 hour     | $0 (electricity) | Development                  |
 
 ---
 
@@ -300,15 +300,19 @@ VITE_REPLICATE_API_KEY=r8_xxxxxxxxxxxx
 ## 🎯 Recommendation by Use Case
 
 ### "ฉันต้องการทดสอบตอนนี้เลย!"
+
 → **Replicate** (5 นาที, จ่ายตามใช้)
 
 ### "ฉันจะทำ Production จริง ๆ"
+
 → **RunPod** (30 นาที, $320/เดือน)
 
 ### "ฉันอยากลองฟรีก่อน"
+
 → **Hugging Face Spaces** (20 นาที, ฟรี 48 ชม.)
 
 ### "ฉันมี GPU แรง ๆ อยู่แล้ว"
+
 → **Local** (1 ชั่วโมง, ฟรี)
 
 ---

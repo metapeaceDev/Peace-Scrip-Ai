@@ -160,9 +160,9 @@ Total build time: 1.17s
 ### ⏳ Delete Old API Keys (5 minutes)
 
 1. Go to: https://console.cloud.google.com/apis/credentials
-2. Search: `AIzaSyC-Y-j2mQny-YqukGPT4QIDvKOkGewNO48`
+2. Search: `AIzaSy_OLD_KEY_1`
 3. Click: **Delete**
-4. Search: `AIzaSyALCWflX-gooPrxQQOv_tef1uSwlcEdOsA`
+4. Search: `AIzaSy_OLD_KEY_2`
 5. Click: **Delete**
 6. Done! ✅
 

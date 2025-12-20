@@ -421,3 +421,4 @@ export const ContractManager: React.FC<ContractManagerProps> = ({ projectId }) =
     </div>
   );
 };
+

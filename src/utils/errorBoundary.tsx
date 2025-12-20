@@ -24,16 +24,16 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     // Log to monitoring service
     logError(error, {
       componentStack: errorInfo.componentStack,
-      errorBoundary: true
+      errorBoundary: true,
     });
-    
+
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
   }
 
@@ -47,13 +47,11 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-2xl w-full border border-white/20">
             <div className="text-center">
-              <h1 className="text-4xl font-bold text-red-400 mb-4">
-                ⚠️ เกิดข้อผิดพลาด
-              </h1>
+              <h1 className="text-4xl font-bold text-red-400 mb-4">⚠️ เกิดข้อผิดพลาด</h1>
               <p className="text-gray-300 mb-6">
                 ขออภัย มีบางอย่างผิดพลาด กรุณาลองรีเฟรชหน้าเว็บใหม่
               </p>
-              
+
               {import.meta.env.DEV && this.state.error && (
                 <div className="text-left bg-black/30 rounded-lg p-4 mb-6">
                   <p className="text-red-300 font-mono text-sm mb-2">
@@ -66,7 +64,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   )}
                 </div>
               )}
-              
+
               <button
                 onClick={() => window.location.reload()}
                 className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-3 rounded-lg font-medium transition-colors"

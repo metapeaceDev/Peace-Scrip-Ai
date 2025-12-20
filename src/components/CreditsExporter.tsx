@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { TeamMember } from '../../types';
+import type { TeamMember } from '../types';
 
 interface CreditsExporterProps {
   members: TeamMember[];
@@ -389,3 +389,4 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
     </div>
   );
 };
+

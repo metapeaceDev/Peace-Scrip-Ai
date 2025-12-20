@@ -1,12 +1,12 @@
 /**
  * Feature Flags for Gradual Rollout
  * Enable/disable features without code changes
- * 
+ *
  * Supports:
  * - Global feature flags
- * - Beta user allowlist  
+ * - Beta user allowlist
  * - Gradual rollout by percentage
- * 
+ *
  * Usage:
  *   import { isFeatureEnabled } from './config/featureFlags';
  *   if (isFeatureEnabled('JAVANA_DECISION_ENGINE', userId)) { ... }
@@ -54,10 +54,7 @@ const BETA_USER_IDS: string[] = [
  * Controls what percentage of users get access to features
  * Can be set via environment variable: VITE_FEATURE_ROLLOUT_PERCENTAGE
  */
-const ROLLOUT_PERCENTAGE = parseInt(
-  import.meta.env.VITE_FEATURE_ROLLOUT_PERCENTAGE || '0',
-  10
-);
+const ROLLOUT_PERCENTAGE = parseInt(import.meta.env.VITE_FEATURE_ROLLOUT_PERCENTAGE || '0', 10);
 
 /**
  * Simple hash function for consistent user bucketing
@@ -65,7 +62,7 @@ const ROLLOUT_PERCENTAGE = parseInt(
 function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
@@ -77,9 +74,9 @@ function simpleHash(str: string): number {
 function isUserInRollout(userId: string): boolean {
   if (ROLLOUT_PERCENTAGE === 0) return false;
   if (ROLLOUT_PERCENTAGE >= 100) return true;
-  
+
   const hash = simpleHash(userId);
-  return (hash % 100) < ROLLOUT_PERCENTAGE;
+  return hash % 100 < ROLLOUT_PERCENTAGE;
 }
 
 /**
@@ -93,22 +90,22 @@ export function isFeatureEnabled(feature: FeatureFlag, userId?: string): boolean
   if (FEATURE_FLAGS[feature]) {
     return true;
   }
-  
+
   // No user ID provided, use global flag only
   if (!userId) {
     return FEATURE_FLAGS[feature];
   }
-  
+
   // Beta users get all features
   if (BETA_USER_IDS.includes(userId)) {
     return true;
   }
-  
+
   // Check if user is in gradual rollout
   if (ROLLOUT_PERCENTAGE > 0 && isUserInRollout(userId)) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -117,9 +114,7 @@ export function isFeatureEnabled(feature: FeatureFlag, userId?: string): boolean
  * @returns Array of enabled feature names
  */
 export function getEnabledFeatures(): FeatureFlag[] {
-  return (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).filter(
-    key => FEATURE_FLAGS[key] === true
-  );
+  return (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).filter(key => FEATURE_FLAGS[key] === true);
 }
 
 /**
@@ -135,3 +130,4 @@ export function enableFeatureForDev(feature: FeatureFlag): void {
     logger.warn(`Cannot enable ${feature} in production`);
   }
 }
+

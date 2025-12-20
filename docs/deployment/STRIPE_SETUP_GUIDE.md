@@ -8,11 +8,11 @@
 
 ## 🎯 แผนและราคา
 
-| แผน | ราคาปกติ (รายเดือน) | Early Bird (50% OFF) | ราคาต่อปี |
-|-----|---------------------|---------------------|----------|
-| **Basic** | ฿299 | ฿150 | ฿2,990 |
-| **Pro** | ฿999 | ฿500 | ฿9,990 |
-| **Enterprise** | ฿8,000+ | Contact Sales | ฿80,000+ |
+| แผน            | ราคาปกติ (รายเดือน) | Early Bird (50% OFF) | ราคาต่อปี |
+| -------------- | ------------------- | -------------------- | --------- |
+| **Basic**      | ฿299                | ฿150                 | ฿2,990    |
+| **Pro**        | ฿999                | ฿500                 | ฿9,990    |
+| **Enterprise** | ฿8,000+             | Contact Sales        | ฿80,000+  |
 
 ---
 
@@ -25,6 +25,7 @@
 3. สร้าง 3 products:
 
 #### Product 1: Basic Plan
+
 - **Name**: Peace Script - Basic Plan
 - **Description**: เหมาะสำหรับผู้เริ่มต้น - 385M Tokens, 471 Images, 47 Videos, 1 Team Member
 - **Pricing**:
@@ -35,6 +36,7 @@
 - **Tax**: Exclude tax (or set up as needed)
 
 #### Product 2: Pro Plan
+
 - **Name**: Peace Script - Pro Plan
 - **Description**: สำหรับนักสร้างสรรค์มืออาชีพ - 1,308M Tokens, 1,708 Images, 144 Videos, 3 Team Members
 - **Pricing**:
@@ -44,6 +46,7 @@
 - **Billing**: Recurring subscription
 
 #### Product 3: Enterprise Plan
+
 - **Name**: Peace Script - Enterprise Plan
 - **Description**: สำหรับองค์กรขนาดใหญ่ - 3,495M Tokens, 4,992 Images, 344 Videos, 5+ Team Members, Custom AI Training
 - **Pricing**: Custom (Contact Sales)
@@ -57,6 +60,7 @@
 2. สร้าง 2 coupons:
 
 #### Coupon 1: Early Bird - Basic
+
 - **ID**: `EARLYBIRD-BASIC`
 - **Type**: Percentage discount
 - **Percent Off**: 50%
@@ -64,6 +68,7 @@
 - **Applies to**: Basic Plan only
 
 #### Coupon 2: Early Bird - Pro
+
 - **ID**: `EARLYBIRD-PRO`
 - **Type**: Percentage discount
 - **Percent Off**: 50%
@@ -78,27 +83,25 @@
 2. สร้าง links ทั้งหมด 6 links:
 
 #### Links สำหรับ Basic Plan
+
 1. **Basic - Monthly (Regular)**
    - Product: Basic Plan (฿299/month)
    - No coupon
-   
 2. **Basic - Yearly**
    - Product: Basic Plan (฿2,990/year)
    - No coupon
-   
 3. **Basic - Early Bird**
    - Product: Basic Plan (฿299/month)
    - Apply coupon: `EARLYBIRD-BASIC` → Final price: ฿150/month
 
 #### Links สำหรับ Pro Plan
+
 4. **Pro - Monthly (Regular)**
    - Product: Pro Plan (฿999/month)
    - No coupon
-   
 5. **Pro - Yearly**
    - Product: Pro Plan (฿9,990/year)
    - No coupon
-   
 6. **Pro - Early Bird**
    - Product: Pro Plan (฿999/month)
    - Apply coupon: `EARLYBIRD-PRO` → Final price: ฿500/month
@@ -146,7 +149,7 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
     currency: 'THB',
     earlyBirdDiscount: 50,
     stripeMonthlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
-    stripeYearlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx',  // ← ใส่ link จริง
+    stripeYearlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
     stripeEarlyBirdLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
   },
   pro: {
@@ -156,7 +159,7 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
     currency: 'THB',
     earlyBirdDiscount: 50,
     stripeMonthlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
-    stripeYearlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx',  // ← ใส่ link จริง
+    stripeYearlyLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
     stripeEarlyBirdLink: 'https://buy.stripe.com/xxxxxxxxxxxxx', // ← ใส่ link จริง
   },
   enterprise: {
@@ -190,7 +193,7 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
 
 1. ตั้งค่า Webhook URL ใน Stripe:
    - **Endpoint**: `https://your-backend.com/api/stripe/webhook`
-   - **Events**: 
+   - **Events**:
      - `checkout.session.completed`
      - `customer.subscription.created`
      - `customer.subscription.updated`
@@ -223,13 +226,16 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
 ## 🧪 การทดสอบ
 
 ### Test Mode
+
 ใช้บัตรทดสอบของ Stripe:
+
 - **Card Number**: `4242 4242 4242 4242`
 - **Expiry**: อนาคตใดๆ (เช่น 12/34)
 - **CVC**: 3 หลักใดๆ (เช่น 123)
 - **ZIP**: 5 หลักใดๆ (เช่น 12345)
 
 ### สิ่งที่ต้องทดสอบ
+
 - ✅ ชำระเงินสำเร็จ → redirect ไป Success page
 - ✅ ยกเลิกการชำระเงิน → redirect ไป Cancel page
 - ✅ Early Bird discount ทำงานถูกต้อง (ราคาลด 50%)
@@ -241,6 +247,7 @@ export const SUBSCRIPTION_PRICES: Record<SubscriptionTier, SubscriptionPrice> = 
 ## 📞 Support
 
 หากมีปัญหาหรือคำถาม:
+
 - 📧 Email: metapeaceofficial@gmail.com
 - 📱 Tel: 099-1923952
 - 🌐 Stripe Dashboard: https://dashboard.stripe.com

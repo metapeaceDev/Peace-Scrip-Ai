@@ -5,7 +5,7 @@
  * Manages billing cycles, invoices, and payment webhooks
  */
 
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 import { loadStripe, Stripe as StripeJS } from '@stripe/stripe-js';
 import Stripe from 'stripe';
 
@@ -387,9 +387,7 @@ export async function createPaymentIntent(
 /**
  * Confirm payment (called after user completes payment)
  */
-export async function confirmPayment(
-  sessionId: string
-): Promise<{
+export async function confirmPayment(sessionId: string): Promise<{
   success: boolean;
   subscription?: { tier: SubscriptionTier; expiresAt: Date; subscriptionId: string };
 }> {
@@ -899,3 +897,4 @@ export async function validatePromoCode(code: string): Promise<{
     return { valid: false };
   }
 }
+

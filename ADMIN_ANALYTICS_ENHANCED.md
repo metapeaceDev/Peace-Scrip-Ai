@@ -3,24 +3,23 @@
 ## 🆕 What's New
 
 ### 1. Enhanced User Details Modal
+
 แสดงรายละเอียดการใช้งานแบบละเอียด พร้อมต้นทุนจริง
 
 **Features:**
+
 - ✅ **Model Usage Tracking** - ดูว่า user ใช้โมเดลอะไรบ้าง เช่น
   - Text Generation: Gemini 2.0 Flash, Gemini 2.5 Flash
   - Image Generation: Pollinations, ComfyUI SDXL, ComfyUI FLUX, Gemini Imagen
   - Video Generation: Replicate SVD, Replicate AnimateDiff, Gemini Veo
-  
 - ✅ **Generation Costs** - คำนวณต้นทุนจริงในแต่ละโมเดล (บาท)
   - แยกตาม Text/Image/Video
   - แสดงจำนวนครั้งและต้นทุนรวม
-  
 - ✅ **Offline Activity** - ข้อมูลการใช้งานออฟไลน์
   - จำนวน sessions
   - เวลาเฉลี่ยต่อ session
   - Device info (browser, OS)
   - Location data (country, region, timezone)
-  
 - ✅ **Activity Log** - ประวัติการ generate ล่าสุด 20 รายการ
   - แสดงโมเดลที่ใช้
   - เวลาที่ใช้
@@ -29,9 +28,11 @@
   - สถานะ (สำเร็จ/ล้มเหลว)
 
 ### 2. Project Cost Dashboard
+
 แสดงต้นทุนทั้งหมดของโปรเจกต์ แยกตามหมวดหมู่
 
 **Cost Categories:**
+
 1. **🔌 API Services**
    - Gemini API (text, image, video)
    - Replicate API (SVD, AnimateDiff, LTX Video)
@@ -58,6 +59,7 @@
    - Domain & DNS
 
 **Profitability Metrics:**
+
 - Total Revenue (from subscriptions)
 - Total Costs
 - Net Profit
@@ -66,12 +68,14 @@
 - Cost per User
 
 **Cost Trends:**
+
 - Last 6 months chart
 - Breakdown by API/Compute/Storage
 
 ## 📊 Real API Pricing (as of Dec 2024)
 
 ### Gemini API
+
 - **2.0 Flash**: FREE (with quota: 1,500 requests/day)
 - **2.5 Flash Image**: ฿0.09 per image
 - **Veo 3**:
@@ -79,11 +83,13 @@
   - 10s video: ฿17.50
 
 ### Replicate API
+
 - **Stable Video Diffusion**: ฿0.63 per video
 - **AnimateDiff**: ฿0.875 per video
 - **LTX Video**: ฿5.25 per video
 
 ### Firebase
+
 - **Hosting**: FREE (10 GB, 360 MB/day)
 - **Firestore**: FREE (50K reads, 20K writes/day)
 - **Cloud Functions**: FREE (2M invocations/month)
@@ -91,6 +97,7 @@
 - **Storage**: FREE (5 GB, 1 GB downloads/day)
 
 ### Google Cloud
+
 - **Cloud Run**:
   - CPU: ฿0.002187 per vCPU-second
   - Memory: ฿0.000227 per GiB-second
@@ -101,6 +108,7 @@
 ### Backend Services
 
 #### 1. Model Usage Tracker (`modelUsageTracker.ts`)
+
 ```typescript
 // Record a generation
 await recordGeneration({
@@ -130,6 +138,7 @@ const activity = await getRecentGenerations('user-id', 20);
 ```
 
 #### 2. Project Cost Monitor (`projectCostMonitor.ts`)
+
 ```typescript
 // Get comprehensive cost summary
 const summary = await getProjectCostSummary();
@@ -145,6 +154,7 @@ const csv = exportCostDataToCSV(summary);
 ```
 
 #### 3. Session Tracking
+
 ```typescript
 // Record user session
 await recordUserActivity({
@@ -171,29 +181,30 @@ console.log(offline.avgSessionDuration); // 38.5 min
 ### Frontend Components
 
 #### 1. EnhancedUserDetailsModal
+
 ```tsx
 import { EnhancedUserDetailsModal } from './components/admin/EnhancedUserDetailsModal';
 
-<EnhancedUserDetailsModal
-  userId="user-id"
-  onClose={() => setSelectedUserId(null)}
-/>
+<EnhancedUserDetailsModal userId="user-id" onClose={() => setSelectedUserId(null)} />;
 ```
 
 **Features:**
+
 - 3 tabs: Overview, Model Usage, Activity Log
 - Real-time cost calculations
 - Offline activity tracking
 - Responsive design
 
 #### 2. ProjectCostDashboard
+
 ```tsx
 import { ProjectCostDashboard } from './components/admin/ProjectCostDashboard';
 
-<ProjectCostDashboard />
+<ProjectCostDashboard />;
 ```
 
 **Features:**
+
 - Cost breakdown by category
 - Profitability metrics
 - Cost trends chart (6 months)
@@ -204,6 +215,7 @@ import { ProjectCostDashboard } from './components/admin/ProjectCostDashboard';
 ### Collections
 
 #### `generations` (new)
+
 ```typescript
 {
   id: string;
@@ -228,6 +240,7 @@ import { ProjectCostDashboard } from './components/admin/ProjectCostDashboard';
 ```
 
 #### `userModelUsage` (new)
+
 ```typescript
 {
   id: '{userId}_{modelId}'; // composite key
@@ -243,6 +256,7 @@ import { ProjectCostDashboard } from './components/admin/ProjectCostDashboard';
 ```
 
 #### `userActivity` (new)
+
 ```typescript
 {
   id: '{userId}';
@@ -269,6 +283,7 @@ import { ProjectCostDashboard } from './components/admin/ProjectCostDashboard';
 ### Step 1: Add tracking to existing generation functions
 
 **Example: Image Generation**
+
 ```typescript
 import { trackGeneration } from './services/modelUsageTracker';
 
@@ -300,7 +315,7 @@ import { recordUserActivity } from './services/modelUsageTracker';
 
 useEffect(() => {
   const sessionStart = Date.now();
-  
+
   // Detect device info
   const deviceInfo = {
     browser: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other',
@@ -311,7 +326,7 @@ useEffect(() => {
   // Record session on unmount
   return () => {
     const sessionDuration = (Date.now() - sessionStart) / 1000 / 60; // minutes
-    
+
     recordUserActivity({
       userId: auth.currentUser!.uid,
       sessionDuration,
@@ -329,6 +344,7 @@ useEffect(() => {
 ### Step 3: Update Admin Dashboard
 
 Already done! The new components are integrated into the Admin Dashboard:
+
 - **Tab 1**: Analytics & Users (existing)
 - **Tab 2**: 💰 Project Costs (new)
 - **Tab 3**: Admin Management (existing)
@@ -339,12 +355,14 @@ Click on any user in the table to see enhanced details.
 ## 📊 Benefits
 
 ### For Admins
+
 1. **Transparency** - เห็นต้นทุนจริงในการให้บริการ
 2. **Profitability** - คำนวณกำไรต่อ user
 3. **Optimization** - เห็นว่าควรปรับปรุงส่วนไหน
 4. **User Behavior** - เข้าใจการใช้งานของ users
 
 ### For Business
+
 1. **Cost Control** - ควบคุมต้นทุนได้แม่นยำ
 2. **Pricing Strategy** - กำหนดราคาที่เหมาะสม
 3. **Resource Planning** - วางแผนทรัพยากรล่วงหน้า
@@ -369,6 +387,7 @@ Click on any user in the table to see enhanced details.
 ## 🎉 Summary
 
 เพิ่มระบบติดตามต้นทุนและการใช้งานแบบละเอียด:
+
 - **User Details**: รู้ว่า user ใช้โมเดลอะไร, เสียเงินเท่าไหร่, ใช้งานเมื่อไหร่
 - **Project Costs**: รู้ต้นทุนทั้งหมด, กำไรเท่าไหร่, ควรปรับปรุงส่วนไหน
 - **Activity Tracking**: รู้พฤติกรรมการใช้งาน, session duration, device info

@@ -64,7 +64,7 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 const serviceAccount = require('../path/to/serviceAccountKey.json');
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
@@ -73,27 +73,30 @@ async function createSuperAdmin(email) {
   try {
     // Get user by email
     const user = await admin.auth().getUserByEmail(email);
-    
+
     // Set custom claims
     await admin.auth().setCustomUserClaims(user.uid, {
       admin: true,
-      adminRole: 'super-admin'
+      adminRole: 'super-admin',
     });
-    
+
     // Save to Firestore
-    await db.collection('admin-users').doc(user.uid).set({
-      email: email,
-      role: 'super-admin',
-      permissions: {
-        canViewAnalytics: true,
-        canExportData: true,
-        canManageUsers: true,
-        canManageSubscriptions: true
-      },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: 'system'
-    });
-    
+    await db
+      .collection('admin-users')
+      .doc(user.uid)
+      .set({
+        email: email,
+        role: 'super-admin',
+        permissions: {
+          canViewAnalytics: true,
+          canExportData: true,
+          canManageUsers: true,
+          canManageSubscriptions: true,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdBy: 'system',
+      });
+
     console.log(`✅ Super admin created: ${email}`);
     console.log(`User ID: ${user.uid}`);
   } catch (error) {
@@ -106,6 +109,7 @@ createSuperAdmin('youremail@example.com');
 ```
 
 รัน script:
+
 ```bash
 node scripts/create-super-admin.js
 ```
@@ -190,6 +194,7 @@ node scripts/create-super-admin.js
 **ความต้องการ:** ต้องการให้ทีม Support ดู analytics ได้ แต่ไม่ให้แก้ไขอะไร
 
 **วิธีการ:**
+
 1. เพิ่ม admin ด้วย role = **Viewer**
 2. Permissions:
    - ✅ ดู Analytics
@@ -202,6 +207,7 @@ node scripts/create-super-admin.js
 **ความต้องการ:** จัดการ subscriptions และ export data ได้ แต่ไม่ให้จัดการ admin
 
 **วิธีการ:**
+
 1. เพิ่ม admin ด้วย role = **Admin**
 2. Permissions:
    - ✅ ดู Analytics
@@ -214,6 +220,7 @@ node scripts/create-super-admin.js
 **ความต้องการ:** สิทธิ์เต็มทุกอย่าง รวมถึงจัดการทีม admin
 
 **วิธีการ:**
+
 1. เพิ่ม admin ด้วย role = **Super Admin**
 2. Permissions:
    - ✅ ดู Analytics
@@ -226,18 +233,22 @@ node scripts/create-super-admin.js
 ## ⚠️ ข้อควรระวัง
 
 ### 1. ห้ามลบ Super Admin ตัวสุดท้าย
+
 - ถ้าลบ super-admin คนสุดท้าย จะไม่มีใครจัดการ admin ได้
 - ควรมี super-admin อย่างน้อย 2 คน
 
 ### 2. ไม่สามารถแก้ไข/ลบตัวเอง
+
 - ระบบจะ disable ปุ่มถ้าพยายามแก้ไข/ลบตัวเอง
 - ต้องให้ super-admin คนอื่นแก้ไขให้
 
 ### 3. Custom Claims ต้อง Refresh
+
 - หลังจากเปลี่ยน role/permissions ต้อง logout แล้ว login ใหม่
 - หรือใช้ Incognito mode
 
 ### 4. User ต้องมีบัญชีอยู่แล้ว
+
 - เพิ่ม admin ได้เฉพาะ user ที่ register แล้วเท่านั้น
 - ถ้ายังไม่มีบัญชี ให้ user สมัครก่อน
 
@@ -248,17 +259,20 @@ node scripts/create-super-admin.js
 หลังจากเพิ่ม admin แล้ว ตรวจสอบดังนี้:
 
 ### ✅ ตรวจสอบใน Frontend
+
 - [ ] เห็นชื่อใน User Management list
 - [ ] Role แสดงถูกต้อง
 - [ ] Permissions badges แสดงถูกต้อง
 - [ ] วันที่สร้างแสดงถูกต้อง
 
 ### ✅ ตรวจสอบใน Firebase Console
+
 - [ ] ไปที่ Firestore → admin-users
 - [ ] เห็น document ของ admin ที่เพิ่ม
 - [ ] ข้อมูลครบถ้วน (email, role, permissions, createdAt, createdBy)
 
 ### ✅ ตรวจสอบ Audit Log
+
 - [ ] ไปที่ Firestore → admin-audit-log
 - [ ] เห็น log action = "grant-admin-access"
 - [ ] มี adminId ของคนที่เพิ่ม
@@ -266,6 +280,7 @@ node scripts/create-super-admin.js
 - [ ] มี timestamp
 
 ### ✅ ทดสอบ Login
+
 - [ ] Logout จากระบบ
 - [ ] Login ด้วย email ของ admin ใหม่
 - [ ] เข้า /admin ได้
@@ -276,19 +291,23 @@ node scripts/create-super-admin.js
 ## 🎓 Best Practices
 
 ### 1. Principle of Least Privilege
+
 - ให้สิทธิ์เท่าที่จำเป็นเท่านั้น
 - เริ่มจาก Viewer ก่อน แล้วค่อยเพิ่มสิทธิ์ตามความจำเป็น
 
 ### 2. Regular Audit
+
 - ตรวจสอบ admin list เป็นประจำ
 - ลบ admin ที่ไม่ได้ใช้งานแล้ว
 - ดู audit log เป็นประจำ
 
 ### 3. Multiple Super Admins
+
 - ควรมี super-admin อย่างน้อย 2-3 คน
 - กระจายสิทธิ์เพื่อป้องกันปัญหาถ้ามีคนลาออก
 
 ### 4. Documentation
+
 - เขียนเอกสารว่า admin แต่ละคนมีสิทธิ์อะไร
 - อัพเดทเอกสารเมื่อมีการเปลี่ยนแปลง
 

@@ -130,3 +130,4 @@ export const SHOT_LIST_HEADERS = [
   'Duration',
   'Notes',
 ];
+

@@ -3,7 +3,7 @@
  * Integrates psychologyEvolution with scene generation workflow
  */
 
-import type { ScriptData, PlotPoint, GeneratedScene, Character } from '../../types';
+import type { ScriptData, PlotPoint, GeneratedScene, Character } from '../types';
 import {
   updatePsychologyTimeline,
   initializePsychologyTimeline,
@@ -143,3 +143,4 @@ export function getPsychologySummary(scriptData: ScriptData): string {
 
   return summaries.join('\n\n');
 }
+

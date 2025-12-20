@@ -177,3 +177,4 @@ export function getAvailableLanguages(): Array<{ code: Language; name: string }>
 
 // Initialize on import
 initI18n();
+

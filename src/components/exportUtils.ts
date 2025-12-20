@@ -3,7 +3,7 @@
  * Functions to generate screenplay, shot list CSV, and storyboard HTML
  */
 
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 
 /**
  * Safely render any value to string
@@ -43,20 +43,20 @@ export const generateScreenplayText = (data: ScriptData): string => {
   output += `Logline: ${data.logLine}\n`;
   output += `\n\n\n\n\n\n\n\n`; // Page break simulation
 
-  data.structure.forEach((point) => {
+  data.structure.forEach(point => {
     const scenes = data.generatedScenes[point.title] || [];
-    scenes.forEach((scene) => {
+    scenes.forEach(scene => {
       const loc = (scene.sceneDesign.location || 'INT. UNKNOWN - DAY').toUpperCase();
 
       // Scene Heading
       output += `\n${loc}\n\n`;
 
       // Action / Description
-      scene.sceneDesign.situations.forEach((sit) => {
+      scene.sceneDesign.situations.forEach(sit => {
         output += `${sit.description}\n\n`;
 
         // Dialogue
-        sit.dialogue.forEach((d) => {
+        sit.dialogue.forEach(d => {
           const charName = d.character.toUpperCase();
           // Indentation logic for text file (approximate)
           output += `\t\t\t\t${charName}\n`;
@@ -106,10 +106,10 @@ export const generateShotListCSV = (data: ScriptData): string => {
   ];
   let csvContent = headers.join(',') + '\n';
 
-  data.structure.forEach((point) => {
+  data.structure.forEach(point => {
     const scenes = data.generatedScenes[point.title] || [];
-    scenes.forEach((scene) => {
-      scene.shotList.forEach((shot) => {
+    scenes.forEach(scene => {
+      scene.shotList.forEach(shot => {
         const row = [
           scene.sceneNumber,
           shot.shot,
@@ -165,16 +165,16 @@ export const generateStoryboardHTML = (data: ScriptData): string => {
         <h1>Storyboard: ${data.title}</h1>
     `;
 
-  data.structure.forEach((point) => {
+  data.structure.forEach(point => {
     const scenes = data.generatedScenes[point.title] || [];
-    scenes.forEach((scene) => {
+    scenes.forEach(scene => {
       if (!scene.storyboard || scene.storyboard.length === 0) return;
 
       html += `<div class="scene-header">Scene ${scene.sceneNumber}: ${scene.sceneDesign.sceneName}</div>`;
       html += `<div class="grid">`;
 
-      scene.storyboard.forEach((sb) => {
-        const shotInfo = scene.shotList.find((s) => s.shot === sb.shot);
+      scene.storyboard.forEach(sb => {
+        const shotInfo = scene.shotList.find(s => s.shot === sb.shot);
         html += `
                     <div class="card">
                         <div class="image-container">
@@ -198,3 +198,4 @@ export const generateStoryboardHTML = (data: ScriptData): string => {
   html += `</body></html>`;
   return html;
 };
+

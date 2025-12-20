@@ -8,15 +8,18 @@
 ## Problem Identified
 
 **Error**:
+
 ```
 Error opening '/app/uploads/temp_Test_.m4a': Format not recognised.
 ```
 
-**Root Cause**: 
+**Root Cause**:
+
 - torchaudio.load() ไม่รองรับ M4A format โดยตรง
 - ต้องการ ffmpeg + pydub สำหรับ convert format ก่อน
 
 **Impact**:
+
 - ผู้ใช้ไม่สามารถ upload ไฟล์ M4A, AAC, หรือ formats อื่นๆ ได้
 - รองรับเฉพาะ WAV, MP3, FLAC ที่ torchaudio support
 
@@ -31,6 +34,7 @@ Error opening '/app/uploads/temp_Test_.m4a': Format not recognised.
 **Changes**:
 
 #### A. Expanded Allowed Extensions
+
 ```python
 # OLD:
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'flac', 'ogg', 'm4a'}
@@ -45,23 +49,25 @@ ALLOWED_EXTENSIONS = {
 **Now Supports**: 14+ audio formats via ffmpeg
 
 #### B. Enhanced Audio Preprocessing
+
 ```python
 def preprocess_audio(input_path: Path, output_path: Path) -> Path:
     """
     Multi-stage audio preprocessing:
-    
+
     Step 1: Convert any format to WAV using pydub + ffmpeg
     Step 2: Load with torchaudio
     Step 3: Convert to mono
     Step 4: Resample to 22050 Hz (XTTS requirement)
     Step 5: Normalize volume
     Step 6: Save as WAV
-    
+
     Supports: WAV, MP3, M4A, AAC, OGG, FLAC, OPUS, WMA, and more
     """
 ```
 
 **Key Features**:
+
 - Uses pydub to convert ANY format to WAV first
 - Falls back to direct torchaudio load if pydub fails
 - Detailed logging for each step
@@ -69,6 +75,7 @@ def preprocess_audio(input_path: Path, output_path: Path) -> Path:
 - Better error handling with exc_info=True
 
 #### C. Added pydub Import and Configuration
+
 ```python
 # Audio processing imports
 try:
@@ -113,6 +120,7 @@ pydub>=0.25.1  # ✅ Already included
 ## Build #13 Details
 
 **Command**:
+
 ```bash
 gcloud builds submit --tag gcr.io/peace-script-ai/voice-cloning --timeout=30m
 ```
@@ -120,6 +128,7 @@ gcloud builds submit --tag gcr.io/peace-script-ai/voice-cloning --timeout=30m
 **Status**: 🔄 Building...
 
 **Changes in This Build**:
+
 1. Enhanced `preprocess_audio()` function with pydub support
 2. Expanded `ALLOWED_EXTENSIONS` to 14+ formats
 3. Added pydub import and ffmpeg configuration
@@ -151,22 +160,23 @@ Output WAV (ready for XTTS-v2)
 
 ### Supported Formats After Build #13
 
-| Format | Extension | Status | Notes |
-|--------|-----------|--------|-------|
-| WAV | .wav | ✅ | Native support |
-| MP3 | .mp3 | ✅ | Via ffmpeg |
-| M4A | .m4a | ✅ | Via ffmpeg (FIXED) |
-| AAC | .aac | ✅ | Via ffmpeg |
-| OGG | .ogg | ✅ | Via ffmpeg |
-| FLAC | .flac | ✅ | Native support |
-| OPUS | .opus | ✅ | Via ffmpeg |
-| WMA | .wma | ✅ | Via ffmpeg |
-| WEBM | .webm | ✅ | Via ffmpeg |
-| AIFF | .aiff, .aif | ✅ | Via ffmpeg |
+| Format | Extension   | Status | Notes              |
+| ------ | ----------- | ------ | ------------------ |
+| WAV    | .wav        | ✅     | Native support     |
+| MP3    | .mp3        | ✅     | Via ffmpeg         |
+| M4A    | .m4a        | ✅     | Via ffmpeg (FIXED) |
+| AAC    | .aac        | ✅     | Via ffmpeg         |
+| OGG    | .ogg        | ✅     | Via ffmpeg         |
+| FLAC   | .flac       | ✅     | Native support     |
+| OPUS   | .opus       | ✅     | Via ffmpeg         |
+| WMA    | .wma        | ✅     | Via ffmpeg         |
+| WEBM   | .webm       | ✅     | Via ffmpeg         |
+| AIFF   | .aiff, .aif | ✅     | Via ffmpeg         |
 
 ### Error Handling Improvements
 
 **Before**:
+
 ```python
 except Exception as e:
     logger.error(f"❌ Audio preprocessing failed: {e}")
@@ -174,6 +184,7 @@ except Exception as e:
 ```
 
 **After**:
+
 ```python
 except Exception as e:
     logger.error(f"❌ Audio preprocessing failed: {e}", exc_info=True)
@@ -184,6 +195,7 @@ except Exception as e:
 ```
 
 **Benefits**:
+
 - Full stack trace logged
 - Temp files cleaned up on error
 - Better debugging information
@@ -195,6 +207,7 @@ except Exception as e:
 After deployment:
 
 ### 1. Test M4A Upload (Original Issue)
+
 ```bash
 curl -X POST https://voice-cloning-624211706340.us-central1.run.app/voice/upload \
   -F "file=@test.m4a" \
@@ -204,6 +217,7 @@ curl -X POST https://voice-cloning-624211706340.us-central1.run.app/voice/upload
 **Expected**: HTTP 200, voice_id returned
 
 ### 2. Test Multiple Formats
+
 ```bash
 # AAC
 curl -X POST .../voice/upload -F "file=@test.aac" -F "voice_name=test_aac"
@@ -216,6 +230,7 @@ curl -X POST .../voice/upload -F "file=@test.ogg" -F "voice_name=test_ogg"
 ```
 
 ### 3. Verify Logs
+
 ```bash
 gcloud logging read \
   "resource.type=cloud_run_revision AND resource.labels.service_name=voice-cloning" \
@@ -223,6 +238,7 @@ gcloud logging read \
 ```
 
 **Look For**:
+
 - "✓ Loaded with pydub"
 - "✓ Converted to WAV"
 - "✓ Loaded with torchaudio"
@@ -232,14 +248,14 @@ gcloud logging read \
 
 ## Timeline
 
-| Time | Action | Status |
-|------|--------|--------|
-| 21:30 | Code changes committed | ✅ |
-| 21:34 | Build #13 started | ✅ |
-| 21:49 | Build #13 complete (14m20s) | ✅ |
-| 21:50 | Deploy to Cloud Run | ✅ |
-| 21:59 | Model loaded successfully | ✅ |
-| 22:00 | Ready for testing | ✅ |
+| Time  | Action                      | Status |
+| ----- | --------------------------- | ------ |
+| 21:30 | Code changes committed      | ✅     |
+| 21:34 | Build #13 started           | ✅     |
+| 21:49 | Build #13 complete (14m20s) | ✅     |
+| 21:50 | Deploy to Cloud Run         | ✅     |
+| 21:59 | Model loaded successfully   | ✅     |
+| 22:00 | Ready for testing           | ✅     |
 
 ---
 

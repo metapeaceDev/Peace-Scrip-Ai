@@ -60,6 +60,7 @@ Peace Script AI includes a powerful video generation system powered by **ComfyUI
 ### First Time Users
 
 If you see "No GPU Detected":
+
 - Don't worry! The system will use **Gemini Veo** automatically
 - Cost: $0.50 per video
 - Quality: Excellent (720p, 30-120 seconds)
@@ -71,35 +72,39 @@ If you see "No GPU Detected":
 
 ### Minimum Requirements
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| **OS** | Windows 10, macOS 11, Linux | Windows 11, macOS 13+ |
-| **RAM** | 8 GB | 16 GB+ |
-| **Storage** | 10 GB free | 50 GB+ SSD |
-| **CPU** | 4 cores | 8+ cores |
-| **GPU** | Optional | NVIDIA RTX 3060+ / Apple M1+ |
+| Component   | Minimum                     | Recommended                  |
+| ----------- | --------------------------- | ---------------------------- |
+| **OS**      | Windows 10, macOS 11, Linux | Windows 11, macOS 13+        |
+| **RAM**     | 8 GB                        | 16 GB+                       |
+| **Storage** | 10 GB free                  | 50 GB+ SSD                   |
+| **CPU**     | 4 cores                     | 8+ cores                     |
+| **GPU**     | Optional                    | NVIDIA RTX 3060+ / Apple M1+ |
 
 ### GPU Support
 
 #### ✅ **NVIDIA (CUDA)**
+
 - GeForce RTX 20/30/40 series
 - Minimum 6 GB VRAM (8+ GB recommended)
 - CUDA 11.8+ drivers
 - **Best Performance**: RTX 4090 (24 GB VRAM)
 
 #### ✅ **Apple Silicon (MPS)**
+
 - M1, M1 Pro, M1 Max, M1 Ultra
 - M2, M2 Pro, M2 Max, M2 Ultra
 - M3, M3 Pro, M3 Max
 - **Unified Memory**: 16 GB+
 
 #### ✅ **AMD (DirectML)**
+
 - Radeon RX 6000/7000 series
 - Windows 10/11 only
 - DirectML drivers
 - **Limited support** (experimental)
 
 #### ⚠️ **No GPU?**
+
 - Use cloud backends
 - Options: Cloud ComfyUI ($0.02/video) or Gemini Veo ($0.50/video)
 
@@ -126,6 +131,7 @@ If you see "No GPU Detected":
 #### Step 1: Install Python
 
 **Windows**:
+
 ```bash
 # Download Python 3.10 from python.org
 # Check installation:
@@ -133,6 +139,7 @@ python --version  # Should show 3.10.x
 ```
 
 **macOS**:
+
 ```bash
 # Install via Homebrew
 brew install python@3.10
@@ -142,6 +149,7 @@ python3 --version
 ```
 
 **Linux**:
+
 ```bash
 sudo apt update
 sudo apt install python3.10 python3-pip
@@ -150,6 +158,7 @@ sudo apt install python3.10 python3-pip
 #### Step 2: Install ComfyUI
 
 **Method A: Quick Install (Recommended)**
+
 ```bash
 # Clone ComfyUI
 git clone https://github.com/comfyanonymous/ComfyUI.git
@@ -166,6 +175,7 @@ pip3 install --pre torch torchvision
 ```
 
 **Method B: Manual Install**
+
 1. Download from https://github.com/comfyanonymous/ComfyUI
 2. Extract to `C:\ComfyUI` (Windows) or `~/ComfyUI` (Mac/Linux)
 3. Install dependencies as shown above
@@ -173,6 +183,7 @@ pip3 install --pre torch torchvision
 #### Step 3: Download Models
 
 **Required Models** (~10 GB):
+
 ```bash
 cd ComfyUI/models/checkpoints
 
@@ -185,6 +196,7 @@ wget https://huggingface.co/guoyww/animatediff/resolve/main/mm_sd_v15_v2.ckpt
 ```
 
 **Optional Models**:
+
 - Stable Video Diffusion (~7 GB)
 - FLUX.1 (~23 GB) - Best quality
 - ControlNet models
@@ -206,6 +218,7 @@ python main.py --lowvram     # For 4-6 GB VRAM
 ```
 
 **Success Indicators**:
+
 ```
 Starting server on localhost:8188
 To see the GUI go to: http://127.0.0.1:8188
@@ -234,6 +247,7 @@ To see the GUI go to: http://127.0.0.1:8188
    - Add $10 credit
 
 2. **Deploy Template**
+
    ```
    Template: ComfyUI
    GPU: RTX 3090 (24 GB)
@@ -271,6 +285,7 @@ To see the GUI go to: http://127.0.0.1:8188
 ### System Settings
 
 #### Access Settings
+
 1. Click profile icon (top right)
 2. Select "ComfyUI Settings"
 3. Or go to `/settings/comfyui`
@@ -278,12 +293,14 @@ To see the GUI go to: http://127.0.0.1:8188
 #### Overview Tab
 
 **What you'll see**:
+
 - 🎮 GPU & Device Status
 - 🏥 System Health (CPU, Memory, GPU usage)
 - 💡 Smart Recommendations
 - ⚡ Quick Actions
 
 **Quick Actions**:
+
 - **Refresh Device Detection** - Re-scan for GPUs
 - **Test Backend Connection** - Verify ComfyUI is working
 - **View Performance Stats** - See generation speeds
@@ -291,6 +308,7 @@ To see the GUI go to: http://127.0.0.1:8188
 #### Backend Tab
 
 **Manual Backend Selection**:
+
 1. Go to "Backend" tab
 2. Choose from available options:
    - Local ComfyUI (if running)
@@ -301,6 +319,7 @@ To see the GUI go to: http://127.0.0.1:8188
 3. Click "Save Settings"
 
 **Device Settings**:
+
 - **Device Type**: CUDA, MPS, DirectML, or CPU
 - **Low VRAM Mode**: Enable for GPUs with <8 GB
 - **Batch Size**: 1-4 (higher = faster but more VRAM)
@@ -309,12 +328,14 @@ To see the GUI go to: http://127.0.0.1:8188
 #### Cost Analysis Tab
 
 **Monthly Budget Planner**:
+
 1. Enter expected videos per month
 2. See cost breakdown for each backend
 3. Compare total monthly costs
 4. Make informed decision
 
 **Example**:
+
 ```
 100 videos/month:
 - Local GPU: $0 (FREE)
@@ -326,21 +347,25 @@ To see the GUI go to: http://127.0.0.1:8188
 #### Advanced Tab
 
 **Debug Mode**:
+
 - Enable to see detailed logs
 - Useful for troubleshooting
 - Disable in production
 
 **Cache Settings**:
+
 - Enable: Faster repeated operations
 - Disable: Always fetch fresh data
 - Clear: Remove all cached data
 
 **Max Retry Attempts**:
+
 - 0-10 retries on errors
 - Recommended: 3
 - Higher = more resilient but slower on failures
 
 **Danger Zone**:
+
 - 🗑️ Clear All Cache
 - 🔄 Reset to Defaults
 - Use with caution!
@@ -354,13 +379,15 @@ To see the GUI go to: http://127.0.0.1:8188
 #### 1. **Prepare Your Prompt**
 
 **Good Prompt Example**:
+
 ```
-A Buddhist monk meditating peacefully under a golden bodhi tree, 
-soft morning light filtering through leaves, serene temple garden, 
+A Buddhist monk meditating peacefully under a golden bodhi tree,
+soft morning light filtering through leaves, serene temple garden,
 cinematic lighting, 4K quality
 ```
 
 **Tips**:
+
 - Be specific and detailed
 - Include style keywords (cinematic, realistic, anime)
 - Mention lighting and atmosphere
@@ -369,18 +396,21 @@ cinematic lighting, 4K quality
 #### 2. **Choose Settings**
 
 **Quality**:
+
 - 480p: Fast, lower quality
 - 720p: Balanced (recommended)
 - 1080p: High quality
 - 4K: Best quality (requires powerful GPU)
 
 **Aspect Ratio**:
+
 - 16:9: Widescreen (YouTube, TV)
 - 4:3: Classic
 - 1:1: Square (Instagram)
 - 9:16: Vertical (TikTok, Stories)
 
 **Duration**:
+
 - 3-5 seconds: Quick clips
 - 5-10 seconds: Standard
 - 10-30 seconds: Long-form (Gemini Veo only)
@@ -397,6 +427,7 @@ cinematic lighting, 4K quality
    - ✅ Complete
 
 **Estimated Times**:
+
 - Local GPU (RTX 4090): 30-60 seconds
 - Local GPU (RTX 3060): 2-4 minutes
 - Cloud ComfyUI: 1-2 minutes
@@ -415,28 +446,32 @@ cinematic lighting, 4K quality
 
 ### Comparison Table
 
-| Backend | Cost | Speed | Quality | GPU Required | Setup |
-|---------|------|-------|---------|--------------|-------|
-| **Local GPU** | FREE | ⚡ Very Fast | ⭐⭐⭐⭐⭐ | ✅ NVIDIA/Apple | Medium |
-| **Cloud ComfyUI** | $0.02/video | ⚡ Fast | ⭐⭐⭐⭐⭐ | ❌ No | Easy |
-| **Replicate** | $0.018/video | 🔶 Medium | ⭐⭐⭐⭐ | ❌ No | Easy |
-| **Gemini Veo** | $0.50/video | 🔶 Medium | ⭐⭐⭐⭐⭐ | ❌ No | Very Easy |
+| Backend           | Cost         | Speed        | Quality    | GPU Required    | Setup     |
+| ----------------- | ------------ | ------------ | ---------- | --------------- | --------- |
+| **Local GPU**     | FREE         | ⚡ Very Fast | ⭐⭐⭐⭐⭐ | ✅ NVIDIA/Apple | Medium    |
+| **Cloud ComfyUI** | $0.02/video  | ⚡ Fast      | ⭐⭐⭐⭐⭐ | ❌ No           | Easy      |
+| **Replicate**     | $0.018/video | 🔶 Medium    | ⭐⭐⭐⭐   | ❌ No           | Easy      |
+| **Gemini Veo**    | $0.50/video  | 🔶 Medium    | ⭐⭐⭐⭐⭐ | ❌ No           | Very Easy |
 
 ### When to Use Each
 
 #### 🟢 **Local GPU** (FREE)
+
 **Best for**:
+
 - Frequent video generation
 - Privacy-sensitive content
 - Unlimited usage
 - Full customization
 
 **Requirements**:
+
 - NVIDIA RTX or Apple Silicon
 - ComfyUI installed
 - Models downloaded (~10-30 GB)
 
 **Pros**:
+
 - ✅ FREE unlimited usage
 - ✅ Fastest generation
 - ✅ Complete control
@@ -444,6 +479,7 @@ cinematic lighting, 4K quality
 - ✅ Privacy (local processing)
 
 **Cons**:
+
 - ❌ Requires GPU
 - ❌ Initial setup time
 - ❌ Disk space needed
@@ -451,16 +487,20 @@ cinematic lighting, 4K quality
 ---
 
 #### 🔵 **Cloud ComfyUI** ($0.02/video)
+
 **Best for**:
+
 - No local GPU
 - High volume (100+ videos/month)
 - Better than Gemini cost
 
 **Setup**:
+
 - Deploy on RunPod/Colab
 - Configure URL in settings
 
 **Pros**:
+
 - ✅ Low cost ($0.02/video)
 - ✅ Fast generation
 - ✅ No local installation
@@ -468,6 +508,7 @@ cinematic lighting, 4K quality
 - ✅ Pay per use
 
 **Cons**:
+
 - ❌ Requires cloud account
 - ❌ Internet connection needed
 - ❌ Per-hour billing (~$0.44/hr)
@@ -475,18 +516,22 @@ cinematic lighting, 4K quality
 ---
 
 #### 🟣 **Replicate** ($0.018/video)
+
 **Best for**:
+
 - Occasional use
 - Quick GIF animations
 - No setup wanted
 
 **Pros**:
+
 - ✅ Lowest cost
 - ✅ Zero setup
 - ✅ Reliable API
 - ✅ Good quality
 
 **Cons**:
+
 - ❌ GIF format only (not MP4)
 - ❌ Limited duration (few seconds)
 - ❌ API key required
@@ -494,12 +539,15 @@ cinematic lighting, 4K quality
 ---
 
 #### 🟠 **Gemini Veo 3.1** ($0.50/video)
+
 **Best for**:
+
 - Highest quality needed
 - Longer videos (30-120s)
 - One-off projects
 
 **Pros**:
+
 - ✅ Best quality (720p)
 - ✅ Longest duration
 - ✅ Zero setup
@@ -507,6 +555,7 @@ cinematic lighting, 4K quality
 - ✅ Advanced AI
 
 **Cons**:
+
 - ❌ Highest cost
 - ❌ API quota limits
 - ❌ Slower than local GPU
@@ -525,30 +574,36 @@ cinematic lighting, 4K quality
 ### Cost Examples
 
 #### **Scenario 1: Hobbyist** (10 videos/month)
+
 ```
 Local GPU: $0
 Cloud ComfyUI: $0.20
 Replicate: $0.18
 Gemini Veo: $5.00
 ```
+
 **Recommendation**: Local GPU if available, otherwise Cloud ComfyUI
 
 #### **Scenario 2: Content Creator** (100 videos/month)
+
 ```
 Local GPU: $0
 Cloud ComfyUI: $2.00
 Replicate: $1.80
 Gemini Veo: $50.00
 ```
+
 **Recommendation**: Local GPU strongly recommended
 
 #### **Scenario 3: Business** (1000 videos/month)
+
 ```
 Local GPU: $0
 Cloud ComfyUI: $20.00
 Replicate: $18.00
 Gemini Veo: $500.00
 ```
+
 **Recommendation**: Local GPU essential, or hybrid (local + cloud fallback)
 
 ### ROI Calculation
@@ -556,14 +611,17 @@ Gemini Veo: $500.00
 **Local GPU Setup Cost**: ~$800-2000 (RTX 4070-4090)
 
 **Break-even points**:
+
 - vs Cloud ComfyUI: 40,000-100,000 videos
 - vs Gemini Veo: 1,600-4,000 videos
 
 **For 100 videos/month**:
+
 - Cloud savings: $2/month → Break-even: 33-83 years
 - Gemini savings: $50/month → Break-even: 16-40 months
 
 **Verdict**: Local GPU worth it if:
+
 1. Generating 100+ videos/month AND
 2. Planning to use for 1+ years AND
 3. Want fastest speeds
@@ -579,12 +637,15 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 #### ❌ "ComfyUI is not running"
 
 **Symptoms**:
+
 - Badge shows error
 - Can't generate videos
 - "Connection refused" error
 
 **Solutions**:
+
 1. **Check if ComfyUI is running**
+
    ```bash
    # Terminal should show:
    # "Starting server on localhost:8188"
@@ -599,6 +660,7 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
    - Disable antivirus temporarily to test
 
 4. **Restart ComfyUI**
+
    ```bash
    # Stop: Ctrl+C
    # Start: python main.py
@@ -613,11 +675,13 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 #### ❌ "Out of VRAM" / GPU Memory Error
 
 **Symptoms**:
+
 - Generation fails midway
 - "CUDA out of memory"
 - Black screen or corrupted output
 
 **Solutions**:
+
 1. **Enable Low VRAM Mode**
    - Settings → Backend → Low VRAM Mode: ON
 
@@ -631,6 +695,7 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
    - Close games, video editors
 
 4. **Use --lowvram Flag**
+
    ```bash
    python main.py --lowvram
    ```
@@ -644,11 +709,13 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 #### ⚠️ "Slow Generation Speed"
 
 **Symptoms**:
+
 - Takes 10+ minutes per video
 - CPU usage high, GPU idle
 - Progress stuck
 
 **Solutions**:
+
 1. **Check Device Selection**
    - Settings → Backend
    - Should show CUDA/MPS, not CPU
@@ -677,10 +744,12 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 #### 🔒 "Invalid API Key" (Gemini Veo)
 
 **Symptoms**:
+
 - Error during Gemini generation
 - "API key not valid"
 
 **Solutions**:
+
 1. **Get API Key**
    - Go to https://makersuite.google.com/app/apikey
    - Create new key
@@ -701,11 +770,13 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 #### 🌐 "Connection Timeout" (Cloud)
 
 **Symptoms**:
+
 - Can't reach cloud ComfyUI
 - Timeout after 30 seconds
 - "ERR_CONNECTION_TIMED_OUT"
 
 **Solutions**:
+
 1. **Check URL**
    - Must be HTTPS (not HTTP)
    - No trailing slash
@@ -729,12 +800,14 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 ### Debug Mode
 
 **Enable Debug Mode**:
+
 1. Settings → Advanced → Debug Mode: ON
 2. Open browser console (F12)
 3. Try operation again
 4. Check detailed logs
 
 **What to look for**:
+
 - ✅ Cache HIT/MISS messages
 - ⚡ Performance timings
 - 🔗 Connection pool status
@@ -748,6 +821,7 @@ Otherwise, Cloud ComfyUI or Replicate is more economical.
 
 **Q: Is Peace Script AI free?**
 A: The app is free. Video generation costs depend on backend:
+
 - Local GPU: FREE
 - Cloud/API: $0.02-0.50 per video
 
@@ -768,7 +842,8 @@ A: Local GPU: 100% private. Cloud: Depends on provider (read their terms).
 ### Technical Questions
 
 **Q: Which GPU is best?**
-A: 
+A:
+
 - Budget: RTX 3060 12GB ($300)
 - Recommended: RTX 4070 ($600)
 - Best: RTX 4090 ($1600)
@@ -776,6 +851,7 @@ A:
 
 **Q: How much VRAM do I need?**
 A:
+
 - Minimum: 6 GB
 - Recommended: 8-12 GB
 - Ideal: 16+ GB
@@ -788,6 +864,7 @@ A: Yes! Apple Silicon (M1/M2/M3) works great via MPS.
 
 **Q: What models should I download?**
 A:
+
 - Essential: Stable Diffusion 1.5 (~4 GB)
 - Recommended: AnimateDiff (~2 GB)
 - Optional: SVD, FLUX (~7-23 GB each)
@@ -815,6 +892,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 ### Character Consistency (Coming Soon)
 
 **IP-Adapter V2**:
+
 - Upload face image
 - Maintains character across videos
 - Works with LoRA models
@@ -822,6 +900,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 ### Video Extension (Beta)
 
 **Seamless Continuation**:
+
 - Extend existing videos
 - Uses last frame as seed
 - Creates smooth transitions
@@ -829,6 +908,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 ### Batch Processing
 
 **Generate Multiple Videos**:
+
 1. Prepare scene list
 2. Use batch API
 3. Progress tracking for each
@@ -837,6 +917,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 ### Custom Workflows
 
 **Advanced Users**:
+
 - Create custom ComfyUI workflows
 - Import/export workflows
 - Share with community
@@ -856,6 +937,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 ### Before Asking for Help
 
 **Provide**:
+
 - System info (GPU, OS, RAM)
 - Backend used
 - Error message (full text)
@@ -863,6 +945,7 @@ A: Gemini has free tier (limited). RunPod offers $10 free credit for new users.
 - Steps to reproduce
 
 **Example Good Report**:
+
 ```
 System: Windows 11, RTX 3060 12GB, 16GB RAM
 Backend: Local ComfyUI

@@ -6,17 +6,18 @@
 
 ## 🚀 Quick Start (Start Here!)
 
-| Document | Time | Purpose |
-|----------|------|---------|
-| **[README.md](../README.md)** | 5 min | Project overview & features |
-| **[QUICKSTART_DEPLOY.md](../QUICKSTART_DEPLOY.md)** | 5-30 min | Deploy video backend FAST |
-| **[VIDEO_GENERATION_COMPLETE.md](../VIDEO_GENERATION_COMPLETE.md)** | 2 min | Week 1-2 completion summary |
+| Document                                                            | Time     | Purpose                     |
+| ------------------------------------------------------------------- | -------- | --------------------------- |
+| **[README.md](../README.md)**                                       | 5 min    | Project overview & features |
+| **[QUICKSTART_DEPLOY.md](../QUICKSTART_DEPLOY.md)**                 | 5-30 min | Deploy video backend FAST   |
+| **[VIDEO_GENERATION_COMPLETE.md](../VIDEO_GENERATION_COMPLETE.md)** | 2 min    | Week 1-2 completion summary |
 
 ---
 
 ## 🎬 Video Generation (Week 1-2)
 
 ### 🆕 Quick Start (Replicate - 5 Minutes)
+
 1. **[REPLICATE_SETUP.md](../REPLICATE_SETUP.md)** (NEW!)
    - Setup in 5 minutes
    - No deployment needed
@@ -26,6 +27,7 @@
    - Step-by-step with screenshots
 
 ### For Busy Developers
+
 2. **[QUICKSTART_DEPLOY.md](../QUICKSTART_DEPLOY.md)** (250 lines)
    - Deploy in 5-30 minutes
    - 3 options: Replicate (5 min), RunPod (30 min), HF Spaces (20 min)
@@ -33,6 +35,7 @@
    - Time-to-first-video optimized
 
 ### For Complete Understanding
+
 3. **[COMFYUI_BACKEND_DEPLOYMENT.md](../COMFYUI_BACKEND_DEPLOYMENT.md)** (350 lines)
    - Full deployment guide
    - All platform comparisons (RunPod, Replicate, HF, Railway, Self-hosted)
@@ -48,6 +51,7 @@
    - Performance specifications
 
 ### For Implementation
+
 5. **[ENV_UPDATE_GUIDE.md](../ENV_UPDATE_GUIDE.md)** (200 lines)
    - Frontend `.env` configuration
    - Environment variables reference
@@ -68,6 +72,7 @@
    - Next steps
 
 ### Advanced Setup
+
 8. **[runpod-setup.sh](../comfyui-backend/runpod-setup.sh)** (NEW!)
    - One-click RunPod deployment
    - Automated model download
@@ -79,6 +84,7 @@
 ## 📊 System Architecture
 
 ### Analysis & Documentation
+
 1. **[SYSTEM_ANALYSIS.md](../SYSTEM_ANALYSIS.md)** (1,000+ lines)
    - Complete system architecture
    - User journey mapping (Auth → Step1-5 → Studio)
@@ -94,6 +100,7 @@
 ## 🎨 Image Generation
 
 ### ComfyUI Setup
+
 1. **[COMFYUI_SETUP.md](../COMFYUI_SETUP.md)**
    - Full ComfyUI installation
    - Model configuration
@@ -105,6 +112,7 @@
    - Testing procedures
 
 ### Cloud Options
+
 3. **[COLAB_SETUP_GUIDE.md](../COLAB_SETUP_GUIDE.md)**
    - Google Colab Pro+ setup
    - A100 GPU access
@@ -142,6 +150,7 @@
 ## 🧩 Backend Services
 
 ### Node.js Backend (Auth/Projects)
+
 1. **[backend/README.md](../backend/README.md)**
    - User authentication
    - Project management
@@ -149,6 +158,7 @@
    - Docker deployment
 
 ### Python Backend (ComfyUI)
+
 2. **[comfyui-backend/README.md](../comfyui-backend/README.md)**
    - FastAPI server
    - Job queue system
@@ -208,48 +218,57 @@ peace-script-basic-v1 /
 ## 🎯 Navigation by Task
 
 ### "I want to deploy video generation NOW!"
+
 → **[QUICKSTART_DEPLOY.md](../QUICKSTART_DEPLOY.md)**
 
 ### "I need to understand the full system"
+
 → **[SYSTEM_ANALYSIS.md](../SYSTEM_ANALYSIS.md)**
 
 ### "I want to set up image generation"
+
 → **[COMFYUI_QUICKSTART.md](../COMFYUI_QUICKSTART.md)**
 
 ### "I need to test the system"
+
 → **[TESTING_GUIDE.md](../TESTING_GUIDE.md)**
 
 ### "I want to understand costs"
+
 → **[COST_OPTIMIZATION_ROADMAP.md](../COST_OPTIMIZATION_ROADMAP.md)**
 
 ### "I need API documentation"
+
 → **[comfyui-backend/README.md](../comfyui-backend/README.md)**
 
 ### "I want to deploy to production"
+
 → **[DEPLOYMENT.md](../DEPLOYMENT.md)**
 
 ### "I need pricing information"
+
 → **[PRICING_STRATEGY.md](../PRICING_STRATEGY.md)**
 
 ---
 
 ## 📈 Documentation Statistics
 
-| Category | Files | Total Lines | Status |
-|----------|-------|-------------|--------|
-| **Video Generation** | 6 | 2,100+ | ✅ Complete |
-| **System Analysis** | 1 | 1,000+ | ✅ Complete |
-| **Image Generation** | 3 | 800+ | ✅ Complete |
-| **Backend Code** | 7 | 650+ | ✅ Complete |
-| **Business Docs** | 2 | 400+ | ✅ Complete |
-| **Deployment** | 1 | 200+ | ✅ Complete |
-| **TOTAL** | **20** | **5,150+** | **✅ Complete** |
+| Category             | Files  | Total Lines | Status          |
+| -------------------- | ------ | ----------- | --------------- |
+| **Video Generation** | 6      | 2,100+      | ✅ Complete     |
+| **System Analysis**  | 1      | 1,000+      | ✅ Complete     |
+| **Image Generation** | 3      | 800+        | ✅ Complete     |
+| **Backend Code**     | 7      | 650+        | ✅ Complete     |
+| **Business Docs**    | 2      | 400+        | ✅ Complete     |
+| **Deployment**       | 1      | 200+        | ✅ Complete     |
+| **TOTAL**            | **20** | **5,150+**  | **✅ Complete** |
 
 ---
 
 ## 🔍 Search Index
 
 **By Topic:**
+
 - **Video Generation:** QUICKSTART_DEPLOY, COMFYUI_BACKEND_DEPLOYMENT, TESTING_GUIDE
 - **Image Generation:** COMFYUI_SETUP, COMFYUI_QUICKSTART, COLAB_SETUP_GUIDE
 - **Architecture:** SYSTEM_ANALYSIS
@@ -259,6 +278,7 @@ peace-script-basic-v1 /
 - **API:** comfyui-backend/README, backend/README
 
 **By Platform:**
+
 - **RunPod:** COMFYUI_BACKEND_DEPLOYMENT, QUICKSTART_DEPLOY
 - **Replicate:** QUICKSTART_DEPLOY, COST_OPTIMIZATION_ROADMAP
 - **Hugging Face:** QUICKSTART_DEPLOY, COMFYUI_BACKEND_DEPLOYMENT
@@ -266,8 +286,9 @@ peace-script-basic-v1 /
 - **Firebase:** DEPLOYMENT, ENV_UPDATE_GUIDE
 
 **By Language:**
-- **Python:** comfyui-backend/*, COMFYUI_BACKEND_DEPLOYMENT
-- **Node.js:** backend/*, DEPLOYMENT
+
+- **Python:** comfyui-backend/\*, COMFYUI_BACKEND_DEPLOYMENT
+- **Node.js:** backend/\*, DEPLOYMENT
 - **TypeScript:** SYSTEM_ANALYSIS, ENV_UPDATE_GUIDE
 
 ---
@@ -275,17 +296,20 @@ peace-script-basic-v1 /
 ## 🎓 Learning Path
 
 ### Beginner (Just Starting)
+
 1. Read: README.md
 2. Follow: QUICKSTART_DEPLOY.md (Replicate option)
 3. Test: TESTING_GUIDE.md (Tier 1 only)
 
 ### Intermediate (Understanding System)
+
 1. Read: SYSTEM_ANALYSIS.md
 2. Follow: COMFYUI_BACKEND_DEPLOYMENT.md
 3. Test: TESTING_GUIDE.md (All tiers)
 4. Deploy: DEPLOYMENT.md
 
 ### Advanced (Production Ready)
+
 1. Analyze: COST_OPTIMIZATION_ROADMAP.md
 2. Setup: comfyui-backend/ (RunPod)
 3. Optimize: Based on PRICING_STRATEGY.md
@@ -295,25 +319,25 @@ peace-script-basic-v1 /
 
 ## 🆘 Troubleshooting Quick Links
 
-| Issue | Document | Section |
-|-------|----------|---------|
-| Video generation fails | TESTING_GUIDE.md | Error Handling |
-| Backend won't start | comfyui-backend/README.md | Troubleshooting |
-| Environment variables not loading | ENV_UPDATE_GUIDE.md | Verification |
-| Models not downloading | COMFYUI_BACKEND_DEPLOYMENT.md | Model Download |
-| CORS errors | comfyui-backend/main.py | CORS Config |
-| Firebase auth fails | backend/README.md | Authentication |
-| Cost too high | COST_OPTIMIZATION_ROADMAP.md | Optimization |
+| Issue                             | Document                      | Section         |
+| --------------------------------- | ----------------------------- | --------------- |
+| Video generation fails            | TESTING_GUIDE.md              | Error Handling  |
+| Backend won't start               | comfyui-backend/README.md     | Troubleshooting |
+| Environment variables not loading | ENV_UPDATE_GUIDE.md           | Verification    |
+| Models not downloading            | COMFYUI_BACKEND_DEPLOYMENT.md | Model Download  |
+| CORS errors                       | comfyui-backend/main.py       | CORS Config     |
+| Firebase auth fails               | backend/README.md             | Authentication  |
+| Cost too high                     | COST_OPTIMIZATION_ROADMAP.md  | Optimization    |
 
 ---
 
 ## 📅 Document Update History
 
-| Date | Documents | Changes |
-|------|-----------|---------|
-| Dec 11, 2024 | Video Generation (6 files) | ✅ Initial creation |
-| Dec 10, 2024 | SYSTEM_ANALYSIS.md | ✅ Complete analysis |
-| Earlier | Image gen, pricing, etc. | ✅ Previous work |
+| Date         | Documents                  | Changes              |
+| ------------ | -------------------------- | -------------------- |
+| Dec 11, 2024 | Video Generation (6 files) | ✅ Initial creation  |
+| Dec 10, 2024 | SYSTEM_ANALYSIS.md         | ✅ Complete analysis |
+| Earlier      | Image gen, pricing, etc.   | ✅ Previous work     |
 
 ---
 

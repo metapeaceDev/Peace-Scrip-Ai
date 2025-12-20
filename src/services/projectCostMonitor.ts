@@ -1,22 +1,12 @@
 /**
  * Project Cost Monitoring Service
- * 
+ *
  * ติดตาม และคำนวณต้นทุนโปรเจกต์ทั้งหมด
  */
 
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  Timestamp,
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type {
-  ProjectCostSummary,
-  ApiCostBreakdown,
-  ServiceCost,
-} from '../types/analytics';
+import type { ProjectCostSummary, ApiCostBreakdown, ServiceCost } from '../types/analytics';
 import { API_PRICING } from '../types/analytics';
 
 /**
@@ -105,7 +95,7 @@ async function calculateApiCosts(
       }
     > = {};
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
       const provider = data.provider;
 
@@ -263,8 +253,7 @@ async function calculateComputeCosts(
 
   const cloudRunCpu = vcpuSeconds * API_PRICING.GOOGLE_CLOUD.cloudRun.cpu;
   const cloudRunMemory = memoryGibSeconds * API_PRICING.GOOGLE_CLOUD.cloudRun.memory;
-  const cloudRunRequests =
-    totalRequests * API_PRICING.GOOGLE_CLOUD.cloudRun.requests;
+  const cloudRunRequests = totalRequests * API_PRICING.GOOGLE_CLOUD.cloudRun.requests;
   const cloudRunTotal = cloudRunCpu + cloudRunMemory + cloudRunRequests;
 
   // Cloud Functions (mostly free tier)
@@ -358,9 +347,7 @@ async function calculateOtherCosts(): Promise<{
 /**
  * Calculate per-user costs and profitability
  */
-async function calculateUserCosts(
-  totalApiCost: number
-): Promise<{
+async function calculateUserCosts(totalApiCost: number): Promise<{
   averageCostPerUser: number;
   totalActiveUsers: number;
   totalRevenue: number;
@@ -383,7 +370,7 @@ async function calculateUserCosts(
       free: 0,
     };
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
       totalActiveUsers++;
 
@@ -392,8 +379,7 @@ async function calculateUserCosts(
       totalRevenue += price;
     });
 
-    const averageCostPerUser =
-      totalActiveUsers > 0 ? totalApiCost / totalActiveUsers : 0;
+    const averageCostPerUser = totalActiveUsers > 0 ? totalApiCost / totalActiveUsers : 0;
     const profit = totalRevenue - totalApiCost;
     const profitMargin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
 
@@ -433,16 +419,8 @@ export async function getCostTrends(months: number = 6): Promise<
 
   for (let i = months - 1; i >= 0; i--) {
     const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const startOfMonth = new Date(
-      monthDate.getFullYear(),
-      monthDate.getMonth(),
-      1
-    );
-    const endOfMonth = new Date(
-      monthDate.getFullYear(),
-      monthDate.getMonth() + 1,
-      0
-    );
+    const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
 
     const apiCosts = await calculateApiCosts(startOfMonth, endOfMonth);
     const computeCosts = await calculateComputeCosts(startOfMonth, endOfMonth);
@@ -481,7 +459,7 @@ export function exportCostDataToCSV(summary: ProjectCostSummary): string {
   // API Costs
   lines.push('API Services');
   lines.push('Service,Provider,Calls,Cost (THB)');
-  summary.breakdown.apis.services.forEach((api) => {
+  summary.breakdown.apis.services.forEach(api => {
     lines.push(
       `${api.apiName},${api.provider},${api.currentMonthUsage.calls},฿${api.currentMonthUsage.cost.toFixed(2)}`
     );
@@ -491,37 +469,26 @@ export function exportCostDataToCSV(summary: ProjectCostSummary): string {
 
   // Storage
   lines.push('Storage');
-  lines.push(
-    `Firebase Storage,฿${summary.breakdown.storage.firebase.toFixed(2)}`
-  );
-  lines.push(
-    `Cloud Storage,฿${summary.breakdown.storage.cloudStorage.toFixed(2)}`
-  );
+  lines.push(`Firebase Storage,฿${summary.breakdown.storage.firebase.toFixed(2)}`);
+  lines.push(`Cloud Storage,฿${summary.breakdown.storage.cloudStorage.toFixed(2)}`);
   lines.push(`Total Storage,฿${summary.breakdown.storage.total.toFixed(2)}`);
   lines.push('');
 
   // Compute
   lines.push('Compute');
-  lines.push(
-    `Cloud Run (Voice Cloning),฿${summary.breakdown.compute.cloudRun.toFixed(2)}`
-  );
-  lines.push(
-    `Cloud Functions,฿${summary.breakdown.compute.cloudFunctions.toFixed(2)}`
-  );
+  lines.push(`Cloud Run (Voice Cloning),฿${summary.breakdown.compute.cloudRun.toFixed(2)}`);
+  lines.push(`Cloud Functions,฿${summary.breakdown.compute.cloudFunctions.toFixed(2)}`);
   lines.push(`Total Compute,฿${summary.breakdown.compute.total.toFixed(2)}`);
   lines.push('');
 
   // User Economics
   lines.push('User Economics');
   lines.push(`Active Users,${summary.userCosts.totalActiveUsers}`);
-  lines.push(
-    `Revenue,฿${summary.userCosts.totalRevenue.toLocaleString('th-TH')}`
-  );
-  lines.push(
-    `Average Cost per User,฿${summary.userCosts.averageCostPerUser.toFixed(2)}`
-  );
+  lines.push(`Revenue,฿${summary.userCosts.totalRevenue.toLocaleString('th-TH')}`);
+  lines.push(`Average Cost per User,฿${summary.userCosts.averageCostPerUser.toFixed(2)}`);
   lines.push(`Profit,฿${summary.userCosts.profit.toFixed(2)}`);
   lines.push(`Profit Margin,${summary.userCosts.profitMargin.toFixed(1)}%`);
 
   return lines.join('\n');
 }
+

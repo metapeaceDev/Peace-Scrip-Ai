@@ -1,6 +1,6 @@
 /**
  * Enhanced Video Generation Hook
- * 
+ *
  * React hook for video generation with:
  * - Real-time progress tracking
  * - Stage-based status updates
@@ -40,196 +40,196 @@ export const useVideoGeneration = (): UseVideoGenerationResult => {
         id: 'prepare',
         label: 'Preparing Generation',
         status: 'pending',
-        message: 'Setting up parameters and backend...'
+        message: 'Setting up parameters and backend...',
       },
       {
         id: 'validate',
         label: 'Validating Input',
         status: 'pending',
-        message: 'Checking prompt and settings...'
+        message: 'Checking prompt and settings...',
       },
       {
         id: 'generate',
         label: 'Generating Video',
         status: 'pending',
         message: 'Creating video frames...',
-        progress: 0
+        progress: 0,
       },
       {
         id: 'process',
         label: 'Processing',
         status: 'pending',
-        message: 'Encoding and finalizing...'
+        message: 'Encoding and finalizing...',
       },
       {
         id: 'complete',
         label: 'Complete',
         status: 'pending',
-        message: 'Video ready!'
-      }
+        message: 'Video ready!',
+      },
     ];
     setStages(initialStages);
     return initialStages;
   }, []);
 
   // Update stage status
-  const updateStage = useCallback((
-    stageId: string,
-    updates: Partial<ProgressStage>
-  ) => {
-    setStages(prev => prev.map(stage =>
-      stage.id === stageId
-        ? { ...stage, ...updates }
-        : stage
-    ));
+  const updateStage = useCallback((stageId: string, updates: Partial<ProgressStage>) => {
+    setStages(prev => prev.map(stage => (stage.id === stageId ? { ...stage, ...updates } : stage)));
   }, []);
 
   // Main generate function
-  const generate = useCallback(async (
-    shot: any,
-    options: VideoGenerationOptions = {}
-  ): Promise<string | null> => {
-    try {
-      // Reset state
-      setIsGenerating(true);
-      setProgress(0);
-      setVideoUrl(null);
-      setError(null);
-      abortControllerRef.current = new AbortController();
+  const generate = useCallback(
+    async (shot: any, options: VideoGenerationOptions = {}): Promise<string | null> => {
+      try {
+        // Reset state
+        setIsGenerating(true);
+        setProgress(0);
+        setVideoUrl(null);
+        setError(null);
+        abortControllerRef.current = new AbortController();
 
-      // const stages = initializeStages();
+        // const stages = initializeStages();
 
-      // Stage 1: Prepare
-      updateStage('prepare', { 
-        status: 'active',
-        startTime: new Date()
-      });
-      setProgress(10);
+        // Stage 1: Prepare
+        updateStage('prepare', {
+          status: 'active',
+          startTime: new Date(),
+        });
+        setProgress(10);
 
-      // Simulate preparation
-      await new Promise(resolve => setTimeout(resolve, 500));
+        // Simulate preparation
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      updateStage('prepare', { 
-        status: 'complete',
-        endTime: new Date()
-      });
+        updateStage('prepare', {
+          status: 'complete',
+          endTime: new Date(),
+        });
 
-      // Stage 2: Validate
-      updateStage('validate', { 
-        status: 'active',
-        startTime: new Date()
-      });
-      setProgress(20);
+        // Stage 2: Validate
+        updateStage('validate', {
+          status: 'active',
+          startTime: new Date(),
+        });
+        setProgress(20);
 
-      // Validate shot data
-      if (!shot?.description && !shot?.shotType) {
-        throw new Error('Shot must have description or shotType');
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      updateStage('validate', { 
-        status: 'complete',
-        endTime: new Date()
-      });
-
-      // Stage 3: Generate
-      updateStage('generate', { 
-        status: 'active',
-        startTime: new Date(),
-        progress: 0
-      });
-      setProgress(30);
-
-      // Simulate progress during generation
-      const progressInterval = setInterval(() => {
-        setStages(prev => prev.map(stage => {
-          if (stage.id === 'generate') {
-            const newProgress = Math.min((stage.progress || 0) + 5, 90);
-            return { ...stage, progress: newProgress };
-          }
-          return stage;
-        }));
-        setProgress(prev => Math.min(prev + 3, 80));
-      }, 1000);
-
-      // Generate video with retry logic
-      const url = await retryWithBackoff(
-        async () => {
-          const result = await generateShotVideo(shot, undefined, options);
-          return result;
-        },
-        {
-          maxRetries: 2,
-          retryDelay: 1000,
-          logToConsole: true
+        // Validate shot data
+        if (!shot?.description && !shot?.shotType) {
+          throw new Error('Shot must have description or shotType');
         }
-      );
 
-      clearInterval(progressInterval);
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-      if (!url) {
-        throw new Error('Video generation returned null');
+        updateStage('validate', {
+          status: 'complete',
+          endTime: new Date(),
+        });
+
+        // Stage 3: Generate
+        updateStage('generate', {
+          status: 'active',
+          startTime: new Date(),
+          progress: 0,
+        });
+        setProgress(30);
+
+        // Simulate progress during generation
+        const progressInterval = setInterval(() => {
+          setStages(prev =>
+            prev.map(stage => {
+              if (stage.id === 'generate') {
+                const newProgress = Math.min((stage.progress || 0) + 5, 90);
+                return { ...stage, progress: newProgress };
+              }
+              return stage;
+            })
+          );
+          setProgress(prev => Math.min(prev + 3, 80));
+        }, 1000);
+
+        // Generate video with retry logic
+        const url = await retryWithBackoff(
+          async () => {
+            const result = await generateShotVideo(shot, undefined, options);
+            return result;
+          },
+          {
+            maxRetries: 2,
+            retryDelay: 1000,
+            logToConsole: true,
+          }
+        );
+
+        clearInterval(progressInterval);
+
+        if (!url) {
+          throw new Error('Video generation returned null');
+        }
+
+        updateStage('generate', {
+          status: 'complete',
+          endTime: new Date(),
+          progress: 100,
+        });
+        setProgress(90);
+
+        // Stage 4: Process
+        updateStage('process', {
+          status: 'active',
+          startTime: new Date(),
+        });
+
+        // Simulate post-processing
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        updateStage('process', {
+          status: 'complete',
+          endTime: new Date(),
+        });
+        setProgress(95);
+
+        // Stage 5: Complete
+        updateStage('complete', {
+          status: 'active',
+          startTime: new Date(),
+        });
+
+        setVideoUrl(url);
+        setProgress(100);
+
+        updateStage('complete', {
+          status: 'complete',
+          endTime: new Date(),
+        });
+
+        console.log('✅ Video generation completed:', url);
+        return url;
+      } catch (err) {
+        const parsedError = parseError(err, 'comfyui');
+        console.error('❌ Video generation failed:', parsedError);
+
+        setError(parsedError.message);
+
+        // Mark current active stage as error
+        setStages(prev =>
+          prev.map(stage =>
+            stage.status === 'active'
+              ? {
+                  ...stage,
+                  status: 'error' as const,
+                  message: parsedError.suggestion || parsedError.message,
+                }
+              : stage
+          )
+        );
+
+        return null;
+      } finally {
+        setIsGenerating(false);
+        abortControllerRef.current = null;
       }
-
-      updateStage('generate', { 
-        status: 'complete',
-        endTime: new Date(),
-        progress: 100
-      });
-      setProgress(90);
-
-      // Stage 4: Process
-      updateStage('process', { 
-        status: 'active',
-        startTime: new Date()
-      });
-
-      // Simulate post-processing
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      updateStage('process', { 
-        status: 'complete',
-        endTime: new Date()
-      });
-      setProgress(95);
-
-      // Stage 5: Complete
-      updateStage('complete', { 
-        status: 'active',
-        startTime: new Date()
-      });
-
-      setVideoUrl(url);
-      setProgress(100);
-
-      updateStage('complete', { 
-        status: 'complete',
-        endTime: new Date()
-      });
-
-      console.log('✅ Video generation completed:', url);
-      return url;
-
-    } catch (err) {
-      const parsedError = parseError(err, 'comfyui');
-      console.error('❌ Video generation failed:', parsedError);
-      
-      setError(parsedError.message);
-      
-      // Mark current active stage as error
-      setStages(prev => prev.map(stage =>
-        stage.status === 'active'
-          ? { ...stage, status: 'error' as const, message: parsedError.suggestion || parsedError.message }
-          : stage
-      ));
-
-      return null;
-    } finally {
-      setIsGenerating(false);
-      abortControllerRef.current = null;
-    }
-  }, [initializeStages, updateStage]);
+    },
+    [initializeStages, updateStage]
+  );
 
   // Cancel generation
   const cancel = useCallback(() => {
@@ -237,13 +237,15 @@ export const useVideoGeneration = (): UseVideoGenerationResult => {
       abortControllerRef.current.abort();
       setIsGenerating(false);
       setError('Generation cancelled by user');
-      
+
       // Mark active stage as error
-      setStages(prev => prev.map(stage =>
-        stage.status === 'active'
-          ? { ...stage, status: 'error' as const, message: 'Cancelled' }
-          : stage
-      ));
+      setStages(prev =>
+        prev.map(stage =>
+          stage.status === 'active'
+            ? { ...stage, status: 'error' as const, message: 'Cancelled' }
+            : stage
+        )
+      );
     }
   }, []);
 
@@ -264,7 +266,7 @@ export const useVideoGeneration = (): UseVideoGenerationResult => {
     error,
     generate,
     cancel,
-    reset
+    reset,
   };
 };
 
@@ -285,14 +287,13 @@ export interface UseBatchVideoGenerationResult {
 export const useBatchVideoGeneration = (): UseBatchVideoGenerationResult => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [videos, setVideos] = useState<Array<{ shotId: string; url: string | null; error?: string }>>([]);
+  const [videos, setVideos] = useState<
+    Array<{ shotId: string; url: string | null; error?: string }>
+  >([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const cancelledRef = useRef(false);
 
-  const generateBatch = useCallback(async (
-    shots: any[],
-    options: VideoGenerationOptions = {}
-  ) => {
+  const generateBatch = useCallback(async (shots: any[], options: VideoGenerationOptions = {}) => {
     try {
       setIsGenerating(true);
       setCurrentIndex(0);
@@ -313,25 +314,24 @@ export const useBatchVideoGeneration = (): UseBatchVideoGenerationResult => {
 
         try {
           console.log(`🎬 Generating video ${i + 1}/${shots.length}...`);
-          
+
           const url = await generateShotVideo(shot, undefined, options);
-          
+
           results.push({
             shotId: shot.shotId || `shot-${i}`,
-            url
+            url,
           });
 
           setVideos([...results]);
           setOverallProgress(((i + 1) / shots.length) * 100);
-
         } catch (error) {
           const parsedError = parseError(error, 'comfyui');
           console.error(`❌ Failed to generate video ${i + 1}:`, parsedError);
-          
+
           results.push({
             shotId: shot.shotId || `shot-${i}`,
             url: null,
-            error: parsedError.message
+            error: parsedError.message,
           });
 
           setVideos([...results]);
@@ -339,7 +339,6 @@ export const useBatchVideoGeneration = (): UseBatchVideoGenerationResult => {
       }
 
       console.log('✅ Batch generation completed:', results);
-
     } catch (error) {
       console.error('❌ Batch generation error:', error);
     } finally {
@@ -368,6 +367,7 @@ export const useBatchVideoGeneration = (): UseBatchVideoGenerationResult => {
     overallProgress,
     generateBatch,
     cancel,
-    reset
+    reset,
   };
 };
+

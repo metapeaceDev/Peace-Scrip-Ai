@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RevenueManagementPanel } from './RevenueManagementPanel';
-import type { TeamMember } from '../../types';
+import type { TeamMember } from '../types';
 
 // Mock child components
 vi.mock('./FinancialDashboard', () => ({
@@ -248,3 +248,4 @@ describe('RevenueManagementPanel', () => {
     });
   });
 });
+

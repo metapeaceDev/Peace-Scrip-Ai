@@ -1,6 +1,6 @@
 /**
  * Request Cache Service
- * 
+ *
  * In-memory cache with TTL for API requests
  * Reduces redundant API calls and improves performance
  */
@@ -20,7 +20,7 @@ class RequestCache {
    */
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
@@ -45,7 +45,7 @@ class RequestCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
     console.log(`💾 Cache SET: ${key} (TTL: ${ttl / 1000}s)`);
   }
@@ -71,16 +71,12 @@ class RequestCache {
   getStats() {
     const entries = Array.from(this.cache.entries());
     const now = Date.now();
-    
+
     return {
       totalEntries: this.cache.size,
-      validEntries: entries.filter(([_, entry]) => 
-        (now - entry.timestamp) <= entry.ttl
-      ).length,
-      expiredEntries: entries.filter(([_, entry]) => 
-        (now - entry.timestamp) > entry.ttl
-      ).length,
-      totalSize: JSON.stringify(Array.from(this.cache.entries())).length
+      validEntries: entries.filter(([_, entry]) => now - entry.timestamp <= entry.ttl).length,
+      expiredEntries: entries.filter(([_, entry]) => now - entry.timestamp > entry.ttl).length,
+      totalSize: JSON.stringify(Array.from(this.cache.entries())).length,
     };
   }
 
@@ -106,11 +102,7 @@ class RequestCache {
   /**
    * Wrap async function with caching
    */
-  async cached<T>(
-    key: string,
-    fn: () => Promise<T>,
-    ttl: number = this.defaultTTL
-  ): Promise<T> {
+  async cached<T>(key: string, fn: () => Promise<T>, ttl: number = this.defaultTTL): Promise<T> {
     // Check cache first
     const cached = this.get<T>(key);
     if (cached !== null) {
@@ -132,9 +124,12 @@ class RequestCache {
 export const requestCache = new RequestCache();
 
 // Auto cleanup every 5 minutes
-setInterval(() => {
-  requestCache.cleanup();
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    requestCache.cleanup();
+  },
+  5 * 60 * 1000
+);
 
 export default requestCache;
 
@@ -155,9 +150,10 @@ export const CacheKeys = {
  * Cache TTL presets (in milliseconds)
  */
 export const CacheTTL = {
-  short: 30 * 1000,      // 30 seconds
-  medium: 5 * 60 * 1000,  // 5 minutes
-  long: 30 * 60 * 1000,   // 30 minutes
-  hour: 60 * 60 * 1000,   // 1 hour
+  short: 30 * 1000, // 30 seconds
+  medium: 5 * 60 * 1000, // 5 minutes
+  long: 30 * 60 * 1000, // 30 minutes
+  hour: 60 * 60 * 1000, // 1 hour
   day: 24 * 60 * 60 * 1000, // 24 hours
 };
+

@@ -14,7 +14,9 @@ interface ComfyUISetupProps {
 const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
   const [status, setStatus] = useState<ComfyUIStatus | null>(null);
   const [checking, setChecking] = useState(true);
-  const [customUrl, setCustomUrl] = useState(import.meta.env.VITE_COMFYUI_URL || 'http://localhost:8188');
+  const [customUrl, setCustomUrl] = useState(
+    import.meta.env.VITE_COMFYUI_URL || 'http://localhost:8188'
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const instructions = getInstallInstructions();
@@ -190,7 +192,9 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
 
             {/* Cloud Option */}
             <div className="mb-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-              <h4 className="text-white font-semibold mb-2">☁️ Don&apos;t want to install locally?</h4>
+              <h4 className="text-white font-semibold mb-2">
+                ☁️ Don&apos;t want to install locally?
+              </h4>
               <p className="text-gray-400 text-sm mb-3">
                 Use cloud ComfyUI on RunPod or Vast.ai (starts at $0.20/hour)
               </p>
@@ -224,7 +228,9 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
                   onClick={() => {
                     // 🛡️ Prevent saving Cloudflare URLs
                     if (customUrl.includes('trycloudflare.com')) {
-                      alert('⚠️ Cloudflare Tunnel URLs are temporary and should not be saved.\n\nPlease use localhost:8188 or a permanent URL.');
+                      alert(
+                        '⚠️ Cloudflare Tunnel URLs are temporary and should not be saved.\n\nPlease use localhost:8188 or a permanent URL.'
+                      );
                       return;
                     }
                     saveComfyUIUrl(customUrl);
@@ -284,3 +290,4 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
 };
 
 export default ComfyUISetup;
+

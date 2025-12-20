@@ -27,18 +27,21 @@ Local ComfyUI → Cloud RunPod → Gemini API
 ```
 
 **Image Generation:**
+
 - Gemini 2.5 Flash Image (primary)
 - Gemini 2.0 Flash Exp (fallback)
 - Stable Diffusion XL (open source)
 - ComfyUI + FLUX.1-schnell (advanced)
 
 **Video Generation:**
+
 - Google Veo 3.1 (720p, 30-120s, cinematic)
 - AnimateDiff V3 (motion animation)
 - SVD 1.1 (high-quality video)
 - Custom resolution support (16:9, 9:16, 1:1, 4:3)
 
 **Voice Cloning:**
+
 - Coqui XTTS-v2 engine
 - 17 languages supported
 - Studio quality (24kHz, 16-bit)
@@ -47,18 +50,21 @@ Local ComfyUI → Cloud RunPod → Gemini API
 ### 🚀 Production Infrastructure
 
 **Auto-Scaling Load Balancer:**
+
 - 0-5 RunPod pods on-demand
 - Cost: $0/hr idle → $1.20/hr peak
 - Automatic health monitoring
 - Intelligent request routing
 
 **Request Queue System:**
+
 - Priority-based processing
 - Automatic retry logic (max 3 attempts)
 - Timeout handling (5 min)
 - Real-time metrics tracking
 
 **Performance:**
+
 - 1,945 tests passing (100% coverage)
 - Sub-second script generation
 - Parallel video processing
@@ -103,14 +109,15 @@ npm run dev
 
 ## 💰 Pricing
 
-| Plan | Price | Best For | Features |
-|------|-------|----------|----------|
-| **FREE** | ฿0/mo | Students | 1 project, 3 characters, 9 scenes |
-| **BASIC** | ฿299/mo | Indie Creators | 5 projects, 100 credits |
-| **PRO** | ฿999/mo | Production | Unlimited projects, 500 credits |
-| **ENTERPRISE** | Custom | Studios | On-premise, white label |
+| Plan           | Price   | Best For       | Features                          |
+| -------------- | ------- | -------------- | --------------------------------- |
+| **FREE**       | ฿0/mo   | Students       | 1 project, 3 characters, 9 scenes |
+| **BASIC**      | ฿299/mo | Indie Creators | 5 projects, 100 credits           |
+| **PRO**        | ฿999/mo | Production     | Unlimited projects, 500 credits   |
+| **ENTERPRISE** | Custom  | Studios        | On-premise, white label           |
 
 **Cost Optimization Modes:**
+
 - 🆓 **Open Source**: ComfyUI + FLUX (free, self-hosted)
 - ☁️ **Cloud API**: Gemini + Veo (paid, fast)
 - 🔀 **Hybrid**: Mix both (recommended)
@@ -124,6 +131,7 @@ npm run dev
 ## 🛠️ Technology Stack
 
 ### Frontend
+
 ```
 React 18 + TypeScript + Vite + Tailwind CSS
 Zustand (state) + React Query + i18next
@@ -132,6 +140,7 @@ IndexedDB (offline support)
 ```
 
 ### Backend
+
 ```
 Node.js + Express + Bull + Redis (queue)
 RunPod (cloud GPU) + Docker
@@ -139,6 +148,7 @@ GraphQL API + WebSocket (real-time)
 ```
 
 ### AI Services
+
 ```
 Google Gemini 2.5 Flash (text + image)
 Google Veo 3.1 (video)
@@ -147,6 +157,7 @@ Coqui XTTS-v2 (voice cloning)
 ```
 
 ### Infrastructure
+
 ```
 Firebase Hosting (CDN)
 RunPod RTX 3090 (GPU cloud)
@@ -219,6 +230,7 @@ VITE_RUNPOD_URL=https://api.runpod.ai/v2/YOUR_ENDPOINT_ID
 **Option B: Self-Hosted ComfyUI (30 minutes - Advanced)**
 
 Deploy to RunPod/Cloud with full control:
+
 - Download ~20GB models
 - Setup FastAPI backend
 - Configure GPU instance
@@ -226,23 +238,25 @@ Deploy to RunPod/Cloud with full control:
 📖 Full guide: [COMFYUI_BACKEND_DEPLOYMENT.md](./COMFYUI_BACKEND_DEPLOYMENT.md)  
 🚀 One-click script: [runpod-setup.sh](./comfyui-backend/runpod-setup.sh)
 
-
 ---
 
 ## 📖 Documentation
 
 ### Getting Started
+
 - 📘 **[Quick Start Guide](./QUICK_START.md)** - Start using in 5 minutes
 - 🚀 **[Deployment Guide](./DEPLOYMENT_GUIDE.md)** - Production deployment
 - 💻 **[Development Guide](./DEVELOPMENT_GUIDE.md)** - Contributing & coding
 
 ### Architecture & Reports
+
 - 📊 **[Project Completion Report](./PROJECT_COMPLETION_REPORT.md)** - Full system overview
 - 🏗️ **[Phase 2.1: RunPod Implementation](./PHASE_2.1_RUNPOD_IMPLEMENTATION_REPORT.md)**
 - 🧪 **[Phase 2.2: Deployment Testing](./PHASE_2.2_DEPLOYMENT_TESTING_REPORT.md)**
 - ⚖️ **[Phase 2.3: Load Balancing](./PHASE_2.3_LOAD_BALANCING_REPORT.md)**
 
 ### Features & Guides
+
 - 🧘 **[Buddhist Psychology Integration](./BUDDHIST_PSYCHOLOGY_INTEGRATION.md)**
 - 🎬 **[Video Generation Setup](./docs/VIDEO_GENERATION_GUIDE.md)**
 - 🎙️ **[Voice Cloning Quick Start](./VOICE_CLONING_QUICKSTART.md)**
@@ -347,14 +361,14 @@ open coverage/index.html
 
 ### Test Coverage
 
-| Category | Files | Tests | Coverage |
-|----------|-------|-------|----------|
-| **Components** | 25 | 487 | 92% |
-| **Services** | 18 | 74 | 95% |
-| **Hooks** | 12 | 156 | 89% |
-| **Utils** | 8 | 89 | 98% |
-| **Integration** | 1 | 1,139 | 87% |
-| **Total** | **64** | **1,945** | **90%** |
+| Category        | Files  | Tests     | Coverage |
+| --------------- | ------ | --------- | -------- |
+| **Components**  | 25     | 487       | 92%      |
+| **Services**    | 18     | 74        | 95%      |
+| **Hooks**       | 12     | 156       | 89%      |
+| **Utils**       | 8      | 89        | 98%      |
+| **Integration** | 1      | 1,139     | 87%      |
+| **Total**       | **64** | **1,945** | **90%**  |
 
 ---
 
@@ -404,16 +418,19 @@ docker push peace-script/comfyui:latest
 ## 📊 Performance Metrics
 
 ### Script Generation
+
 - **Speed**: < 1 second (Gemini 2.5 Flash)
 - **Quality**: 95% user satisfaction
 - **Languages**: Thai, English (30+ via i18n)
 
 ### Video Generation
+
 - **Local ComfyUI**: ~8s per frame (RTX 3090)
 - **RunPod Cloud**: ~5s per frame (parallel processing)
 - **Gemini Veo**: 30-120s videos in 60s
 
 ### Infrastructure
+
 - **Auto-scaling**: 0-5 pods in 2 minutes
 - **Cost idle**: $0/hr (all pods terminated)
 - **Cost peak**: $1.20/hr (5 pods × RTX 3090)
@@ -480,11 +497,13 @@ MIT License - see [LICENSE](./LICENSE) for details
 ## 📞 Support
 
 ### Documentation
+
 - [FAQ](./docs/FAQ.md)
 - [Troubleshooting](./docs/TROUBLESHOOTING.md)
 - [API Reference](./docs/API.md)
 
 ### Community
+
 - **GitHub Issues**: [Report bugs](https://github.com/metapeaceDev/Peace-Scrip-Ai/issues)
 - **Discussions**: [Ask questions](https://github.com/metapeaceDev/Peace-Scrip-Ai/discussions)
 - **Email**: support@peacescriptai.com
@@ -494,6 +513,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 ## 🗺️ Roadmap
 
 ### ✅ Phase 1: Foundation (Complete)
+
 - [x] React + TypeScript setup
 - [x] Firebase integration
 - [x] Script generation
@@ -501,6 +521,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 - [x] 1,871 tests passing
 
 ### ✅ Phase 2: Production Infrastructure (Complete)
+
 - [x] RunPod cloud integration (1,200+ lines)
 - [x] Hybrid backend system
 - [x] Auto-scaling load balancer (430 lines)
@@ -508,6 +529,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 - [x] 74 integration tests (100% passing)
 
 ### 🚧 Phase 3: Advanced Features (In Progress - 15%)
+
 - [ ] AnimateDiff V3 integration
 - [ ] IP-Adapter V2 character consistency
 - [ ] LoRA fine-tuning support
@@ -515,6 +537,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 - [ ] Multi-character scenes
 
 ### 📅 Phase 4: Platform Features (Planned)
+
 - [ ] Mobile apps (iOS + Android)
 - [ ] Real-time collaboration
 - [ ] Template marketplace
@@ -531,6 +554,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 **Last Updated:** December 18, 2024
 
 ### Key Metrics
+
 - **Lines of Code**: 45,000+
 - **Components**: 87
 - **Services**: 18
@@ -547,7 +571,6 @@ MIT License - see [LICENSE](./LICENSE) for details
 [Website](https://peace-script-ai.web.app) • [Documentation](./QUICK_START.md) • [GitHub](https://github.com/metapeaceDev/Peace-Scrip-Ai)
 
 </div>
-
 
 ```bash
 # One-command setup
@@ -572,6 +595,7 @@ cd backend/voice-cloning
 Server runs on http://localhost:8001
 
 **Features:**
+
 - Clone any voice from 6+ seconds audio
 - 17 languages supported
 - Professional 24kHz quality
@@ -798,11 +822,13 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 ## 📚 Documentation
 
 **Main Guides:**
+
 - **Getting Started**: This README
 - **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
 - **System Analysis**: [SYSTEM_ANALYSIS.md](SYSTEM_ANALYSIS.md)
 
 **Video Generation (New!):**
+
 - **Quick Start**: [QUICKSTART_DEPLOY.md](QUICKSTART_DEPLOY.md) - Deploy in 5-30 minutes
 - **Full Guide**: [COMFYUI_BACKEND_DEPLOYMENT.md](COMFYUI_BACKEND_DEPLOYMENT.md) - Complete deployment
 - **Environment Setup**: [ENV_UPDATE_GUIDE.md](ENV_UPDATE_GUIDE.md) - Frontend configuration
@@ -810,16 +836,19 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 - **Implementation Summary**: [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - Overview
 
 **Image Generation:**
+
 - **ComfyUI Setup**: [COMFYUI_SETUP.md](COMFYUI_SETUP.md) | [Quick Start](COMFYUI_QUICKSTART.md)
 - **Colab Guide**: [COLAB_SETUP_GUIDE.md](COLAB_SETUP_GUIDE.md)
 
 **Voice Cloning (New!):**
+
 - **Quick Start**: [VOICE_CLONING_QUICKSTART.md](VOICE_CLONING_QUICKSTART.md) - 5-minute setup
 - **Full Deployment**: [VOICE_CLONING_DEPLOYMENT.md](VOICE_CLONING_DEPLOYMENT.md) - Complete guide
 - **Documentation Index**: [docs/voice-cloning/README.md](docs/voice-cloning/README.md) - All docs
 - **Project History**: [VOICE_CLONING_ROADMAP.md](VOICE_CLONING_ROADMAP.md) - Implementation journey
 
 **Additional Documentation:**
+
 - **Pricing Strategy**: [PRICING_STRATEGY.md](PRICING_STRATEGY.md)
 - **Cost Optimization**: [COST_OPTIMIZATION_ROADMAP.md](COST_OPTIMIZATION_ROADMAP.md)
 - **Full Documentation Index**: [docs/README.md](docs/README.md)

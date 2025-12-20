@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { Character, CittaType } from '../../types';
+import type { Character, CittaType } from '../types';
 
 interface CittaDisplayProps {
   character: Character;
@@ -145,3 +145,4 @@ export const CittaDisplay: React.FC<CittaDisplayProps> = ({
 };
 
 export default CittaDisplay;
+

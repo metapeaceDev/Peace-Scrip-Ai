@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 import {
   calculatePrice,
   createPaymentIntent,
@@ -245,3 +245,4 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     </div>
   );
 };
+

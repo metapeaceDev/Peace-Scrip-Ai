@@ -1,6 +1,12 @@
 [
   {
-    "origin": ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "https://peace-script-ai.web.app", "https://peace-script-ai.firebaseapp.com"],
+    "origin": [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://127.0.0.1:5173",
+      "https://peace-script-ai.web.app",
+      "https://peace-script-ai.firebaseapp.com"
+    ],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "maxAgeSeconds": 3600
   }

@@ -404,3 +404,4 @@ describe('UserStatus - Infinity Display', () => {
     expect(infinityText).toBeDefined();
   });
 });
+

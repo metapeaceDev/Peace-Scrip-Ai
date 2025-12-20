@@ -21,25 +21,38 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
 
   // Detect context: Step 2 (Idea/Boundary), Step 3 (Character), Step 4 (Story Structure/Plot Point), or Scene
   // Step 2 fields: Big Idea, Premise, Theme, Log Line, Synopsis, Timeline, All Boundary Fields
-  const step2Fields = ['Big Idea', 'Premise', 'Theme', 'Log Line', 'Synopsis', 'Timeline', 'All Boundary', 'Boundary'];
+  const step2Fields = [
+    'Big Idea',
+    'Premise',
+    'Theme',
+    'Log Line',
+    'Synopsis',
+    'Timeline',
+    'All Boundary',
+    'Boundary',
+  ];
   const isIdeaMode = step2Fields.some(field => sceneName.includes(field));
-  
+
   // Step 3 fields: Character (all character-related)
   const step3Fields = ['Character', 'All Characters', 'Character Details'];
   const isCharacterMode = step3Fields.some(field => sceneName.includes(field));
   const isCharacterDetailsMode = sceneName.includes('Character Details');
-  
+
   // Step 4 fields: Story Structure (full structure) or Individual Plot Point
   const step4Fields = ['Story Structure', 'Structure'];
   const isStructureMode = step4Fields.some(field => sceneName.includes(field));
   const isPlotPointMode = sceneName.includes('Plot Point:');
-  
+
   // Determine entity name
-  const entityNameTh = isIdeaMode ? 'Idea' 
-                     : isCharacterMode ? 'Character' 
-                     : isStructureMode ? 'Story Structure'
-                     : isPlotPointMode ? 'Plot Point'
-                     : 'ฉาก';
+  const entityNameTh = isIdeaMode
+    ? 'Idea'
+    : isCharacterMode
+      ? 'Character'
+      : isStructureMode
+        ? 'Story Structure'
+        : isPlotPointMode
+          ? 'Plot Point'
+          : 'ฉาก';
 
   if (!isOpen) return null;
 
@@ -49,39 +62,53 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       icon: '🔄',
       title: 'Fresh Start',
       titleTh: 'เริ่มใหม่ทั้งหมด',
-      description: isIdeaMode ? 'Generate completely new idea from scratch' 
-                 : isCharacterMode ? 'Generate completely new character from scratch' 
-                 : isStructureMode ? 'Generate completely new story structure from scratch'
-                 : isPlotPointMode ? 'Generate completely new plot point description from scratch'
-                 : 'Generate completely new scene from scratch',
+      description: isIdeaMode
+        ? 'Generate completely new idea from scratch'
+        : isCharacterMode
+          ? 'Generate completely new character from scratch'
+          : isStructureMode
+            ? 'Generate completely new story structure from scratch'
+            : isPlotPointMode
+              ? 'Generate completely new plot point description from scratch'
+              : 'Generate completely new scene from scratch',
       descriptionTh: `สร้าง ${entityNameTh} ใหม่ทั้งหมด ไม่อิงจาก ${entityNameTh} เดิม`,
-      details: isIdeaMode ? [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1: Genre, story line to be told)',
-        `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-      ] : isCharacterMode ? (isCharacterDetailsMode ? [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3 ตัวละครที่มีความเชื่อมโยงกัน)',
-        `ไม่นำข้อมูล ${entityNameTh} details เดิม มาพิจารณา`,
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-      ] : [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2)',
-        `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-      ]) : isStructureMode ? [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3)',
-        `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
-        'กำหนดจำนวน Scenes ในแต่ละ Plot Points ให้มีไดนามิค ตามความเหมาะสม เพื่อสร้าง Story Structure ใหม่ให้ครบถ้วนสมบูรณ์ตามจำนวน Scene ที่กำหนดไว้ตามลำดับ',
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-      ] : isPlotPointMode ? [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3 และ Plot Points ข้างเคียง)',
-        `สร้าง ${entityNameTh} ใหม่ที่เชื่อมโยงกับ Plot Points อื่นๆ อย่างลงตัว`,
-        'กำหนดจำนวน Scenes ที่เหมาะสมสำหรับ Plot Point นี้',
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่สำหรับ Plot Point เฉพาะจุด',
-      ] : [
-        'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2)',
-        `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
-        'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
-      ],
+      details: isIdeaMode
+        ? [
+            'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1: Genre, story line to be told)',
+            `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
+            'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+          ]
+        : isCharacterMode
+          ? isCharacterDetailsMode
+            ? [
+                'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3 ตัวละครที่มีความเชื่อมโยงกัน)',
+                `ไม่นำข้อมูล ${entityNameTh} details เดิม มาพิจารณา`,
+                'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+              ]
+            : [
+                'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2)',
+                `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
+                'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+              ]
+          : isStructureMode
+            ? [
+                'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3)',
+                `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
+                'กำหนดจำนวน Scenes ในแต่ละ Plot Points ให้มีไดนามิค ตามความเหมาะสม เพื่อสร้าง Story Structure ใหม่ให้ครบถ้วนสมบูรณ์ตามจำนวน Scene ที่กำหนดไว้ตามลำดับ',
+                'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+              ]
+            : isPlotPointMode
+              ? [
+                  'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2, STEP 3 และ Plot Points ข้างเคียง)',
+                  `สร้าง ${entityNameTh} ใหม่ที่เชื่อมโยงกับ Plot Points อื่นๆ อย่างลงตัว`,
+                  'กำหนดจำนวน Scenes ที่เหมาะสมสำหรับ Plot Point นี้',
+                  'เหมาะสำหรับ: ต้องการแนวทางใหม่สำหรับ Plot Point เฉพาะจุด',
+                ]
+              : [
+                  'ใช้เฉพาะข้อมูลพื้นฐาน (STEP 1, STEP 2)',
+                  `ไม่นำข้อมูล ${entityNameTh} เดิม มาพิจารณา`,
+                  'เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด',
+                ],
       color: 'cyan',
       recommended: !hasEdits,
     },
@@ -90,38 +117,52 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       icon: '✨',
       title: 'Refine Existing',
       titleTh: `ปรับปรุง${entityNameTh}เดิม`,
-      description: isIdeaMode ? 'Improve current idea while keeping the core structure' 
-                 : isCharacterMode ? 'Improve current character while keeping the core structure' 
-                 : isStructureMode ? 'Improve current story structure while keeping the core structure'
-                 : isPlotPointMode ? 'Improve current plot point while keeping the core concept'
-                 : 'Improve current scene while keeping the core structure',
+      description: isIdeaMode
+        ? 'Improve current idea while keeping the core structure'
+        : isCharacterMode
+          ? 'Improve current character while keeping the core structure'
+          : isStructureMode
+            ? 'Improve current story structure while keeping the core structure'
+            : isPlotPointMode
+              ? 'Improve current plot point while keeping the core concept'
+              : 'Improve current scene while keeping the core structure',
       descriptionTh: `ปรับปรุงคุณภาพ ${entityNameTh} เดิม โดยรักษาโครงสร้างหลัก`,
-      details: isIdeaMode ? [
-        `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุง  description, ความเชื่อมโยง,ความสมเหตุสมผล ความสมจริง',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-      ] : isCharacterMode ? (isCharacterDetailsMode ? [
-        `ใช้ ${entityNameTh} details ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุง Character Name, Role/Type, Character Description & Role, External, Internal, Goals, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-      ] : [
-        `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุง Character Name, Role/Type, Character Description & Role, External, Internal, Goals, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-      ]) : isStructureMode ? [
-        `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุง Description, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง ความสนุก ความเข้มข้นครบรส อย่างสมบูรณ์',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-      ] : isPlotPointMode ? [
-        `ใช้ ${entityNameTh} Description ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุงคุณภาพ, ความชัดเจน, ความเชื่อมโยง กับ Plot Points อื่นๆ',
-        'รักษาแนวคิดหลักและความต่อเนื่องของเรื่อง',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการปรับปรุงคุณภาพ',
-      ] : [
-        `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
-        'ปรับปรุงคุณภาพโดยรักษาโครงสร้างหลัก',
-        'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
-      ],
+      details: isIdeaMode
+        ? [
+            `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
+            'ปรับปรุง  description, ความเชื่อมโยง,ความสมเหตุสมผล ความสมจริง',
+            'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+          ]
+        : isCharacterMode
+          ? isCharacterDetailsMode
+            ? [
+                `ใช้ ${entityNameTh} details ปัจจุบันเป็นพื้นฐาน`,
+                'ปรับปรุง Character Name, Role/Type, Character Description & Role, External, Internal, Goals, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง',
+                'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+              ]
+            : [
+                `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
+                'ปรับปรุง Character Name, Role/Type, Character Description & Role, External, Internal, Goals, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง',
+                'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+              ]
+          : isStructureMode
+            ? [
+                `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
+                'ปรับปรุง Description, ความเชื่อมโยง, ความสมเหตุสมผล ความสมจริง ความสนุก ความเข้มข้นครบรส อย่างสมบูรณ์',
+                'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+              ]
+            : isPlotPointMode
+              ? [
+                  `ใช้ ${entityNameTh} Description ปัจจุบันเป็นพื้นฐาน`,
+                  'ปรับปรุงคุณภาพ, ความชัดเจน, ความเชื่อมโยง กับ Plot Points อื่นๆ',
+                  'รักษาแนวคิดหลักและความต่อเนื่องของเรื่อง',
+                  'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการปรับปรุงคุณภาพ',
+                ]
+              : [
+                  `ใช้ ${entityNameTh} ปัจจุบันเป็นพื้นฐาน`,
+                  'ปรับปรุงคุณภาพโดยรักษาโครงสร้างหลัก',
+                  'เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น',
+                ],
       color: 'purple',
       recommended: !hasEdits && selectedMode !== 'fresh',
     },
@@ -132,31 +173,41 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
       titleTh: 'ใช้ข้อมูลที่แก้ไข',
       description: 'Regenerate based on your manual edits',
       descriptionTh: `สร้าง ${entityNameTh} ใหม่โดยรวมการแก้ไขของคุณเข้าไป`,
-      details: isIdeaMode ? [
-        `นำการแก้ไข ${entityNameTh} , STEP 1: Genre, story line to be told ,STEP 2: Creating a boundary for the story, ไปใช้`,
-        `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
-        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-      ] : isCharacterMode ? (isCharacterDetailsMode ? [
-        `นำการแก้ไข ${entityNameTh} details, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
-        `สร้าง ${entityNameTh} details ใหม่ที่สอดคล้องกับที่แก้ไข`,
-        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-      ] : [
-        `นำการแก้ไข ${entityNameTh}, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
-        `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
-        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-      ]) : isStructureMode ? [
-        `นำการแก้ไข ${entityNameTh}, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
-        `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
-        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-      ] : isPlotPointMode ? [
-        `นำการแก้ไข ${entityNameTh} Description ที่คุณแก้ไว้แล้วไปใช้`,
-        `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับการแก้ไข และเชื่อมโยงกับ Plot Points อื่นๆ`,
-        'เหมาะสำหรับ: แก้ไข Description แล้ว ต้องการ AI ปรับปรุงให้สมบูรณ์',
-      ] : [
-        `นำการแก้ไข ${entityNameTh} ไปใช้`,
-        `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
-        'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
-      ],
+      details: isIdeaMode
+        ? [
+            `นำการแก้ไข ${entityNameTh} , STEP 1: Genre, story line to be told ,STEP 2: Creating a boundary for the story, ไปใช้`,
+            `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
+            'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+          ]
+        : isCharacterMode
+          ? isCharacterDetailsMode
+            ? [
+                `นำการแก้ไข ${entityNameTh} details, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
+                `สร้าง ${entityNameTh} details ใหม่ที่สอดคล้องกับที่แก้ไข`,
+                'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+              ]
+            : [
+                `นำการแก้ไข ${entityNameTh}, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
+                `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
+                'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+              ]
+          : isStructureMode
+            ? [
+                `นำการแก้ไข ${entityNameTh}, STEP 1, STEP 2, STEP 3 ข้อมูลปัจจุบัน ไปใช้`,
+                `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
+                'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+              ]
+            : isPlotPointMode
+              ? [
+                  `นำการแก้ไข ${entityNameTh} Description ที่คุณแก้ไว้แล้วไปใช้`,
+                  `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับการแก้ไข และเชื่อมโยงกับ Plot Points อื่นๆ`,
+                  'เหมาะสำหรับ: แก้ไข Description แล้ว ต้องการ AI ปรับปรุงให้สมบูรณ์',
+                ]
+              : [
+                  `นำการแก้ไข ${entityNameTh} ไปใช้`,
+                  `สร้าง ${entityNameTh} ใหม่ที่สอดคล้องกับที่แก้ไข`,
+                  'เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน',
+                ],
       color: 'green',
       recommended: hasEdits,
       disabled: !hasEdits,
@@ -171,10 +222,7 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-gray-900 border-2 border-cyan-500/30 rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-hidden animate-scale-in">
@@ -184,22 +232,17 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
             <div>
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <span className="text-2xl">🔄</span>
-                <span>Regenerate {isIdeaMode ? 'Idea' : isCharacterMode ? 'Character' : 'Scene'}</span>
+                <span>
+                  Regenerate {isIdeaMode ? 'Idea' : isCharacterMode ? 'Character' : 'Scene'}
+                </span>
               </h3>
               <p className="text-sm text-gray-400 mt-1">
-                เลือกวิธีการสร้าง{entityNameTh}: <span className="text-cyan-400 font-semibold">{sceneName}</span>
+                เลือกวิธีการสร้าง{entityNameTh}:{' '}
+                <span className="text-cyan-400 font-semibold">{sceneName}</span>
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -216,12 +259,8 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
           <div className="space-y-4">
             {modes.map(mode => {
               const isSelected = selectedMode === mode.id;
-              const borderColor = isSelected
-                ? `border-${mode.color}-500`
-                : 'border-gray-700';
-              const bgColor = isSelected
-                ? `bg-${mode.color}-900/20`
-                : 'bg-gray-800/50';
+              const borderColor = isSelected ? `border-${mode.color}-500` : 'border-gray-700';
+              const bgColor = isSelected ? `bg-${mode.color}-900/20` : 'bg-gray-800/50';
 
               return (
                 <button
@@ -244,9 +283,7 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
                             : 'border-gray-600'
                         }`}
                       >
-                        {isSelected && (
-                          <div className="w-2.5 h-2.5 bg-white rounded-full" />
-                        )}
+                        {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                       </div>
                     </div>
 
@@ -257,13 +294,9 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
                         <div>
                           <h4 className="text-white font-bold">
                             {mode.titleTh}
-                            <span className="text-gray-500 text-sm ml-2">
-                              ({mode.title})
-                            </span>
+                            <span className="text-gray-500 text-sm ml-2">({mode.title})</span>
                           </h4>
-                          <p className="text-gray-400 text-sm">
-                            {mode.descriptionTh}
-                          </p>
+                          <p className="text-gray-400 text-sm">{mode.descriptionTh}</p>
                         </div>
                         {mode.recommended && (
                           <span className="ml-auto px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full border border-yellow-500/30">
@@ -275,10 +308,7 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
                       {/* Details */}
                       <ul className="space-y-1 mt-3">
                         {mode.details.map((detail, idx) => (
-                          <li
-                            key={idx}
-                            className="text-xs text-gray-400 flex items-start gap-2"
-                          >
+                          <li key={idx} className="text-xs text-gray-400 flex items-start gap-2">
                             <span className="text-cyan-400 mt-0.5">•</span>
                             <span>{detail}</span>
                           </li>
@@ -302,13 +332,20 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
             <div className="flex gap-3">
               <span className="text-blue-400 text-xl">💡</span>
               <div className="text-sm text-gray-300">
-                <p className="font-semibold text-blue-300 mb-1">
-                  คำแนะนำการใช้งาน:
-                </p>
+                <p className="font-semibold text-blue-300 mb-1">คำแนะนำการใช้งาน:</p>
                 <ul className="space-y-1 text-xs text-gray-400">
-                  <li>• ถ้าไม่พอใจ {entityNameTh} เลย → <strong className="text-white">Fresh Start</strong></li>
-                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <strong className="text-white">Refine Existing</strong></li>
-                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <strong className="text-white">Use Edited Data</strong></li>
+                  <li>
+                    • ถ้าไม่พอใจ {entityNameTh} เลย →{' '}
+                    <strong className="text-white">Fresh Start</strong>
+                  </li>
+                  <li>
+                    • ถ้าชอบแนวทางแต่ต้องการดีขึ้น →{' '}
+                    <strong className="text-white">Refine Existing</strong>
+                  </li>
+                  <li>
+                    • ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ →{' '}
+                    <strong className="text-white">Use Edited Data</strong>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -334,3 +371,4 @@ export const RegenerateOptionsModal: React.FC<RegenerateOptionsModalProps> = ({
     </div>
   );
 };
+

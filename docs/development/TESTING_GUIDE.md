@@ -36,6 +36,7 @@ Complete testing procedures for all 3 tiers of video generation.
 ### Status: **PASSED ✅** (Tested Dec 11, 2024)
 
 ### Test Results
+
 ```
 Console Output:
 🎬 Generating video with model: auto
@@ -46,16 +47,19 @@ Console Output:
 ### How to Re-test
 
 1. **Open Peace Script AI**
+
    ```
    https://peace-script-ai.web.app
    ```
 
 2. **Navigate to Studio**
+
    ```
    Auth → Projects → Select "แสนโสพา" → Studio
    ```
 
 3. **Select a Shot**
+
    ```
    - Click any scene
    - Click any shot
@@ -63,6 +67,7 @@ Console Output:
    ```
 
 4. **Generate Video**
+
    ```
    - Click "Generate Video" button
    - Model: Leave as "auto" or select "Gemini Veo 3.1"
@@ -70,12 +75,13 @@ Console Output:
    ```
 
 5. **Verify Console Logs**
+
    ```javascript
    // Open DevTools (F12)
    // Should see:
    🎬 Tier 1: Trying Gemini Veo 3.1...
    ✅ Tier 1 Success: Gemini Veo 3.1
-   
+
    // Should NOT see errors
    ```
 
@@ -89,6 +95,7 @@ Console Output:
    ```
 
 ### Success Criteria
+
 - ✅ Console shows "Tier 1 Success"
 - ✅ Video URL returned (starts with `https://generativelanguage.googleapis.com/`)
 - ✅ Video plays in browser
@@ -102,6 +109,7 @@ Console Output:
 ### Status: **PENDING** (Awaiting backend deployment)
 
 ### Prerequisites
+
 ```bash
 # 1. Backend must be deployed and running
 curl https://your-backend-url/health/detailed
@@ -120,6 +128,7 @@ npm run build && firebase deploy --only hosting
 #### Test 2.1: Basic AnimateDiff Generation
 
 1. **Setup**
+
    ```
    - Open https://peace-script-ai.web.app (Incognito mode)
    - Login → Projects → Studio
@@ -127,6 +136,7 @@ npm run build && firebase deploy --only hosting
    ```
 
 2. **Generate**
+
    ```
    - Click "Generate Video"
    - Model: "ComfyUI + AnimateDiff" (or "auto")
@@ -134,6 +144,7 @@ npm run build && firebase deploy --only hosting
    ```
 
 3. **Monitor Console**
+
    ```javascript
    // Expected output:
    🎬 Generating video with model: comfyui-animatediff
@@ -187,6 +198,7 @@ Test different motion strengths:
 ```
 
 ### Success Criteria
+
 - ✅ Console shows "Tier 2: Trying ComfyUI..."
 - ✅ Job ID returned and tracked
 - ✅ Progress updates appear (0% → 100%)
@@ -198,12 +210,12 @@ Test different motion strengths:
 
 ### Expected Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
-| "Backend timeout" | Check backend is running, increase timeout |
-| "Job not found" | Backend restarted, retry generation |
-| "CUDA out of memory" | Reduce MAX_CONCURRENT_JOBS to 1 |
-| "Model not found" | Download models: `./download-models.sh` |
+| Issue                | Solution                                   |
+| -------------------- | ------------------------------------------ |
+| "Backend timeout"    | Check backend is running, increase timeout |
+| "Job not found"      | Backend restarted, retry generation        |
+| "CUDA out of memory" | Reduce MAX_CONCURRENT_JOBS to 1            |
+| "Model not found"    | Download models: `./download-models.sh`    |
 
 ---
 
@@ -212,7 +224,9 @@ Test different motion strengths:
 ### Status: **PENDING** (Awaiting backend deployment)
 
 ### Prerequisites
+
 Same as Tier 2 + ensure SVD model downloaded:
+
 ```bash
 # Check model exists:
 ls /workspace/ComfyUI/models/checkpoints/svd_xt_1_1.safetensors
@@ -224,6 +238,7 @@ ls /workspace/ComfyUI/models/checkpoints/svd_xt_1_1.safetensors
 #### Test 3.1: Basic SVD Generation
 
 1. **Generate**
+
    ```
    - Click "Generate Video"
    - Model: "ComfyUI + SVD"
@@ -231,6 +246,7 @@ ls /workspace/ComfyUI/models/checkpoints/svd_xt_1_1.safetensors
    ```
 
 2. **Monitor Console**
+
    ```javascript
    🎬 Tier 2: Trying ComfyUI + SVD...
    📤 Job submitted: <job-id>
@@ -250,15 +266,16 @@ ls /workspace/ComfyUI/models/checkpoints/svd_xt_1_1.safetensors
 
 Generate same shot with both models:
 
-| Metric | AnimateDiff | SVD |
-|--------|-------------|-----|
-| Resolution | 512x512 | 1024x576 ✅ Better |
-| Quality | Good | Excellent ✅ Better |
-| Motion | Natural | Very Natural ✅ Better |
-| Speed | ~20-30s | ~30-40s (slower) |
-| VRAM | ~6-8GB | ~10-12GB (more) |
+| Metric     | AnimateDiff | SVD                    |
+| ---------- | ----------- | ---------------------- |
+| Resolution | 512x512     | 1024x576 ✅ Better     |
+| Quality    | Good        | Excellent ✅ Better    |
+| Motion     | Natural     | Very Natural ✅ Better |
+| Speed      | ~20-30s     | ~30-40s (slower)       |
+| VRAM       | ~6-8GB      | ~10-12GB (more)        |
 
 ### Success Criteria
+
 - ✅ SVD generates successfully
 - ✅ Higher resolution than AnimateDiff
 - ✅ Better quality output
@@ -274,23 +291,26 @@ Generate same shot with both models:
 **Scenario:** Veo API fails, should fallback to ComfyUI
 
 1. **Simulate Veo Failure**
+
    ```bash
    # Temporarily break Veo by using wrong API key
    # Edit .env:
    VITE_GEMINI_API_KEY=INVALID_KEY_FOR_TESTING
-   
+
    # Rebuild & deploy
    npm run build
    firebase deploy --only hosting
    ```
 
 2. **Generate Video**
+
    ```
    - Model: "auto"
    - Click generate
    ```
 
 3. **Expected Console Output**
+
    ```javascript
    🎬 Generating video with model: auto
    🎬 Tier 1: Trying Gemini Veo 3.1...
@@ -318,16 +338,18 @@ Generate same shot with both models:
 **Scenario:** Both Veo and AnimateDiff fail, fallback to SVD
 
 1. **Simulate Double Failure**
+
    ```bash
    # Break Veo (wrong API key)
    VITE_GEMINI_API_KEY=INVALID_KEY
-   
+
    # Break AnimateDiff (comment out model in backend)
    # In comfyui-backend/main.py, temporarily:
    # raise Exception("AnimateDiff temporarily disabled")
    ```
 
 2. **Generate**
+
    ```
    - Model: "auto"
    - Should see:
@@ -352,11 +374,11 @@ Generate same shot with both models:
 
 Measure time for each tier:
 
-| Tier | Expected Time | Your Result |
-|------|---------------|-------------|
-| Tier 1 (Veo) | 30-60s | ___ |
-| Tier 2 (AnimateDiff) | 20-40s | ___ |
-| Tier 3 (SVD) | 30-60s | ___ |
+| Tier                 | Expected Time | Your Result |
+| -------------------- | ------------- | ----------- |
+| Tier 1 (Veo)         | 30-60s        | \_\_\_      |
+| Tier 2 (AnimateDiff) | 20-40s        | \_\_\_      |
+| Tier 3 (SVD)         | 30-60s        | \_\_\_      |
 
 ```javascript
 // Add timing to console:
@@ -380,6 +402,7 @@ Generate multiple videos simultaneously:
    ```
 
 **Expected:**
+
 - ✅ All jobs queue properly
 - ✅ Backend handles 2 concurrent (MAX_CONCURRENT_JOBS)
 - ✅ Others wait in queue
@@ -417,31 +440,35 @@ htop
 
 Generate same shot with all tiers, compare:
 
-| Aspect | Tier 1 (Veo) | Tier 2 (AnimateDiff) | Tier 3 (SVD) |
-|--------|--------------|----------------------|--------------|
-| Resolution | 1280x720 ✅ | 512x512 | 1024x576 ✅ |
-| Sharpness | Excellent ✅ | Good | Excellent ✅ |
-| Motion | Very Natural ✅ | Natural | Very Natural ✅ |
-| Duration | 30-120s ✅ | 3s | 3s |
-| Artifacts | None ✅ | Minimal | Minimal |
-| **Score** | **10/10** | **7/10** | **8/10** |
+| Aspect     | Tier 1 (Veo)    | Tier 2 (AnimateDiff) | Tier 3 (SVD)    |
+| ---------- | --------------- | -------------------- | --------------- |
+| Resolution | 1280x720 ✅     | 512x512              | 1024x576 ✅     |
+| Sharpness  | Excellent ✅    | Good                 | Excellent ✅    |
+| Motion     | Very Natural ✅ | Natural              | Very Natural ✅ |
+| Duration   | 30-120s ✅      | 3s                   | 3s              |
+| Artifacts  | None ✅         | Minimal              | Minimal         |
+| **Score**  | **10/10**       | **7/10**             | **8/10**        |
 
 ### Test 6.2: Edge Cases
 
 Test with challenging inputs:
 
 1. **Very complex prompt**
+
    ```
-   "A cinematic scene with multiple characters, 
-    dynamic lighting, camera movements, and 
+   "A cinematic scene with multiple characters,
+    dynamic lighting, camera movements, and
     detailed background with reflections"
    ```
+
    - Expected: May be slower, but should work
 
 2. **Minimal prompt**
+
    ```
    "A person"
    ```
+
    - Expected: Should work, generic output
 
 3. **Very dark/bright scenes**
@@ -495,12 +522,14 @@ Expected:
 ## 📝 Testing Checklist
 
 ### Pre-Deployment Testing
+
 - [ ] Tier 1 (Veo) works
 - [ ] Backend health check passes
 - [ ] Frontend .env updated correctly
 - [ ] Frontend deployed to production
 
 ### Tier 2 (AnimateDiff) Testing
+
 - [ ] Basic generation works
 - [ ] Progress updates correctly
 - [ ] Video quality acceptable
@@ -509,30 +538,35 @@ Expected:
 - [ ] Motion strength variations work
 
 ### Tier 3 (SVD) Testing
+
 - [ ] Basic generation works
 - [ ] Higher quality than AnimateDiff
 - [ ] 16:9 aspect ratio correct
 - [ ] Generation completes successfully
 
 ### Fallback Testing
+
 - [ ] Tier 1 → Tier 2 fallback works
 - [ ] Error messages clear
 - [ ] No crashes on failure
 - [ ] Full chain (1→2→3) works
 
 ### Performance Testing
+
 - [ ] Generation times acceptable
 - [ ] Concurrent jobs handled
 - [ ] No memory leaks
 - [ ] GPU utilization good (80%+)
 
 ### Quality Testing
+
 - [ ] Visual quality acceptable
 - [ ] Motion smooth and natural
 - [ ] No artifacts or glitches
 - [ ] Edge cases handled
 
 ### Error Testing
+
 - [ ] Network errors handled
 - [ ] Invalid inputs rejected
 - [ ] Backend restart recovered
@@ -563,38 +597,45 @@ All systems operational when:
 ## Test Results - [Date]
 
 ### Environment
+
 - Backend: [RunPod / Replicate / Local]
 - GPU: [RTX 3090 / T4 / etc]
 - Frontend: [Production / Staging]
 
 ### Tier 1 (Veo)
+
 - Status: ✅ PASS / ❌ FAIL
-- Generation time: ___ seconds
-- Quality: ___ / 10
-- Notes: ___
+- Generation time: \_\_\_ seconds
+- Quality: \_\_\_ / 10
+- Notes: \_\_\_
 
 ### Tier 2 (AnimateDiff)
+
 - Status: ✅ PASS / ❌ FAIL
-- Generation time: ___ seconds
-- Quality: ___ / 10
-- Notes: ___
+- Generation time: \_\_\_ seconds
+- Quality: \_\_\_ / 10
+- Notes: \_\_\_
 
 ### Tier 3 (SVD)
+
 - Status: ✅ PASS / ❌ FAIL
-- Generation time: ___ seconds
-- Quality: ___ / 10
-- Notes: ___
+- Generation time: \_\_\_ seconds
+- Quality: \_\_\_ / 10
+- Notes: \_\_\_
 
 ### Fallback Chain
+
 - Tier 1 → 2: ✅ PASS / ❌ FAIL
 - Tier 1 → 2 → 3: ✅ PASS / ❌ FAIL
-- Notes: ___
+- Notes: \_\_\_
 
 ### Issues Found
-1. ___
-2. ___
+
+1. ***
+2. ***
 
 ### Overall Status
+
 ✅ Ready for production / ❌ Needs fixes
 ```
 

@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import Studio from '../Studio';
-import type { ProjectMetadata, ProjectType } from '../../types';
+import type { ProjectMetadata, ProjectType } from '../types';
 
 // Mock dependencies
 vi.mock('./ComfyUIStatus', () => ({
@@ -25,10 +25,25 @@ vi.mock('../../services/teamCollaborationService', () => ({
   },
 }));
 
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  onSnapshot: vi.fn(() => vi.fn()),
+  doc: vi.fn(),
+  updateDoc: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
+  addDoc: vi.fn(() => Promise.resolve({ id: 'new-doc' })),
+  deleteDoc: vi.fn(),
+}));
+
 vi.mock('../../config/firebase', () => ({
   auth: {
     currentUser: { email: 'test@example.com', uid: '123' },
   },
+  db: {},
 }));
 
 vi.mock('./RoleManagement', () => ({
@@ -371,3 +386,4 @@ describe('Studio - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

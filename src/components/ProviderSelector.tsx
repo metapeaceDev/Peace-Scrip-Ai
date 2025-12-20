@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MODEL_PROFILES, 
-  ModelProfile, 
+import {
+  MODEL_PROFILES,
+  ModelProfile,
   ModelPreference,
   selectOptimalModel,
   detectAvailableVRAM,
-  calculateCostSavings 
+  calculateCostSavings,
 } from '../services/comfyuiModelSelector';
 import type { ProviderMode } from '../services/providerConfigStore';
 
@@ -69,7 +69,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           </div>
           <div className="mode-quality">⭐⭐⭐⭐⭐ Best Quality</div>
           <div className="mode-cost">💰 Uses credits</div>
-          
+
           <ul className="mode-features">
             <li>✅ Gemini 2.0 Flash (text)</li>
             <li>✅ Gemini Imagen 3 (image)</li>
@@ -94,7 +94,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           </div>
           <div className="mode-quality">⭐⭐⭐⭐ Good Quality</div>
           <div className="mode-cost">💚 100% FREE</div>
-          
+
           <ul className="mode-features">
             <li>✅ Ollama + Llama 3.2 (text)</li>
             <li>✅ ComfyUI + FLUX (image)</li>
@@ -120,7 +120,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           </div>
           <div className="mode-quality">⭐⭐⭐⭐⭐ Excellent</div>
           <div className="mode-cost">💎 Best Value</div>
-          
+
           <ul className="mode-features">
             <li>✅ Try Open Source first</li>
             <li>✅ Fallback to Cloud if needed</li>
@@ -136,14 +136,14 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
         <div className="model-selection">
           <h4>🎨 Model Quality Preference</h4>
           <p className="model-description">เลือกคุณภาพที่ต้องการ (ระบบจะเลือก model อัตโนมัติ)</p>
-          
+
           <div className="model-slider">
             <input
               type="range"
               min="0"
               max="3"
               value={['speed', 'balanced', 'quality', 'best'].indexOf(modelPreference)}
-              onChange={(e) => {
+              onChange={e => {
                 const preferences: ModelPreference[] = ['speed', 'balanced', 'quality', 'best'];
                 setModelPreference(preferences[parseInt(e.target.value)]);
               }}
@@ -192,7 +192,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
       {/* Cost Estimator */}
       <div className="cost-estimator">
         <h4>💰 ประมาณการค่าใช้จ่าย</h4>
-        
+
         <div className="generations-input">
           <label>จำนวนรูปที่จะสร้าง:</label>
           <input
@@ -200,7 +200,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
             min="1"
             max="100"
             value={estimatedGenerations}
-            onChange={(e) => setEstimatedGenerations(parseInt(e.target.value) || 1)}
+            onChange={e => setEstimatedGenerations(parseInt(e.target.value) || 1)}
           />
           <span>รูป (1 โปรเจกต์ ≈ 12 รูป)</span>
         </div>
@@ -218,49 +218,48 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           <tbody>
             <tr>
               <td>Text (1 script)</td>
-              <td className="text-center">
-                {mode === 'cloud' ? '฿0.35' : '฿0'}
-              </td>
+              <td className="text-center">{mode === 'cloud' ? '฿0.35' : '฿0'}</td>
               <td className="text-center">฿0.35</td>
             </tr>
             <tr>
               <td>Images ({estimatedGenerations} รูป)</td>
               <td className="text-center">
-                {mode === 'cloud' 
-                  ? `฿${(estimatedGenerations * 1.40).toFixed(2)}`
+                {mode === 'cloud'
+                  ? `฿${(estimatedGenerations * 1.4).toFixed(2)}`
                   : mode === 'open-source'
-                  ? '฿0'
-                  : `฿${(estimatedGenerations * 0.50).toFixed(2)}`}
+                    ? '฿0'
+                    : `฿${(estimatedGenerations * 0.5).toFixed(2)}`}
               </td>
-              <td className="text-center">฿{(estimatedGenerations * 1.40).toFixed(2)}</td>
+              <td className="text-center">฿{(estimatedGenerations * 1.4).toFixed(2)}</td>
             </tr>
             <tr>
               <td>Video (1 preview)</td>
-              <td className="text-center">
-                {mode === 'cloud' ? '฿17.50' : '฿0'}
-              </td>
+              <td className="text-center">{mode === 'cloud' ? '฿17.50' : '฿0'}</td>
               <td className="text-center">฿17.50</td>
             </tr>
             <tr className="total-row">
-              <td><strong>Total:</strong></td>
+              <td>
+                <strong>Total:</strong>
+              </td>
               <td className="text-center">
                 <strong className="current-cost">
-                  {mode === 'cloud' 
-                    ? `฿${(0.35 + estimatedGenerations * 1.40 + 17.50).toFixed(2)}`
+                  {mode === 'cloud'
+                    ? `฿${(0.35 + estimatedGenerations * 1.4 + 17.5).toFixed(2)}`
                     : mode === 'open-source'
-                    ? '฿0'
-                    : `฿${(estimatedGenerations * 0.50 + 5).toFixed(2)}`}
+                      ? '฿0'
+                      : `฿${(estimatedGenerations * 0.5 + 5).toFixed(2)}`}
                 </strong>
               </td>
               <td className="text-center">
-                <strong>฿{(0.35 + estimatedGenerations * 1.40 + 17.50).toFixed(2)}</strong>
+                <strong>฿{(0.35 + estimatedGenerations * 1.4 + 17.5).toFixed(2)}</strong>
               </td>
             </tr>
             {mode !== 'cloud' && (
               <tr className="savings-row">
                 <td colSpan={3}>
                   <div className="savings-badge">
-                    💚 ประหยัดได้ ฿{costSavings.savings.toFixed(2)} ({costSavings.savingsPercent.toFixed(0)}%)
+                    💚 ประหยัดได้ ฿{costSavings.savings.toFixed(2)} (
+                    {costSavings.savingsPercent.toFixed(0)}%)
                   </div>
                 </td>
               </tr>
@@ -280,15 +279,27 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
                 <span className="warning"> ⚠️ VRAM ของคุณอาจไม่พอ</span>
               )}
             </li>
-            <li><strong>Storage:</strong> ~20GB สำหรับ models</li>
-            <li><strong>RAM:</strong> 16GB แนะนำ</li>
-            <li><strong>OS:</strong> Windows, macOS, Linux</li>
+            <li>
+              <strong>Storage:</strong> ~20GB สำหรับ models
+            </li>
+            <li>
+              <strong>RAM:</strong> 16GB แนะนำ
+            </li>
+            <li>
+              <strong>OS:</strong> Windows, macOS, Linux
+            </li>
           </ul>
-          
+
           <div className="setup-links">
-            <a href="#" className="setup-link">📖 คู่มือติดตั้ง ComfyUI</a>
-            <a href="#" className="setup-link">📖 คู่มือติดตั้ง Ollama</a>
-            <a href="#" className="setup-link">📥 ดาวน์โหลด Models</a>
+            <a href="#" className="setup-link">
+              📖 คู่มือติดตั้ง ComfyUI
+            </a>
+            <a href="#" className="setup-link">
+              📖 คู่มือติดตั้ง Ollama
+            </a>
+            <a href="#" className="setup-link">
+              📥 ดาวน์โหลด Models
+            </a>
           </div>
         </div>
       )}
@@ -297,3 +308,4 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
 };
 
 export default ProviderSelector;
+

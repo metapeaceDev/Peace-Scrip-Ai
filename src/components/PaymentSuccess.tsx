@@ -1,6 +1,6 @@
 /**
  * Payment Success Page
- * 
+ *
  * Shown after successful Stripe payment
  * Updates user subscription status
  */
@@ -28,7 +28,7 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
         // Get subscription tier from URL params (passed from Stripe)
         const urlParams = new URLSearchParams(window.location.search);
         const tier = urlParams.get('tier') as 'basic' | 'pro' | 'enterprise';
-        
+
         if (tier) {
           console.log(`✅ Payment successful! Upgrading to ${tier}...`);
           await upgradeSubscription(user.uid, tier);
@@ -43,7 +43,7 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
 
     // Countdown timer
     const timer = setInterval(() => {
-      setCountdown((prev) => {
+      setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           if (onContinue) onContinue();
@@ -63,17 +63,25 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
         {/* Success Icon */}
         <div className="mb-6 flex justify-center">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center animate-bounce">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-12 h-12 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
         </div>
 
         {/* Success Message */}
-        <h1 className="text-3xl font-bold text-white mb-4">
-          ชำระเงินสำเร็จ! 🎉
-        </h1>
-        
+        <h1 className="text-3xl font-bold text-white mb-4">ชำระเงินสำเร็จ! 🎉</h1>
+
         <p className="text-gray-300 mb-6">
           ขอบคุณสำหรับการสมัครสมาชิก Peace Script
           <br />
@@ -84,7 +92,12 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
         <div className="bg-gray-900/50 rounded-lg p-4 mb-6 text-left">
           <h3 className="text-green-400 font-bold mb-3 flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+              />
             </svg>
             คุณสมบัติที่ปลดล็อก:
           </h3>
@@ -119,10 +132,8 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
           >
             เริ่มสร้างสรรค์เลย
           </button>
-          
-          <p className="text-gray-500 text-sm">
-            กลับไปหน้าหลักใน {countdown} วินาที...
-          </p>
+
+          <p className="text-gray-500 text-sm">กลับไปหน้าหลักใน {countdown} วินาที...</p>
         </div>
 
         {/* Support */}
@@ -130,7 +141,10 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
           <p className="text-gray-400 text-xs">
             หากมีคำถามหรือต้องการความช่วยเหลือ
             <br />
-            ติดต่อ: <a href="mailto:metapeaceofficial@gmail.com" className="text-cyan-400 hover:underline">metapeaceofficial@gmail.com</a>
+            ติดต่อ:{' '}
+            <a href="mailto:metapeaceofficial@gmail.com" className="text-cyan-400 hover:underline">
+              metapeaceofficial@gmail.com
+            </a>
           </p>
         </div>
       </div>
@@ -139,3 +153,4 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
 };
 
 export default PaymentSuccess;
+

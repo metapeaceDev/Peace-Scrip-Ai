@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CittaDisplay } from '../CittaDisplay';
-import type { Character } from '../../../types';
+import type { Character } from '../types';
 
 describe('CittaDisplay', () => {
   const mockCharacter: Character = {
@@ -249,3 +249,4 @@ describe('CittaDisplay', () => {
     });
   });
 });
+

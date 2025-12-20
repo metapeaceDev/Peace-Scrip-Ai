@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TeamManager from '../TeamManager';
-import { ScriptData, TeamMember } from '../../../types';
+import { ScriptData, TeamMember } from '../types';
 import { teamCollaborationService } from '../../services/teamCollaborationService';
 import { auth } from '../../config/firebase';
 
@@ -1079,3 +1079,4 @@ describe('TeamManager - Access Control', () => {
     expect(legacyTexts.length).toBeGreaterThan(0);
   });
 });
+

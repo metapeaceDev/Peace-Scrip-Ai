@@ -7,7 +7,7 @@ import type {
   DialogueLine,
   PsychologySnapshot,
   PsychologyChange,
-} from '../../types';
+} from '../types';
 import { useTranslation } from './LanguageSwitcher';
 import {
   generateStoryboardImage,
@@ -15,7 +15,7 @@ import {
   VIDEO_MODELS_CONFIG,
 } from '../services/geminiService';
 import { updatePsychologyTimeline } from '../services/psychologyEvolution';
-import { CHARACTER_IMAGE_STYLES } from '../../constants';
+import { CHARACTER_IMAGE_STYLES } from '../constants';
 import { hasAccessToModel } from '../services/userStore';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 import { MotionEditor } from './MotionEditor';
@@ -1406,7 +1406,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.warn('  Model:', preferredVideoModel);
       console.warn('  Aspect Ratio:', videoAspectRatio);
       console.warn('  Use Image:', useImage);
-      
+
       // ✨ NEW: Use enhanced video prompt builder with motion, camera movement, and timing
       const prompt = buildVideoPrompt(shotData, editedScene);
       console.warn('  Prompt:', prompt);
@@ -1435,7 +1435,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
 
       // 🔍 DEBUG: Check video URL before saving
       console.warn('🎬 Video Result:', videoUri);
-      
+
       const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
         shot: shotNumber,
         image: '',
@@ -1457,7 +1457,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.error('❌ Video generation error:', error);
       console.error('❌ Error message:', errorMessage);
       console.error('❌ Preferred model was:', preferredVideoModel);
-      
+
       alert(`Failed to generate video: ${errorMessage}`);
     } finally {
       setGeneratingVideoShotId(null);
@@ -2810,14 +2810,18 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                                 console.error(`❌ GIF load error for shot ${shot.shot}`);
                                 console.error('📹 Full GIF URL:', shotVideo);
                                 console.error('📹 URL length:', shotVideo.length);
-                                console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
+                                console.error(
+                                  '📹 Is Firebase Storage?',
+                                  shotVideo.includes('firebasestorage')
+                                );
                                 console.error('📹 Has token?', shotVideo.includes('token='));
                                 // Hide broken image element
                                 e.currentTarget.style.display = 'none';
                                 // Show error message
-                                const errorDiv = e.currentTarget.parentElement?.querySelector(
-                                  '.video-error-fallback'
-                                );
+                                const errorDiv =
+                                  e.currentTarget.parentElement?.querySelector(
+                                    '.video-error-fallback'
+                                  );
                                 if (errorDiv) {
                                   (errorDiv as HTMLElement).style.display = 'flex';
                                 }
@@ -2834,14 +2838,18 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                                 console.error('📹 Full video URL:', shotVideo);
                                 console.error('📹 URL length:', shotVideo.length);
                                 console.error('📹 URL starts with:', shotVideo.substring(0, 100));
-                                console.error('📹 Is Firebase Storage?', shotVideo.includes('firebasestorage'));
+                                console.error(
+                                  '📹 Is Firebase Storage?',
+                                  shotVideo.includes('firebasestorage')
+                                );
                                 console.error('📹 Has token?', shotVideo.includes('token='));
                                 // Hide broken video element
                                 e.currentTarget.style.display = 'none';
                                 // Show error message
-                                const errorDiv = e.currentTarget.parentElement?.querySelector(
-                                  '.video-error-fallback'
-                                );
+                                const errorDiv =
+                                  e.currentTarget.parentElement?.querySelector(
+                                    '.video-error-fallback'
+                                  );
                                 if (errorDiv) {
                                   (errorDiv as HTMLElement).style.display = 'flex';
                                 }
@@ -5586,3 +5594,4 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 };
 
 export default Step5Output;
+

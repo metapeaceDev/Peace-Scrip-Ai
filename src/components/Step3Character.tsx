@@ -7,7 +7,7 @@ import type {
   AccentType,
   FormalityLevel,
   SpeechPersonality,
-} from '../../types';
+} from '../types';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 import {
@@ -25,7 +25,7 @@ import {
   ACCENT_PATTERNS,
   FORMALITY_LABELS,
   PERSONALITY_LABELS,
-} from '../../constants';
+} from '../constants';
 import { PsychologyTestPanel } from './PsychologyTestPanel';
 import { PsychologyDisplay } from './PsychologyDisplay';
 import { PsychologyDashboard } from './PsychologyDashboard';
@@ -535,17 +535,21 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     try {
       // ✅ COMPREHENSIVE DATA: Collect ALL relevant visual information
       // Including: External (Information), Physical, and Fashion data
-      
+
       // 🇹🇭 CRITICAL: Include Ethnicity and Nationality for proper ethnicity rendering
       const facialFeatures = [
         // External Information - ข้อมูลพื้นฐาน
-        activeCharacter.external['Ethnicity'] ? `Ethnicity: ${activeCharacter.external['Ethnicity']}` : null,
-        activeCharacter.external['Nationality'] ? `Nationality: ${activeCharacter.external['Nationality']}` : null,
+        activeCharacter.external['Ethnicity']
+          ? `Ethnicity: ${activeCharacter.external['Ethnicity']}`
+          : null,
+        activeCharacter.external['Nationality']
+          ? `Nationality: ${activeCharacter.external['Nationality']}`
+          : null,
         activeCharacter.external['Date of Birth Age'],
         activeCharacter.external['Height'] ? `Height: ${activeCharacter.external['Height']}` : null,
         activeCharacter.external['Weight'] ? `Weight: ${activeCharacter.external['Weight']}` : null,
         activeCharacter.external['Build'] ? `Build: ${activeCharacter.external['Build']}` : null,
-        
+
         // Physical Characteristics - ลักษณะทางกายภาพ
         activeCharacter.physical['Gender'],
         activeCharacter.physical['Facial characteristics'],
@@ -553,13 +557,23 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         activeCharacter.physical['Hair style'],
         activeCharacter.physical['Skin color'],
         activeCharacter.physical['Physical Characteristics'],
-        activeCharacter.physical['Body type'] ? `Body type: ${activeCharacter.physical['Body type']}` : null,
-        activeCharacter.physical['Distinctive features'] ? `Distinctive: ${activeCharacter.physical['Distinctive features']}` : null,
-        
+        activeCharacter.physical['Body type']
+          ? `Body type: ${activeCharacter.physical['Body type']}`
+          : null,
+        activeCharacter.physical['Distinctive features']
+          ? `Distinctive: ${activeCharacter.physical['Distinctive features']}`
+          : null,
+
         // Fashion/Costume - เครื่องแต่งกาย (สำหรับ Portrait)
-        activeCharacter.fashion['Main Outfit'] ? `Wearing: ${activeCharacter.fashion['Main Outfit']}` : null,
-        activeCharacter.fashion['Accessories'] ? `Accessories: ${activeCharacter.fashion['Accessories']}` : null,
-        activeCharacter.fashion['Style preference'] ? `Style: ${activeCharacter.fashion['Style preference']}` : null,
+        activeCharacter.fashion['Main Outfit']
+          ? `Wearing: ${activeCharacter.fashion['Main Outfit']}`
+          : null,
+        activeCharacter.fashion['Accessories']
+          ? `Accessories: ${activeCharacter.fashion['Accessories']}`
+          : null,
+        activeCharacter.fashion['Style preference']
+          ? `Style: ${activeCharacter.fashion['Style preference']}`
+          : null,
       ]
         .filter(Boolean)
         .join(', ');
@@ -967,7 +981,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       }
 
       const audioUrl = voiceCloningService.getVoiceSampleUrl(activeCharacter.voiceCloneId);
-      
+
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -977,23 +991,31 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       audio.onplay = () => setIsPlayingVoice(true);
       audio.onended = () => setIsPlayingVoice(false);
-      audio.onerror = (e) => {
+      audio.onerror = e => {
         console.error('Audio playback error:', e);
         setIsPlayingVoice(false);
-        alert('ไม่สามารถเล่นไฟล์เสียงได้ อาจเป็นเพราะไฟล์ถูกลบหรือเสียหาย\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง');
+        alert(
+          'ไม่สามารถเล่นไฟล์เสียงได้ อาจเป็นเพราะไฟล์ถูกลบหรือเสียหาย\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง'
+        );
       };
 
       await audio.play();
     } catch (error) {
       console.error('Error playing voice sample:', error);
       setIsPlayingVoice(false);
-      alert('เกิดข้อผิดพลาดในการเล่นเสียง: ' + (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'));
+      alert(
+        'เกิดข้อผิดพลาดในการเล่นเสียง: ' +
+          (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ')
+      );
     }
   };
 
   // Preview Voice Handler - Generate and play introduction
   const handlePreviewVoice = async () => {
-    if (!activeCharacter.voiceCloning?.hasVoiceSample || !activeCharacter.voiceCloning.voiceSampleId) {
+    if (
+      !activeCharacter.voiceCloning?.hasVoiceSample ||
+      !activeCharacter.voiceCloning.voiceSampleId
+    ) {
       alert('กรุณาอัพโหลดเสียงตัวอย่างก่อนใช้งานฟีเจอร์นี้');
       return;
     }
@@ -1013,7 +1035,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     try {
       // Generate introduction text from character data
       const introText = generateIntroductionScript(activeCharacter);
-      
+
       if (!introText || introText.trim().length === 0) {
         alert('ไม่สามารถสร้างข้อความแนะนำตัวได้ กรุณากรอกข้อมูลตัวละครให้ครบถ้วน');
         setIsPreviewingVoice(false);
@@ -1027,7 +1049,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         text: introText,
         voice_id: activeCharacter.voiceCloning.voiceSampleId,
         language: activeCharacter.voiceCloning.language || 'th',
-        speed: 1.0
+        speed: 1.0,
       });
 
       // Create audio URL and play
@@ -1041,7 +1063,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         audioRef.current = null;
       };
 
-      audio.onerror = (e) => {
+      audio.onerror = e => {
         console.error('Audio playback error:', e);
         URL.revokeObjectURL(audioUrl);
         setIsPreviewingVoice(false);
@@ -1051,11 +1073,10 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
       await audio.play();
       console.log('✅ Voice preview playing');
-
     } catch (error) {
       console.error('❌ Preview voice error:', error);
       setIsPreviewingVoice(false);
-      
+
       let errorMessage = 'เกิดข้อผิดพลาดในการสร้างเสียง';
       if (error instanceof Error) {
         errorMessage += `: ${error.message}`;
@@ -1079,7 +1100,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     const scripts: string[] = [];
     let charCount = 0;
     const MAX_CHARS = 350; // Safe limit (~400 tokens in Thai)
-    
+
     // Helper to add text if under limit
     const addIfSpace = (text: string) => {
       if (charCount + text.length <= MAX_CHARS) {
@@ -1089,32 +1110,33 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       }
       return false;
     };
-    
+
     // 1. Basic introduction (PRIORITY) - with gender-appropriate greeting
     if (character.name) {
       // Check gender for appropriate greeting
       const gender = character.external?.gender?.toLowerCase() || '';
-      const greeting = gender.includes('ชาย') || gender.includes('male') || gender.includes('man') 
-        ? 'สวัสดีครับ' 
-        : gender.includes('หญิง') || gender.includes('female') || gender.includes('woman')
-        ? 'สวัสดีค่ะ'
-        : 'สวัสดี'; // neutral if gender not specified
-      
+      const greeting =
+        gender.includes('ชาย') || gender.includes('male') || gender.includes('man')
+          ? 'สวัสดีครับ'
+          : gender.includes('หญิง') || gender.includes('female') || gender.includes('woman')
+            ? 'สวัสดีค่ะ'
+            : 'สวัสดี'; // neutral if gender not specified
+
       addIfSpace(`${greeting} ฉันชื่อ${character.name}`);
     }
-    
+
     // 2. Role
     if (character.role && charCount < MAX_CHARS) {
       const roleMap: Record<string, string> = {
-        'protagonist': 'ตัวเอก',
-        'antagonist': 'ตัวร้าย',
-        'supporting': 'ตัวประกอบ',
-        'extra': 'ตัวเสริม'
+        protagonist: 'ตัวเอก',
+        antagonist: 'ตัวร้าย',
+        supporting: 'ตัวประกอบ',
+        extra: 'ตัวเสริม',
       };
       const roleDesc = roleMap[character.role.toLowerCase()] || '';
       if (roleDesc) addIfSpace(`เป็น${roleDesc}`);
     }
-    
+
     // 3. Age & Gender
     if (character.external && charCount < MAX_CHARS) {
       const parts: string[] = [];
@@ -1122,23 +1144,23 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       if (character.external.gender) parts.push(character.external.gender);
       if (parts.length > 0) addIfSpace(parts.join(' '));
     }
-    
+
     // 4. Description (shortened)
     if (character.description && charCount < MAX_CHARS - 50) {
       const shortDesc = character.description.substring(0, 80);
       addIfSpace(shortDesc);
     }
-    
+
     // 5. Personality traits (TOP 2)
     if (character.internal?.consciousness && charCount < MAX_CHARS) {
       const traits: string[] = [];
       Object.entries(character.internal.consciousness).forEach(([key, value]) => {
         if (typeof value === 'number' && value >= 70) {
           const traitMap: Record<string, string> = {
-            'confidence': 'มั่นใจ',
-            'empathy': 'ใจดี',
-            'wisdom': 'ฉลาด',
-            'courage': 'กล้าหาญ'
+            confidence: 'มั่นใจ',
+            empathy: 'ใจดี',
+            wisdom: 'ฉลาด',
+            courage: 'กล้าหาญ',
           };
           if (traitMap[key]) traits.push(traitMap[key]);
         }
@@ -1147,7 +1169,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         addIfSpace(`เป็นคน${traits.slice(0, 2).join('และ')}`);
       }
     }
-    
+
     // 6. Main goal
     if (character.goals && typeof character.goals === 'object' && charCount < MAX_CHARS) {
       const goalsObj = character.goals as { objective?: string };
@@ -1156,7 +1178,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         addIfSpace(`เป้าหมายคือ ${shortGoal}`);
       }
     }
-    
+
     // 7. Speech tics (FINAL TOUCH)
     const sp = character.speechPattern;
     if (sp?.speechTics && sp.speechTics.length > 0 && scripts.length > 0) {
@@ -1164,7 +1186,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       const lastScript = scripts[scripts.length - 1];
       scripts[scripts.length - 1] = `${lastScript}${tic}`;
     }
-    
+
     return scripts.join(' ');
   };
 
@@ -1194,7 +1216,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     try {
       // Generate introduction script
       const script = generateIntroductionScript(activeCharacter);
-      
+
       if (!script) {
         alert('ไม่สามารถสร้างสคริปต์แนะนำตัวได้ กรุณาเพิ่มข้อมูลตัวละคร');
         setIsTestingVoice(false);
@@ -1207,7 +1229,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       // Currently using standard Thai TTS (Psychology TTS or PyThaiNLP)
       // Voice sample is saved for future use when voice cloning is available
       console.log('ℹ️ Using standard TTS (voice cloning not yet available)');
-      
+
       const audioBlob = await hybridTTS.synthesize({
         text: script,
         preferredProvider: 'psychology',
@@ -1227,7 +1249,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         setTestAudioUrl(null);
       };
 
-      audio.onerror = (e) => {
+      audio.onerror = e => {
         console.error('Test audio playback error:', e);
         setIsTestingVoice(false);
         setTestAudioUrl(null);
@@ -1235,11 +1257,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       };
 
       await audio.play();
-      
     } catch (error) {
       console.error('Error testing voice:', error);
       setIsTestingVoice(false);
-      alert('เกิดข้อผิดพลาดในการสร้างเสียงทดสอบ: ' + (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'));
+      alert(
+        'เกิดข้อผิดพลาดในการสร้างเสียงทดสอบ: ' +
+          (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ')
+      );
     }
   };
 
@@ -1859,7 +1883,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                   </svg>
                   {activeCharacter.voiceCloning?.hasVoiceSample ? 'Change' : 'Upload'}
                 </button>
-                
+
                 {/* Preview Voice Button */}
                 <button
                   onClick={handlePreviewVoice}
@@ -1868,12 +1892,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     isPreviewingVoice
                       ? 'bg-red-700 border-red-600 hover:bg-red-600 text-white'
                       : activeCharacter.voiceCloning?.hasVoiceSample
-                      ? 'bg-purple-700 border-purple-600 hover:bg-purple-600 text-white'
-                      : 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+                        ? 'bg-purple-700 border-purple-600 hover:bg-purple-600 text-white'
+                        : 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
                   }`}
-                  title={activeCharacter.voiceCloning?.hasVoiceSample ? (
-                    isPreviewingVoice ? 'คลิกเพื่อหยุด' : 'ฟังตัวอย่างเสียงแนะนำตัว'
-                  ) : 'กรุณาอัพโหลดเสียงก่อน'}
+                  title={
+                    activeCharacter.voiceCloning?.hasVoiceSample
+                      ? isPreviewingVoice
+                        ? 'คลิกเพื่อหยุด'
+                        : 'ฟังตัวอย่างเสียงแนะนำตัว'
+                      : 'กรุณาอัพโหลดเสียงก่อน'
+                  }
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -2486,10 +2514,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                             สร้างสคริปต์แนะนำตัวจากข้อมูลตัวละคร แล้วพูดด้วยเสียงโคลนของคุณ
                           </p>
                           <div className="mb-3 p-2 bg-green-900/10 border border-green-700/20 rounded text-xs text-green-200/80">
-                            <span className="font-semibold">✨ ระบบ Voice Cloning พร้อมใช้งาน!</span> ใช้เทคโนโลยี Coqui XTTS-v2 
-                            รองรับ 17 ภาษา รวมถึงการโคลนเสียงด้วย AI
+                            <span className="font-semibold">
+                              ✨ ระบบ Voice Cloning พร้อมใช้งาน!
+                            </span>{' '}
+                            ใช้เทคโนโลยี Coqui XTTS-v2 รองรับ 17 ภาษา รวมถึงการโคลนเสียงด้วย AI
                             <br />
-                            <span className="text-cyan-300">🎤 อัพโหลดเสียงของคุณเพื่อสร้างตัวละครที่เหมือนจริง</span>
+                            <span className="text-cyan-300">
+                              🎤 อัพโหลดเสียงของคุณเพื่อสร้างตัวละครที่เหมือนจริง
+                            </span>
                           </div>
                           <button
                             onClick={handleTestVoiceIntroduction}
@@ -2535,12 +2567,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     <span className="text-cyan-400 text-sm">💡</span>
                     <div className="text-xs text-gray-400">
                       <strong className="text-cyan-300">คำแนะนำ:</strong>{' '}
-                      อัพโหลดไฟล์เสียงที่มีความยาว 15-20 วินาที พูดชัดเจน
-                      เพื่อผลลัพธ์ที่ดีที่สุด
+                      อัพโหลดไฟล์เสียงที่มีความยาว 15-20 วินาที พูดชัดเจน เพื่อผลลัพธ์ที่ดีที่สุด
                       <br />
                       <span className="text-green-300/80 mt-1 inline-block">
-                        ✅ <strong>Voice Cloning ใช้งานได้แล้ว!</strong> เสียงของคุณจะถูกใช้สร้างบทพูดอัตโนมัติ
-                        รองรับหลายภาษา และสามารถปรับแต่งได้
+                        ✅ <strong>Voice Cloning ใช้งานได้แล้ว!</strong>{' '}
+                        เสียงของคุณจะถูกใช้สร้างบทพูดอัตโนมัติ รองรับหลายภาษา และสามารถปรับแต่งได้
                       </span>
                     </div>
                   </div>
@@ -3954,3 +3985,4 @@ ${characters
 };
 
 export default Step3Character;
+

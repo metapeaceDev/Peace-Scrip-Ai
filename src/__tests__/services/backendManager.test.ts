@@ -26,7 +26,7 @@ describe('Backend Manager Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     manager = new BackendManager();
-    
+
     // Mock environment variables
     import.meta.env.VITE_COMFYUI_LOCAL_URL = 'http://localhost:8188';
     import.meta.env.VITE_COMFYUI_CLOUD_URL = 'https://cloud.example.com';
@@ -162,14 +162,15 @@ describe('Backend Manager Integration', () => {
     it('should fallback to cloud when local fails', async () => {
       // Mock health checks to all pass (health check happens before operation)
       (global.fetch as any)
-        .mockResolvedValueOnce({ ok: true })  // Local health check passes
-        .mockResolvedValueOnce({ ok: true })  // Cloud health check passes
+        .mockResolvedValueOnce({ ok: true }) // Local health check passes
+        .mockResolvedValueOnce({ ok: true }) // Cloud health check passes
         .mockResolvedValueOnce({ ok: true }); // Gemini health check passes
 
       vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(true);
 
       // Operation fails on local but succeeds on cloud
-      const operation = vi.fn()
+      const operation = vi
+        .fn()
         .mockRejectedValueOnce(new Error('Local failed'))
         .mockResolvedValueOnce('success on cloud');
 
@@ -183,14 +184,15 @@ describe('Backend Manager Integration', () => {
     it('should fallback to gemini when local and cloud fail', async () => {
       // Mock all health checks to pass (health check happens before operation)
       (global.fetch as any)
-        .mockResolvedValueOnce({ ok: true })  // Local health check passes
-        .mockResolvedValueOnce({ ok: true })  // Cloud health check passes
+        .mockResolvedValueOnce({ ok: true }) // Local health check passes
+        .mockResolvedValueOnce({ ok: true }) // Cloud health check passes
         .mockResolvedValueOnce({ ok: true }); // Gemini health check passes
 
       vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(true);
 
       // Operations fail on local and cloud but succeed on gemini
-      const operation = vi.fn()
+      const operation = vi
+        .fn()
         .mockRejectedValueOnce(new Error('Local failed'))
         .mockRejectedValueOnce(new Error('Cloud failed'))
         .mockResolvedValueOnce('success on gemini');
@@ -199,7 +201,7 @@ describe('Backend Manager Integration', () => {
 
       expect(result.result).toBe('success on gemini');
       expect(result.backend).toBe('gemini');
-      expect(result.cost).toBe(0.50);
+      expect(result.cost).toBe(0.5);
     });
 
     it('should throw error when all backends fail', async () => {
@@ -279,7 +281,7 @@ describe('Backend Manager Integration', () => {
 
     it('should return correct cost for gemini backend', () => {
       const cost = manager.getCostEstimate('gemini');
-      expect(cost).toBe(0.50);
+      expect(cost).toBe(0.5);
     });
   });
 
@@ -316,3 +318,4 @@ describe('Backend Manager Integration', () => {
     });
   });
 });
+

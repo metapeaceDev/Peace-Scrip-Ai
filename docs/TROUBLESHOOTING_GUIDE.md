@@ -50,6 +50,7 @@ Run through this before diving into specific issues:
 ### ❌ "ComfyUI is not running"
 
 **Symptoms**:
+
 - Red badge in top right
 - Error: "Connection refused"
 - Can't generate videos
@@ -72,6 +73,7 @@ python main.py --lowvram  # For <8GB VRAM
 ```
 
 **Expected Output**:
+
 ```
 Total VRAM 12288 MB, total RAM 32768 MB
 Set vram state to: NORMAL_VRAM
@@ -82,6 +84,7 @@ To see the GUI go to: http://127.0.0.1:8188
 ```
 
 **Verify**:
+
 - Open http://localhost:8188 in browser
 - Should see ComfyUI interface
 - Peace Script AI badge should turn green
@@ -100,6 +103,7 @@ netstat -ano | findstr :8188
 ```
 
 **If port is occupied**:
+
 ```bash
 # Kill the process
 # Mac/Linux
@@ -118,16 +122,19 @@ python main.py --port 8189
 #### Solution 3: Check Firewall
 
 **Windows**:
+
 1. Windows Defender Firewall → Allow an app
 2. Find Python → Allow both Private and Public
 3. Restart ComfyUI
 
 **Mac**:
+
 1. System Preferences → Security & Privacy → Firewall
 2. Firewall Options
 3. Add Python → Allow incoming connections
 
 **Linux**:
+
 ```bash
 sudo ufw allow 8188/tcp
 sudo ufw reload
@@ -156,6 +163,7 @@ pip install -r requirements.txt --force-reinstall
 ### ❌ "ComfyUI Error: Missing Models"
 
 **Symptoms**:
+
 - Error: "Checkpoint not found"
 - Error: "No models available"
 - Generation fails immediately
@@ -190,6 +198,7 @@ ComfyUI/
 ```
 
 **Check placement**:
+
 ```bash
 ls -lh ComfyUI/models/checkpoints/
 # Should show .ckpt or .safetensors files
@@ -200,6 +209,7 @@ ls -lh ComfyUI/models/checkpoints/
 ### ❌ "Workflow Failed to Execute"
 
 **Symptoms**:
+
 - Generation starts but fails at specific step
 - Error in ComfyUI console
 - Peace Script AI shows "Generation Failed"
@@ -209,21 +219,27 @@ ls -lh ComfyUI/models/checkpoints/
 Look for specific errors:
 
 **Missing Node**:
+
 ```
 Error: Unknown node type 'KSampler'
 ```
+
 → Install missing custom nodes or update ComfyUI
 
 **VRAM Overflow**:
+
 ```
 RuntimeError: CUDA out of memory
 ```
+
 → See [Out of VRAM](#-out-of-vram--gpu-memory-error) section
 
 **Model Loading Error**:
+
 ```
 Error loading checkpoint
 ```
+
 → Model file corrupted, re-download
 
 ---
@@ -258,6 +274,7 @@ rm -rf ComfyUI/input/*
 ### ❌ "Queue is Stuck"
 
 **Symptoms**:
+
 - Generation at 0% indefinitely
 - Other requests not processing
 - ComfyUI shows busy but not generating
@@ -282,6 +299,7 @@ python main.py
 ### ❌ "No GPU Detected" (but you have one)
 
 **Symptoms**:
+
 - Settings show "Device: CPU"
 - Have NVIDIA/AMD/Apple GPU
 - Slow generation
@@ -370,6 +388,7 @@ pip install -r requirements.txt
 ### ❌ Out of VRAM / GPU Memory Error
 
 **Symptoms**:
+
 - `RuntimeError: CUDA out of memory`
 - Generation fails partway through
 - Black or corrupted output
@@ -377,16 +396,19 @@ pip install -r requirements.txt
 #### Quick Fixes
 
 **1. Enable Low VRAM Mode**
+
 ```bash
 python main.py --lowvram
 ```
 
 **2. Use FP16 Precision**
+
 ```bash
 python main.py --force-fp16
 ```
 
 **3. Combine Flags**
+
 ```bash
 python main.py --lowvram --force-fp16
 ```
@@ -418,33 +440,37 @@ python main.py --lowvram --force-fp16
 #### VRAM Requirements
 
 | Resolution | Min VRAM | Recommended |
-|------------|----------|-------------|
-| 480p | 4 GB | 6 GB |
-| 720p | 6 GB | 8 GB |
-| 1080p | 8 GB | 12 GB |
-| 4K | 16 GB | 24 GB |
+| ---------- | -------- | ----------- |
+| 480p       | 4 GB     | 6 GB        |
+| 720p       | 6 GB     | 8 GB        |
+| 1080p      | 8 GB     | 12 GB       |
+| 4K         | 16 GB    | 24 GB       |
 
 ---
 
 ### ❌ "GPU Not Supported"
 
 **Symptoms**:
+
 - Error: "Your GPU is not supported"
 - Very old GPU (GTX 900 series or older)
 
 #### Solutions:
 
 **Option 1: Use CPU Mode** (slow)
+
 ```bash
 python main.py --cpu
 ```
 
 **Option 2: Use Cloud Backend**
+
 - Switch to Cloud ComfyUI, Replicate, or Gemini
 - No local GPU needed
 - Small cost per video
 
 **Option 3: Upgrade GPU**
+
 - Minimum: GTX 1060 6GB or RTX 2060
 - Recommended: RTX 3060 12GB or better
 
@@ -455,6 +481,7 @@ python main.py --cpu
 ### ⚠️ Slow Generation Speed
 
 **Symptoms**:
+
 - Takes 10+ minutes per video
 - Expected 1-2 minutes
 - CPU usage high, GPU idle
@@ -462,6 +489,7 @@ python main.py --cpu
 #### Diagnosis
 
 **Check Device**:
+
 ```bash
 # In Python
 import torch
@@ -470,6 +498,7 @@ print(f"Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else
 ```
 
 **Expected**:
+
 ```
 CUDA available: True
 Device: NVIDIA GeForce RTX 3060
@@ -482,26 +511,31 @@ Device: NVIDIA GeForce RTX 3060
 #### Optimizations
 
 **1. Model Loading (First Generation Slow)**
+
 - First generation: 5-10 minutes (loading models into VRAM)
 - Subsequent: 1-2 minutes (models cached)
 - **Normal behavior**, be patient on first run
 
 **2. Disable Preview Mode**
+
 ```bash
 python main.py --disable-preview
 ```
 
 **3. Use Faster Sampler**
 In ComfyUI workflow, change:
+
 - Sampler: `euler` → `dpm_2` or `dpm_fast`
 - Steps: 20 → 15
 
 **4. Reduce Quality Temporarily**
+
 - Resolution: 1080p → 720p
 - Frames: 60 → 30
 - Duration: 10s → 5s
 
 **5. Check Background Processes**
+
 ```bash
 # Windows
 taskmgr
@@ -512,18 +546,19 @@ Activity Monitor
 # Linux
 htop
 ```
+
 Close unnecessary apps using GPU/CPU
 
 ---
 
 #### Expected Generation Times
 
-| GPU | 480p | 720p | 1080p |
-|-----|------|------|-------|
-| RTX 4090 | 20s | 30s | 60s |
-| RTX 4070 | 30s | 45s | 90s |
-| RTX 3060 | 60s | 120s | 240s |
-| Apple M1 Max | 90s | 180s | 360s |
+| GPU                   | 480p  | 720p  | 1080p |
+| --------------------- | ----- | ----- | ----- |
+| RTX 4090              | 20s   | 30s   | 60s   |
+| RTX 4070              | 30s   | 45s   | 90s   |
+| RTX 3060              | 60s   | 120s  | 240s  |
+| Apple M1 Max          | 90s   | 180s  | 360s  |
 | CPU (not recommended) | 20min | 40min | 80min |
 
 ---
@@ -531,6 +566,7 @@ Close unnecessary apps using GPU/CPU
 ### ⚠️ High CPU/Memory Usage
 
 **Symptoms**:
+
 - Computer slow/laggy
 - 90%+ CPU usage
 - Running out of RAM
@@ -538,20 +574,24 @@ Close unnecessary apps using GPU/CPU
 #### Solutions:
 
 **1. Close Browser Tabs**
+
 - Each tab uses 100-500 MB RAM
 - Close unused tabs
 - Use browser task manager (Shift+Esc in Chrome)
 
 **2. Reduce Batch Processing**
+
 - Generate one video at a time
 - Don't queue multiple
 
 **3. Increase Swap/Page File** (Windows)
+
 1. System Properties → Advanced → Performance Settings
 2. Virtual Memory → Change
 3. Set to 1.5x your RAM (e.g., 16 GB RAM = 24 GB page file)
 
 **4. Monitor Resources**
+
 ```bash
 # Enable performance monitoring in Peace Script AI
 Settings → Advanced → Debug Mode: ON
@@ -564,12 +604,14 @@ Settings → Advanced → Debug Mode: ON
 ### ⚠️ Slow Page Load
 
 **Symptoms**:
+
 - Peace Script AI takes 10+ seconds to load
 - White screen on initial load
 
 #### Solutions:
 
 **1. Clear Browser Cache**
+
 ```
 Chrome: Ctrl+Shift+Delete → Cached images and files
 Firefox: Ctrl+Shift+Delete → Cache
@@ -577,10 +619,12 @@ Safari: Preferences → Privacy → Manage Website Data → Remove All
 ```
 
 **2. Disable Extensions**
+
 - Ad blockers can slow down apps
 - Try incognito/private mode
 
 **3. Check Bundle Size** (Developers)
+
 ```bash
 npm run build
 # Check dist/assets/ sizes
@@ -588,6 +632,7 @@ npm run build
 ```
 
 **4. Use Production Build**
+
 ```bash
 # Development is slower
 npm run dev
@@ -604,6 +649,7 @@ npm run preview
 ### ❌ "Network Error" / "Failed to Fetch"
 
 **Symptoms**:
+
 - Error: "Failed to fetch"
 - Error: "Network request failed"
 - Intermittent connection issues
@@ -620,6 +666,7 @@ ping 8.8.8.8  # Google DNS
 ```
 
 **Fix DNS** (if needed):
+
 ```
 Windows: Network Settings → Change adapter options → Properties → IPv4 → DNS: 8.8.8.8, 8.8.4.4
 Mac: System Preferences → Network → Advanced → DNS → Add 8.8.8.8
@@ -631,12 +678,14 @@ Linux: Edit /etc/resolv.conf → nameserver 8.8.8.8
 #### Solution 2: Check Firewall/VPN
 
 **Disable temporarily to test**:
+
 - Firewall: Windows Defender, third-party
 - VPN: NordVPN, ExpressVPN, etc.
 - Proxy: Corporate proxies
 - Antivirus: Kaspersky, Norton, McAfee
 
 **If works when disabled**:
+
 - Add exception for Peace Script AI domains
 - Allow `localhost:8188` (ComfyUI)
 - Allow `*.google.com` (Gemini API)
@@ -647,10 +696,12 @@ Linux: Edit /etc/resolv.conf → nameserver 8.8.8.8
 #### Solution 3: CORS Issues
 
 **Symptoms**:
+
 - Browser console: "CORS policy blocked"
 - Only affects certain API calls
 
 **For ComfyUI**:
+
 ```bash
 # Run with CORS enabled
 python main.py --enable-cors-header
@@ -658,6 +709,7 @@ python main.py --enable-cors-header
 
 **For Firebase**:
 Check `firebase.json`:
+
 ```json
 {
   "hosting": {
@@ -681,6 +733,7 @@ Check `firebase.json`:
 ### ❌ "API Key Invalid" (Gemini/Replicate)
 
 **Symptoms**:
+
 - Error: "Invalid API key"
 - Error: "Unauthorized"
 - 401/403 errors
@@ -688,11 +741,13 @@ Check `firebase.json`:
 #### For Gemini API
 
 **1. Get Valid Key**:
+
 - Go to https://makersuite.google.com/app/apikey
 - Create new API key
 - Copy key
 
 **2. Add to Environment**:
+
 ```bash
 # Create .env file in project root
 echo "VITE_GEMINI_API_KEY=your_key_here" >> .env
@@ -703,12 +758,14 @@ firebase deploy --only functions
 ```
 
 **3. Verify**:
+
 ```bash
 curl "https://generativelanguage.googleapis.com/v1/models?key=YOUR_KEY"
 # Should return list of models
 ```
 
 **4. Check Quota**:
+
 - Free tier: 60 requests/minute
 - View usage: https://console.cloud.google.com/apis/dashboard
 
@@ -717,11 +774,13 @@ curl "https://generativelanguage.googleapis.com/v1/models?key=YOUR_KEY"
 #### For Replicate API
 
 **1. Get API Token**:
+
 - Go to https://replicate.com/account/api-tokens
 - Create token
 - Copy token
 
 **2. Add to Environment**:
+
 ```bash
 echo "VITE_REPLICATE_API_TOKEN=your_token_here" >> .env
 ```
@@ -731,21 +790,25 @@ echo "VITE_REPLICATE_API_TOKEN=your_token_here" >> .env
 ### ❌ "Rate Limit Exceeded"
 
 **Symptoms**:
+
 - Error: "429 Too Many Requests"
 - Error: "Quota exceeded"
 
 #### Solutions:
 
 **1. Wait and Retry**
+
 - Gemini free tier: 60/minute, wait 60 seconds
 - Replicate: Variable, check response headers
 - Implement exponential backoff (already done in errorHandler)
 
 **2. Upgrade API Plan**
+
 - Gemini: Enable billing for higher limits
 - Replicate: Add payment method
 
 **3. Use Different Backend**
+
 - Switch to Local ComfyUI (no limits)
 - Switch to Cloud ComfyUI (your own limits)
 
@@ -754,18 +817,21 @@ echo "VITE_REPLICATE_API_TOKEN=your_token_here" >> .env
 ### ❌ Connection Timeout
 
 **Symptoms**:
+
 - Error: "Request timeout"
 - Takes 60+ seconds then fails
 
 #### Solutions:
 
 **1. Increase Timeout**:
+
 ```typescript
 // In settings or code
 const timeout = 120000; // 2 minutes
 ```
 
 **2. Check Backend Health**:
+
 ```bash
 # ComfyUI
 curl http://localhost:8188/system_stats
@@ -777,6 +843,7 @@ curl https://your-cloud-url.com/system_stats
 ```
 
 **3. Restart Backend**:
+
 ```bash
 # ComfyUI
 Ctrl+C
@@ -792,6 +859,7 @@ python main.py
 ### ❌ "Firebase Deploy Failed"
 
 **Symptoms**:
+
 - Error during `firebase deploy`
 - "Authentication error"
 - "Permission denied"
@@ -826,7 +894,7 @@ firebase projects:list
 #### Solution 3: Check Billing
 
 - Firebase Hosting requires Blaze plan for custom domains
-- Free Spark plan OK for *.web.app domains
+- Free Spark plan OK for \*.web.app domains
 - Check: https://console.firebase.google.com/project/peace-script-ai/settings/billing
 
 ---
@@ -849,6 +917,7 @@ firebase deploy --only hosting
 ### ❌ "Build Failed"
 
 **Symptoms**:
+
 - `npm run build` errors
 - TypeScript errors
 - Module not found
@@ -910,6 +979,7 @@ nvm use 20
 ### ❌ Deployed Site Shows Old Version
 
 **Symptoms**:
+
 - Deployed but still seeing old code
 - Changes not appearing
 - Cached version
@@ -965,6 +1035,7 @@ ls -la dist/assets/
 ### ❌ "npm install" Fails
 
 **Symptoms**:
+
 - Errors during `npm install`
 - "ERESOLVE unable to resolve dependency tree"
 - "Permission denied"
@@ -1019,6 +1090,7 @@ yarn install
 ### ❌ "Port Already in Use"
 
 **Symptoms**:
+
 - Error: "Port 5173 already in use"
 - `npm run dev` fails
 
@@ -1042,6 +1114,7 @@ npm run dev -- --port 3000
 ### ❌ Hot Reload Not Working
 
 **Symptoms**:
+
 - Make code changes
 - Browser doesn't update
 - Must manually refresh
@@ -1049,11 +1122,12 @@ npm run dev -- --port 3000
 #### Solution 1: Check Vite Config
 
 `vite.config.ts`:
+
 ```typescript
 export default defineConfig({
   server: {
     watch: {
-      usePolling: true,  // For some systems
+      usePolling: true, // For some systems
     },
   },
 });
@@ -1083,36 +1157,36 @@ sudo sysctl -p
 
 ### ComfyUI Errors
 
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| `Connection refused` | ComfyUI not running | Start ComfyUI |
-| `CUDA out of memory` | Not enough VRAM | Lower settings, use --lowvram |
-| `Checkpoint not found` | Missing model | Download required models |
-| `Unknown node type` | Missing custom node | Install custom nodes |
-| `Queue is full` | Too many requests | Wait or clear queue |
+| Error                  | Meaning             | Solution                      |
+| ---------------------- | ------------------- | ----------------------------- |
+| `Connection refused`   | ComfyUI not running | Start ComfyUI                 |
+| `CUDA out of memory`   | Not enough VRAM     | Lower settings, use --lowvram |
+| `Checkpoint not found` | Missing model       | Download required models      |
+| `Unknown node type`    | Missing custom node | Install custom nodes          |
+| `Queue is full`        | Too many requests   | Wait or clear queue           |
 
 ---
 
 ### API Errors
 
-| Error Code | Meaning | Solution |
-|------------|---------|----------|
-| 401 | Unauthorized | Check API key |
-| 403 | Forbidden | Check permissions |
-| 429 | Rate limit | Wait and retry |
-| 500 | Server error | Backend issue, retry later |
-| 503 | Service unavailable | Backend down, use different |
+| Error Code | Meaning             | Solution                    |
+| ---------- | ------------------- | --------------------------- |
+| 401        | Unauthorized        | Check API key               |
+| 403        | Forbidden           | Check permissions           |
+| 429        | Rate limit          | Wait and retry              |
+| 500        | Server error        | Backend issue, retry later  |
+| 503        | Service unavailable | Backend down, use different |
 
 ---
 
 ### Network Errors
 
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| `Failed to fetch` | Network issue | Check internet |
-| `CORS blocked` | Cross-origin issue | Enable CORS in backend |
-| `Timeout` | Request too slow | Increase timeout |
-| `DNS_PROBE_FINISHED_NXDOMAIN` | Domain not found | Check URL |
+| Error                         | Meaning            | Solution               |
+| ----------------------------- | ------------------ | ---------------------- |
+| `Failed to fetch`             | Network issue      | Check internet         |
+| `CORS blocked`                | Cross-origin issue | Enable CORS in backend |
+| `Timeout`                     | Request too slow   | Increase timeout       |
+| `DNS_PROBE_FINISHED_NXDOMAIN` | Domain not found   | Check URL              |
 
 ---
 
@@ -1123,22 +1197,23 @@ sudo sysctl -p
 **Access**: Press `F12` or `Cmd+Option+I` (Mac)
 
 **Useful Commands**:
+
 ```javascript
 // Check cache stats
-requestCache.getStats()
+requestCache.getStats();
 
 // Check connection pool
-getPoolStats()
+getPoolStats();
 
 // Performance summary
-PerformanceMonitor.getSummary()
+PerformanceMonitor.getSummary();
 
 // Clear cache
-requestCache.clear()
-localStorage.clear()
+requestCache.clear();
+localStorage.clear();
 
 // Check device detection
-detectSystemResources()
+detectSystemResources();
 ```
 
 ---
@@ -1146,12 +1221,14 @@ detectSystemResources()
 ### Network Tab
 
 **Use for**:
+
 - API call inspection
 - Response times
 - Error responses
 - Request/response headers
 
 **Filter by**:
+
 - XHR: API calls
 - WS: WebSocket (ComfyUI)
 - Img: Image loading
@@ -1162,12 +1239,14 @@ detectSystemResources()
 ### Performance Tab
 
 **Measures**:
+
 - Page load time
 - JavaScript execution
 - Rendering performance
 - Memory usage
 
 **Record**:
+
 1. Open Performance tab
 2. Click Record
 3. Perform action (e.g., generate video)
@@ -1181,6 +1260,7 @@ detectSystemResources()
 **Install**: Chrome Web Store → React Developer Tools
 
 **Features**:
+
 - Component tree inspection
 - Props/state viewer
 - Hooks debugger
@@ -1248,23 +1328,27 @@ firebase hosting:channel:list
 ### Support Channels
 
 **1. GitHub Issues** (Bugs & Feature Requests)
+
 - https://github.com/your-repo/issues
 - Search existing issues first
 - Use issue template
 - Provide all info above
 
 **2. Discord Community** (General Help)
+
 - https://discord.gg/your-server
 - #support channel
 - Real-time assistance
 - Community troubleshooting
 
 **3. Email Support** (Direct Help)
+
 - support@peacescript.ai
 - Response time: 24-48 hours
 - Include system info & screenshots
 
 **4. Documentation** (Self-Help)
+
 - Read User Guide first
 - Check API Documentation
 - Search this Troubleshooting Guide
@@ -1273,12 +1357,12 @@ firebase hosting:channel:list
 
 ### Known Issues & Workarounds
 
-| Issue | Workaround | Status |
-|-------|-----------|--------|
-| Cloudflare URL caching | Clear localStorage | Investigating |
-| Git push blocked (old secret) | Local commits only | Fix planned |
-| DirectML slow on AMD | Use Cloud backend | Upstream issue |
-| Safari WebGL issues | Use Chrome/Firefox | Safari limitation |
+| Issue                         | Workaround         | Status            |
+| ----------------------------- | ------------------ | ----------------- |
+| Cloudflare URL caching        | Clear localStorage | Investigating     |
+| Git push blocked (old secret) | Local commits only | Fix planned       |
+| DirectML slow on AMD          | Use Cloud backend  | Upstream issue    |
+| Safari WebGL issues           | Use Chrome/Firefox | Safari limitation |
 
 ---
 
@@ -1291,12 +1375,14 @@ firebase hosting:channel:list
 Clear, concise description of the bug.
 
 **System Information**
+
 - OS: Windows 11
 - GPU: RTX 3060 12GB
 - Browser: Chrome 120
 - ComfyUI: v0.0.1 (commit abc123)
 
 **Steps to Reproduce**
+
 1. Go to '...'
 2. Click on '...'
 3. Enter '...'
@@ -1313,12 +1399,16 @@ If applicable, add screenshots.
 
 **Console Output**
 ```
+
 Paste browser console output here
+
 ```
 
 **ComfyUI Terminal Output**
 ```
+
 Paste ComfyUI terminal output here
+
 ```
 
 **Additional Context**
@@ -1345,6 +1435,7 @@ Any other relevant information.
 ```
 
 **Still Having Issues?**
+
 1. Enable Debug Mode
 2. Check browser console (F12)
 3. Copy error messages

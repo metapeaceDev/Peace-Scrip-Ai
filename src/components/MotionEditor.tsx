@@ -22,7 +22,7 @@ import {
   SHOT_PRESETS,
   CAMERA_MOVEMENT_DESCRIPTIONS,
 } from '../types/motionEdit';
-import type { Character } from '../../types';
+import type { Character } from '../types';
 
 interface PropListItem {
   propArt: string;
@@ -1168,3 +1168,4 @@ const SoundDesignPanel: React.FC<SoundDesignPanelProps> = ({
 };
 
 export default MotionEditor;
+

@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { ScriptData, GeneratedScene } from '../../types';
+import type { ScriptData, GeneratedScene } from '../types';
 import KeyframeTimeline from '../components/KeyframeTimeline';
 
 interface MotionEditorPageProps {
@@ -1676,3 +1676,4 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
 };
 
 export default MotionEditorPage;
+

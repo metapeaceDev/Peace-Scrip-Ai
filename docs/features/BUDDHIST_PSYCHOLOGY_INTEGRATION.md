@@ -11,15 +11,17 @@ This document describes the Buddhist Psychology integration implemented in Peace
 ### ✅ Core Infrastructure
 
 #### 1. Feature Flag System (`src/config/featureFlags.ts`)
+
 ```typescript
 const FEATURE_FLAGS = {
-  JAVANA_DECISION_ENGINE: false,  // Advanced karma classification
-  PARAMI_SYNERGY_MATRIX: false,   // Parami synergy display
+  JAVANA_DECISION_ENGINE: false, // Advanced karma classification
+  PARAMI_SYNERGY_MATRIX: false, // Parami synergy display
   // ... 8 more flags
 };
 ```
 
 **Usage:**
+
 ```typescript
 import { isFeatureEnabled } from './config/featureFlags';
 
@@ -31,16 +33,18 @@ if (isFeatureEnabled('JAVANA_DECISION_ENGINE')) {
 #### 2. Parami System Enhancements (`src/services/paramiSystem.ts`)
 
 **New Functions:**
+
 - `calculateParamiSynergy(parami, portfolio)` - Calculate synergy bonus
 - `updateParamiFromAction(portfolio, action, karmaType)` - Update paramis from actions
 
 **Example:**
+
 ```typescript
 const synergy = calculateParamiSynergy('dana', character.parami_portfolio);
 // Returns: 1.3 (meaning Dana gets +1.3 level boost from supporting paramis)
 
 const updated = updateParamiFromAction(
-  portfolio, 
+  portfolio,
   { กาย: ['ช่วยเหลือคนอื่น'], วาจา: [], ใจ: [] },
   'กุศลกรรม'
 );
@@ -58,7 +62,7 @@ Converts กาย-วาจา-ใจ (Body-Speech-Mind) actions into sensory i
 const actions = {
   กาย: ['ทำร้ายผู้อื่น'],
   วาจา: ['พูดจาหยาบคาย'],
-  ใจ: ['โกรธเคือง']
+  ใจ: ['โกรธเคือง'],
 };
 
 const inputs = actionsToSensoryInput(actions);
@@ -89,6 +93,7 @@ const result = classifyKarmaWithJavana(actions, character);
 ```
 
 **How it works:**
+
 1. Converts actions → sensory inputs
 2. Each input goes through JavanaDecisionEngine
 3. Engine checks: Sati level, Anusaya strength, Parami resistance
@@ -125,6 +130,7 @@ const analysis = analyzeParamiPortfolio(character);
 #### 5. UI Integration (`src/components/PsychologyDisplay.tsx`)
 
 **Enhanced Display:**
+
 - Shows Parami Portfolio (when feature flag enabled)
 - Displays strongest parami
 - Shows synergy bonuses
@@ -147,6 +153,7 @@ const analysis = analyzeParamiPortfolio(character);
 **Purpose:** Track execution time and memory usage of Buddhist psychology functions.
 
 **Key Features:**
+
 - ✅ Measure function execution time (sync & async)
 - ✅ Track memory usage (optional)
 - ✅ Set performance thresholds
@@ -155,6 +162,7 @@ const analysis = analyzeParamiPortfolio(character);
 - ✅ Summary reports
 
 **Usage:**
+
 ```typescript
 import { performanceMonitor } from './utils/performanceMonitor';
 
@@ -162,10 +170,7 @@ import { performanceMonitor } from './utils/performanceMonitor';
 performanceMonitor.enable();
 
 // Measure function
-performanceMonitor.measureSync(
-  'my-operation',
-  () => someFunction()
-);
+performanceMonitor.measureSync('my-operation', () => someFunction());
 
 // Get metrics
 const avgTime = performanceMonitor.getAverageTime('my-operation');
@@ -174,12 +179,14 @@ performanceMonitor.logReport(); // Console report
 ```
 
 **Thresholds:**
+
 - Javana Decision: < 50ms
 - Parami Calculation: < 30ms
 - Anusaya Tracking: < 20ms
 - Psychology Update: < 100ms
 
 **Performance Benchmarks (9 tests passing):**
+
 - ✅ Parami synergy calculation: < 30ms
 - ✅ 10 paramis synergy: < 100ms
 - ✅ 1000 calculations: < 500ms
@@ -191,6 +198,7 @@ performanceMonitor.logReport(); // Console report
 ### Unit Tests (26/26 passing ✅)
 
 **`paramiSystem.test.ts` (11 tests)**
+
 - ✅ PARAMI_SYNERGY_MATRIX structure validation
 - ✅ calculateParamiSynergy() calculations
 - ✅ updateParamiFromAction() behavior
@@ -198,6 +206,7 @@ performanceMonitor.logReport(); // Console report
 - ✅ Synergy integration
 
 **`mindProcessors.test.ts` (6 tests)**
+
 - ✅ JavanaDecisionEngine with high mindfulness → kusala
 - ✅ JavanaDecisionEngine with low mindfulness + strong kilesa → akusala
 - ✅ Parami resistance against kilesa
@@ -212,8 +221,8 @@ performanceMonitor.logReport(); // Console report
 ```typescript
 // src/config/featureFlags.ts
 export const FEATURE_FLAGS = {
-  JAVANA_DECISION_ENGINE: true,  // ← Change to true
-  PARAMI_SYNERGY_MATRIX: true,   // ← Change to true
+  JAVANA_DECISION_ENGINE: true, // ← Change to true
+  PARAMI_SYNERGY_MATRIX: true, // ← Change to true
 };
 ```
 
@@ -241,7 +250,7 @@ VITE_FEATURE_PARAMI_SYNERGY=true
 
 ```typescript
 const testCharacter: Character = {
-  name: "Test Monk",
+  name: 'Test Monk',
   internal: {
     consciousness: {
       'สติ (Mindfulness)': 85,
@@ -251,7 +260,7 @@ const testCharacter: Character = {
       โลภะ: 15,
       โทสะ: 10,
       โมหะ: 20,
-    }
+    },
   },
   parami_portfolio: {
     dana: { level: 8, exp: 400 },
@@ -266,8 +275,8 @@ const testCharacter: Character = {
       avijja: 25,
       // ... other anusayas
     },
-    carita: 'สัทธาจริต'
-  }
+    carita: 'สัทธาจริต',
+  },
 };
 ```
 
@@ -289,11 +298,11 @@ import { classifyKarmaWithJavana } from './services/psychologyEvolution';
 const actions = {
   กาย: ['ช่วยเหลือผู้อื่น'],
   วาจา: ['พูดจาสุภาพ'],
-  ใจ: ['มีเมตตา']
+  ใจ: ['มีเมตตา'],
 };
 
 const karma = classifyKarmaWithJavana(actions, testCharacter);
-console.log('Karma Type:', karma.type);  // Should be กุศลกรรม
+console.log('Karma Type:', karma.type); // Should be กุศลกรรม
 console.log('Javana Results:', karma.javana_results);
 ```
 
@@ -307,14 +316,17 @@ console.log('Javana Results:', karma.javana_results);
 ## 🔒 Safety Features
 
 ### 1. Feature Flags
+
 All new features are **OFF by default**, ensuring zero impact on production until explicitly enabled.
 
 ### 2. Backward Compatibility
+
 - Old functions still work (e.g., `classifyKarma()`)
 - New functions are additive, not replacement
 - Graceful degradation when data is missing
 
 ### 3. Error Handling
+
 ```typescript
 const paramiAnalysis = analyzeParamiPortfolio(character);
 if (!paramiAnalysis) {
@@ -326,11 +338,13 @@ if (!paramiAnalysis) {
 ## 🎨 UI/UX Enhancements
 
 ### Before (v1.3):
+
 - Basic psychology display
 - Mental balance indicator
 - Consciousness/Defilement scores
 
 ### After (v1.4):
+
 - ✨ **Parami Portfolio section** (when enabled)
 - 🌟 **Synergy bonus display**
 - 📊 **Top 5 paramis with effective levels**
@@ -339,6 +353,7 @@ if (!paramiAnalysis) {
 ## 🛠️ Development Workflow
 
 ### 1. Make Changes
+
 ```bash
 cd peace-script-basic-v1
 npm test  # Run all tests
@@ -347,11 +362,13 @@ npm run lint  # Code quality
 ```
 
 ### 2. Build
+
 ```bash
 npm run build  # Production build
 ```
 
 ### 3. Deploy
+
 ```bash
 firebase deploy --only hosting
 ```
@@ -366,18 +383,21 @@ firebase deploy --only hosting
 ## 🔮 Next Steps (Optional)
 
 ### Phase 2: Advanced UI Features
+
 - [ ] Parami evolution timeline
 - [ ] Citta moment visualization
 - [ ] Anusaya strength indicators
 - [ ] Kamma timeline view
 
 ### Phase 3: Advanced Analytics
+
 - [ ] Parami growth predictions
 - [ ] Anusaya weakening strategies
 - [ ] Character comparison with psychology
 - [ ] Story arc psychology tracking
 
 ### Phase 4: Microservices (Future)
+
 - [ ] Separate psychology calculation service
 - [ ] Real-time citta tracking
 - [ ] Multi-user karma tracking
@@ -394,6 +414,7 @@ firebase deploy --only hosting
 ## 🙏 Credits
 
 Based on:
+
 - **Abhidhamma:** Traditional Buddhist psychology
 - **Digital Mind Model v14:** Complete implementation
 - **Peace Script AI:** Screenplay generation platform

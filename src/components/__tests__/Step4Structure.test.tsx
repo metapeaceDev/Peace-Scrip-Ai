@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import Step4Structure from '../Step4Structure';
-import type { ScriptData, PlotPoint } from '../../types';
+import type { ScriptData, PlotPoint } from '../types';
 
 // Mock dependencies
 vi.mock('../services/geminiService', () => ({
@@ -289,3 +289,4 @@ describe('Step4Structure - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import UserStatus from './UserStatus';
 import * as userStore from '../services/userStore';
-import type { Subscription, SubscriptionTier } from '../../types';
+import type { Subscription, SubscriptionTier } from '../types';
 
 // Mock userStore
 vi.mock('../services/userStore', () => ({
@@ -471,3 +471,4 @@ describe('UserStatus Component', () => {
     });
   });
 });
+

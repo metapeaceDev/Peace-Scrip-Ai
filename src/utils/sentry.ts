@@ -1,10 +1,10 @@
 /**
  * Sentry Initialization for Peace Script AI
- * 
+ *
  * This file initializes Sentry for error tracking in production.
  * Sentry helps capture and report runtime errors, performance issues,
  * and user feedback.
- * 
+ *
  * To enable Sentry:
  * 1. Create a Sentry account at https://sentry.io
  * 2. Create a new project for "React"
@@ -83,16 +83,14 @@ export function initSentry(): void {
 
   // Only initialize if DSN is provided and we're not in development
   if (!dsn) {
-    console.info(
-      '📊 Sentry not initialized: VITE_SENTRY_DSN not found in environment variables'
-    );
+    console.info('📊 Sentry not initialized: VITE_SENTRY_DSN not found in environment variables');
     return;
   }
 
   // Note: Sentry SDK needs to be installed separately
   // Run: npm install @sentry/react
   // For now, this is a placeholder that will work once Sentry is installed
-  
+
   console.info('📊 Sentry configuration found but SDK not installed');
   console.info('   To enable error tracking, run: npm install @sentry/react');
   console.info(`   Environment: ${environment}`);
@@ -170,10 +168,7 @@ export function clearSentryUser(): void {
 /**
  * Add custom context to Sentry events
  */
-export function setSentryContext(
-  name: string,
-  context: Record<string, unknown>
-): void {
+export function setSentryContext(name: string, context: Record<string, unknown>): void {
   if (window.Sentry) {
     window.Sentry.setContext(name, context);
   }
@@ -220,5 +215,4 @@ export function captureMessage(message: string, level: string = 'info'): void {
 }
 
 // Type guard removed - not needed
-
 

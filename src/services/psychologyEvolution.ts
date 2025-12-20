@@ -18,7 +18,7 @@ import type {
   ActionAnalysis,
   CaritaType,
   KarmaIntensity,
-} from '../../types';
+} from '../types';
 import { calculatePsychologyProfile } from './psychologyCalculator';
 import { isFeatureEnabled } from '../config/featureFlags';
 import { JavanaDecisionEngine } from './mindProcessors';
@@ -44,12 +44,13 @@ export function analyzeSceneActions(scene: GeneratedScene, characterName: string
 
     // Extract thoughts/mental states (handle legacy data formats)
     if (situation.characterThoughts) {
-      const thoughts = typeof situation.characterThoughts === 'string' 
-        ? situation.characterThoughts 
-        : Array.isArray(situation.characterThoughts)
-        ? (situation.characterThoughts as any[]).join(' ')
-        : JSON.stringify(situation.characterThoughts);
-      
+      const thoughts =
+        typeof situation.characterThoughts === 'string'
+          ? situation.characterThoughts
+          : Array.isArray(situation.characterThoughts)
+            ? (situation.characterThoughts as any[]).join(' ')
+            : JSON.stringify(situation.characterThoughts);
+
       if (thoughts.includes(characterName)) {
         ใจ.push(thoughts);
       }
@@ -69,7 +70,7 @@ export function analyzeSceneActions(scene: GeneratedScene, characterName: string
 /**
  * Convert ActionAnalysis to SensoryInput for JavanaDecisionEngine
  * Maps กาย-วาจา-ใจ (Body-Speech-Mind) actions into sensory door inputs
- * 
+ *
  * @param actions - Analyzed actions from scene
  * @returns Array of SensoryInput objects for processing
  */
@@ -89,10 +90,16 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
   // Process กาย (Body) actions -> body/eye sense doors
   actions.กาย.forEach(action => {
     const text = action.toLowerCase();
-    
+
     // Pleasant physical actions
-    if (text.includes('ได้รับ') || text.includes('สบาย') || text.includes('สำเร็จ') ||
-        text.includes('receive') || text.includes('comfortable') || text.includes('success')) {
+    if (
+      text.includes('ได้รับ') ||
+      text.includes('สบาย') ||
+      text.includes('สำเร็จ') ||
+      text.includes('receive') ||
+      text.includes('comfortable') ||
+      text.includes('success')
+    ) {
       inputs.push({
         type: 'pleasant',
         object: action,
@@ -101,8 +108,14 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
       });
     }
     // Unpleasant physical actions
-    else if (text.includes('เจ็บ') || text.includes('ทำร้าย') || text.includes('ล้มเหลว') ||
-             text.includes('hurt') || text.includes('harm') || text.includes('fail')) {
+    else if (
+      text.includes('เจ็บ') ||
+      text.includes('ทำร้าย') ||
+      text.includes('ล้มเหลว') ||
+      text.includes('hurt') ||
+      text.includes('harm') ||
+      text.includes('fail')
+    ) {
       inputs.push({
         type: 'unpleasant',
         object: action,
@@ -124,10 +137,16 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
   // Process วาจา (Speech) -> ear sense door
   actions.วาจา.forEach(speech => {
     const text = speech.toLowerCase();
-    
+
     // Pleasant speech
-    if (text.includes('ชื่นชม') || text.includes('ขอบคุณ') || text.includes('ชมเชย') ||
-        text.includes('praise') || text.includes('thank') || text.includes('compliment')) {
+    if (
+      text.includes('ชื่นชม') ||
+      text.includes('ขอบคุณ') ||
+      text.includes('ชมเชย') ||
+      text.includes('praise') ||
+      text.includes('thank') ||
+      text.includes('compliment')
+    ) {
       inputs.push({
         type: 'pleasant',
         object: speech,
@@ -136,8 +155,14 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
       });
     }
     // Unpleasant speech
-    else if (text.includes('ด่า') || text.includes('ดุ') || text.includes('นินทา') ||
-             text.includes('insult') || text.includes('scold') || text.includes('criticize')) {
+    else if (
+      text.includes('ด่า') ||
+      text.includes('ดุ') ||
+      text.includes('นินทา') ||
+      text.includes('insult') ||
+      text.includes('scold') ||
+      text.includes('criticize')
+    ) {
       inputs.push({
         type: 'unpleasant',
         object: speech,
@@ -159,10 +184,16 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
   // Process ใจ (Mind) -> mind sense door
   actions.ใจ.forEach(thought => {
     const text = thought.toLowerCase();
-    
+
     // Pleasant thoughts
-    if (text.includes('ดีใจ') || text.includes('สุข') || text.includes('พอใจ') ||
-        text.includes('happy') || text.includes('joy') || text.includes('satisfied')) {
+    if (
+      text.includes('ดีใจ') ||
+      text.includes('สุข') ||
+      text.includes('พอใจ') ||
+      text.includes('happy') ||
+      text.includes('joy') ||
+      text.includes('satisfied')
+    ) {
       inputs.push({
         type: 'pleasant',
         object: thought,
@@ -171,8 +202,14 @@ export function actionsToSensoryInput(actions: ActionAnalysis): Array<{
       });
     }
     // Unpleasant thoughts
-    else if (text.includes('โกรธ') || text.includes('เศร้า') || text.includes('กังวล') ||
-             text.includes('angry') || text.includes('sad') || text.includes('anxious')) {
+    else if (
+      text.includes('โกรธ') ||
+      text.includes('เศร้า') ||
+      text.includes('กังวล') ||
+      text.includes('angry') ||
+      text.includes('sad') ||
+      text.includes('anxious')
+    ) {
       inputs.push({
         type: 'unpleasant',
         object: thought,
@@ -387,7 +424,7 @@ function classifyKarma(
  * Classify Karma using JavanaDecisionEngine (Advanced Method)
  * Uses Buddhist Abhidhamma mind-door process to determine kusala/akusala
  * Falls back to keyword-based classifyKarma if feature flag is disabled
- * 
+ *
  * @param actions - Analyzed actions from scene
  * @param character - Character with Buddhist psychology profile
  * @returns Karma classification with type and intensity
@@ -409,7 +446,7 @@ export function classifyKarmaWithJavana(
 
   // Convert actions to sensory inputs
   const sensoryInputs = actionsToSensoryInput(actions);
-  
+
   if (sensoryInputs.length === 0) {
     return {
       type: 'เฉยๆ',
@@ -419,9 +456,7 @@ export function classifyKarmaWithJavana(
   }
 
   // Process each sensory input through JavanaDecisionEngine
-  const javanaResults = sensoryInputs.map(input => 
-    JavanaDecisionEngine.decide(input, character)
-  );
+  const javanaResults = sensoryInputs.map(input => JavanaDecisionEngine.decide(input, character));
 
   // Aggregate results
   let kusalaCount = 0;
@@ -482,13 +517,13 @@ export function calculatePsychologyChanges(
   _plotPoint: string
 ): PsychologyChange {
   const actions = analyzeSceneActions(scene, character.name);
-  
+
   // Use advanced JavanaDecisionEngine if enabled, otherwise use keyword-based
   const karmaResult = classifyKarmaWithJavana(actions, character);
 
   const consciousnessChanges: Record<string, number> = {};
   const defilementChanges: Record<string, number> = {};
-  const anusayaChanges: Partial<Record<keyof import('../../types').AnusayaProfile, number>> = {};
+  const anusayaChanges: Partial<Record<keyof import('../types').AnusayaProfile, number>> = {};
   let reasoning = '';
 
   // Add Javana reasoning if available
@@ -626,7 +661,10 @@ export function applyPsychologyChanges(character: Character, change: PsychologyC
     Object.entries(change.anusaya_delta).forEach(([key, delta]) => {
       const anusayaKey = key as keyof typeof newAnusaya;
       if (newAnusaya && typeof newAnusaya[anusayaKey] === 'number' && delta !== undefined) {
-        (newAnusaya as any)[anusayaKey] = Math.max(0, Math.min(100, (newAnusaya[anusayaKey] as number) + delta));
+        (newAnusaya as any)[anusayaKey] = Math.max(
+          0,
+          Math.min(100, (newAnusaya[anusayaKey] as number) + delta)
+        );
       }
     });
   }
@@ -662,22 +700,24 @@ export function calculateMentalBalance(
 
   // Calculate average consciousness (virtue) score
   const consciousnessValues = Object.values(consciousness);
-  const avgConsciousness = consciousnessValues.length > 0
-    ? consciousnessValues.reduce((sum, val) => sum + val, 0) / consciousnessValues.length
-    : 50;
+  const avgConsciousness =
+    consciousnessValues.length > 0
+      ? consciousnessValues.reduce((sum, val) => sum + val, 0) / consciousnessValues.length
+      : 50;
 
   // Calculate average defilement score
   const defilementValues = Object.values(defilement);
-  const avgDefilement = defilementValues.length > 0
-    ? defilementValues.reduce((sum, val) => sum + val, 0) / defilementValues.length
-    : 50;
+  const avgDefilement =
+    defilementValues.length > 0
+      ? defilementValues.reduce((sum, val) => sum + val, 0) / defilementValues.length
+      : 50;
 
   // Mental Balance = (Consciousness - Defilement) mapped to -100 to +100
   // If both are at 50 (neutral), balance = 0
   // If consciousness = 100, defilement = 0: balance = +100
   // If consciousness = 0, defilement = 100: balance = -100
   const balance = avgConsciousness - avgDefilement;
-  
+
   return Math.max(-100, Math.min(100, balance));
 }
 
@@ -894,3 +934,4 @@ export function validateCharacterArc(timeline: CharacterPsychologyTimeline): {
     recommendations,
   };
 }
+

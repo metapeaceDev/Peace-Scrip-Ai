@@ -18,6 +18,9 @@
  */
 
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { auth } from '../config/firebase';
+import { recordGeneration } from './modelUsageTracker';
+import { API_PRICING } from '../types/analytics';
 
 const REPLICATE_API_URL = 'https://api.replicate.com/v1';
 const USE_CLOUD_FUNCTION = true; // Toggle to use Cloud Function proxy
@@ -123,7 +126,7 @@ async function createPrediction(
     try {
       const functions = getFunctions();
       const replicateProxy = httpsCallable(functions, 'replicateProxy');
-      
+
       const result = await replicateProxy({
         endpoint: '/v1/predictions',
         method: 'POST',
@@ -334,6 +337,23 @@ export async function generateAnimateDiffVideo(
     console.log('✅ AnimateDiff video generated:', videoUrl);
     console.log(`⏱️  Total time: ${result.metrics?.predict_time?.toFixed(1) || 'N/A'}s`);
 
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      recordGeneration({
+        userId,
+        type: 'video',
+        modelId: 'replicate-animatediff',
+        modelName: 'AnimateDiff v3',
+        provider: 'replicate',
+        costInCredits: 3, // From VIDEO_MODELS_CONFIG
+        costInTHB: API_PRICING.REPLICATE.animatediff.perRun,
+        success: true,
+        duration: result.metrics?.predict_time || 0,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+
     return videoUrl;
   } catch (error) {
     console.error('❌ AnimateDiff generation failed:', error);
@@ -403,6 +423,23 @@ export async function generateSVDVideo(
     console.log('✅ SVD video generated:', videoUrl);
     console.log(`⏱️  Total time: ${result.metrics?.predict_time?.toFixed(1) || 'N/A'}s`);
 
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      recordGeneration({
+        userId,
+        type: 'video',
+        modelId: 'replicate-svd',
+        modelName: 'Stable Video Diffusion',
+        provider: 'replicate',
+        costInCredits: 2, // From VIDEO_MODELS_CONFIG
+        costInTHB: API_PRICING.REPLICATE['stable-video-diffusion'].perRun,
+        success: true,
+        duration: result.metrics?.predict_time || 0,
+        metadata: { prompt: 'Image-to-Video' },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+
     return videoUrl;
   } catch (error) {
     console.error('❌ SVD generation failed:', error);
@@ -457,6 +494,23 @@ export async function generateAnimateDiffLightning(
 
     console.log('✅ Lightning video generated:', videoUrl);
     console.log(`⏱️  Total time: ${result.metrics?.predict_time?.toFixed(1) || 'N/A'}s`);
+
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      recordGeneration({
+        userId,
+        type: 'video',
+        modelId: 'replicate-animatediff-lightning',
+        modelName: 'AnimateDiff Lightning',
+        provider: 'replicate',
+        costInCredits: 3,
+        costInTHB: API_PRICING.REPLICATE.animatediff.perRun, // Approximation
+        success: true,
+        duration: result.metrics?.predict_time || 0,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
 
     return videoUrl;
   } catch (error) {
@@ -555,6 +609,23 @@ export async function generateHotshotXL(
 
     console.log('✅ Hotshot-XL video generated:', videoUrl);
     console.log(`⏱️  Total time: ${result.metrics?.predict_time?.toFixed(1) || 'N/A'}s`);
+
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      recordGeneration({
+        userId,
+        type: 'video',
+        modelId: 'replicate-hotshot-xl',
+        modelName: 'Hotshot-XL',
+        provider: 'replicate',
+        costInCredits: 2,
+        costInTHB: 0.018 * 35,
+        success: true,
+        duration: result.metrics?.predict_time || 0,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
 
     return videoUrl;
   } catch (error) {
@@ -658,6 +729,23 @@ export async function generateLTXVideo(
     console.log('✅ LTX Video generated:', videoUrl);
     console.log(`⏱️  Total time: ${result.metrics?.predict_time?.toFixed(1) || 'N/A'}s`);
 
+    // Track usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      recordGeneration({
+        userId,
+        type: 'video',
+        modelId: 'replicate-ltx-video',
+        modelName: 'LTX Video',
+        provider: 'replicate',
+        costInCredits: 8,
+        costInTHB: API_PRICING.REPLICATE['ltx-video'].perRun,
+        success: true,
+        duration: result.metrics?.predict_time || 0,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+
     return videoUrl;
   } catch (error) {
     console.error('❌ LTX Video generation failed:', error);
@@ -705,3 +793,4 @@ export function getReplicateModels() {
 export function estimateReplicateCost(model: keyof typeof REPLICATE_MODELS): string {
   return REPLICATE_MODELS[model].cost;
 }
+

@@ -180,12 +180,12 @@ interface ScriptStore {
   scripts: Script[];
   currentScript: Script | null;
   isGenerating: boolean;
-  
+
   // Actions
   generateScript: (params: ScriptParams) => Promise<void>;
   updateScript: (id: string, updates: Partial<Script>) => void;
   deleteScript: (id: string) => void;
-  
+
   // Computed
   getScriptById: (id: string) => Script | undefined;
 }
@@ -235,11 +235,11 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   readonly = false
 }) => {
   const [localScript, setLocalScript] = useState(script);
-  
+
   const handleSave = useCallback(() => {
     onSave(localScript);
   }, [localScript, onSave]);
-  
+
   return (
     <div className="script-editor">
       {/* Implementation */}
@@ -327,37 +327,37 @@ import { ScriptGenerator } from '@/services/scriptGenerator';
 
 describe('ScriptGenerator', () => {
   let generator: ScriptGenerator;
-  
+
   beforeEach(() => {
     generator = new ScriptGenerator();
   });
-  
+
   describe('generateScript', () => {
     it('should generate script with valid parameters', async () => {
       // Arrange
       const params = {
         topic: 'Gratitude',
         style: 'Drama',
-        length: 'medium' as const
+        length: 'medium' as const,
       };
-      
+
       // Act
       const result = await generator.generate(params);
-      
+
       // Assert
       expect(result).toBeDefined();
       expect(result.title).toBeTruthy();
       expect(result.scenes.length).toBeGreaterThan(0);
     });
-    
+
     it('should throw error with invalid parameters', async () => {
       // Arrange
       const params = {
         topic: '',
         style: 'Drama',
-        length: 'medium' as const
+        length: 'medium' as const,
       };
-      
+
       // Act & Assert
       await expect(generator.generate(params)).rejects.toThrow();
     });
@@ -388,19 +388,19 @@ open coverage/index.html
 vi.mock('@/services/geminiAPI', () => ({
   GeminiAPI: vi.fn().mockImplementation(() => ({
     generateText: vi.fn().mockResolvedValue({
-      text: 'Mock response'
-    })
-  }))
+      text: 'Mock response',
+    }),
+  })),
 }));
 
 // Mock Firebase
 vi.mock('@/services/firebase', () => ({
   auth: {
-    signInWithEmailAndPassword: vi.fn()
+    signInWithEmailAndPassword: vi.fn(),
   },
   firestore: {
-    collection: vi.fn()
-  }
+    collection: vi.fn(),
+  },
 }));
 ```
 
@@ -506,6 +506,7 @@ git push
 ### Code Review Checklist
 
 **Before Requesting Review:**
+
 - [ ] All tests passing
 - [ ] Code formatted (Prettier)
 - [ ] No linting errors (ESLint)
@@ -514,6 +515,7 @@ git push
 - [ ] Changelog updated
 
 **Reviewer Checklist:**
+
 - [ ] Code follows project standards
 - [ ] Tests are comprehensive
 - [ ] No security vulnerabilities
@@ -533,15 +535,18 @@ git push
 ## Feature: Buddhist Psychology Integration
 
 ### Goal
+
 Integrate Buddhist psychology principles into script generation
 
 ### Requirements
+
 - [ ] Support 37 Buddhist principles
 - [ ] Depth levels: basic/intermediate/advanced
 - [ ] Natural integration into narratives
 - [ ] Educational value
 
 ### Technical Design
+
 - Service: `buddhistPsychology.ts`
 - Types: `BuddhistPrinciple`, `PsychologyDepth`
 - Integration: Modify `scriptGenerator.ts`
@@ -576,15 +581,15 @@ import type { BuddhistPrinciple, PsychologyIntegration } from '@/types/buddhist'
 
 export class BuddhistPsychologyService {
   private principles: Map<string, BuddhistPrinciple> = new Map();
-  
+
   constructor() {
     this.loadPrinciples();
   }
-  
+
   async integrate(params: PsychologyIntegration): Promise<string> {
     // Implementation
   }
-  
+
   private loadPrinciples(): void {
     // Load 37 principles
   }
@@ -604,9 +609,9 @@ describe('BuddhistPsychologyService', () => {
     const result = await service.integrate({
       principles: ['กตัญญูกตเวที'],
       depth: 'basic',
-      context: 'A story about gratitude'
+      context: 'A story about gratitude',
     });
-    
+
     expect(result).toContain('gratitude');
   });
 });
@@ -621,7 +626,7 @@ import { BuddhistPsychologyService } from '@/services/buddhistPsychology';
 export const ScriptWizard: React.FC = () => {
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
   const [depth, setDepth] = useState<PsychologyDepth>('basic');
-  
+
   // Implementation
 };
 ```
@@ -632,18 +637,21 @@ export const ScriptWizard: React.FC = () => {
 # Buddhist Psychology Integration
 
 ## Overview
+
 This feature allows integrating Buddhist psychology principles into scripts.
 
 ## Usage
+
 \`\`\`typescript
 const script = await scriptGenerator.generate({
-  topic: "Overcoming Fear",
-  buddhistPrinciples: ["สติ-สัมปชัญญะ"],
-  psychologyDepth: "advanced"
+topic: "Overcoming Fear",
+buddhistPrinciples: ["สติ-สัมปชัญญะ"],
+psychologyDepth: "advanced"
 });
 \`\`\`
 
 ## Supported Principles
+
 - กตัญญูกตเวที (Gratitude)
 - สติ-สัมปชัญญะ (Mindfulness)
 - ... (35 more)
@@ -671,15 +679,16 @@ const VideoGenerator = lazy(() => import('@/components/video/VideoGenerator'));
 ```typescript
 // useMemo for expensive computations
 const sortedScripts = useMemo(() => {
-  return scripts.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return scripts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }, [scripts]);
 
 // useCallback for functions
-const handleSave = useCallback((script: Script) => {
-  updateScript(script.id, script);
-}, [updateScript]);
+const handleSave = useCallback(
+  (script: Script) => {
+    updateScript(script.id, script);
+  },
+  [updateScript]
+);
 ```
 
 ### Bundle Size Optimization
@@ -745,11 +754,13 @@ await scriptGenerator.generate(params);
 console.timeEnd('generateScript');
 
 // Table output
-console.table(scripts.map(s => ({
-  id: s.id,
-  title: s.title,
-  status: s.status
-})));
+console.table(
+  scripts.map(s => ({
+    id: s.id,
+    title: s.title,
+    status: s.status,
+  }))
+);
 ```
 
 ### React DevTools
@@ -839,28 +850,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linting
         run: npm run lint
-      
+
       - name: Run tests
         run: npm test -- --run
-      
+
       - name: Build
         run: npm run build
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 ```
@@ -882,12 +893,14 @@ npm test -- --run
 ## Resources
 
 ### Documentation
+
 - [React Documentation](https://react.dev)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Vitest Documentation](https://vitest.dev)
 - [Zustand Documentation](https://zustand-demo.pmnd.rs)
 
 ### Internal Docs
+
 - [Project Completion Report](../PROJECT_COMPLETION_REPORT.md)
 - [API Documentation](./API.md)
 - [Architecture Decisions](./ARCHITECTURE.md)

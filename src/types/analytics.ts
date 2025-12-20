@@ -1,6 +1,6 @@
 /**
  * Enhanced Analytics Types
- * 
+ *
  * ข้อมูลการใช้งานแบบละเอียด พร้อมต้นทุนจริง
  */
 
@@ -34,6 +34,8 @@ export interface GenerationDetails {
     duration?: string;
     projectId?: string;
     sceneId?: string;
+    tokens?: { input: number; output: number };
+    characters?: number;
   };
 }
 
@@ -215,15 +217,15 @@ export const API_PRICING = {
       description: 'Text generation (Thai script, characters, scenes)',
     },
     '2.5-flash': {
-      input: 0.00001875 * 35, // $0.00001875 per char → ฿0.000656/char
-      output: 0.000075 * 35, // $0.000075 per char → ฿0.002625/char
+      input: (0.075 * 35) / 1000000, // $0.075/1M tokens → ฿0.000002625/token
+      output: (0.3 * 35) / 1000000, // $0.30/1M tokens → ฿0.0000105/token
       image: 0.0025 * 35, // $0.0025/image → ฿0.0875 (~฿0.09)
       freeQuota: 'None',
       description: 'High-quality image generation',
     },
     'veo-3': {
-      video5s: 0.10 * 35, // $0.10/5s video → ฿3.50
-      video10s: 0.50 * 35, // $0.50/10s video → ฿17.50
+      video5s: 0.1 * 35, // $0.10/5s video → ฿3.50
+      video10s: 0.5 * 35, // $0.50/10s video → ฿17.50
       freeQuota: 'None',
       description: 'Premium video generation (1080p)',
     },
@@ -265,7 +267,7 @@ export const API_PRICING = {
       invocations: 0, // FREE (2M/month)
       compute: 0, // FREE (400K GB-sec/month)
       egress: 0, // FREE (5 GB/month)
-      paidInvocations: 0.40 / 1000000, // ฿0.40 per 1M invocations
+      paidInvocations: 0.4 / 1000000, // ฿0.40 per 1M invocations
       description: 'Serverless functions (Node.js 20)',
     },
     authentication: {
@@ -285,7 +287,7 @@ export const API_PRICING = {
     cloudRun: {
       cpu: 0.0000625 * 35, // $0.0000625 per vCPU-second → ฿0.002187
       memory: 0.0000065 * 35, // $0.0000065 per GiB-second → ฿0.000227
-      requests: 0.40 / 1000000, // ฿0.40 per 1M requests
+      requests: 0.4 / 1000000, // ฿0.40 per 1M requests
       egress: 0.12 * 35, // $0.12/GB → ฿4.20/GB
       description: 'Voice Cloning API (min-instances=0)',
       config: {
@@ -326,7 +328,7 @@ export interface TaxRates {
 }
 
 export const THAI_TAX_RATES: TaxRates = {
-  corporateTax: 0.20, // 20%
+  corporateTax: 0.2, // 20%
   vat: 0.07, // 7%
   withholdingTax: 0.03, // 3%
   socialSecurity: 0.05, // 5%
@@ -357,7 +359,7 @@ export interface ProfitLossStatement {
     end: Date;
     label: string; // "มกราคม 2568", "Q1 2568", etc.
   };
-  
+
   // Revenue (รายได้)
   revenue: {
     subscriptions: number; // รายได้จาก subscription
@@ -365,7 +367,7 @@ export interface ProfitLossStatement {
     other: number; // รายได้อื่นๆ (ถ้ามี)
     total: number; // รวมรายได้
   };
-  
+
   // Cost of Goods Sold (ต้นทุนขาย)
   cogs: {
     apiCosts: number; // ต้นทุน API (Gemini, Replicate)
@@ -375,11 +377,11 @@ export interface ProfitLossStatement {
     bandwidthCosts: number; // Network egress
     total: number; // รวมต้นทุนขาย
   };
-  
+
   // Gross Profit (กำไรขั้นต้น)
   grossProfit: number; // Revenue - COGS
   grossMargin: number; // (Gross Profit / Revenue) * 100
-  
+
   // Operating Expenses (ค่าใช้จ่ายในการดำเนินงาน)
   operatingExpenses: {
     salaries: number; // เงินเดือนพนักงาน
@@ -389,11 +391,11 @@ export interface ProfitLossStatement {
     other: number; // อื่นๆ
     total: number; // รวมค่าใช้จ่าย
   };
-  
+
   // EBITDA (Earnings Before Interest, Tax, Depreciation, Amortization)
   ebitda: number; // Gross Profit - Operating Expenses
   ebitdaMargin: number; // (EBITDA / Revenue) * 100
-  
+
   // Tax Breakdown (ภาษี)
   taxes: {
     vat: number; // 7% VAT on revenue
@@ -402,7 +404,7 @@ export interface ProfitLossStatement {
     socialSecurity: number; // 5% on salaries
     total: number; // รวมภาษี
   };
-  
+
   // Net Profit (กำไรสุทธิ)
   netProfitBeforeTax: number; // EBITDA - Interest - Depreciation
   netProfitAfterTax: number; // Net Profit Before Tax - Corporate Tax
@@ -436,3 +438,4 @@ export interface HistoricalProfitLoss {
     costRatios: number[]; // COGS as % of revenue per period
   };
 }
+

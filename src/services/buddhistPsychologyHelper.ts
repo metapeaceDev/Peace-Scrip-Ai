@@ -3,7 +3,7 @@
  * Utilities for Anusaya, Carita, and Buddhist analysis
  */
 
-import type { Character, AnusayaProfile, CaritaType } from '../../types';
+import type { Character, AnusayaProfile, CaritaType } from '../types';
 
 /**
  * Initialize Anusaya from existing defilement values
@@ -251,3 +251,4 @@ export function getIntensityDisplay(intensity: 'mild' | 'moderate' | 'severe' | 
 
   return display[intensity];
 }
+

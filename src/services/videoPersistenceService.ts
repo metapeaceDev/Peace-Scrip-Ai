@@ -1,6 +1,6 @@
 /**
  * Video Persistence Service
- * 
+ *
  * Handles conversion of temporary video URLs to permanent storage
  * Supports both base64 encoding and Firebase Storage upload
  */
@@ -269,3 +269,4 @@ export async function getVideoMetadata(
     return { size: 0 };
   }
 }
+

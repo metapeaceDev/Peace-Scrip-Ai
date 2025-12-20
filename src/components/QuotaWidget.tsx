@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserSubscription } from '../services/subscriptionManager';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 import './QuotaWidget.css';
 
 interface QuotaData {
@@ -322,3 +322,4 @@ export const QuotaWidget: React.FC<QuotaWidgetProps> = ({ onUpgradeClick }) => {
 };
 
 export default QuotaWidget;
+

@@ -1,4 +1,4 @@
-import { UserSubscription, SubscriptionTier } from '../../types';
+import { UserSubscription, SubscriptionTier } from '../types';
 
 // Mock User Data (Updated to match PRICING_STRATEGY.md)
 const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
@@ -137,3 +137,4 @@ export const hasAccessToModel = (modelId: string, type: 'image' | 'video'): bool
     return currentUser.features.allowedVideoModels.includes(modelId) || modelId === 'auto';
   }
 };
+

@@ -226,3 +226,4 @@ Psychology TTS Availability: ${this.stats.psychologyAvailability.toFixed(1)}%
 
 // Export singleton instance
 export const hybridTTS = new HybridTTSService();
+

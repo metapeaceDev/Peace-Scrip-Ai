@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { ScriptData } from '../../types';
-import { GENRES } from '../../constants';
-import { generateFullScriptOutline, generateMoviePoster, generateTitle } from '../services/geminiService';
+import type { ScriptData } from '../types';
+import { GENRES } from '../constants';
+import {
+  generateFullScriptOutline,
+  generateMoviePoster,
+  generateTitle,
+} from '../services/geminiService';
 import { useTranslation } from '../components/LanguageSwitcher';
 
 interface Step1GenreProps {
@@ -35,13 +39,12 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
   // Auto-update prompt when title or genre changes
   useEffect(() => {
     if (scriptData.title) {
-      const parts = [
-        `Movie Poster for "${scriptData.title}".`,
-        `Genre: ${scriptData.mainGenre}.`,
-      ];
+      const parts = [`Movie Poster for "${scriptData.title}".`, `Genre: ${scriptData.mainGenre}.`];
 
       // Add secondary genres
-      const secondaryGenres = scriptData.secondaryGenres?.filter(g => g && g !== scriptData.mainGenre);
+      const secondaryGenres = scriptData.secondaryGenres?.filter(
+        g => g && g !== scriptData.mainGenre
+      );
       if (secondaryGenres && secondaryGenres.length > 0) {
         parts.push(`${secondaryGenres.join(', ')}.`);
       }
@@ -60,7 +63,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
           .slice(0, 5) // Top 5 characters
           .map(c => c.name)
           .join(', ');
-        
+
         if (characterNames) {
           parts.push(`Featuring ${characterNames}.`);
         }
@@ -77,7 +80,15 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
       setPosterPrompt(parts.join(' '));
     }
-  }, [scriptData.title, scriptData.mainGenre, scriptData.secondaryGenres, scriptData.premise, scriptData.logLine, scriptData.characters, scriptData.language]);
+  }, [
+    scriptData.title,
+    scriptData.mainGenre,
+    scriptData.secondaryGenres,
+    scriptData.premise,
+    scriptData.logLine,
+    scriptData.characters,
+    scriptData.language,
+  ]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (onRegisterUndo) onRegisterUndo();
@@ -96,7 +107,6 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
     setIsGenerating(true);
     setError(null);
     try {
-      
       const generatedData = await generateFullScriptOutline(
         scriptData.title,
         scriptData.mainGenre,
@@ -192,9 +202,7 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-cyan-400 mb-6">
-        {t('step1.title')}
-      </h2>
+      <h2 className="text-2xl font-bold text-cyan-400 mb-6">{t('step1.title')}</h2>
 
       {/* Project Poster Section - Redesigned */}
       <div className="mb-8 bg-gray-800/80 p-6 rounded-xl border border-gray-700 shadow-xl">
@@ -224,7 +232,9 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="text-xs text-gray-600 font-medium">{t('step1.poster.noPoster')}</span>
+                  <span className="text-xs text-gray-600 font-medium">
+                    {t('step1.poster.noPoster')}
+                  </span>
                 </div>
               )}
 
@@ -361,7 +371,9 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
                         clipRule="evenodd"
                       />
                     </svg>
-                    {scriptData.posterImage ? t('step1.poster.regenerate') : t('step1.poster.generate')}
+                    {scriptData.posterImage
+                      ? t('step1.poster.regenerate')
+                      : t('step1.poster.generate')}
                   </>
                 )}
               </button>
@@ -495,7 +507,10 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 
         {/* PROJECT LANGUAGE SELECTOR - MOVED TO END */}
         <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500/50 rounded-xl p-4">
-          <label htmlFor="projectLanguage" className="block text-sm font-medium text-purple-300 mb-2">
+          <label
+            htmlFor="projectLanguage"
+            className="block text-sm font-medium text-purple-300 mb-2"
+          >
             {t('step1.fields.projectLanguage')}
           </label>
           <select
@@ -556,3 +571,4 @@ const Step1Genre: React.FC<Step1GenreProps> = ({
 };
 
 export default Step1Genre;
+

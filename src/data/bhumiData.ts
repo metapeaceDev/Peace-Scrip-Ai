@@ -872,3 +872,4 @@ export function determineNextBhumi(
     return getBhumiById(11)!; // Paranimmita-vasavatti
   }
 }
+

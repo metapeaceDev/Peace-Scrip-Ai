@@ -1228,3 +1228,4 @@ describe('AnalyticsDashboard - Tier-Specific Display', () => {
     expect(infinitySymbols.length).toBeGreaterThan(0);
   });
 });
+

@@ -12,7 +12,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   User,
-  updateProfile
+  updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
@@ -46,8 +46,8 @@ class FirebaseAuthService {
         user: {
           uid: user.uid,
           email: user.email,
-          displayName
-        }
+          displayName,
+        },
       };
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -71,8 +71,8 @@ class FirebaseAuthService {
         user: {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName
-        }
+          displayName: user.displayName,
+        },
       };
     } catch (error: any) {
       console.error('Login error:', error);
@@ -102,14 +102,14 @@ class FirebaseAuthService {
     try {
       console.log('🔍 [firebaseAuth] Getting redirect result...');
       const result = await getRedirectResult(auth);
-      
+
       if (result) {
         console.log('✅ [firebaseAuth] Redirect result found');
         const user = result.user;
         console.log('👤 [firebaseAuth] User:', {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName
+          displayName: user.displayName,
         });
 
         // Check if user profile exists, if not create it
@@ -128,11 +128,11 @@ class FirebaseAuthService {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
-            photoURL: user.photoURL
-          }
+            photoURL: user.photoURL,
+          },
         };
       }
-      
+
       console.log('ℹ️ [firebaseAuth] No redirect result');
       return null;
     } catch (error: any) {
@@ -179,7 +179,7 @@ class FirebaseAuthService {
       email: user.email || '',
       displayName,
       createdAt: new Date(),
-      lastLogin: new Date()
+      lastLogin: new Date(),
     };
 
     // Only add photoURL if it exists
@@ -194,11 +194,7 @@ class FirebaseAuthService {
    * Update last login timestamp
    */
   private async updateLastLogin(uid: string) {
-    await setDoc(
-      doc(db, 'users', uid),
-      { lastLogin: new Date() },
-      { merge: true }
-    );
+    await setDoc(doc(db, 'users', uid), { lastLogin: new Date() }, { merge: true });
   }
 
   /**
@@ -225,18 +221,18 @@ class FirebaseAuthService {
       console.log('Sending password reset email to:', email);
       await sendPasswordResetEmail(auth, email, actionCodeSettings);
       console.log('Password reset email sent successfully');
-      
+
       return { success: true };
     } catch (error: any) {
       console.error('Password reset error:', error);
       console.error('Error code:', error.code);
       console.error('Error message:', error.message);
-      
+
       // Handle specific Firebase errors
       if (error.code) {
         throw new Error(this.getErrorMessage(error.code));
       }
-      
+
       throw new Error(error.message || 'เกิดข้อผิดพลาดในการส่งอีเมล');
     }
   }
@@ -256,7 +252,7 @@ class FirebaseAuthService {
       'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
       'auth/popup-closed-by-user': 'ปิดหน้าต่าง login',
       'auth/cancelled-popup-request': 'ยกเลิกการ login',
-      'auth/network-request-failed': 'เกิดข้อผิดพลาดในการเชื่อมต่อ'
+      'auth/network-request-failed': 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
     };
 
     return errorMessages[errorCode] || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
@@ -264,3 +260,4 @@ class FirebaseAuthService {
 }
 
 export const firebaseAuth = new FirebaseAuthService();
+

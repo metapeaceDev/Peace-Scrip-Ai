@@ -1,6 +1,6 @@
 /**
  * Project Cost Dashboard Component
- * 
+ *
  * แสดงต้นทุนทั้งหมดของโปรเจกต์ แยกตามหมวดหมู่
  */
 
@@ -110,7 +110,8 @@ export const ProjectCostDashboard: React.FC = () => {
         <div className="banner-content">
           <div className="banner-label">Total Monthly Cost</div>
           <div className="banner-value">
-            ฿{summary.totalMonthlyCost.toLocaleString('th-TH', {
+            ฿
+            {summary.totalMonthlyCost.toLocaleString('th-TH', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -152,15 +153,11 @@ export const ProjectCostDashboard: React.FC = () => {
           </div>
           <div className="profit-card">
             <div className="profit-label">Active Users</div>
-            <div className="profit-value">
-              {summary.userCosts.totalActiveUsers}
-            </div>
+            <div className="profit-value">{summary.userCosts.totalActiveUsers}</div>
           </div>
           <div className="profit-card">
             <div className="profit-label">Cost per User</div>
-            <div className="profit-value">
-              ฿{summary.userCosts.averageCostPerUser.toFixed(2)}
-            </div>
+            <div className="profit-value">฿{summary.userCosts.averageCostPerUser.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -175,9 +172,7 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">🔌</div>
               <div className="category-info">
                 <div className="category-name">API Services</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.apis.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.apis.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
@@ -188,17 +183,11 @@ export const ProjectCostDashboard: React.FC = () => {
                     <span className="service-provider">{api.provider}</span>
                   </div>
                   <div className="service-stats">
-                    <span className="service-calls">
-                      {api.currentMonthUsage.calls} calls
-                    </span>
-                    <span className="service-cost">
-                      ฿{api.currentMonthUsage.cost.toFixed(2)}
-                    </span>
+                    <span className="service-calls">{api.currentMonthUsage.calls} calls</span>
+                    <span className="service-cost">฿{api.currentMonthUsage.cost.toFixed(2)}</span>
                   </div>
                   {api.pricing.freeQuota && (
-                    <div className="service-quota">
-                      Free quota: {api.pricing.freeQuota}
-                    </div>
+                    <div className="service-quota">Free quota: {api.pricing.freeQuota}</div>
                   )}
                 </div>
               ))}
@@ -211,17 +200,13 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">💾</div>
               <div className="category-info">
                 <div className="category-name">Storage</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.storage.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.storage.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
               <div className="service-item">
                 <div className="service-name">Firebase Storage</div>
-                <div className="service-cost">
-                  ฿{summary.breakdown.storage.firebase.toFixed(2)}
-                </div>
+                <div className="service-cost">฿{summary.breakdown.storage.firebase.toFixed(2)}</div>
               </div>
               <div className="service-item">
                 <div className="service-name">Cloud Storage</div>
@@ -238,9 +223,7 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">⚙️</div>
               <div className="category-info">
                 <div className="category-name">Compute</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.compute.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.compute.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
@@ -249,9 +232,7 @@ export const ProjectCostDashboard: React.FC = () => {
                   Cloud Run (Voice Cloning)
                   <span className="service-config">2 vCPU, 8Gi RAM</span>
                 </div>
-                <div className="service-cost">
-                  ฿{summary.breakdown.compute.cloudRun.toFixed(2)}
-                </div>
+                <div className="service-cost">฿{summary.breakdown.compute.cloudRun.toFixed(2)}</div>
               </div>
               <div className="service-item">
                 <div className="service-name">Cloud Functions</div>
@@ -268,9 +249,7 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">🗄️</div>
               <div className="category-info">
                 <div className="category-name">Database</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.database.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.database.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
@@ -289,9 +268,7 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">🌐</div>
               <div className="category-info">
                 <div className="category-name">Bandwidth</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.bandwidth.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.bandwidth.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
@@ -303,9 +280,7 @@ export const ProjectCostDashboard: React.FC = () => {
               </div>
               <div className="service-item">
                 <div className="service-name">CDN</div>
-                <div className="service-cost">
-                  ฿{summary.breakdown.bandwidth.cdn.toFixed(2)}
-                </div>
+                <div className="service-cost">฿{summary.breakdown.bandwidth.cdn.toFixed(2)}</div>
               </div>
             </div>
           </div>
@@ -316,18 +291,14 @@ export const ProjectCostDashboard: React.FC = () => {
               <div className="category-icon">📦</div>
               <div className="category-info">
                 <div className="category-name">Other Services</div>
-                <div className="category-cost">
-                  ฿{summary.breakdown.other.total.toFixed(2)}
-                </div>
+                <div className="category-cost">฿{summary.breakdown.other.total.toFixed(2)}</div>
               </div>
             </div>
             <div className="category-details">
               {summary.breakdown.other.services.map((service, idx) => (
                 <div key={idx} className="service-item">
                   <div className="service-name">{service.service}</div>
-                  <div className="service-cost">
-                    ฿{service.monthlyCost.toFixed(2)}
-                  </div>
+                  <div className="service-cost">฿{service.monthlyCost.toFixed(2)}</div>
                 </div>
               ))}
             </div>
@@ -353,7 +324,7 @@ export const ProjectCostDashboard: React.FC = () => {
             </div>
             <div className="chart-bars">
               {trends.map((trend, idx) => {
-                const maxCost = Math.max(...trends.map((t) => t.totalCost));
+                const maxCost = Math.max(...trends.map(t => t.totalCost));
                 const height = maxCost > 0 ? (trend.totalCost / maxCost) * 100 : 0;
 
                 return (
@@ -400,3 +371,4 @@ export const ProjectCostDashboard: React.FC = () => {
     </div>
   );
 };
+

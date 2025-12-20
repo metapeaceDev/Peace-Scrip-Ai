@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CharacterComparison } from '../CharacterComparison';
-import type { Character } from '../../../types';
+import type { Character } from '../types';
 
 // Mock psychology calculator
 vi.mock('../../services/psychologyCalculator', () => ({
@@ -652,3 +652,4 @@ describe('CharacterComparison - Visual Elements', () => {
     expect(progressBars.length).toBeGreaterThan(0);
   });
 });
+

@@ -373,3 +373,4 @@ describe('ErrorBoundary - Props Handling', () => {
     expect(noError).toBeDefined();
   });
 });
+

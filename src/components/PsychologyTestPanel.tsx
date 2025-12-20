@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import type { Character } from '../../types';
+import type { Character } from '../types';
 import { calculatePsychologyProfile, calculateReaction } from '../services/psychologyCalculator';
 import { PsychologyDisplay } from './PsychologyDisplay';
 
@@ -327,3 +327,4 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
 };
 
 export default PsychologyTestPanel;
+

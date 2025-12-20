@@ -1,9 +1,9 @@
 /**
  * KarmaTimelineView Component
- * 
+ *
  * Interactive timeline visualization of karma actions and their effects
  * Shows cause-and-effect relationships in Buddhist Psychology
- * 
+ *
  * Features:
  * - Chronological karma action display
  * - Kusala/Akusala classification
@@ -11,7 +11,7 @@
  * - Effect tracking (parami gains, anusaya changes)
  * - Interactive filtering
  * - Expandable details
- * 
+ *
  * Phase 3: Advanced UI Features
  */
 
@@ -96,18 +96,20 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
 }) => {
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'kaya' | 'vaca' | 'mano'>('all');
-  const [filterClassification, setFilterClassification] = useState<'all' | 'kusala' | 'akusala'>('all');
+  const [filterClassification, setFilterClassification] = useState<'all' | 'kusala' | 'akusala'>(
+    'all'
+  );
 
   // Filter and sort actions
   const filteredActions = useMemo(() => {
     let filtered = [...actions];
 
     if (filterType !== 'all') {
-      filtered = filtered.filter((a) => a.type === filterType);
+      filtered = filtered.filter(a => a.type === filterType);
     }
 
     if (filterClassification !== 'all') {
-      filtered = filtered.filter((a) => a.classification === filterClassification);
+      filtered = filtered.filter(a => a.classification === filterClassification);
     }
 
     // Sort by timestamp (newest first)
@@ -119,17 +121,16 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
   // Calculate statistics
   const stats = useMemo(() => {
     const total = actions.length;
-    const kusala = actions.filter((a) => a.classification === 'kusala').length;
-    const akusala = actions.filter((a) => a.classification === 'akusala').length;
-    const avgIntensity =
-      actions.reduce((sum, a) => sum + a.intensity, 0) / total || 0;
+    const kusala = actions.filter(a => a.classification === 'kusala').length;
+    const akusala = actions.filter(a => a.classification === 'akusala').length;
+    const avgIntensity = actions.reduce((sum, a) => sum + a.intensity, 0) / total || 0;
 
     return {
       total,
       kusala,
       akusala,
-      kusalaPercent: ((kusala / total) * 100) || 0,
-      akusalaPercent: ((akusala / total) * 100) || 0,
+      kusalaPercent: (kusala / total) * 100 || 0,
+      akusalaPercent: (akusala / total) * 100 || 0,
       avgIntensity,
     };
   }, [actions]);
@@ -146,7 +147,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
   if (compact) {
     return (
       <div className="karma-timeline-compact space-y-2">
-        {filteredActions.map((action) => {
+        {filteredActions.map(action => {
           const typeInfo = getActionTypeInfo(action.type);
           const isKusala = action.classification === 'kusala';
 
@@ -170,9 +171,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
               </div>
               <div
                 className={`px-2 py-1 rounded text-xs font-bold ${
-                  isKusala
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-red-500/20 text-red-400'
+                  isKusala ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                 }`}
               >
                 {action.intensity}
@@ -209,7 +208,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
       {showFilters && (
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <div className="text-sm text-gray-400">Filter:</div>
-          
+
           {/* Type Filter */}
           <div className="flex gap-2">
             <button
@@ -222,7 +221,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
             >
               All Types
             </button>
-            {(['kaya', 'vaca', 'mano'] as const).map((type) => {
+            {(['kaya', 'vaca', 'mano'] as const).map(type => {
               const info = getActionTypeInfo(type);
               return (
                 <button
@@ -299,9 +298,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
               }`}
             >
               {/* Timeline Connector */}
-              {index < filteredActions.length - 1 && (
-                <div className="ml-6 h-4 w-0.5 bg-gray-700" />
-              )}
+              {index < filteredActions.length - 1 && <div className="ml-6 h-4 w-0.5 bg-gray-700" />}
 
               {/* Action Card */}
               <div
@@ -327,9 +324,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
                       {/* Header */}
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="text-white font-medium">
-                            {action.description}
-                          </div>
+                          <div className="text-white font-medium">{action.description}</div>
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                             <span style={{ color: typeInfo.color }}>
                               {typeInfo.labelThai} ({typeInfo.label})
@@ -384,32 +379,24 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
                   {/* Expanded Details */}
                   {isExpanded && hasEffects && (
                     <div className="mt-4 pt-4 border-t border-gray-700">
-                      <div className="text-sm font-semibold text-gray-300 mb-3">
-                        Effects:
-                      </div>
+                      <div className="text-sm font-semibold text-gray-300 mb-3">Effects:</div>
 
                       {/* Parami Gains */}
                       {action.effects.paramiGains && (
                         <div className="mb-3">
-                          <div className="text-xs text-gray-400 mb-2">
-                            Parami Gains:
-                          </div>
+                          <div className="text-xs text-gray-400 mb-2">Parami Gains:</div>
                           <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(action.effects.paramiGains).map(
-                              ([parami, gain]) => (
-                                <div
-                                  key={parami}
-                                  className="flex items-center justify-between px-3 py-2 bg-gray-800/50 rounded"
-                                >
-                                  <span className="text-xs text-gray-300 capitalize">
-                                    {parami}
-                                  </span>
-                                  <span className="text-xs font-bold text-green-400">
-                                    +{gain} EXP
-                                  </span>
-                                </div>
-                              )
-                            )}
+                            {Object.entries(action.effects.paramiGains).map(([parami, gain]) => (
+                              <div
+                                key={parami}
+                                className="flex items-center justify-between px-3 py-2 bg-gray-800/50 rounded"
+                              >
+                                <span className="text-xs text-gray-300 capitalize">{parami}</span>
+                                <span className="text-xs font-bold text-green-400">
+                                  +{gain} EXP
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -417,9 +404,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
                       {/* Anusaya Changes */}
                       {action.effects.anusayaChanges && (
                         <div className="mb-3">
-                          <div className="text-xs text-gray-400 mb-2">
-                            Anusaya Changes:
-                          </div>
+                          <div className="text-xs text-gray-400 mb-2">Anusaya Changes:</div>
                           <div className="grid grid-cols-2 gap-2">
                             {Object.entries(action.effects.anusayaChanges).map(
                               ([anusaya, change]) => (
@@ -427,9 +412,7 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
                                   key={anusaya}
                                   className="flex items-center justify-between px-3 py-2 bg-gray-800/50 rounded"
                                 >
-                                  <span className="text-xs text-gray-300">
-                                    {anusaya}
-                                  </span>
+                                  <span className="text-xs text-gray-300">{anusaya}</span>
                                   <span
                                     className={`text-xs font-bold ${
                                       change > 0 ? 'text-red-400' : 'text-green-400'
@@ -488,3 +471,4 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
 };
 
 export default KarmaTimelineView;
+

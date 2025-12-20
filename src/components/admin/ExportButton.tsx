@@ -1,6 +1,6 @@
 /**
  * Export Button Component
- * 
+ *
  * ปุ่มสำหรับ export ข้อมูล analytics
  */
 
@@ -28,11 +28,11 @@ export const ExportButton: React.FC = () => {
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `peace-script-analytics-${Date.now()}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -48,13 +48,10 @@ export const ExportButton: React.FC = () => {
 
   return (
     <div className="export-button">
-      <button
-        className="btn-export"
-        onClick={handleExportCSV}
-        disabled={exporting}
-      >
+      <button className="btn-export" onClick={handleExportCSV} disabled={exporting}>
         {exporting ? '📊 Exporting...' : '📊 Export CSV'}
       </button>
     </div>
   );
 };
+

@@ -1,6 +1,6 @@
 /**
  * Revenue Chart Component
- * 
+ *
  * แสดงกราฟรายได้ MRR (Monthly Recurring Revenue) และ ARR (Annual Recurring Revenue)
  */
 
@@ -15,7 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import type { RevenueMetrics } from '../../../types';
+import type { RevenueMetrics } from '../../types';
 
 interface RevenueChartProps {
   revenue: RevenueMetrics;
@@ -26,21 +26,21 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
   const generateMonthlyData = () => {
     const months = [];
     const currentDate = new Date();
-    
+
     for (let i = 11; i >= 0; i--) {
       const date = new Date(currentDate);
       date.setMonth(date.getMonth() - i);
-      
-      const monthName = date.toLocaleDateString('th-TH', { 
+
+      const monthName = date.toLocaleDateString('th-TH', {
         month: 'short',
-        year: '2-digit'
+        year: '2-digit',
       });
-      
+
       // Simulate growth trend (ในการใช้จริงควรดึงจาก Firestore)
       const growthFactor = 1 + (11 - i) * 0.15; // 15% growth per month
       const baseRevenue = revenue.mrr / growthFactor;
-      const activeCount = Object.values(revenue.byTier).reduce((sum, val) => sum + val, 0);
-      
+      const activeCount = Object.values(revenue.byTier).reduce((sum: number, val: number) => sum + val, 0);
+
       months.push({
         month: monthName,
         mrr: Math.round(baseRevenue),
@@ -48,7 +48,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
         active: Math.round(activeCount / growthFactor),
       });
     }
-    
+
     return months;
   };
 
@@ -108,26 +108,12 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
       </div>
 
       <ResponsiveContainer width="100%" height={350}>
-        <LineChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-        >
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis
-            dataKey="month"
-            stroke="#6b7280"
-            style={{ fontSize: '0.875rem' }}
-          />
-          <YAxis
-            stroke="#6b7280"
-            style={{ fontSize: '0.875rem' }}
-            tickFormatter={formatYAxis}
-          />
+          <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '0.875rem' }} />
+          <YAxis stroke="#6b7280" style={{ fontSize: '0.875rem' }} tickFormatter={formatYAxis} />
           <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-          />
+          <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="line" />
           <Line
             type="monotone"
             dataKey="mrr"
@@ -151,10 +137,11 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
 
       <div className="chart-footer">
         <p className="chart-note">
-          💡 <strong>Note:</strong> Revenue data shown for the last 12 months. 
-          MRR = Monthly Recurring Revenue, ARR = Annual Recurring Revenue
+          💡 <strong>Note:</strong> Revenue data shown for the last 12 months. MRR = Monthly
+          Recurring Revenue, ARR = Annual Recurring Revenue
         </p>
       </div>
     </div>
   );
 };
+

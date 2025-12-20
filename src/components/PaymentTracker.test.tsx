@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PaymentTracker } from './PaymentTracker';
-import type { TeamMember, Payment } from '../../types';
+import type { TeamMember, Payment } from '../types';
 import * as firebase from 'firebase/firestore';
 
 // Mock Firebase
@@ -659,3 +659,4 @@ describe('PaymentTracker', () => {
     });
   });
 });
+

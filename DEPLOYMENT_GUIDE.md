@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last Updated:** December 18, 2024  
-**Status:** Production Ready  
+**Status:** Production Ready
 
 ---
 
@@ -24,12 +24,14 @@
 ## Prerequisites
 
 ### Required Accounts
+
 - [ ] Firebase account with Blaze plan
 - [ ] Google Cloud Platform account (for Gemini API)
 - [ ] RunPod account (optional, for cloud GPU)
 - [ ] Domain name (optional, for custom domain)
 
 ### Required Tools
+
 ```bash
 # Node.js 18 or higher
 node --version  # Should be >= 18.0.0
@@ -46,6 +48,7 @@ git --version
 ```
 
 ### Required API Keys
+
 - [ ] Firebase project credentials
 - [ ] Google Gemini API key
 - [ ] RunPod API key (optional)
@@ -55,12 +58,14 @@ git --version
 ## Environment Setup
 
 ### 1. Clone Repository
+
 ```bash
 git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
 cd Peace-Scrip-Ai
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 npm install
 ```
@@ -95,11 +100,13 @@ VITE_DEFAULT_LANGUAGE=th
 ```
 
 ### 4. Verify Configuration
+
 ```bash
 npm run build
 ```
 
 If successful, you should see:
+
 ```
 ✓ built in XXXms
 dist/index.html                   X.XX kB
@@ -113,12 +120,14 @@ dist/assets/index-XXXXX.js        XXX.XX kB
 ### Option 1: Firebase Hosting (Recommended)
 
 #### Step 1: Initialize Firebase
+
 ```bash
 firebase login
 firebase init hosting
 ```
 
 Select:
+
 - [ ] Use an existing project
 - [ ] Public directory: `dist`
 - [ ] Configure as single-page app: `Yes`
@@ -126,16 +135,19 @@ Select:
 - [ ] Overwrite index.html: `No`
 
 #### Step 2: Build Production Bundle
+
 ```bash
 npm run build
 ```
 
 #### Step 3: Deploy to Firebase
+
 ```bash
 firebase deploy --only hosting
 ```
 
 #### Step 4: Verify Deployment
+
 ```bash
 # Firebase will output your deployment URL
 # Example: https://your-project.web.app
@@ -149,18 +161,21 @@ firebase deploy --only hosting
 ### Option 2: Other Hosting Platforms
 
 #### Vercel
+
 ```bash
 npm install -g vercel
 vercel --prod
 ```
 
 #### Netlify
+
 ```bash
 npm install -g netlify-cli
 netlify deploy --prod
 ```
 
 #### AWS S3 + CloudFront
+
 ```bash
 # Build
 npm run build
@@ -186,6 +201,7 @@ firebase auth:export auth-config.json
 ```
 
 Enable in Firebase Console:
+
 - [ ] Email/Password
 - [ ] Google Sign-in
 - [ ] Anonymous (optional)
@@ -193,17 +209,21 @@ Enable in Firebase Console:
 ### 2. Firestore Database
 
 #### Deploy Security Rules
+
 ```bash
 firebase deploy --only firestore:rules
 ```
 
 #### Deploy Indexes
+
 ```bash
 firebase deploy --only firestore:indexes
 ```
 
 #### Initialize Collections
+
 Run this script once:
+
 ```javascript
 // scripts/init-firestore.js
 const admin = require('firebase-admin');
@@ -224,6 +244,7 @@ console.log('Firestore initialized');
 Configure CORS for Firebase Storage:
 
 Create `cors.json`:
+
 ```json
 [
   {
@@ -235,6 +256,7 @@ Create `cors.json`:
 ```
 
 Apply CORS:
+
 ```bash
 gsutil cors set cors.json gs://your-bucket-name.appspot.com
 ```
@@ -275,11 +297,13 @@ firestore/
 ```
 
 ### Initialize Database
+
 ```bash
 node scripts/init-firestore.js
 ```
 
 ### Verify Database
+
 ```bash
 firebase firestore:indexes
 ```
@@ -291,12 +315,14 @@ firebase firestore:indexes
 ### Option 1: RunPod GPU Cloud (Recommended)
 
 #### Step 1: Build Docker Image
+
 ```bash
 cd /path/to/project
 docker build -f runpod-comfyui.Dockerfile -t peace-script/comfyui:latest .
 ```
 
 #### Step 2: Push to Registry
+
 ```bash
 # Tag for Docker Hub
 docker tag peace-script/comfyui:latest your-username/comfyui:latest
@@ -306,6 +332,7 @@ docker push your-username/comfyui:latest
 ```
 
 #### Step 3: Deploy to RunPod
+
 ```bash
 # Use deployment script
 chmod +x scripts/deploy-runpod.sh
@@ -313,6 +340,7 @@ chmod +x scripts/deploy-runpod.sh
 ```
 
 Or manually via RunPod Console:
+
 1. Go to https://runpod.io
 2. Create new pod
 3. Select RTX 3090 GPU
@@ -321,6 +349,7 @@ Or manually via RunPod Console:
 6. Deploy
 
 #### Step 4: Update Environment Variables
+
 ```bash
 # Get pod ID from RunPod dashboard
 export VITE_RUNPOD_POD_ID=your-pod-id
@@ -332,6 +361,7 @@ echo "VITE_RUNPOD_POD_ID=$VITE_RUNPOD_POD_ID" >> .env.local
 ### Option 2: Local ComfyUI (Development/Testing)
 
 #### Step 1: Install ComfyUI
+
 ```bash
 # Clone ComfyUI
 git clone https://github.com/comfyanonymous/ComfyUI
@@ -342,6 +372,7 @@ pip install -r requirements.txt
 ```
 
 #### Step 2: Download Models
+
 ```bash
 # FLUX.1-schnell
 cd models/checkpoints
@@ -358,11 +389,13 @@ wget https://huggingface.co/.../t5xxl_fp16.safetensors
 ```
 
 #### Step 3: Start ComfyUI
+
 ```bash
 python main.py --listen 0.0.0.0 --port 8188
 ```
 
 #### Step 4: Verify
+
 ```bash
 curl http://localhost:8188/system_stats
 ```
@@ -372,6 +405,7 @@ curl http://localhost:8188/system_stats
 ## Verification & Testing
 
 ### 1. Frontend Verification
+
 ```bash
 # Visit your deployed URL
 open https://your-project.web.app
@@ -384,6 +418,7 @@ open https://your-project.web.app
 ```
 
 ### 2. Backend Verification
+
 ```bash
 # Test Firebase connection
 npm run test:firebase
@@ -396,6 +431,7 @@ npm run test:runpod
 ```
 
 ### 3. End-to-End Testing
+
 ```bash
 # Run full test suite
 npm test -- --run
@@ -406,6 +442,7 @@ npm test -- --run
 ```
 
 ### 4. Manual Testing Checklist
+
 - [ ] User registration
 - [ ] User login
 - [ ] Script generation (all 5 steps)
@@ -423,6 +460,7 @@ npm test -- --run
 ### 1. Firebase Console Monitoring
 
 Monitor in Firebase Console:
+
 - **Authentication:** Active users, sign-ins
 - **Firestore:** Document reads/writes
 - **Hosting:** Bandwidth, requests
@@ -432,6 +470,7 @@ Monitor in Firebase Console:
 ### 2. Application Monitoring
 
 #### Setup Analytics
+
 ```typescript
 // src/services/analytics.ts
 import { logEvent } from 'firebase/analytics';
@@ -439,23 +478,24 @@ import { logEvent } from 'firebase/analytics';
 // Track user actions
 logEvent(analytics, 'script_generated', {
   genre: 'comedy',
-  length: 'medium'
+  length: 'medium',
 });
 
 logEvent(analytics, 'video_generated', {
   backend: 'cloud',
-  cost: 0.02
+  cost: 0.02,
 });
 ```
 
 #### Setup Error Tracking
+
 ```typescript
 // src/services/errorTracking.ts
 window.onerror = (message, source, lineno, colno, error) => {
   logEvent(analytics, 'error', {
     message,
     source,
-    line: lineno
+    line: lineno,
   });
 };
 ```
@@ -481,7 +521,7 @@ const costMetrics = backendManager.getLoadBalancerMetrics();
 logEvent(analytics, 'cost_update', {
   totalCost: costMetrics.totalCost,
   activePods: costMetrics.activePods,
-  requestsPerMinute: costMetrics.requestsPerMinute
+  requestsPerMinute: costMetrics.requestsPerMinute,
 });
 ```
 
@@ -492,6 +532,7 @@ logEvent(analytics, 'cost_update', {
 ### Common Issues
 
 #### 1. Build Errors
+
 ```bash
 # Clear cache and rebuild
 rm -rf node_modules dist
@@ -500,6 +541,7 @@ npm run build
 ```
 
 #### 2. Firebase Deployment Fails
+
 ```bash
 # Check Firebase project
 firebase use --add
@@ -512,6 +554,7 @@ firebase deploy --only hosting --debug
 ```
 
 #### 3. API Connection Issues
+
 ```bash
 # Test API endpoints
 curl https://generativelanguage.googleapis.com/v1beta/models \
@@ -523,6 +566,7 @@ echo $VITE_GEMINI_API_KEY
 ```
 
 #### 4. RunPod Connection Issues
+
 ```bash
 # Test pod health
 curl https://your-pod-id-8188.proxy.runpod.net/health
@@ -535,6 +579,7 @@ curl -X POST https://api.runpod.io/graphql \
 ```
 
 #### 5. Test Failures
+
 ```bash
 # Run specific test file
 npm test -- path/to/test.ts
@@ -553,6 +598,7 @@ npm test -- --clearCache
 ### Frontend Rollback
 
 #### Firebase Hosting
+
 ```bash
 # List previous deployments
 firebase hosting:channel:list
@@ -564,6 +610,7 @@ firebase hosting:rollback
 ### Database Rollback
 
 #### Firestore Rules
+
 ```bash
 # Backup current rules
 firebase firestore:rules > firestore.rules.backup
@@ -595,6 +642,7 @@ firebase hosting:channel:deploy preview
 ## Production Checklist
 
 ### Pre-Deployment
+
 - [ ] All tests passing (1,945/1,945)
 - [ ] Environment variables configured
 - [ ] Firebase project created
@@ -603,6 +651,7 @@ firebase hosting:channel:deploy preview
 - [ ] Documentation reviewed
 
 ### Deployment
+
 - [ ] Frontend deployed to hosting
 - [ ] Database rules deployed
 - [ ] Storage CORS configured
@@ -611,6 +660,7 @@ firebase hosting:channel:deploy preview
 - [ ] SSL certificate active
 
 ### Post-Deployment
+
 - [ ] Homepage accessible
 - [ ] Authentication working
 - [ ] Script generation functional
@@ -621,6 +671,7 @@ firebase hosting:channel:deploy preview
 - [ ] Team notified
 
 ### Ongoing Maintenance
+
 - [ ] Monitor daily usage
 - [ ] Review error logs
 - [ ] Check cost metrics
@@ -634,12 +685,14 @@ firebase hosting:channel:deploy preview
 ## Support & Resources
 
 ### Documentation
+
 - [Firebase Documentation](https://firebase.google.com/docs)
 - [RunPod Documentation](https://docs.runpod.io)
 - [Gemini API Documentation](https://ai.google.dev/docs)
 - [Project README](../README.md)
 
 ### Internal Documentation
+
 - [RunPod Setup Guide](./RUNPOD_SETUP.md)
 - [Phase 2.1 Report](../PHASE_2.1_RUNPOD_IMPLEMENTATION_REPORT.md)
 - [Phase 2.2 Report](../PHASE_2.2_DEPLOYMENT_TESTING_REPORT.md)
@@ -647,6 +700,7 @@ firebase hosting:channel:deploy preview
 - [Project Completion Report](../PROJECT_COMPLETION_REPORT.md)
 
 ### Contact
+
 - **Project Repository:** https://github.com/metapeaceDev/Peace-Scrip-Ai
 - **Issues:** https://github.com/metapeaceDev/Peace-Scrip-Ai/issues
 

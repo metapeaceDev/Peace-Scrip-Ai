@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { Character } from '../../types';
+import type { Character } from '../types';
 import { getBhumiById } from '../data/bhumiData';
 
 interface BhumiIndicatorProps {
@@ -232,3 +232,4 @@ function getVedanaDisplay(vedana: string): string {
 }
 
 export default BhumiIndicator;
+

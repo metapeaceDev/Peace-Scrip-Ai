@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
 import PricingPage from '../PricingPage';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 
 describe('PricingPage - Component Rendering', () => {
   const mockOnSelectTier = vi.fn();
@@ -396,3 +396,4 @@ describe('PricingPage - AI Models Features', () => {
     expect(screen.getByText(/Runway Gen-3/i)).toBeInTheDocument();
   });
 });
+

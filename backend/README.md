@@ -71,27 +71,27 @@ npm run dev
 
 ### Authentication
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/auth/register` | Register new user | No |
-| POST | `/api/auth/login` | Login user | No |
-| GET | `/api/auth/me` | Get current user | Yes |
+| Method | Endpoint             | Description       | Auth Required |
+| ------ | -------------------- | ----------------- | ------------- |
+| POST   | `/api/auth/register` | Register new user | No            |
+| POST   | `/api/auth/login`    | Login user        | No            |
+| GET    | `/api/auth/me`       | Get current user  | Yes           |
 
 ### Projects
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/api/projects` | Get all user projects | Yes |
-| GET | `/api/projects/:id` | Get single project | Yes |
-| POST | `/api/projects` | Create new project | Yes |
-| PUT | `/api/projects/:id` | Update project | Yes |
-| DELETE | `/api/projects/:id` | Delete project | Yes |
+| Method | Endpoint            | Description           | Auth Required |
+| ------ | ------------------- | --------------------- | ------------- |
+| GET    | `/api/projects`     | Get all user projects | Yes           |
+| GET    | `/api/projects/:id` | Get single project    | Yes           |
+| POST   | `/api/projects`     | Create new project    | Yes           |
+| PUT    | `/api/projects/:id` | Update project        | Yes           |
+| DELETE | `/api/projects/:id` | Delete project        | Yes           |
 
 ### Health Check
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Server health status |
+| Method | Endpoint  | Description          |
+| ------ | --------- | -------------------- |
+| GET    | `/health` | Server health status |
 
 ---
 
@@ -200,14 +200,14 @@ backend/
 
 ## 🔐 Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development` |
-| `PORT` | Server port | `5000` |
-| `MONGODB_URI` | MongoDB connection string | See .env.example |
-| `JWT_SECRET` | Secret key for JWT | **Change in production!** |
-| `JWT_EXPIRE` | Token expiration time | `7d` |
-| `CORS_ORIGIN` | Allowed frontend origin | `http://localhost:5173` |
+| Variable      | Description               | Default                   |
+| ------------- | ------------------------- | ------------------------- |
+| `NODE_ENV`    | Environment mode          | `development`             |
+| `PORT`        | Server port               | `5000`                    |
+| `MONGODB_URI` | MongoDB connection string | See .env.example          |
+| `JWT_SECRET`  | Secret key for JWT        | **Change in production!** |
+| `JWT_EXPIRE`  | Token expiration time     | `7d`                      |
+| `CORS_ORIGIN` | Allowed frontend origin   | `http://localhost:5173`   |
 
 ---
 
@@ -246,6 +246,7 @@ npm start
 ## 📦 Dependencies
 
 ### Production
+
 - **express** - Web framework
 - **mongoose** - MongoDB ODM
 - **bcryptjs** - Password hashing
@@ -258,6 +259,7 @@ npm start
 - **morgan** - HTTP logging
 
 ### Development
+
 - **nodemon** - Auto-restart on file changes
 
 ---

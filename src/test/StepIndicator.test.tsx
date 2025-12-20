@@ -36,3 +36,4 @@ describe('StepIndicator', () => {
     expect(step3?.querySelector('.bg-cyan-500')).toBeInTheDocument();
   });
 });
+

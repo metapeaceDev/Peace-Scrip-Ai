@@ -1,25 +1,26 @@
 /**
  * Video Generation Test Page
- * 
+ *
  * Test interface for Veo 3.1 video generation:
  * - Single shot testing
  * - Batch processing validation
  * - API credential verification
  * - Error handling demonstration
  * - Progress tracking showcase
- * 
+ *
  * @author Peace Script AI Team
  * @version 1.0.0
  */
 
 import { useState, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import {
   generateShotVideo,
   generateSceneVideos,
   type VideoGenerationOptions,
   type VideoGenerationProgress,
 } from '../services/videoGenerationService';
-import type { GeneratedScene } from '../../types';
+import type { GeneratedScene } from '../types';
 
 // Simplified Shot type for testing
 interface Shot {
@@ -131,7 +132,7 @@ export default function VideoGenerationTestPage() {
       setError('');
       setVideoUrl('');
 
-      console.log('🎬 Starting single shot video generation test...');
+      logger.info('🎬 Starting single shot video generation test');
 
       const options: VideoGenerationOptions = {
         quality: '720p',
@@ -151,10 +152,10 @@ export default function VideoGenerationTestPage() {
 
       setVideoUrl(url);
       setProgress(100);
-      console.log('✅ Single shot test completed successfully!');
+      logger.info('✅ Single shot test completed successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('❌ Single shot test failed:', err);
+      logger.error('❌ Single shot test failed', { error: err });
       setError(errorMessage);
       setProgress(0);
     } finally {
@@ -168,7 +169,7 @@ export default function VideoGenerationTestPage() {
       setError('');
       setBatchProgress([]);
 
-      console.log('🎬 Starting batch video generation test...');
+      logger.info('🎬 Starting batch video generation test');
 
       const options: VideoGenerationOptions = {
         quality: '720p',
@@ -184,10 +185,10 @@ export default function VideoGenerationTestPage() {
         });
       });
 
-      console.log('✅ Batch test completed successfully!');
+      logger.info('✅ Batch test completed successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('❌ Batch test failed:', err);
+      logger.error('❌ Batch test failed', { error: err });
       setError(errorMessage);
     } finally {
       setIsGenerating(false);
@@ -208,9 +209,7 @@ export default function VideoGenerationTestPage() {
             >
               <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
             </svg>
-            <h1 className="text-4xl font-bold text-white">
-              Video Generation Test Suite
-            </h1>
+            <h1 className="text-4xl font-bold text-white">Video Generation Test Suite</h1>
           </div>
           <p className="text-gray-400 text-lg">
             Test Gemini Veo 3.1 API integration and video generation pipeline
@@ -247,9 +246,7 @@ export default function VideoGenerationTestPage() {
         {/* Single Shot Test */}
         {testMode === 'single' && (
           <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 mb-6 border border-gray-700">
-            <h2 className="text-xl font-semibold text-white mb-4">
-              Single Shot Configuration
-            </h2>
+            <h2 className="text-xl font-semibold text-white mb-4">Single Shot Configuration</h2>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
@@ -327,10 +324,10 @@ export default function VideoGenerationTestPage() {
                   {progress < 30
                     ? 'Initializing video generation...'
                     : progress < 70
-                    ? 'Processing frames...'
-                    : progress < 95
-                    ? 'Finalizing video...'
-                    : 'Almost done...'}
+                      ? 'Processing frames...'
+                      : progress < 95
+                        ? 'Finalizing video...'
+                        : 'Almost done...'}
                 </p>
               </div>
             )}
@@ -364,8 +361,17 @@ export default function VideoGenerationTestPage() {
               <div className="mt-6 bg-gray-900/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-green-400">
-                    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <span className="font-semibold">Video Generated Successfully!</span>
                   </div>
@@ -374,19 +380,22 @@ export default function VideoGenerationTestPage() {
                     download="generated-video.mp4"
                     className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors text-white text-sm"
                   >
-                    <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <svg
+                      className="w-4 h-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Download
                   </a>
                 </div>
-                <video
-                  src={videoUrl}
-                  controls
-                  className="w-full rounded-lg"
-                  autoPlay
-                  loop
-                />
+                <video src={videoUrl} controls className="w-full rounded-lg" autoPlay loop />
               </div>
             )}
           </div>
@@ -415,19 +424,53 @@ export default function VideoGenerationTestPage() {
                     {batchProgress[idx] && (
                       <div className="flex items-center gap-2">
                         {batchProgress[idx].status === 'generating' && (
-                          <svg className="w-4 h-4 animate-spin text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="w-4 h-4 animate-spin text-purple-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                         )}
                         {batchProgress[idx].status === 'completed' && (
-                          <svg className="w-4 h-4 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          <svg
+                            className="w-4 h-4 text-green-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         )}
                         {batchProgress[idx].status === 'failed' && (
-                          <svg className="w-4 h-4 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            className="w-4 h-4 text-red-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         )}
                         <span className="text-sm text-gray-400">
@@ -456,17 +499,41 @@ export default function VideoGenerationTestPage() {
             >
               {isGenerating ? (
                 <>
-                  <svg className="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="w-5 h-5 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
-                  Generating {batchProgress.length} / {testScene.shotList?.length || 0}{' '}
-                  Videos...
+                  Generating {batchProgress.length} / {testScene.shotList?.length || 0} Videos...
                 </>
               ) : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   Generate All Videos
                 </>
@@ -476,8 +543,17 @@ export default function VideoGenerationTestPage() {
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   <div>
                     <h3 className="text-red-400 font-semibold mb-1">Batch Error</h3>
@@ -521,3 +597,4 @@ export default function VideoGenerationTestPage() {
     </div>
   );
 }
+

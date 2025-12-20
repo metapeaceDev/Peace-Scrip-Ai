@@ -142,30 +142,36 @@ export async function detectSystemResources(): Promise<SystemResources> {
         // 🔥 FORCE CLEANUP: Remove old Cloudflare URLs BEFORE fetching
         const cachedUrl = localStorage.getItem('comfyui_url');
         if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
-          console.warn('🗑️ FORCE CLEANUP in detectSystemResources: Removing old Cloudflare URL:', cachedUrl);
+          console.warn(
+            '🗑️ FORCE CLEANUP in detectSystemResources: Removing old Cloudflare URL:',
+            cachedUrl
+          );
           localStorage.removeItem('comfyui_url');
         }
-        
+
         // ตรวจสอบ ComfyUI local (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
         let COMFYUI_URL = getSavedComfyUIUrl();
-        
+
         // 🛡️ NUCLEAR OPTION: If STILL Cloudflare after all cleanups, FORCE localhost
         if (COMFYUI_URL.includes('trycloudflare.com')) {
-          console.error('❌ CRITICAL: getSavedComfyUIUrl() returned Cloudflare URL! FORCING localhost.');
+          console.error(
+            '❌ CRITICAL: getSavedComfyUIUrl() returned Cloudflare URL! FORCING localhost.'
+          );
           COMFYUI_URL = 'http://localhost:8188';
           // Also clear localStorage again as final measure
           localStorage.removeItem('comfyui_url');
         }
-        
+
         // 🔄 Retry with exponential backoff
         const response = await retryWithBackoff(
-          () => fetch(`${COMFYUI_URL}/system_stats`, {
-            signal: AbortSignal.timeout(3000),
-          }),
+          () =>
+            fetch(`${COMFYUI_URL}/system_stats`, {
+              signal: AbortSignal.timeout(3000),
+            }),
           {
             maxRetries: 2,
             retryDelay: 1000,
-            logToConsole: true
+            logToConsole: true,
           }
         );
 
@@ -177,17 +183,16 @@ export async function detectSystemResources(): Promise<SystemResources> {
         console.log('🖥️ ComfyUI System Stats:', stats);
 
         return parseComfyUIStats(stats);
-        
       } catch (error) {
         // Parse error and provide user-friendly message
         const comfyError = parseError(error, 'local-comfyui');
-        
+
         // Log for debugging
         logError(comfyError, {
           operation: 'detectSystemResources',
-          url: getSavedComfyUIUrl()
+          url: getSavedComfyUIUrl(),
         });
-        
+
         // Show suggestion if available
         if (comfyError.suggestion) {
           console.warn(`💡 Suggestion: ${comfyError.suggestion}`);
@@ -283,13 +288,13 @@ export async function checkComfyUIHealth(): Promise<{
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(url, { 
+
+      const response = await fetch(url, {
         signal: controller.signal,
         mode: 'cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
       });
-      
+
       clearTimeout(timeoutId);
       return response;
     } catch (err) {
@@ -576,3 +581,4 @@ export async function getRecommendedCloudProvider(): Promise<CloudProvider> {
 
   return 'auto';
 }
+

@@ -1,13 +1,13 @@
 /**
  * Admin Authentication Service
- * 
+ *
  * จัดการการยืนยันตัวตนและสิทธิ์ของ admin users
  * ใช้ Firebase Auth custom claims
  */
 
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import type { AdminUser, AdminAuditLog } from '../../types';
+import type { AdminUser, AdminAuditLog } from '../types';
 import { logger } from '../utils/logger';
 
 /**
@@ -23,19 +23,19 @@ export async function checkIsAdmin(forceRefresh = false): Promise<boolean> {
     if (forceRefresh) {
       await user.getIdToken(true);
     }
-    
+
     const tokenResult = await user.getIdTokenResult(forceRefresh);
     const isAdmin = tokenResult.claims.admin === true;
-    
+
     if (forceRefresh) {
       logger.debug('Admin check (refreshed)', {
         email: user.email,
         isAdmin,
         adminRole: tokenResult.claims.adminRole,
-        allClaims: tokenResult.claims
+        allClaims: tokenResult.claims,
       });
     }
-    
+
     return isAdmin;
   } catch (error) {
     logger.error('Error checking admin status', { error });
@@ -54,7 +54,7 @@ export async function getAdminRole(): Promise<'super-admin' | 'admin' | 'viewer'
   try {
     const tokenResult = await user.getIdTokenResult();
     if (tokenResult.claims.admin !== true) return null;
-    
+
     return (tokenResult.claims.adminRole as 'super-admin' | 'admin' | 'viewer') || 'viewer';
   } catch (error) {
     logger.error('Error getting admin role', { error });
@@ -101,7 +101,7 @@ export async function getAdminPermissions(): Promise<AdminUser['permissions'] | 
 export async function hasPermission(permission: keyof AdminUser['permissions']): Promise<boolean> {
   const permissions = await getAdminPermissions();
   if (!permissions) return false;
-  
+
   return permissions[permission] === true;
 }
 
@@ -206,7 +206,8 @@ export async function getAdminUserData(userId?: string): Promise<AdminUser | nul
       email: data.email,
       role: data.role,
       permissions: data.permissions,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+      createdAt:
+        data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
       createdBy: data.createdBy,
       lastAccess: data.lastAccess instanceof Timestamp ? data.lastAccess.toDate() : undefined,
     } as AdminUser;
@@ -227,7 +228,7 @@ export async function initAdminSession(): Promise<{
 }> {
   // Always force refresh on session init to get latest claims
   const isAdmin = await checkIsAdmin(true);
-  
+
   if (!isAdmin) {
     logger.warn('User is not admin or token not refreshed');
     return {
@@ -277,3 +278,4 @@ export async function canPerformAction(
       return false;
   }
 }
+

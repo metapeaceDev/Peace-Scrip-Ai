@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { TeamMember, Payment } from '../../types';
+import type { TeamMember, Payment } from '../types';
 
 interface PaymentTrackerProps {
   members: TeamMember[];
@@ -391,3 +391,4 @@ export const PaymentTracker: React.FC<PaymentTrackerProps> = ({ members, project
     </div>
   );
 };
+

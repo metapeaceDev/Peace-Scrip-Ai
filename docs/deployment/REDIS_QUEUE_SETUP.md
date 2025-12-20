@@ -5,6 +5,7 @@
 Redis + Bull Queue ใช้จัดการ image/video generation jobs อย่างมีประสิทธิภาพ
 
 **ทำไมต้องใช้ Queue?**
+
 - ✅ ป้องกัน server overload
 - ✅ รองรับ concurrent jobs หลายๆ คนพร้อมกัน
 - ✅ Priority queue (ENTERPRISE > PRO > BASIC > FREE)
@@ -32,6 +33,7 @@ redis-server
 ### Windows
 
 **Option 1: WSL (Recommended)**
+
 ```bash
 # Install WSL first, then:
 sudo apt-get update
@@ -40,6 +42,7 @@ sudo service redis-server start
 ```
 
 **Option 2: Docker**
+
 ```bash
 docker run -d -p 6379:6379 --name redis redis:alpine
 ```
@@ -103,12 +106,12 @@ setupQueueListeners();
 
 ### Priority Levels
 
-| User Tier | Priority | Wait Time (Est.) |
-|-----------|----------|------------------|
-| **ENTERPRISE** | 1 (Highest) | ~0-30s |
-| **PRO** | 2 | ~30s-2min |
-| **BASIC** | 3 | ~2-5min |
-| **FREE** | 4 (Lowest) | ~5-15min |
+| User Tier      | Priority    | Wait Time (Est.) |
+| -------------- | ----------- | ---------------- |
+| **ENTERPRISE** | 1 (Highest) | ~0-30s           |
+| **PRO**        | 2           | ~30s-2min        |
+| **BASIC**      | 3           | ~2-5min          |
+| **FREE**       | 4 (Lowest)  | ~5-15min         |
 
 ### Job Flow
 
@@ -143,7 +146,7 @@ const job = await queueImageGeneration({
   width: 1024,
   height: 768,
   steps: 20,
-  userTier: 'pro',  // Priority = 2
+  userTier: 'pro', // Priority = 2
 });
 
 console.log(`Job queued: ${job.id}`);
@@ -160,7 +163,7 @@ const job = await queueVideoGeneration({
   sceneDescription: 'Aerial view of Bangkok city',
   duration: 5,
   fps: 24,
-  userTier: 'enterprise',  // Priority = 1 (first in queue!)
+  userTier: 'enterprise', // Priority = 1 (first in queue!)
 });
 ```
 
@@ -201,9 +204,9 @@ console.log(`Estimated wait: ${waitTime}s (~${Math.round(waitTime / 60)}min)`);
 import { processImageJobs } from './services/queueService';
 import { generateImage } from './services/comfyuiService';
 
-processImageJobs(async (job) => {
+processImageJobs(async job => {
   const startTime = Date.now();
-  
+
   try {
     // Update progress: Loading
     await job.progress({
@@ -327,7 +330,7 @@ import { imageQueue } from './services/queueService';
 imageQueue.on('failed', async (job, err) => {
   console.error(`Job ${job.id} failed after 3 attempts`);
   console.error(`Error: ${err.message}`);
-  
+
   // Notify user
   await sendNotification(job.data.userId, {
     type: 'job_failed',
@@ -348,6 +351,7 @@ requirepass YOUR_STRONG_PASSWORD
 ```
 
 Update `.env`:
+
 ```env
 REDIS_PASSWORD=YOUR_STRONG_PASSWORD
 ```
@@ -373,7 +377,7 @@ services:
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
@@ -383,7 +387,7 @@ services:
     environment:
       - REDIS_HOSTS=local:redis:6379
     ports:
-      - "8081:8081"
+      - '8081:8081'
     depends_on:
       - redis
 
@@ -392,6 +396,7 @@ volumes:
 ```
 
 Run:
+
 ```bash
 docker-compose up -d
 ```
@@ -402,12 +407,12 @@ docker-compose up -d
 
 ### Tested on M1 MacBook Pro (16GB)
 
-| Scenario | Queue Disabled | Queue Enabled |
-|----------|---------------|---------------|
-| **1 concurrent job** | 30s | 30s |
-| **5 concurrent jobs** | 150s (sequential) | 35s (parallel) |
-| **10 concurrent jobs** | 300s | 45s |
-| **50 concurrent jobs** | Server crash ❌ | 120s ✅ |
+| Scenario               | Queue Disabled    | Queue Enabled  |
+| ---------------------- | ----------------- | -------------- |
+| **1 concurrent job**   | 30s               | 30s            |
+| **5 concurrent jobs**  | 150s (sequential) | 35s (parallel) |
+| **10 concurrent jobs** | 300s              | 45s            |
+| **50 concurrent jobs** | Server crash ❌   | 120s ✅        |
 
 **Result: 4-10x faster with queue system!**
 
@@ -419,8 +424,8 @@ docker-compose up -d
 
 ```typescript
 const job = await queue.add(data, {
-  timeout: 300000,  // 5 minutes for image
-  timeout: 600000,  // 10 minutes for video
+  timeout: 300000, // 5 minutes for image
+  timeout: 600000, // 10 minutes for video
 });
 ```
 
@@ -437,6 +442,7 @@ if (waiting > 100) {
 ### 3. Rate Limiting
 
 Already built-in:
+
 - Max 5 jobs/second (configurable)
 - Prevents Redis overload
 - Smooth processing
@@ -450,6 +456,7 @@ Already built-in:
 **Problem:** Redis not running
 
 **Solution:**
+
 ```bash
 # macOS
 brew services start redis
@@ -466,6 +473,7 @@ docker start redis
 **Problem:** Redis out of memory
 
 **Solution:**
+
 ```bash
 # Edit redis.conf
 maxmemory 256mb
@@ -477,6 +485,7 @@ maxmemory-policy allkeys-lru
 **Problem:** Worker crashed during processing
 
 **Solution:**
+
 ```typescript
 // Clean stalled jobs (older than 1 hour)
 await queue.clean(3600000, 'active');

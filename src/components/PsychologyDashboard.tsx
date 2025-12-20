@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Character, ParamiPortfolio, AnusayaProfile } from '../../types';
+import type { Character, ParamiPortfolio, AnusayaProfile } from '../types';
 import { isFeatureEnabled } from '../config/featureFlags';
 import {
   ParamiEvolutionChart,
@@ -33,13 +33,13 @@ interface PsychologyDashboardProps {
 
 /**
  * Psychology Dashboard - Unified view of Buddhist Psychology for a character
- * 
+ *
  * Combines 4 Phase 3 components:
  * 1. ParamiEvolutionChart - 10 Perfections progress
  * 2. CittaMomentVisualizer - 17-moment mind process
  * 3. AnusayaStrengthIndicator - 7 latent tendencies
  * 4. KarmaTimelineView - Karma action timeline
- * 
+ *
  * Protected by feature flags for gradual rollout
  */
 export const PsychologyDashboard: React.FC<PsychologyDashboardProps> = ({
@@ -47,9 +47,9 @@ export const PsychologyDashboard: React.FC<PsychologyDashboardProps> = ({
   compact = false,
   userId,
 }) => {
-  const [activeView, setActiveView] = useState<'overview' | 'parami' | 'citta' | 'anusaya' | 'karma'>(
-    'overview'
-  );
+  const [activeView, setActiveView] = useState<
+    'overview' | 'parami' | 'citta' | 'anusaya' | 'karma'
+  >('overview');
 
   // Feature flag checks
   const showParamiChart = isFeatureEnabled('PARAMI_SYNERGY_MATRIX', userId);
@@ -124,12 +124,8 @@ export const PsychologyDashboard: React.FC<PsychologyDashboardProps> = ({
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">
-                Buddhist Psychology Profile
-              </h3>
-              <p className="text-xs text-gray-400">
-                {character.name} • Digital Mind Model v14
-              </p>
+              <h3 className="text-lg font-bold text-white">Buddhist Psychology Profile</h3>
+              <p className="text-xs text-gray-400">{character.name} • Digital Mind Model v14</p>
             </div>
           </div>
           {!compact && (
@@ -227,12 +223,7 @@ export const PsychologyDashboard: React.FC<PsychologyDashboardProps> = ({
 
         {/* Individual Views */}
         {activeView === 'parami' && showParamiChart && (
-          <ParamiEvolutionChart
-            portfolio={paramiPortfolio}
-            showSynergy
-            compact={false}
-            animated
-          />
+          <ParamiEvolutionChart portfolio={paramiPortfolio} showSynergy compact={false} animated />
         )}
 
         {activeView === 'citta' && showCittaVisualizer && (
@@ -254,12 +245,7 @@ export const PsychologyDashboard: React.FC<PsychologyDashboardProps> = ({
         )}
 
         {activeView === 'karma' && showKarmaTimeline && (
-          <KarmaTimelineView
-            actions={karmaActions}
-            maxDisplay={20}
-            compact={false}
-            showFilters
-          />
+          <KarmaTimelineView actions={karmaActions} maxDisplay={20} compact={false} showFilters />
         )}
       </div>
     </div>
@@ -343,17 +329,17 @@ function extractKarmaActionsFromTimeline(character: Character): KarmaAction[] {
 
   // Convert psychology changes to karma actions
   const karmaActions: KarmaAction[] = [];
-  
+
   character.psychology_timeline.changes.forEach((change, index) => {
     // Extract karma-related changes and convert to KarmaAction format
     if (change.parami_delta) {
       const paramiKeys = Object.keys(change.parami_delta);
-        paramiKeys.forEach(key => {
+      paramiKeys.forEach(key => {
         const delta = change.parami_delta?.[key as keyof ParamiPortfolio];
         if (delta && delta !== 0) {
           karmaActions.push({
             id: `karma-${change.sceneNumber || index}-${key}`,
-            timestamp: Date.now() - (index * 3600000),
+            timestamp: Date.now() - index * 3600000,
             type: guessActionType(key),
             classification: delta > 0 ? 'kusala' : 'akusala',
             intensity: Math.abs(delta) * 10,
@@ -376,7 +362,7 @@ function extractKarmaActionsFromTimeline(character: Character): KarmaAction[] {
 function guessActionType(paramiKey: string): 'kaya' | 'vaca' | 'mano' {
   const bodyActions = ['viriya', 'nekkhamma'];
   const speechActions = ['sacca', 'metta'];
-  
+
   if (bodyActions.includes(paramiKey)) return 'kaya';
   if (speechActions.includes(paramiKey)) return 'vaca';
   return 'mano';
@@ -386,7 +372,7 @@ function guessActionType(paramiKey: string): 'kaya' | 'vaca' | 'mano' {
 function generateSampleKarmaActions(character: Character): KarmaAction[] {
   const actions: KarmaAction[] = [];
   const now = Date.now();
-  
+
   // Sample actions based on character's existing parami portfolio
   const portfolio = character.parami_portfolio;
   if (!portfolio) return [];
@@ -422,7 +408,7 @@ function generateSampleKarmaActions(character: Character): KarmaAction[] {
     const paramiLevel = portfolio[sample.parami as keyof ParamiPortfolio]?.level || 1;
     actions.push({
       id: `sample-${character.id}-${index}`,
-      timestamp: now - (index * 7200000),
+      timestamp: now - index * 7200000,
       type: sample.type,
       classification: sample.classification,
       intensity: paramiLevel * 10,
@@ -436,3 +422,4 @@ function generateSampleKarmaActions(character: Character): KarmaAction[] {
 
   return actions;
 }
+

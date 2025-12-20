@@ -10,56 +10,63 @@
 ### ✅ ไฟล์ที่ควร COMMIT (รวม 17 ไฟล์)
 
 #### 1. เอกสารโปรเจกต์ (12 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 1 | [PHASE_2_3_COMPLETION_REPORT.md](PHASE_2_3_COMPLETION_REPORT.md) | รายงานการทำงาน Phase 2-3 | ✅ New |
-| 2 | [PRODUCTION_ISSUES.md](PRODUCTION_ISSUES.md) | ปัญหา Production ที่แก้แล้ว | ✅ New |
-| 3 | [PROJECT_AUDIT_REPORT.md](PROJECT_AUDIT_REPORT.md) | รายงานตรวจสอบโปรเจกต์ (คะแนน 92/100) | ✅ Updated |
-| 4 | [SECURITY_ACTION_REQUIRED.md](SECURITY_ACTION_REQUIRED.md) | แนะนำด้าน Security | ✅ New |
-| 5 | [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) | Checklist ความปลอดภัย | ✅ New |
-| 6 | [SECURITY_WARNING.md](SECURITY_WARNING.md) | คำเตือนด้านความปลอดภัย | ✅ New |
-| 7 | [SETUP_UPDATE_SUMMARY.md](SETUP_UPDATE_SUMMARY.md) | สรุปการอัพเดท Setup | ✅ New |
-| 8 | [TYPESCRIPT_COMPLETION_REPORT.md](TYPESCRIPT_COMPLETION_REPORT.md) | รายงาน TypeScript 0 errors | ✅ New |
-| 9 | [VOICE_CLONING_DEPLOYMENT_COMPLETE.md](VOICE_CLONING_DEPLOYMENT_COMPLETE.md) | Voice Cloning สำเร็จ | ✅ New |
-| 10 | [VOICE_CLONING_DEPLOYMENT_SUMMARY.md](VOICE_CLONING_DEPLOYMENT_SUMMARY.md) | สรุป Deployment | ✅ New |
-| 11 | [VOICE_CLONING_PRODUCTION_DEPLOY.md](VOICE_CLONING_PRODUCTION_DEPLOY.md) | คู่มือ Deploy | ✅ New |
-| 12 | [VOICE_PREVIEW_FEATURE.md](VOICE_PREVIEW_FEATURE.md) | ฟีเจอร์ Voice Preview | ✅ New |
-| 13 | [WORK_COMPLETION_REPORT.md](WORK_COMPLETION_REPORT.md) | รายงานสรุปงานทั้งหมด | ✅ New |
+
+| #   | ไฟล์                                                                         | จุดประสงค์                           | สถานะ      |
+| --- | ---------------------------------------------------------------------------- | ------------------------------------ | ---------- |
+| 1   | [PHASE_2_3_COMPLETION_REPORT.md](PHASE_2_3_COMPLETION_REPORT.md)             | รายงานการทำงาน Phase 2-3             | ✅ New     |
+| 2   | [PRODUCTION_ISSUES.md](PRODUCTION_ISSUES.md)                                 | ปัญหา Production ที่แก้แล้ว          | ✅ New     |
+| 3   | [PROJECT_AUDIT_REPORT.md](PROJECT_AUDIT_REPORT.md)                           | รายงานตรวจสอบโปรเจกต์ (คะแนน 92/100) | ✅ Updated |
+| 4   | [SECURITY_ACTION_REQUIRED.md](SECURITY_ACTION_REQUIRED.md)                   | แนะนำด้าน Security                   | ✅ New     |
+| 5   | [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)                               | Checklist ความปลอดภัย                | ✅ New     |
+| 6   | [SECURITY_WARNING.md](SECURITY_WARNING.md)                                   | คำเตือนด้านความปลอดภัย               | ✅ New     |
+| 7   | [SETUP_UPDATE_SUMMARY.md](SETUP_UPDATE_SUMMARY.md)                           | สรุปการอัพเดท Setup                  | ✅ New     |
+| 8   | [TYPESCRIPT_COMPLETION_REPORT.md](TYPESCRIPT_COMPLETION_REPORT.md)           | รายงาน TypeScript 0 errors           | ✅ New     |
+| 9   | [VOICE_CLONING_DEPLOYMENT_COMPLETE.md](VOICE_CLONING_DEPLOYMENT_COMPLETE.md) | Voice Cloning สำเร็จ                 | ✅ New     |
+| 10  | [VOICE_CLONING_DEPLOYMENT_SUMMARY.md](VOICE_CLONING_DEPLOYMENT_SUMMARY.md)   | สรุป Deployment                      | ✅ New     |
+| 11  | [VOICE_CLONING_PRODUCTION_DEPLOY.md](VOICE_CLONING_PRODUCTION_DEPLOY.md)     | คู่มือ Deploy                        | ✅ New     |
+| 12  | [VOICE_PREVIEW_FEATURE.md](VOICE_PREVIEW_FEATURE.md)                         | ฟีเจอร์ Voice Preview                | ✅ New     |
+| 13  | [WORK_COMPLETION_REPORT.md](WORK_COMPLETION_REPORT.md)                       | รายงานสรุปงานทั้งหมด                 | ✅ New     |
 
 #### 2. Backend/Voice Cloning (3 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 14 | [backend/voice-cloning/.gcloudignore](backend/voice-cloning/.gcloudignore) | Git ignore สำหรับ Cloud Build | ✅ New |
-| 15 | [backend/voice-cloning/CLOUD_RUN_DEPLOY.md](backend/voice-cloning/CLOUD_RUN_DEPLOY.md) | คู่มือ Deploy Cloud Run | ✅ New |
-| 16 | [backend/voice-cloning/deploy-cloudrun.ps1](backend/voice-cloning/deploy-cloudrun.ps1) | Script Deploy PowerShell | ✅ New |
-| 17 | [backend/voice-cloning/entrypoint.sh](backend/voice-cloning/entrypoint.sh) | Docker entrypoint | ✅ New |
+
+| #   | ไฟล์                                                                                   | จุดประสงค์                    | สถานะ  |
+| --- | -------------------------------------------------------------------------------------- | ----------------------------- | ------ |
+| 14  | [backend/voice-cloning/.gcloudignore](backend/voice-cloning/.gcloudignore)             | Git ignore สำหรับ Cloud Build | ✅ New |
+| 15  | [backend/voice-cloning/CLOUD_RUN_DEPLOY.md](backend/voice-cloning/CLOUD_RUN_DEPLOY.md) | คู่มือ Deploy Cloud Run       | ✅ New |
+| 16  | [backend/voice-cloning/deploy-cloudrun.ps1](backend/voice-cloning/deploy-cloudrun.ps1) | Script Deploy PowerShell      | ✅ New |
+| 17  | [backend/voice-cloning/entrypoint.sh](backend/voice-cloning/entrypoint.sh)             | Docker entrypoint             | ✅ New |
 
 #### 3. Scripts & Utilities (1 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 18 | [scripts/validate-env.js](scripts/validate-env.js) | ตรวจสอบ environment variables | ✅ New |
+
+| #   | ไฟล์                                               | จุดประสงค์                    | สถานะ  |
+| --- | -------------------------------------------------- | ----------------------------- | ------ |
+| 18  | [scripts/validate-env.js](scripts/validate-env.js) | ตรวจสอบ environment variables | ✅ New |
 
 #### 4. Frontend Components (2 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 19 | [src/components/NotificationBell.tsx](src/components/NotificationBell.tsx) | Component แจ้งเตือน (แก้ไข UX) | ✅ Updated |
-| 20 | [src/utils/logger.ts](src/utils/logger.ts) | Logging utility | ✅ New |
+
+| #   | ไฟล์                                                                       | จุดประสงค์                     | สถานะ      |
+| --- | -------------------------------------------------------------------------- | ------------------------------ | ---------- |
+| 19  | [src/components/NotificationBell.tsx](src/components/NotificationBell.tsx) | Component แจ้งเตือน (แก้ไข UX) | ✅ Updated |
+| 20  | [src/utils/logger.ts](src/utils/logger.ts)                                 | Logging utility                | ✅ New     |
 
 #### 5. Config Files (1 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 21 | [.gitignore](.gitignore) | อัพเดท ignore rules | ✅ Updated |
+
+| #   | ไฟล์                     | จุดประสงค์          | สถานะ      |
+| --- | ------------------------ | ------------------- | ---------- |
+| 21  | [.gitignore](.gitignore) | อัพเดท ignore rules | ✅ Updated |
 
 #### 6. Commit Instructions (1 ไฟล์)
-| # | ไฟล์ | จุดประสงค์ | สถานะ |
-|---|------|----------|-------|
-| 22 | [GIT_COMMIT_GUIDE.md](GIT_COMMIT_GUIDE.md) | คู่มือนี้ | ✅ New |
+
+| #   | ไฟล์                                       | จุดประสงค์ | สถานะ  |
+| --- | ------------------------------------------ | ---------- | ------ |
+| 22  | [GIT_COMMIT_GUIDE.md](GIT_COMMIT_GUIDE.md) | คู่มือนี้  | ✅ New |
 
 ---
 
 ## 🚫 ไฟล์ที่ไม่ควร COMMIT (ถูก .gitignore แล้ว)
 
 ### ไฟล์ที่ Ignore อัตโนมัติ:
+
 - `functions/lib/` - Compiled TypeScript output ✅
 - `node_modules/` - Dependencies ✅
 - `.env*` files - Environment variables ✅
@@ -77,6 +84,7 @@
 ## 🔧 คำสั่ง Git ที่ต้องรัน
 
 ### Step 1: ตรวจสอบไฟล์ที่เปลี่ยนแปลง
+
 ```powershell
 # เปิด PowerShell ใน VS Code
 # Terminal > New Terminal
@@ -86,6 +94,7 @@ git status
 ```
 
 **ผลลัพธ์ที่คาดหวัง:**
+
 ```
 On branch main
 Your branch is up to date with 'origin/main'.
@@ -110,7 +119,7 @@ Untracked files:
         backend/voice-cloning/deploy-cloudrun.ps1
         backend/voice-cloning/entrypoint.sh
         scripts/validate-env.js
-        
+
 Modified files:
         .gitignore
         PROJECT_AUDIT_REPORT.md
@@ -119,6 +128,7 @@ Modified files:
 ```
 
 ### Step 2: Stage ไฟล์ทั้งหมด
+
 ```powershell
 # เพิ่มไฟล์ทั้งหมดเข้า staging area
 git add .
@@ -128,6 +138,7 @@ git status
 ```
 
 **ผลลัพธ์ที่คาดหวัง:**
+
 ```
 On branch main
 Changes to be committed:
@@ -140,6 +151,7 @@ Changes to be committed:
 ```
 
 ### Step 3: Commit ด้วย Message ที่ชัดเจน
+
 ```powershell
 git commit -m "feat: complete project improvements and voice cloning deployment
 
@@ -170,6 +182,7 @@ git commit -m "feat: complete project improvements and voice cloning deployment
 ```
 
 ### Step 4: Push ไปยัง GitHub
+
 ```powershell
 # Push to remote repository
 git push origin main
@@ -185,11 +198,13 @@ git push origin main
 ### หลัง Commit แล้ว:
 
 #### ใน Terminal:
+
 - [ ] `git status` แสดง "nothing to commit, working tree clean"
 - [ ] `git log -1` แสดง commit message ที่เพิ่งสร้าง
 - [ ] `git push` สำเร็จโดยไม่มี error
 
 #### บน GitHub:
+
 - [ ] เปิด https://github.com/metapeaceDev/Peace-Scrip-Ai
 - [ ] เห็น commit ใหม่ที่ top ของ history
 - [ ] เห็นไฟล์ใหม่ทั้ง 22 ไฟล์
@@ -199,6 +214,7 @@ git push origin main
 - [ ] **ไม่เห็น** `node_modules/` directory
 
 #### Production:
+
 - [ ] เปิด https://peace-script-ai.web.app
 - [ ] ระบบทำงานปกติ
 - [ ] Voice Cloning ใช้งานได้
@@ -209,21 +225,25 @@ git push origin main
 ## 🐛 Troubleshooting
 
 ### ปัญหา: git command ไม่ทำงาน
+
 ```
 git : The term 'git' is not recognized as...
 ```
 
 **แก้ไข:**
+
 1. ติดตั้ง Git for Windows: https://git-scm.com/download/win
 2. ปิดและเปิด PowerShell ใหม่
 3. ลองรัน `git --version` อีกครั้ง
 
 ### ปัญหา: Permission denied
+
 ```
 error: failed to push some refs to 'github.com'
 ```
 
 **แก้ไข:**
+
 ```powershell
 # ตรวจสอบ remote URL
 git remote -v
@@ -236,6 +256,7 @@ gh auth login
 ```
 
 ### ปัญหา: มีไฟล์ที่ไม่ต้องการถูก stage
+
 ```powershell
 # Unstage ไฟล์เฉพาะ
 git reset HEAD <filename>
@@ -249,11 +270,13 @@ git status
 ```
 
 ### ปัญหา: Merge conflict
+
 ```
 CONFLICT (content): Merge conflict in <file>
 ```
 
 **แก้ไข:**
+
 ```powershell
 # Pull ก่อน
 git pull origin main --rebase
@@ -270,6 +293,7 @@ git push origin main
 ## 📊 สรุปข้อมูล Commit
 
 ### Commit Size:
+
 - **ไฟล์ทั้งหมด**: 22 ไฟล์
 - **New files**: 19 ไฟล์
 - **Modified files**: 3 ไฟล์
@@ -277,6 +301,7 @@ git push origin main
 - **ขนาดโดยประมาณ**: ~500 KB (เอกสาร markdown)
 
 ### Impact:
+
 - ✅ เพิ่มเอกสารครบถ้วน
 - ✅ Voice Cloning พร้อม Deploy
 - ✅ Security ดีขึ้น
@@ -290,6 +315,7 @@ git push origin main
 ผมได้จัดระเบียบไฟล์ทั้งหมดให้แล้ว:
 
 ✅ **ไฟล์ที่ควร Commit**: 22 ไฟล์
+
 - เอกสารโปรเจกต์: 13 ไฟล์
 - Voice Cloning: 4 ไฟล์
 - Scripts: 1 ไฟล์
@@ -297,6 +323,7 @@ git push origin main
 - Config: 2 ไฟล์
 
 ✅ **ไฟล์ที่ Ignore**: ครบถ้วนตาม .gitignore
+
 - ไม่มี sensitive data
 - ไม่มี build artifacts
 - ไม่มี dependencies
@@ -308,6 +335,7 @@ git push origin main
 **ตอนนี้พร้อม Commit แล้ว!** 🚀
 
 เพียงรันคำสั่ง 3 บรรทัด:
+
 ```powershell
 git add .
 git commit -m "..." # (ใช้ message ด้านบน)

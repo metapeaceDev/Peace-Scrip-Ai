@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import type { CharacterPsychologyTimeline } from '../../types';
+import type { CharacterPsychologyTimeline } from '../types';
 
 interface PsychologyTimelineProps {
   timeline: CharacterPsychologyTimeline;
@@ -22,13 +22,14 @@ export const PsychologyTimeline: React.FC<PsychologyTimelineProps> = ({ timeline
   });
 
   // Filter out invalid snapshots to prevent undefined errors
-  const validSnapshots = (timeline.snapshots || []).filter(s => 
-    s && 
-    typeof s === 'object' && 
-    typeof s.mentalBalance === 'number' &&
-    typeof s.sceneNumber === 'number'
+  const validSnapshots = (timeline.snapshots || []).filter(
+    s =>
+      s &&
+      typeof s === 'object' &&
+      typeof s.mentalBalance === 'number' &&
+      typeof s.sceneNumber === 'number'
   );
-  
+
   const { characterName, changes, overallArc } = timeline;
   const snapshots = validSnapshots;
 
@@ -333,14 +334,12 @@ export const PsychologyTimeline: React.FC<PsychologyTimelineProps> = ({ timeline
                               Consciousness Changes
                             </div>
                             <div className="text-xs text-gray-300 space-y-1">
-                              {Object.entries(change.consciousness_delta).map(
-                                ([virtue, delta]) => (
-                                  <div key={virtue}>
-                                    {virtue.split('(')[0].trim()}: {delta > 0 ? '+' : ''}
-                                    {delta}
-                                  </div>
-                                )
-                              )}
+                              {Object.entries(change.consciousness_delta).map(([virtue, delta]) => (
+                                <div key={virtue}>
+                                  {virtue.split('(')[0].trim()}: {delta > 0 ? '+' : ''}
+                                  {delta}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
@@ -376,3 +375,4 @@ export const PsychologyTimeline: React.FC<PsychologyTimelineProps> = ({ timeline
 };
 
 export default PsychologyTimeline;
+

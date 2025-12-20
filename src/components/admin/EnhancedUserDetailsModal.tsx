@@ -1,6 +1,6 @@
 /**
  * Enhanced User Details Modal Component
- * 
+ *
  * แสดงรายละเอียดแบบละเอียด: โมเดลที่ใช้, ต้นทุนจริง, ออฟไลน์
  */
 
@@ -11,12 +11,8 @@ import {
   getRecentGenerations,
   getUserOfflineActivity,
 } from '../../services/modelUsageTracker';
-import type { UserDetails } from '../../../types';
-import type {
-  ModelUsage,
-  GenerationDetails,
-  UserOfflineActivity,
-} from '../../types/analytics';
+import type { UserDetails } from '../../types';
+import type { ModelUsage, GenerationDetails, UserOfflineActivity } from '../../types/analytics';
 
 interface EnhancedUserDetailsModalProps {
   userId: string;
@@ -40,13 +36,9 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
     };
   } | null>(null);
   const [recentActivity, setRecentActivity] = useState<GenerationDetails[]>([]);
-  const [offlineActivity, setOfflineActivity] = useState<UserOfflineActivity | null>(
-    null
-  );
+  const [offlineActivity, setOfflineActivity] = useState<UserOfflineActivity | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'models' | 'activity'>(
-    'overview'
-  );
+  const [activeTab, setActiveTab] = useState<'overview' | 'models' | 'activity'>('overview');
 
   useEffect(() => {
     loadAllData();
@@ -83,7 +75,11 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
     let date: Date;
     if (timestamp instanceof Date) {
       date = timestamp;
-    } else if (typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+    } else if (
+      typeof timestamp === 'object' &&
+      'toDate' in timestamp &&
+      typeof timestamp.toDate === 'function'
+    ) {
       date = timestamp.toDate();
     } else {
       return 'N/A';
@@ -174,12 +170,7 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
             <p className="user-email">{details.profile.email}</p>
           </div>
           <button onClick={onClose} className="close-button" aria-label="Close modal">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -326,8 +317,7 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
                     <div className="detail-item">
                       <label>Device:</label>
                       <span>
-                        {offlineActivity.deviceInfo.browser} on{' '}
-                        {offlineActivity.deviceInfo.os}
+                        {offlineActivity.deviceInfo.browser} on {offlineActivity.deviceInfo.os}
                       </span>
                     </div>
                     {offlineActivity.locationData && (
@@ -364,9 +354,7 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
                   </div>
                   <div className="cost-card primary">
                     <div className="cost-label">Total Cost</div>
-                    <div className="cost-value">
-                      ฿{modelUsage.totalCostTHB.toFixed(2)}
-                    </div>
+                    <div className="cost-value">฿{modelUsage.totalCostTHB.toFixed(2)}</div>
                   </div>
                 </div>
 
@@ -449,9 +437,7 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
                         </div>
                         <div>{model.count}×</div>
                         <div className="model-cost">฿{model.totalCost.toFixed(2)}</div>
-                        <div className="model-date">
-                          {formatDate(model.lastUsed)}
-                        </div>
+                        <div className="model-date">{formatDate(model.lastUsed)}</div>
                       </div>
                     ))}
                   </div>
@@ -468,7 +454,7 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
                 <p className="empty-state">No activity yet</p>
               ) : (
                 <div className="activity-timeline">
-                  {recentActivity.map((activity) => (
+                  {recentActivity.map(activity => (
                     <div
                       key={activity.id}
                       className={`activity-item ${activity.success ? 'success' : 'failed'}`}
@@ -481,22 +467,16 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
                       <div className="activity-content">
                         <div className="activity-header">
                           <span className="activity-model">{activity.modelName}</span>
-                          <span className="activity-time">
-                            {formatDate(activity.timestamp)}
-                          </span>
+                          <span className="activity-time">{formatDate(activity.timestamp)}</span>
                         </div>
                         <div className="activity-details">
                           <span className="activity-type">{activity.type}</span>
-                          {activity.duration && (
-                            <span>• {formatDuration(activity.duration)}</span>
-                          )}
+                          {activity.duration && <span>• {formatDuration(activity.duration)}</span>}
                           <span>
                             • {activity.costInCredits} credits (฿
                             {activity.costInTHB.toFixed(2)})
                           </span>
-                          {!activity.success && (
-                            <span className="activity-failed">• Failed</span>
-                          )}
+                          {!activity.success && <span className="activity-failed">• Failed</span>}
                         </div>
                         {activity.metadata?.prompt && (
                           <div className="activity-prompt">
@@ -523,3 +503,4 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
     </div>
   );
 };
+

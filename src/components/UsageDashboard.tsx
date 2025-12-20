@@ -3,7 +3,7 @@ import './UsageDashboard.css';
 
 /**
  * Usage Dashboard - Track AI generation costs and savings
- * 
+ *
  * Features:
  * - Real-time cost tracking (Cloud vs Open Source)
  * - Provider usage breakdown
@@ -220,9 +220,7 @@ export const UsageDashboard: React.FC = () => {
         <div className="metric-card savings">
           <div className="metric-icon">💚</div>
           <div className="metric-value">{formatCurrency(stats.savings)}</div>
-          <div className="metric-label">
-            ประหยัดได้ ({stats.savingsPercent.toFixed(1)}%)
-          </div>
+          <div className="metric-label">ประหยัดได้ ({stats.savingsPercent.toFixed(1)}%)</div>
         </div>
       </div>
 
@@ -231,10 +229,7 @@ export const UsageDashboard: React.FC = () => {
         <h3>💰 การประหยัดค่าใช้จ่าย</h3>
         <div className="savings-bar-container">
           <div className="savings-bar">
-            <div
-              className="savings-bar-fill"
-              style={{ width: `${stats.savingsPercent}%` }}
-            >
+            <div className="savings-bar-fill" style={{ width: `${stats.savingsPercent}%` }}>
               {stats.savingsPercent.toFixed(1)}%
             </div>
           </div>
@@ -259,7 +254,7 @@ export const UsageDashboard: React.FC = () => {
       <div className="provider-breakdown">
         <h3>🔍 การใช้งานแยกตาม Provider</h3>
         <div className="provider-cards">
-          {providerBreakdown.map((item) => (
+          {providerBreakdown.map(item => (
             <div
               key={item.provider}
               className="provider-card"
@@ -271,8 +266,8 @@ export const UsageDashboard: React.FC = () => {
                   {item.provider === 'cloud'
                     ? 'Cloud APIs'
                     : item.provider === 'open-source'
-                    ? 'Open Source'
-                    : 'Hybrid'}
+                      ? 'Open Source'
+                      : 'Hybrid'}
                 </span>
               </div>
               <div className="provider-stats">
@@ -323,7 +318,7 @@ export const UsageDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {recentHistory.map((item) => (
+              {recentHistory.map(item => (
                 <tr key={item.id}>
                   <td>{item.timestamp.toLocaleTimeString('th-TH')}</td>
                   <td>
@@ -335,16 +330,17 @@ export const UsageDashboard: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <span className="provider-badge" style={{ color: getProviderColor(item.provider) }}>
+                    <span
+                      className="provider-badge"
+                      style={{ color: getProviderColor(item.provider) }}
+                    >
                       {getProviderIcon(item.provider)} {item.provider}
                     </span>
                   </td>
                   <td className="model-name">{item.model}</td>
                   <td>{formatDuration(item.duration)}</td>
                   <td>
-                    <span className="quality-stars">
-                      {'⭐'.repeat(item.quality)}
-                    </span>
+                    <span className="quality-stars">{'⭐'.repeat(item.quality)}</span>
                   </td>
                   <td className={item.cost === 0 ? 'cost-free' : 'cost-paid'}>
                     {item.cost === 0 ? 'ฟรี!' : formatCurrency(item.cost)}
@@ -358,18 +354,13 @@ export const UsageDashboard: React.FC = () => {
 
       {/* Export Options */}
       <div className="export-options">
-        <button className="export-btn">
-          📊 Export CSV
-        </button>
-        <button className="export-btn">
-          📄 Export PDF
-        </button>
-        <button className="export-btn">
-          📧 Email Report
-        </button>
+        <button className="export-btn">📊 Export CSV</button>
+        <button className="export-btn">📄 Export PDF</button>
+        <button className="export-btn">📧 Email Report</button>
       </div>
     </div>
   );
 };
 
 export default UsageDashboard;
+

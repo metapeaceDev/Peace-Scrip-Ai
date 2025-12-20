@@ -3,7 +3,7 @@
  * Demonstrates how to use the integrated Buddhist psychology systems
  */
 
-import type { Character } from '../../types';
+import type { Character } from '../types';
 import { analyzeParamiPortfolio } from '../services/psychologyCalculator';
 import { classifyKarmaWithJavana, actionsToSensoryInput } from '../services/psychologyEvolution';
 import { calculateParamiSynergy, updateParamiFromAction } from '../services/paramiSystem';
@@ -29,7 +29,7 @@ function enableBuddhistPsychology() {
 
 function exampleParamiAnalysis(character: Character) {
   const analysis = analyzeParamiPortfolio(character);
-  
+
   if (!analysis) {
     logger.warn('Character has no parami portfolio');
     return;
@@ -37,10 +37,12 @@ function exampleParamiAnalysis(character: Character) {
 
   logger.info('=== PARAMI ANALYSIS ===');
   logger.info(`Total Strength: ${analysis.totalParamiStrength}`);
-  logger.info(`Strongest: ${analysis.strongestParami.name} (Level ${analysis.strongestParami.level})`);
+  logger.info(
+    `Strongest: ${analysis.strongestParami.name} (Level ${analysis.strongestParami.level})`
+  );
   logger.info(`Weakest: ${analysis.weakestParami.name} (Level ${analysis.weakestParami.level})`);
   logger.info(`Overall Synergy Bonus: +${analysis.overallSynergyBonus}`);
-  
+
   logger.info('\nTop 5 Paramis with Synergy:');
   analysis.synergyAnalysis.slice(0, 5).forEach((item, idx) => {
     logger.info(
@@ -58,16 +60,19 @@ function exampleCalculateSynergy(character: Character) {
   if (!character.parami_portfolio) return;
 
   logger.info('=== INDIVIDUAL SYNERGY CALCULATIONS ===');
-  
+
   const paramis: Array<keyof typeof character.parami_portfolio> = [
-    'dana', 'sila', 'panna', 'metta'
+    'dana',
+    'sila',
+    'panna',
+    'metta',
   ];
 
   paramis.forEach(parami => {
     const synergy = calculateParamiSynergy(parami, character.parami_portfolio!);
     const baseLevel = character.parami_portfolio![parami].level;
     const effectiveLevel = baseLevel + synergy;
-    
+
     logger.info(`${parami}:`);
     logger.info(`  Base Level: ${baseLevel}`);
     logger.info(`  Synergy Bonus: +${synergy.toFixed(2)}`);
@@ -83,12 +88,12 @@ function exampleUpdateParami(character: Character) {
   if (!character.parami_portfolio) return;
 
   logger.info('=== PARAMI UPDATE FROM ACTIONS ===');
-  
+
   // Example: Character performs generous action
   const generousAction = {
     กาย: ['ช่วยเหลือผู้อื่น', 'แบ่งปันอาหาร'],
     วาจา: ['พูดให้กำลังใจ'],
-    ใจ: ['มีใจเมตตา']
+    ใจ: ['มีใจเมตตา'],
   };
 
   const beforeDana = character.parami_portfolio.dana.exp;
@@ -109,15 +114,15 @@ function exampleUpdateParami(character: Character) {
 
 function exampleActionsToSensory() {
   logger.info('=== ACTIONS TO SENSORY INPUTS ===');
-  
+
   const actions = {
     กาย: ['ทำร้ายผู้อื่น'],
     วาจา: ['พูดด่า'],
-    ใจ: ['โกรธเคือง']
+    ใจ: ['โกรธเคือง'],
   };
 
   const sensoryInputs = actionsToSensoryInput(actions);
-  
+
   logger.info('Input Actions:', actions);
   logger.info('\nSensory Inputs:');
   sensoryInputs.forEach((input, idx) => {
@@ -134,21 +139,21 @@ function exampleActionsToSensory() {
 
 function exampleKarmaClassification(character: Character) {
   console.log('=== KARMA CLASSIFICATION WITH JAVANA ===');
-  
+
   const wholesomeActions = {
     กาย: ['ช่วยเหลือคนอื่น', 'บริจาคทาน'],
     วาจา: ['พูดดี', 'ให้กำลังใจ'],
-    ใจ: ['มีเมตตา', 'ปล่อยวาง']
+    ใจ: ['มีเมตตา', 'ปล่อยวาง'],
   };
 
   const result = classifyKarmaWithJavana(wholesomeActions, character);
-  
+
   console.log('Actions:', wholesomeActions);
   console.log('\nClassification Result:');
   console.log(`Type: ${result.type}`);
   console.log(`Intensity: ${result.intensity}`);
   console.log(`Dominant Carita: ${result.dominantCarita || 'N/A'}`);
-  
+
   if (result.javana_results) {
     console.log('\nJavana Analysis:');
     result.javana_results.forEach((javana, idx) => {
@@ -164,7 +169,7 @@ function exampleKarmaClassification(character: Character) {
 
 function exampleJavanaEngine(character: Character) {
   console.log('=== JAVANA DECISION ENGINE ===');
-  
+
   // Create a sensory input
   const pleasantInput = {
     type: 'pleasant' as const,
@@ -174,7 +179,7 @@ function exampleJavanaEngine(character: Character) {
   };
 
   const result = JavanaDecisionEngine.decide(pleasantInput, character);
-  
+
   console.log('Sensory Input:', pleasantInput);
   console.log('\nJavana Decision:');
   console.log(`Citta Type: ${result.citta_type}`);
@@ -191,17 +196,17 @@ function exampleJavanaEngine(character: Character) {
 
 function exampleCompleteUpdate(character: Character) {
   console.log('=== COMPLETE PSYCHOLOGY UPDATE ===');
-  
+
   const sceneActions = {
     กาย: ['ปกป้องคนอ่อนแอ', 'ช่วยเหลือผู้ประสบภัย'],
     วาจา: ['พูดความจริง', 'ให้กำลังใจ'],
-    ใจ: ['มีเมตตา', 'ตั้งใจทำดี', 'มีสติ']
+    ใจ: ['มีเมตตา', 'ตั้งใจทำดี', 'มีสติ'],
   };
 
   // Step 1: Classify karma
   const karmaResult = classifyKarmaWithJavana(sceneActions, character);
   console.log('1. Karma Classification:', karmaResult.type, `(${karmaResult.intensity})`);
-  
+
   // Step 2: Update paramis (if wholesome)
   if (karmaResult.type === 'กุศลกรรม' && character.parami_portfolio) {
     const updatedParami = updateParamiFromAction(
@@ -212,7 +217,7 @@ function exampleCompleteUpdate(character: Character) {
     console.log('2. Parami Updated:');
     console.log(`   Dana: ${updatedParami.dana.level} (${updatedParami.dana.exp} exp)`);
     console.log(`   Metta: ${updatedParami.metta.level} (${updatedParami.metta.exp} exp)`);
-    
+
     // Step 3: Analyze synergy
     character.parami_portfolio = updatedParami;
     const analysis = analyzeParamiPortfolio(character);
@@ -230,7 +235,7 @@ function exampleCompleteUpdate(character: Character) {
 
 function exampleCharacterTypes() {
   console.log('=== CHARACTER TYPE COMPARISONS ===');
-  
+
   // Virtuous character
   const virtuousMonk: Partial<Character> = {
     name: 'Virtuous Monk',
@@ -244,7 +249,7 @@ function exampleCharacterTypes() {
         โลภะ: 5,
         โทสะ: 5,
         โมหะ: 10,
-      }
+      },
     },
     buddhist_psychology: {
       anusaya: {
@@ -256,8 +261,8 @@ function exampleCharacterTypes() {
         vicikiccha: 3,
         bhava_raga: 12,
       },
-      carita: 'สัทธาจริต'
-    }
+      carita: 'สัทธาจริต',
+    },
   };
 
   // Defiled character
@@ -273,7 +278,7 @@ function exampleCharacterTypes() {
         โลภะ: 90,
         โทสะ: 85,
         โมหะ: 80,
-      }
+      },
     },
     buddhist_psychology: {
       anusaya: {
@@ -285,8 +290,8 @@ function exampleCharacterTypes() {
         vicikiccha: 50,
         bhava_raga: 75,
       },
-      carita: 'ราคจริต'
-    }
+      carita: 'ราคจริต',
+    },
   };
 
   const pleasantInput = {
@@ -315,36 +320,36 @@ function exampleCharacterTypes() {
 
 export function runBuddhistPsychologyDemo(character: Character) {
   console.log('\n🧘 BUDDHIST PSYCHOLOGY INTEGRATION DEMO 🧘\n');
-  
+
   // Enable features (dev only)
   enableBuddhistPsychology();
-  
+
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   // Run examples
   exampleParamiAnalysis(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleCalculateSynergy(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleUpdateParami(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleActionsToSensory();
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleKarmaClassification(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleJavanaEngine(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleCompleteUpdate(character);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   exampleCharacterTypes();
-  
+
   console.log('\n✅ Demo complete!\n');
 }
 
@@ -360,3 +365,4 @@ export {
   exampleCompleteUpdate,
   exampleCharacterTypes,
 };
+

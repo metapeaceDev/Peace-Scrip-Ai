@@ -3,7 +3,7 @@ import { FinancialDashboard } from './FinancialDashboard';
 import { PaymentTracker } from './PaymentTracker';
 import { ContractManager } from './ContractManager';
 import { CreditsExporter } from './CreditsExporter';
-import type { TeamMember } from '../../types';
+import type { TeamMember } from '../types';
 
 interface RevenueManagementPanelProps {
   members: TeamMember[];
@@ -232,3 +232,4 @@ export const RevenueManagementPanel: React.FC<RevenueManagementPanelProps> = ({
     </div>
   );
 };
+

@@ -94,7 +94,7 @@ export const BackendSelector: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {statuses.map((status) => {
+        {statuses.map(status => {
           const config = backendManager.getBackendConfig(status.type);
           const isSelected = selectedBackend === status.type;
 
@@ -104,9 +104,10 @@ export const BackendSelector: React.FC = () => {
               onClick={() => !isLoading && handleBackendSelect(status.type)}
               className={`
                 p-4 rounded-lg border-2 cursor-pointer transition-all
-                ${isSelected 
-                  ? 'border-blue-500 bg-blue-900/20' 
-                  : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
+                ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-900/20'
+                    : 'border-gray-700 bg-gray-900/50 hover:border-gray-600'
                 }
                 ${!status.healthy && 'opacity-60'}
               `}
@@ -117,12 +118,8 @@ export const BackendSelector: React.FC = () => {
                     {getStatusIcon(status)}
                   </span>
                   <div>
-                    <h3 className="font-semibold text-white">
-                      {getBackendName(status.type)}
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      {getBackendDescription(status.type)}
-                    </p>
+                    <h3 className="font-semibold text-white">{getBackendName(status.type)}</h3>
+                    <p className="text-sm text-gray-400">{getBackendDescription(status.type)}</p>
                   </div>
                 </div>
 
@@ -171,7 +168,8 @@ export const BackendSelector: React.FC = () => {
       <div className="mt-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
         <h3 className="font-semibold text-blue-300 mb-2">🔄 Automatic Fallback</h3>
         <p className="text-sm text-gray-300">
-          If your selected backend fails, the system will automatically try other backends in priority order:
+          If your selected backend fails, the system will automatically try other backends in
+          priority order:
           <span className="block mt-1 text-blue-400 font-mono">
             {backendManager.getBackendPriority().join(' → ')}
           </span>
@@ -200,3 +198,4 @@ export const BackendSelector: React.FC = () => {
 };
 
 export default BackendSelector;
+

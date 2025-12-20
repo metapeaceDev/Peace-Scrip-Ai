@@ -27,8 +27,8 @@ export function createAdminAccessGrantedEmail(params: {
 }): EmailTemplate {
   const subject = `🎉 คุณได้รับสิทธิ์ Admin - Peace Script AI`;
 
-  const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : 
-                     params.role === 'admin' ? 'Admin' : 'Viewer';
+  const roleNameTH =
+    params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
 
   const permissionsList = [
     params.permissions.canViewAnalytics && '📊 ดู Analytics และสถิติระบบ',
@@ -197,15 +197,17 @@ export function createAdminActionConfirmationEmail(params: {
   action: 'granted' | 'revoked' | 'updated';
   timestamp: string;
 }): EmailTemplate {
-  const actionNameTH = params.action === 'granted' ? 'เพิ่มสิทธิ์ Admin' :
-                       params.action === 'revoked' ? 'ลบสิทธิ์ Admin' : 
-                       'อัพเดทสิทธิ์ Admin';
-  
-  const actionIcon = params.action === 'granted' ? '✅' :
-                     params.action === 'revoked' ? '❌' : '🔄';
+  const actionNameTH =
+    params.action === 'granted'
+      ? 'เพิ่มสิทธิ์ Admin'
+      : params.action === 'revoked'
+        ? 'ลบสิทธิ์ Admin'
+        : 'อัพเดทสิทธิ์ Admin';
 
-  const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : 
-                     params.role === 'admin' ? 'Admin' : 'Viewer';
+  const actionIcon = params.action === 'granted' ? '✅' : params.action === 'revoked' ? '❌' : '🔄';
+
+  const roleNameTH =
+    params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
 
   const subject = `${actionIcon} ยืนยันการ${actionNameTH} - Peace Script AI`;
 
@@ -351,8 +353,18 @@ export function createAdminPermissionsUpdatedEmail(params: {
 }): EmailTemplate {
   const subject = `🔄 สิทธิ์ Admin ของคุณถูกอัพเดท - Peace Script AI`;
 
-  const roleNameTH = params.newRole === 'super-admin' ? 'Super Admin' : params.newRole === 'admin' ? 'Admin' : 'Viewer';
-  const permissionsList = [params.newPermissions.canViewAnalytics && '📊 ดู Analytics',params.newPermissions.canExportData && '📥 Export ข้อมูล',params.newPermissions.canManageUsers && '👥 จัดการ Admin',params.newPermissions.canManageSubscriptions && '💳 จัดการ Subscriptions'].filter(Boolean);
+  const roleNameTH =
+    params.newRole === 'super-admin'
+      ? 'Super Admin'
+      : params.newRole === 'admin'
+        ? 'Admin'
+        : 'Viewer';
+  const permissionsList = [
+    params.newPermissions.canViewAnalytics && '📊 ดู Analytics',
+    params.newPermissions.canExportData && '📥 Export ข้อมูล',
+    params.newPermissions.canManageUsers && '👥 จัดการ Admin',
+    params.newPermissions.canManageSubscriptions && '💳 จัดการ Subscriptions',
+  ].filter(Boolean);
 
   const html = `<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0}.content{background:#f9fafb;padding:30px;border-radius:0 0 10px 10px}.badge{background:#dbeafe;color:#1e40af;padding:8px 16px;border-radius:20px;display:inline-block;font-weight:bold}.info-box{background:white;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:20px 0}.permission-list{background:#eff6ff;border:2px solid #bfdbfe;padding:15px 20px;border-radius:8px;margin:15px 0}.button{display:inline-block;background:#3b82f6;color:white;padding:12px 30px;text-decoration:none;border-radius:6px;margin:20px 0}.footer{text-align:center;margin-top:30px;color:#666;font-size:14px}</style></head><body><div class="container"><div class="header"><h1>🔄 สิทธิ์อัพเดทแล้ว</h1><p>การเปลี่ยนแปลงสิทธิ์ Admin</p></div><div class="content"><h2>แจ้งเตือนการอัพเดทสิทธิ์</h2><p>สิทธิ์ <strong>Admin</strong> ของคุณถูกอัพเดทแล้ว</p><div class="info-box"><p><strong>📧 อีเมล:</strong> ${params.adminEmail}</p><p><strong>👤 บทบาทใหม่:</strong> <span class="badge">${roleNameTH}</span></p><p><strong>✍️ อัพเดทโดย:</strong> ${params.updatedBy}</p><p><strong>🕐 เวลา:</strong> ${params.timestamp}</p></div><div class="permission-list"><h3 style="margin-top:0">🔐 สิทธิ์ปัจจุบัน:</h3><ul>${permissionsList.map(p => `<li>${p}</li>`).join('')}</ul></div><div style="background:#fef3c7;border:2px solid #fbbf24;padding:15px;border-radius:8px;margin:20px 0"><p style="margin:0;color:#92400e"><strong>💡 หมายเหตุ:</strong><br>กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่</p></div><p style="text-align:center"><a href="${params.dashboardUrl}" class="button">เข้าสู่ Admin Dashboard</a></p></div><div class="footer"><p>© 2025 Peace Script AI. All rights reserved.</p></div></div></body></html>`;
 
@@ -373,3 +385,4 @@ ${permissionsList.map(p => `• ${p}`).join('\n')}
 
   return { subject, html, text };
 }
+

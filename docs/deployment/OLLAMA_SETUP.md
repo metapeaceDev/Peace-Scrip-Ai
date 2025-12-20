@@ -5,6 +5,7 @@
 Ollama ให้คุณรัน AI models บนเครื่องของคุณเองได้ฟรี 100% ไม่ต้องจ่ายค่า API
 
 **ประหยัดได้เท่าไหร่?**
+
 - Gemini 1.5 Flash: ~฿0.35 ต่อโปรเจค
 - **Ollama (Local): ฿0 ต่อโปรเจค** ✨
 
@@ -52,17 +53,20 @@ ollama serve
 ### 2. Download Recommended Models
 
 **For Quick Drafts (2GB, 1-2s):**
+
 ```bash
 ollama pull llama3.2:3b
 ```
 
 **For Balanced Performance (4GB, 3-5s):**
+
 ```bash
 ollama pull llama3.2:7b
 ollama pull qwen2.5:7b
 ```
 
 **For Advanced Writing (9GB+, 8-12s):**
+
 ```bash
 ollama pull qwen2.5:14b
 ollama pull deepseek-r1:7b
@@ -78,31 +82,34 @@ ollama run llama3.2:3b "เขียนบทภาพยนตร์แนว�
 
 ## 🎬 Recommended Models for Script Writing
 
-| Model | Size | Speed | Quality | Best For |
-|-------|------|-------|---------|----------|
-| **Llama 3.2 3B** | 2GB | ⚡⚡⚡⚡ 1-2s | ⭐⭐⭐ | Quick drafts, dialogue |
-| **Llama 3.2 7B** | 4GB | ⚡⚡⚡ 3-5s | ⭐⭐⭐⭐ | Scene descriptions |
-| **Qwen 2.5 7B** | 4GB | ⚡⚡⚡ 3-5s | ⭐⭐⭐⭐ | Creative writing |
-| **Qwen 2.5 14B** | 9GB | ⚡⚡ 8-12s | ⭐⭐⭐⭐⭐ | Full screenplays |
-| **DeepSeek R1 7B** | 4.7GB | ⚡⚡ 5-8s | ⭐⭐⭐⭐⭐ | Plot analysis |
+| Model              | Size  | Speed         | Quality    | Best For               |
+| ------------------ | ----- | ------------- | ---------- | ---------------------- |
+| **Llama 3.2 3B**   | 2GB   | ⚡⚡⚡⚡ 1-2s | ⭐⭐⭐     | Quick drafts, dialogue |
+| **Llama 3.2 7B**   | 4GB   | ⚡⚡⚡ 3-5s   | ⭐⭐⭐⭐   | Scene descriptions     |
+| **Qwen 2.5 7B**    | 4GB   | ⚡⚡⚡ 3-5s   | ⭐⭐⭐⭐   | Creative writing       |
+| **Qwen 2.5 14B**   | 9GB   | ⚡⚡ 8-12s    | ⭐⭐⭐⭐⭐ | Full screenplays       |
+| **DeepSeek R1 7B** | 4.7GB | ⚡⚡ 5-8s     | ⭐⭐⭐⭐⭐ | Plot analysis          |
 
 ---
 
 ## 💻 System Requirements
 
 ### Minimum (for 3B models)
+
 - **RAM**: 8GB
 - **Storage**: 5GB free space
 - **CPU**: Any modern processor
 - **OS**: macOS 11+, Windows 10+, Linux
 
 ### Recommended (for 7B models)
+
 - **RAM**: 16GB
 - **Storage**: 10GB free space
 - **CPU**: 4+ cores
 - **GPU**: Optional (speeds up generation)
 
 ### Advanced (for 14B+ models)
+
 - **RAM**: 32GB
 - **Storage**: 20GB free space
 - **CPU**: 8+ cores
@@ -133,6 +140,7 @@ OLLAMA_MAX_TOKENS=2000
 ### GPU Acceleration (Optional)
 
 **For NVIDIA GPUs:**
+
 ```bash
 # Check if GPU is detected
 ollama run llama3.2:3b --verbose
@@ -141,6 +149,7 @@ ollama run llama3.2:3b --verbose
 ```
 
 **For Apple Silicon (M1/M2/M3):**
+
 ```bash
 # Automatically uses Metal acceleration
 # No additional setup needed!
@@ -198,6 +207,7 @@ console.log(`Speed: ${model.avgSpeed}`);
 **Problem:** Ollama service not running
 
 **Solution:**
+
 ```bash
 ollama serve
 ```
@@ -207,6 +217,7 @@ ollama serve
 **Problem:** Model not downloaded yet
 
 **Solution:**
+
 ```bash
 ollama pull llama3.2:7b
 ```
@@ -216,6 +227,7 @@ ollama pull llama3.2:7b
 **Problem:** Not using GPU / Insufficient RAM
 
 **Solutions:**
+
 1. Use smaller model (3B instead of 7B)
 2. Close other apps to free RAM
 3. Enable GPU acceleration (see Configuration)
@@ -225,6 +237,7 @@ ollama pull llama3.2:7b
 **Problem:** Model too large for available RAM
 
 **Solution:**
+
 ```bash
 # Switch to smaller model
 ollama pull llama3.2:3b  # Only 2GB RAM needed
@@ -251,26 +264,26 @@ const advancedModel = 'qwen2.5:14b';
 
 ```typescript
 // More creative (varied output)
-temperature: 0.9
+temperature: 0.9;
 
 // Balanced
-temperature: 0.7
+temperature: 0.7;
 
 // More focused (consistent output)
-temperature: 0.3
+temperature: 0.3;
 ```
 
 ### 3. Limit Token Count
 
 ```typescript
 // Short responses (faster)
-maxTokens: 500
+maxTokens: 500;
 
 // Medium responses
-maxTokens: 1000
+maxTokens: 1000;
 
 // Long responses (full scenes)
-maxTokens: 2000
+maxTokens: 2000;
 ```
 
 ---
@@ -301,16 +314,17 @@ ollama pull llama3.2:7b  # Downloads latest version
 
 ### Per 100 Projects
 
-| Provider | Cost | Speed | Setup |
-|----------|------|-------|-------|
-| **Gemini 1.5 Flash** | ฿35 | ⚡⚡⚡⚡ 2-5s | Easy (API key) |
-| **Ollama 3B** | **฿0** | ⚡⚡⚡ 1-2s | Medium (download) |
-| **Ollama 7B** | **฿0** | ⚡⚡ 3-5s | Medium (download) |
-| **Ollama 14B** | **฿0** | ⚡ 8-12s | Hard (GPU needed) |
+| Provider             | Cost   | Speed         | Setup             |
+| -------------------- | ------ | ------------- | ----------------- |
+| **Gemini 1.5 Flash** | ฿35    | ⚡⚡⚡⚡ 2-5s | Easy (API key)    |
+| **Ollama 3B**        | **฿0** | ⚡⚡⚡ 1-2s   | Medium (download) |
+| **Ollama 7B**        | **฿0** | ⚡⚡ 3-5s     | Medium (download) |
+| **Ollama 14B**       | **฿0** | ⚡ 8-12s      | Hard (GPU needed) |
 
 ### 💡 Best Strategy: Hybrid Mode
 
 Use Ollama for drafts, Gemini for final polish:
+
 - **Drafts (90%)**: Ollama = ฿0
 - **Final polish (10%)**: Gemini = ฿3.50
 

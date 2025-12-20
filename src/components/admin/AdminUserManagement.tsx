@@ -1,6 +1,6 @@
 /**
  * Admin User Management Component
- * 
+ *
  * จัดการ admin users: grant, revoke, list
  * เฉพาะ super-admin เท่านั้นที่เข้าถึงได้
  */
@@ -8,14 +8,14 @@
 import React, { useEffect, useState } from 'react';
 import { auth } from '../../config/firebase';
 import { getAdminRole, logAdminAction } from '../../services/adminAuthService';
-import { 
-  getAllAdmins, 
-  removeAdmin, 
-  getPendingInvitations, 
+import {
+  getAllAdmins,
+  removeAdmin,
+  getPendingInvitations,
   cancelInvitation,
-  type PendingInvitation 
+  type PendingInvitation,
 } from '../../services/adminManagementService';
-import type { AdminUser } from '../../../types';
+import type { AdminUser } from '../../types';
 import { AddAdminModal } from './AddAdminModal';
 import { EditAdminModal } from './EditAdminModal';
 
@@ -38,11 +38,11 @@ export const AdminUserManagement: React.FC = () => {
   async function init() {
     try {
       setLoading(true);
-      
+
       // Check if current user is super-admin
       const role = await getAdminRole();
       setCurrentRole(role);
-      
+
       if (role !== 'super-admin') {
         setError('Only super-admins can manage admin users');
         setLoading(false);
@@ -51,10 +51,10 @@ export const AdminUserManagement: React.FC = () => {
 
       // Load admin users
       await loadAdminUsers();
-      
+
       // Log access
       await logAdminAction('view-analytics');
-      
+
       setLoading(false);
     } catch (err) {
       console.error('Error initializing admin user management:', err);
@@ -67,11 +67,13 @@ export const AdminUserManagement: React.FC = () => {
     try {
       const users = await getAllAdmins();
       setAdminUsers(users);
-      
+
       const invitations = await getPendingInvitations();
       setPendingInvitations(invitations.filter(inv => inv.status === 'pending'));
-      
-      console.log(`📋 Loaded ${users.length} admin users and ${invitations.length} pending invitations`);
+
+      console.log(
+        `📋 Loaded ${users.length} admin users and ${invitations.length} pending invitations`
+      );
     } catch (err) {
       console.error('Error loading admin users:', err);
       throw err;
@@ -93,14 +95,14 @@ export const AdminUserManagement: React.FC = () => {
     // แสดง confirmation dialog ที่ละเอียดกว่า
     const confirmed = window.confirm(
       `⚠️ ยืนยันการลบ Admin\n\n` +
-      `คุณแน่ใจหรือไม่ที่จะลบสิทธิ์ admin:\n` +
-      `อีเมล: ${email}\n\n` +
-      `การดำเนินการนี้จะ:\n` +
-      `• ลบสิทธิ์ Admin ทันที\n` +
-      `• ส่งอีเมลแจ้งเตือนไปยังผู้ถูกลบ\n` +
-      `• ส่งอีเมลยืนยันถึงคุณ\n` +
-      `• บันทึกใน Audit Log\n\n` +
-      `กด OK เพื่อยืนยัน หรือ Cancel เพื่อยกเลิก`
+        `คุณแน่ใจหรือไม่ที่จะลบสิทธิ์ admin:\n` +
+        `อีเมล: ${email}\n\n` +
+        `การดำเนินการนี้จะ:\n` +
+        `• ลบสิทธิ์ Admin ทันที\n` +
+        `• ส่งอีเมลแจ้งเตือนไปยังผู้ถูกลบ\n` +
+        `• ส่งอีเมลยืนยันถึงคุณ\n` +
+        `• บันทึกใน Audit Log\n\n` +
+        `กด OK เพื่อยืนยัน หรือ Cancel เพื่อยกเลิก`
     );
 
     if (!confirmed) {
@@ -112,7 +114,7 @@ export const AdminUserManagement: React.FC = () => {
       await removeAdmin(userId);
       await loadAdminUsers();
       await logAdminAction('revoke-admin', { targetUserId: userId });
-      
+
       // แสดงข้อความสำเร็จ
       alert(`✅ ลบสิทธิ์ Admin สำเร็จ\n\nอีเมลแจ้งเตือนถูกส่งไปยัง ${email} และคุณแล้ว`);
     } catch (err: any) {
@@ -125,13 +127,13 @@ export const AdminUserManagement: React.FC = () => {
   const handleCancelInvitation = async (invitation: PendingInvitation) => {
     const confirmed = window.confirm(
       `⚠️ ยืนยันการยกเลิกคำเชิญ\n\n` +
-      `คุณต้องการยกเลิกคำเชิญสำหรับ ${invitation.email} หรือไม่?\n\n` +
-      `บทบาท: ${invitation.role}\n` +
-      `เชิญโดย: ${invitation.invitedByEmail}\n\n` +
-      `การยกเลิกจะ:\n` +
-      `• ลบคำเชิญทันที\n` +
-      `• ลบ notification ของผู้ถูกเชิญ\n` +
-      `• ส่งอีเมลแจ้งเตือนให้ผู้ถูกเชิญทราบ`
+        `คุณต้องการยกเลิกคำเชิญสำหรับ ${invitation.email} หรือไม่?\n\n` +
+        `บทบาท: ${invitation.role}\n` +
+        `เชิญโดย: ${invitation.invitedByEmail}\n\n` +
+        `การยกเลิกจะ:\n` +
+        `• ลบคำเชิญทันที\n` +
+        `• ลบ notification ของผู้ถูกเชิญ\n` +
+        `• ส่งอีเมลแจ้งเตือนให้ผู้ถูกเชิญทราบ`
     );
 
     if (!confirmed) {
@@ -233,11 +235,7 @@ export const AdminUserManagement: React.FC = () => {
             </svg>
             เพิ่ม Admin
           </button>
-          <button
-            onClick={loadAdminUsers}
-            className="btn-refresh"
-            title="Refresh list"
-          >
+          <button onClick={loadAdminUsers} className="btn-refresh" title="Refresh list">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -260,19 +258,16 @@ export const AdminUserManagement: React.FC = () => {
         {adminUsers.length === 0 ? (
           <div className="empty-state">
             <p>No admin users found</p>
-            <p className="help-text">
-              Use the setup script to grant admin access to users
-            </p>
+            <p className="help-text">Use the setup script to grant admin access to users</p>
           </div>
         ) : (
-          <div className="users-grid">{adminUsers.map((user) => (
+          <div className="users-grid">
+            {adminUsers.map(user => (
               <div key={user.userId} className="admin-user-card">
                 {/* Card Header */}
                 <div className="card-header">
                   <div className="user-info">
-                    <div className="user-avatar">
-                      {getRoleIcon(user.role)}
-                    </div>
+                    <div className="user-avatar">{getRoleIcon(user.role)}</div>
                     <div>
                       <h4 className="user-email">{user.email}</h4>
                       <span className={`role-badge ${getRoleBadgeClass(user.role)}`}>
@@ -296,7 +291,6 @@ export const AdminUserManagement: React.FC = () => {
                     <span className="label">Created By:</span>
                     <span className="value">{user.createdBy || 'system'}</span>
                   </div>
-
                 </div>
 
                 {/* Permissions */}
@@ -324,15 +318,23 @@ export const AdminUserManagement: React.FC = () => {
                     onClick={() => setEditingAdmin(user)}
                     className="btn-edit"
                     disabled={user.userId === auth.currentUser?.uid}
-                    title={user.userId === auth.currentUser?.uid ? 'Cannot edit yourself' : 'Edit admin'}
+                    title={
+                      user.userId === auth.currentUser?.uid ? 'Cannot edit yourself' : 'Edit admin'
+                    }
                   >
                     ✏️ แก้ไข
                   </button>
                   <button
                     onClick={() => handleDelete(user.userId, user.email)}
                     className="btn-delete"
-                    disabled={deletingUserId === user.userId || user.userId === auth.currentUser?.uid}
-                    title={user.userId === auth.currentUser?.uid ? 'Cannot delete yourself' : 'Delete admin'}
+                    disabled={
+                      deletingUserId === user.userId || user.userId === auth.currentUser?.uid
+                    }
+                    title={
+                      user.userId === auth.currentUser?.uid
+                        ? 'Cannot delete yourself'
+                        : 'Delete admin'
+                    }
                   >
                     {deletingUserId === user.userId ? '⏳ กำลังลบ...' : '🗑️ ลบ'}
                   </button>
@@ -353,68 +355,84 @@ export const AdminUserManagement: React.FC = () => {
             </p>
           </div>
 
-          <div className="invitations-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1rem',
-            marginTop: '1rem'
-          }}>
-            {pendingInvitations.map((invitation) => {
+          <div
+            className="invitations-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '1rem',
+              marginTop: '1rem',
+            }}
+          >
+            {pendingInvitations.map(invitation => {
               const isExpired = new Date(invitation.expiresAt) < new Date();
               return (
-                <div key={invitation.id} className="invitation-card" style={{
-                  background: isExpired ? '#fef2f2' : '#fffbeb',
-                  border: `2px solid ${isExpired ? '#fca5a5' : '#fcd34d'}`,
-                  borderRadius: '8px',
-                  padding: '1.25rem'
-                }}>
+                <div
+                  key={invitation.id}
+                  className="invitation-card"
+                  style={{
+                    background: isExpired ? '#fef2f2' : '#fffbeb',
+                    border: `2px solid ${isExpired ? '#fca5a5' : '#fcd34d'}`,
+                    borderRadius: '8px',
+                    padding: '1.25rem',
+                  }}
+                >
                   {/* Header */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <span style={{ fontSize: '1.5rem' }}>
-                        {isExpired ? '⏰' : '📨'}
-                      </span>
-                      <h4 style={{
-                        margin: 0,
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        color: isExpired ? '#991b1b' : '#92400e'
-                      }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <span style={{ fontSize: '1.5rem' }}>{isExpired ? '⏰' : '📨'}</span>
+                      <h4
+                        style={{
+                          margin: 0,
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: isExpired ? '#991b1b' : '#92400e',
+                        }}
+                      >
                         {invitation.email}
                       </h4>
                     </div>
-                    <span className={`role-badge ${getRoleBadgeClass(invitation.role)}`} style={{
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600'
-                    }}>
+                    <span
+                      className={`role-badge ${getRoleBadgeClass(invitation.role)}`}
+                      style={{
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                      }}
+                    >
                       {invitation.role}
                     </span>
                   </div>
 
                   {/* Details */}
-                  <div style={{
-                    fontSize: '0.875rem',
-                    color: '#4b5563',
-                    marginBottom: '1rem'
-                  }}>
+                  <div
+                    style={{
+                      fontSize: '0.875rem',
+                      color: '#4b5563',
+                      marginBottom: '1rem',
+                    }}
+                  >
                     <div style={{ marginBottom: '0.5rem' }}>
                       <strong>เชิญโดย:</strong> {invitation.invitedByEmail}
                     </div>
                     <div style={{ marginBottom: '0.5rem' }}>
                       <strong>สร้างเมื่อ:</strong> {formatDate(invitation.createdAt)}
                     </div>
-                    <div style={{
-                      marginBottom: '0.5rem',
-                      color: isExpired ? '#991b1b' : '#92400e',
-                      fontWeight: isExpired ? '600' : '400'
-                    }}>
+                    <div
+                      style={{
+                        marginBottom: '0.5rem',
+                        color: isExpired ? '#991b1b' : '#92400e',
+                        fontWeight: isExpired ? '600' : '400',
+                      }}
+                    >
                       <strong>หมดอายุ:</strong> {formatDate(invitation.expiresAt)}
                       {isExpired && ' (Expired)'}
                     </div>
@@ -422,54 +440,74 @@ export const AdminUserManagement: React.FC = () => {
 
                   {/* Permissions */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: '#6b7280',
-                      marginBottom: '0.5rem'
-                    }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
                       สิทธิ์:
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem'
-                    }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
+                      }}
+                    >
                       {invitation.permissions.canViewAnalytics && (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          padding: '0.25rem 0.5rem',
-                          background: '#e0e7ff',
-                          color: '#3730a3',
-                          borderRadius: '4px'
-                        }}>📊 Analytics</span>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            background: '#e0e7ff',
+                            color: '#3730a3',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          📊 Analytics
+                        </span>
                       )}
                       {invitation.permissions.canExportData && (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          padding: '0.25rem 0.5rem',
-                          background: '#dbeafe',
-                          color: '#1e3a8a',
-                          borderRadius: '4px'
-                        }}>📥 Export</span>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            background: '#dbeafe',
+                            color: '#1e3a8a',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          📥 Export
+                        </span>
                       )}
                       {invitation.permissions.canManageUsers && (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          padding: '0.25rem 0.5rem',
-                          background: '#fee2e2',
-                          color: '#991b1b',
-                          borderRadius: '4px'
-                        }}>👥 Manage</span>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            background: '#fee2e2',
+                            color: '#991b1b',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          👥 Manage
+                        </span>
                       )}
                       {invitation.permissions.canManageSubscriptions && (
-                        <span style={{
-                          fontSize: '0.75rem',
-                          padding: '0.25rem 0.5rem',
-                          background: '#d1fae5',
-                          color: '#065f46',
-                          borderRadius: '4px'
-                        }}>💳 Subscriptions</span>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            background: '#d1fae5',
+                            color: '#065f46',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          💳 Subscriptions
+                        </span>
                       )}
                     </div>
                   </div>
@@ -488,20 +526,22 @@ export const AdminUserManagement: React.FC = () => {
                       fontSize: '0.875rem',
                       fontWeight: '600',
                       cursor: cancellingInvitationId === invitation.id ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
                     }}
-                    onMouseEnter={(e) => {
+                    onMouseEnter={e => {
                       if (cancellingInvitationId !== invitation.id) {
                         e.currentTarget.style.background = '#b91c1c';
                       }
                     }}
-                    onMouseLeave={(e) => {
+                    onMouseLeave={e => {
                       if (cancellingInvitationId !== invitation.id) {
                         e.currentTarget.style.background = '#dc2626';
                       }
                     }}
                   >
-                    {cancellingInvitationId === invitation.id ? '⏳ กำลังยกเลิก...' : '❌ ยกเลิกคำเชิญ'}
+                    {cancellingInvitationId === invitation.id
+                      ? '⏳ กำลังยกเลิก...'
+                      : '❌ ยกเลิกคำเชิญ'}
                   </button>
                 </div>
               );
@@ -545,3 +585,4 @@ export const AdminUserManagement: React.FC = () => {
     </div>
   );
 };
+

@@ -4,20 +4,20 @@
  * and integrate with existing AnimateDiff system
  */
 
-import type { Character, GeneratedScene } from '../../types';
-import { 
-  CinematicSuggestions, 
+import type { Character, GeneratedScene } from '../types';
+import {
+  CinematicSuggestions,
   MotionEdit,
   CameraMovement,
   FocalLength,
-  MOOD_LIGHTING_MAP 
+  MOOD_LIGHTING_MAP,
 } from '../types/motionEdit';
 import {
   buildMotionContext,
   buildCameraMovementContext,
   getMotionModuleStrength,
   getRecommendedFPS,
-  getRecommendedFrameCount
+  getRecommendedFrameCount,
 } from './videoMotionEngine';
 
 /**
@@ -28,21 +28,22 @@ export function generateCinematicSuggestions(
   currentScene?: GeneratedScene
 ): CinematicSuggestions {
   // Get shot description from current scene if available
-  const shotDescription = currentScene?.sceneDesign?.situations?.[0]?.description || 'Character performing action';
-  
+  const shotDescription =
+    currentScene?.sceneDesign?.situations?.[0]?.description || 'Character performing action';
+
   // Get motion context from character psychology
   const motionContext = buildMotionContext(character, shotDescription);
-  
+
   // Get camera context from shot data
   const shotDataForContext = {
     description: shotDescription,
     movement: 'Static',
     equipment: 'Tripod',
     shotSize: 'MS',
-    durationSec: 3
+    durationSec: 3,
   };
   const cameraContext = buildCameraMovementContext(shotDataForContext);
-  
+
   // Determine camera movement based on energy level
   let suggestedMovement: CameraMovement = 'Static';
   if (motionContext.includes('high energy') || motionContext.includes('intense')) {
@@ -60,10 +61,10 @@ export function generateCinematicSuggestions(
   const shotDataForIntensity = {
     description: shotDescription,
     movement: 'Static' as const,
-    durationSec: 3
+    durationSec: 3,
   };
   const intensity = getMotionModuleStrength(shotDataForIntensity, character);
-  
+
   if (intensity > 0.8) {
     suggestedFocalLength = '85mm'; // Close-up for intense emotions
   } else if (intensity > 0.6) {
@@ -74,7 +75,7 @@ export function generateCinematicSuggestions(
 
   // Get mood from character emotional state
   const mood = character.emotionalState?.currentMood || 'neutral';
-  
+
   // Build camera suggestion text
   const cameraPrompt = `${cameraContext}. Use ${suggestedFocalLength} lens with ${suggestedMovement.toLowerCase()} camera movement to capture the ${mood} mood.`;
 
@@ -98,7 +99,7 @@ export function generateCinematicSuggestions(
     suggested_sound: soundPrompt,
     suggested_movement: suggestedMovement,
     suggested_focal_length: suggestedFocalLength,
-    confidence
+    confidence,
   };
 }
 
@@ -111,7 +112,7 @@ export function generateSoundSuggestion(
   _currentScene?: GeneratedScene
 ): string {
   const mood = character.emotionalState?.currentMood || 'neutral';
-  
+
   // Basic sound suggestions based on mood
   const moodSounds: Record<string, string> = {
     happy: 'upbeat ambient sounds, light footsteps',
@@ -119,7 +120,7 @@ export function generateSoundSuggestion(
     anxious: 'rapid heartbeat, shallow breathing',
     angry: 'heavy breathing, tense silence',
     calm: 'gentle ambient sounds, natural atmosphere',
-    neutral: 'natural ambient sounds'
+    neutral: 'natural ambient sounds',
   };
 
   return moodSounds[mood] || moodSounds.neutral;
@@ -148,9 +149,9 @@ export function motionEditToAnimateDiffParams(
     movement: motionEdit.camera_control.movement,
     equipment: motionEdit.camera_control.equipment,
     shotSize: motionEdit.shot_preview_generator_panel.shot_type,
-    durationSec: 3 // Default duration
+    durationSec: 3, // Default duration
   };
-  
+
   // Get base parameters from videoMotionEngine
   const motionStrength = getMotionModuleStrength(shotData, character);
   const fps = getRecommendedFPS(shotData);
@@ -173,7 +174,7 @@ export function motionEditToAnimateDiffParams(
     frame_count: frameCount,
     camera_movement: cameraMovement,
     lighting_context: lightingContext,
-    sound_context: soundContext
+    sound_context: soundContext,
   };
 }
 
@@ -194,26 +195,26 @@ export function buildVideoPromptWithMotion(
   const layers = [
     // Shot type and structure
     `${shotPreview.shot_type}: ${shotPreview.prompt}`,
-    
+
     // Frame composition (3 layers)
     `Frame composition - Foreground: ${frame.foreground || 'natural depth'}`,
     `Main focus: ${frame.object}`,
     `Background: ${frame.background || 'contextual environment'}`,
-    
+
     // Camera setup
     `Camera: ${camera.perspective} perspective, ${camera.movement} movement`,
     `Equipment: ${camera.equipment}, ${camera.focal_length} lens`,
     camera.shot_prompt,
-    
+
     // Lighting
     `Lighting: ${lighting.description}`,
     `Color temperature: ${lighting.color_temperature}`,
-    
+
     // Character psychology (from videoMotionEngine)
     buildMotionContext(character, shotPreview.prompt),
-    
+
     // Extra details
-    shotPreview.extra || ''
+    shotPreview.extra || '',
   ];
 
   return layers.filter(Boolean).join('. ');
@@ -236,11 +237,11 @@ export function validateMotionEdit(motionEdit: MotionEdit): ValidationResult {
   if (!motionEdit.shot_preview_generator_panel.prompt?.trim()) {
     errors.push('Scene prompt is required');
   }
-  
+
   if (!motionEdit.frame_control.object?.trim()) {
     errors.push('Main object in frame is required');
   }
-  
+
   if (!motionEdit.lighting_design.description?.trim()) {
     errors.push('Lighting description is required');
   }
@@ -249,11 +250,11 @@ export function validateMotionEdit(motionEdit: MotionEdit): ValidationResult {
   if (!motionEdit.frame_control.foreground?.trim()) {
     warnings.push('Consider adding foreground elements for depth');
   }
-  
+
   if (!motionEdit.frame_control.background?.trim()) {
     warnings.push('Consider adding background description for context');
   }
-  
+
   if (!motionEdit.sounds.description?.trim() && !motionEdit.sounds.auto_sfx) {
     warnings.push('No sound design specified');
   }
@@ -261,7 +262,7 @@ export function validateMotionEdit(motionEdit: MotionEdit): ValidationResult {
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }
 
@@ -274,7 +275,7 @@ export function createMotionEditPreset(
   currentScene?: GeneratedScene
 ): Partial<MotionEdit> {
   const suggestions = generateCinematicSuggestions(character, currentScene);
-  
+
   // Base preset from shot type
   const basePreset = {
     shot_preview_generator_panel: {
@@ -282,8 +283,8 @@ export function createMotionEditPreset(
       prompt: '',
       extra: '',
       shot_type: shotType,
-      voiceover: ''
-    }
+      voiceover: '',
+    },
   };
 
   // Add AI suggestions
@@ -294,17 +295,18 @@ export function createMotionEditPreset(
       perspective: 'Neutral',
       movement: suggestions.suggested_movement,
       equipment: suggestions.suggested_movement === 'Handheld' ? 'Handheld' : 'Tripod',
-      focal_length: suggestions.suggested_focal_length
+      focal_length: suggestions.suggested_focal_length,
     },
     lighting_design: {
       description: suggestions.suggested_lighting,
       color_temperature: 'Neutral',
-      mood: 'Bright'
+      mood: 'Bright',
     },
     sounds: {
       auto_sfx: true,
       description: suggestions.suggested_sound,
-      ambient: ''
-    }
+      ambient: '',
+    },
   };
 }
+

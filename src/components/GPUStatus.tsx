@@ -1,10 +1,16 @@
 /**
  * GPU Status Component
- * 
+ *
  * Shows real-time GPU detection status and backend recommendations
  */
 
-import { useDeviceDetection, formatDeviceInfo, getDeviceEmoji, getBackendEmoji, type BackendRecommendation } from '../hooks/useDeviceDetection';
+import {
+  useDeviceDetection,
+  formatDeviceInfo,
+  getDeviceEmoji,
+  getBackendEmoji,
+  type BackendRecommendation,
+} from '../hooks/useDeviceDetection';
 
 interface GPUStatusProps {
   showDetailed?: boolean;
@@ -32,9 +38,7 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
           <span className="text-red-500">⚠️</span>
           <span className="text-red-300">GPU detection failed: {error}</span>
         </div>
-        <p className="text-sm text-gray-400 mt-2">
-          Using fallback: Cloud/API backends only
-        </p>
+        <p className="text-sm text-gray-400 mt-2">Using fallback: Cloud/API backends only</p>
       </div>
     );
   }
@@ -48,23 +52,28 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
       {/* Device Status */}
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
         <h3 className="text-white font-semibold mb-3">💻 Your Hardware</h3>
-        
+
         <div className="space-y-2">
           {resources.devices.length > 0 ? (
             resources.devices.map((device, idx) => (
-              <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${
-                device.available ? 'bg-green-900/20 border border-green-700' : 'bg-gray-900/50 border border-gray-700'
-              }`}>
+              <div
+                key={idx}
+                className={`flex items-center justify-between p-3 rounded-lg ${
+                  device.available
+                    ? 'bg-green-900/20 border border-green-700'
+                    : 'bg-gray-900/50 border border-gray-700'
+                }`}
+              >
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">{getDeviceEmoji(device.type)}</span>
                   <div>
-                    <p className={`font-medium ${device.available ? 'text-green-300' : 'text-gray-400'}`}>
+                    <p
+                      className={`font-medium ${device.available ? 'text-green-300' : 'text-gray-400'}`}
+                    >
                       {device.name}
                     </p>
                     {showDetailed && device.available && (
-                      <p className="text-sm text-gray-400">
-                        {formatDeviceInfo(device)}
-                      </p>
+                      <p className="text-sm text-gray-400">{formatDeviceInfo(device)}</p>
                     )}
                   </div>
                 </div>
@@ -123,28 +132,38 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
                 <span className="text-2xl">{getBackendEmoji(recommendedBackend.type)}</span>
                 <h3 className="text-white font-semibold">Recommended Backend</h3>
               </div>
-              
+
               <p className="text-gray-300 mb-2">{recommendedBackend.reason}</p>
-              
+
               <div className="flex flex-wrap gap-2 mt-3">
                 <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-300 rounded">
-                  {recommendedBackend.speed === 'very-fast' ? '⚡ Very Fast' : 
-                   recommendedBackend.speed === 'fast' ? '🚀 Fast' : 
-                   recommendedBackend.speed === 'medium' ? '⏱️ Medium' : 
-                   '🐌 Slow'}
+                  {recommendedBackend.speed === 'very-fast'
+                    ? '⚡ Very Fast'
+                    : recommendedBackend.speed === 'fast'
+                      ? '🚀 Fast'
+                      : recommendedBackend.speed === 'medium'
+                        ? '⏱️ Medium'
+                        : '🐌 Slow'}
                 </span>
                 <span className="px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded">
-                  {recommendedBackend.quality === 'excellent' ? '⭐ Excellent' : 
-                   recommendedBackend.quality === 'high' ? '✨ High' : 
-                   recommendedBackend.quality === 'good' ? '👍 Good' : 
-                   '✓ Moderate'}
+                  {recommendedBackend.quality === 'excellent'
+                    ? '⭐ Excellent'
+                    : recommendedBackend.quality === 'high'
+                      ? '✨ High'
+                      : recommendedBackend.quality === 'good'
+                        ? '👍 Good'
+                        : '✓ Moderate'}
                 </span>
-                <span className={`px-2 py-1 text-xs rounded ${
-                  recommendedBackend.cost === 0 
-                    ? 'bg-emerald-500/20 text-emerald-300' 
-                    : 'bg-yellow-500/20 text-yellow-300'
-                }`}>
-                  {recommendedBackend.cost === 0 ? '🎉 FREE' : `💰 $${recommendedBackend.cost.toFixed(2)}/video`}
+                <span
+                  className={`px-2 py-1 text-xs rounded ${
+                    recommendedBackend.cost === 0
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-yellow-500/20 text-yellow-300'
+                  }`}
+                >
+                  {recommendedBackend.cost === 0
+                    ? '🎉 FREE'
+                    : `💰 $${recommendedBackend.cost.toFixed(2)}/video`}
                 </span>
               </div>
             </div>
@@ -165,7 +184,7 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
       {showDetailed && allBackends.length > 1 && (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
           <h3 className="text-white font-semibold mb-3">⚙️ All Available Backends</h3>
-          
+
           <div className="space-y-2">
             {allBackends.map((backend, idx) => (
               <div
@@ -186,16 +205,18 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
                       <p className="text-sm text-gray-400">{backend.reason}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 text-xs rounded ${
-                      backend.cost === 0 
-                        ? 'bg-emerald-500/20 text-emerald-300' 
-                        : 'bg-yellow-500/20 text-yellow-300'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 text-xs rounded ${
+                        backend.cost === 0
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-yellow-500/20 text-yellow-300'
+                      }`}
+                    >
                       {backend.cost === 0 ? 'FREE' : `$${backend.cost.toFixed(2)}`}
                     </span>
-                    
+
                     {onBackendSelect && backend.type !== recommendedBackend?.type && (
                       <button
                         onClick={() => onBackendSelect(backend)}
@@ -204,7 +225,7 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
                         Select
                       </button>
                     )}
-                    
+
                     {backend.type === recommendedBackend?.type && (
                       <span className="px-3 py-1 text-sm bg-blue-600 text-white rounded">
                         Active
@@ -218,7 +239,8 @@ export function GPUStatus({ showDetailed = false, onBackendSelect }: GPUStatusPr
 
           <div className="mt-4 pt-4 border-t border-gray-700">
             <p className="text-xs text-gray-400">
-              💡 <strong>Tip:</strong> The system will automatically fallback to the next available backend if the primary one fails.
+              💡 <strong>Tip:</strong> The system will automatically fallback to the next available
+              backend if the primary one fails.
             </p>
           </div>
         </div>
@@ -242,28 +264,25 @@ export function GPUStatusBadge() {
     );
   }
 
-  const hasGPU = resources?.devices.some(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+  const hasGPU = resources?.devices.some(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
 
-  const gpuDevice = resources?.devices.find(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+  const gpuDevice = resources?.devices.find(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
 
   return (
-    <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${
-      hasGPU 
-        ? 'bg-green-900/30 border border-green-700' 
-        : 'bg-gray-800 border border-gray-700'
-    }`}>
-      <span className="text-sm">
-        {hasGPU ? getDeviceEmoji(gpuDevice!.type) : '☁️'}
-      </span>
+    <div
+      className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${
+        hasGPU ? 'bg-green-900/30 border border-green-700' : 'bg-gray-800 border border-gray-700'
+      }`}
+    >
+      <span className="text-sm">{hasGPU ? getDeviceEmoji(gpuDevice!.type) : '☁️'}</span>
       <span className="text-xs text-gray-300">
-        {hasGPU 
+        {hasGPU
           ? `${gpuDevice!.name.split(' ')[0]}`
-          : recommendedBackend?.type.replace('-', ' ') || 'Cloud'
-        }
+          : recommendedBackend?.type.replace('-', ' ') || 'Cloud'}
       </span>
       {hasGPU && recommendedBackend?.cost === 0 && (
         <span className="text-xs text-green-400 font-semibold">FREE</span>
@@ -271,3 +290,4 @@ export function GPUStatusBadge() {
     </div>
   );
 }
+

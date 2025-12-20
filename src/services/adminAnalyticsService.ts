@@ -1,6 +1,6 @@
 /**
  * Admin Analytics Service
- * 
+ *
  * ดึงและวิเคราะห์ข้อมูล analytics สำหรับ admin dashboard
  * รวมถึง user statistics, revenue metrics, usage analytics
  */
@@ -22,7 +22,7 @@ import type {
   UserListItem,
   UserDetails,
   SubscriptionTier,
-} from '../../types';
+} from '../types';
 import { getUserSubscription } from './subscriptionManager';
 import { firestoreService } from './firestoreService';
 
@@ -88,20 +88,22 @@ export async function getUserStats(filters?: {
       }
 
       // Count active users (used system in last 30 days)
-      const lastUpdated = user.lastUpdated instanceof Timestamp 
-        ? user.lastUpdated.toDate() 
-        : new Date(user.lastUpdated);
-      
+      const lastUpdated =
+        user.lastUpdated instanceof Timestamp
+          ? user.lastUpdated.toDate()
+          : new Date(user.lastUpdated);
+
       if (lastUpdated >= thirtyDaysAgo) {
         stats.active++;
       }
 
       // Count new users (created in date range or last 30 days)
       if (filters?.dateRange) {
-        const createdAt = user.createdAt instanceof Timestamp
-          ? user.createdAt.toDate()
-          : new Date(user.createdAt || user.lastUpdated);
-        
+        const createdAt =
+          user.createdAt instanceof Timestamp
+            ? user.createdAt.toDate()
+            : new Date(user.createdAt || user.lastUpdated);
+
         if (createdAt >= filters.dateRange.start && createdAt <= filters.dateRange.end) {
           stats.new++;
         }
@@ -109,10 +111,11 @@ export async function getUserStats(filters?: {
 
       // Count churned users (canceled in period)
       if (status === 'canceled' && user.subscription?.canceledAt) {
-        const canceledAt = user.subscription.canceledAt instanceof Timestamp
-          ? user.subscription.canceledAt.toDate()
-          : new Date(user.subscription.canceledAt);
-        
+        const canceledAt =
+          user.subscription.canceledAt instanceof Timestamp
+            ? user.subscription.canceledAt.toDate()
+            : new Date(user.subscription.canceledAt);
+
         if (filters?.dateRange) {
           if (canceledAt >= filters.dateRange.start && canceledAt <= filters.dateRange.end) {
             stats.churned++;
@@ -195,9 +198,10 @@ export async function getRevenueMetrics(
 /**
  * Get Usage Analytics
  */
-export async function getUsageAnalytics(
-  _dateRange?: { start: Date; end: Date }
-): Promise<UsageAnalytics> {
+export async function getUsageAnalytics(_dateRange?: {
+  start: Date;
+  end: Date;
+}): Promise<UsageAnalytics> {
   try {
     console.log('📊 Fetching usage analytics...');
 
@@ -271,15 +275,20 @@ export async function getUsageAnalytics(
       // Storage - Calculate with proper tier limits
       const storageUsed = (user.usage?.storageUsed || 0) / 1024 / 1024 / 1024; // Convert to GB
       analytics.storage.totalGB += storageUsed;
-      
+
       // Get storage limit for this user's tier
       const tierStorageLimit = (() => {
         switch (tier) {
-          case 'free': return 0.5; // 500 MB
-          case 'basic': return 1; // 1 GB (from userStore)
-          case 'pro': return 10; // 10 GB
-          case 'enterprise': return 100; // 100 GB
-          default: return 0.5;
+          case 'free':
+            return 0.5; // 500 MB
+          case 'basic':
+            return 1; // 1 GB (from userStore)
+          case 'pro':
+            return 10; // 10 GB
+          case 'enterprise':
+            return 100; // 100 GB
+          default:
+            return 0.5;
         }
       })();
       analytics.storage.limitGB += tierStorageLimit;
@@ -288,7 +297,10 @@ export async function getUsageAnalytics(
     // Calculate averages
     analytics.credits.average = users.length > 0 ? analytics.credits.total / users.length : 0;
     analytics.storage.average = users.length > 0 ? analytics.storage.totalGB / users.length : 0;
-    analytics.storage.remainingGB = Math.max(0, analytics.storage.limitGB - analytics.storage.totalGB);
+    analytics.storage.remainingGB = Math.max(
+      0,
+      analytics.storage.limitGB - analytics.storage.totalGB
+    );
 
     // Sort Veo users by count (descending)
     analytics.veoVideos.byUser.sort((a, b) => b.count - a.count);
@@ -304,15 +316,17 @@ export async function getUsageAnalytics(
 /**
  * Get User List (with pagination)
  */
-export async function getUserList(options: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  tier?: SubscriptionTier;
-  status?: string;
-  sortBy?: 'createdAt' | 'lastActive' | 'creditsUsed';
-  sortOrder?: 'asc' | 'desc';
-} = {}): Promise<{
+export async function getUserList(
+  options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    tier?: SubscriptionTier;
+    status?: string;
+    sortBy?: 'createdAt' | 'lastActive' | 'creditsUsed';
+    sortOrder?: 'asc' | 'desc';
+  } = {}
+): Promise<{
   users: UserListItem[];
   total: number;
   page: number;
@@ -340,12 +354,12 @@ export async function getUserList(options: {
     }
 
     const snapshot = await getDocs(q);
-    
+
     // Fetch all users from Firebase Auth to get email and displayName
     const usersCollection = collection(db, 'users');
     const usersSnapshot = await getDocs(usersCollection);
     const usersMap = new Map();
-    
+
     usersSnapshot.docs.forEach(userDoc => {
       const userData = userDoc.data();
       usersMap.set(userDoc.id, {
@@ -362,7 +376,7 @@ export async function getUserList(options: {
         displayName: data.displayName || 'User',
         photoURL: data.photoURL,
       };
-      
+
       return {
         userId: doc.id,
         email: userInfo.email,
@@ -379,12 +393,14 @@ export async function getUserList(options: {
           used: data.monthlyUsage?.veoVideosGenerated || 0,
           max: data.subscription?.features?.maxVeoVideosPerMonth || 0,
         },
-        lastActive: data.lastUpdated instanceof Timestamp 
-          ? data.lastUpdated.toDate() 
-          : new Date(data.lastUpdated || Date.now()),
-        createdAt: data.createdAt instanceof Timestamp
-          ? data.createdAt.toDate()
-          : new Date(data.createdAt || data.lastUpdated || Date.now()),
+        lastActive:
+          data.lastUpdated instanceof Timestamp
+            ? data.lastUpdated.toDate()
+            : new Date(data.lastUpdated || Date.now()),
+        createdAt:
+          data.createdAt instanceof Timestamp
+            ? data.createdAt.toDate()
+            : new Date(data.createdAt || data.lastUpdated || Date.now()),
       } as UserListItem;
     });
 
@@ -396,10 +412,11 @@ export async function getUserList(options: {
     // Filter by search
     if (search) {
       const searchLower = search.toLowerCase();
-      users = users.filter(u => 
-        u.email.toLowerCase().includes(searchLower) ||
-        u.displayName.toLowerCase().includes(searchLower) ||
-        u.userId.toLowerCase().includes(searchLower)
+      users = users.filter(
+        u =>
+          u.email.toLowerCase().includes(searchLower) ||
+          u.displayName.toLowerCase().includes(searchLower) ||
+          u.userId.toLowerCase().includes(searchLower)
       );
     }
 
@@ -458,7 +475,7 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
 
     // Get subscription data
     const userRecord = await getUserSubscription(userId);
-    
+
     // Get user projects
     const projectsResult = await firestoreService.getUserProjects(userId);
     const projects = projectsResult.projects.map(p => ({
@@ -522,11 +539,7 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
  * Subscribe to real-time analytics updates
  */
 export function subscribeToAnalytics(
-  callback: (data: {
-    stats: UserStats;
-    revenue: RevenueMetrics;
-    usage: UsageAnalytics;
-  }) => void
+  callback: (data: { stats: UserStats; revenue: RevenueMetrics; usage: UsageAnalytics }) => void
 ): Unsubscribe {
   console.log('📊 Setting up real-time analytics listener...');
 
@@ -546,7 +559,7 @@ export function subscribeToAnalytics(
         console.error('❌ Error in analytics listener:', error);
       }
     },
-    (error) => {
+    error => {
       console.error('❌ Analytics listener error:', error);
     }
   );
@@ -615,3 +628,4 @@ export async function getAnalyticsSummary(): Promise<{
     throw error;
   }
 }
+

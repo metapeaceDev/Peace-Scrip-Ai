@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 import { getUserSubscription } from '../services/userStore';
 import {
   getUsageStats,
@@ -383,3 +383,4 @@ export const AnalyticsDashboard: React.FC = () => {
     </div>
   );
 };
+

@@ -13,23 +13,27 @@
 ## 🎯 Features Implemented
 
 ### 1. **หน้าสรุปรวม (Summary View)**
+
 - 6 การ์ดหลัก: รายได้, ต้นทุนขาย, กำไรขั้นต้น, EBITDA, ภาษีรวม, กำไรสุทธิ
 - แสดง Margin % สำหรับแต่ละตัวเลข
 - รายละเอียดภาษีแบ่งตามประเภท (VAT 7%, Corporate Tax 20%, Withholding Tax 3%, Social Security 5%)
 
 ### 2. **หน้ารายละเอียด (Detailed View)**
+
 - ตาราง P&L Statement แบบเต็ม
 - แบ่งหมวดหมู่: รายได้, ต้นทุนขาย, ค่าใช้จ่ายดำเนินงาน, ภาษี
 - คำนวณ % ของรายได้สำหรับทุกรายการ
 - แสดงกำไรสุทธิ **ก่อน** และ **หลัง** หักภาษี
 
 ### 3. **หน้าเปรียบเทียบ (Comparison View)**
+
 - เปรียบเทียบงวดปัจจุบันกับงวดก่อนหน้า
 - แสดงจำนวนเงินที่เปลี่ยนแปลง (+ / -)
 - แสดง % การเปลี่ยนแปลง
 - 6 การ์ดหลัก: รายได้, ต้นทุน, กำไรขั้นต้น, OpEx, EBITDA, กำไรสุทธิ
 
 ### 4. **หน้าแนวโน้ม (Trends View)**
+
 - กราฟแท่งแสดงกำไรสุทธิ 6 งวดล่าสุด
 - แยกสีเขียว (กำไร) และแดง (ขาดทุน)
 - แสดงแนวโน้ม 3 ตัวชี้วัด:
@@ -38,6 +42,7 @@
   - สัดส่วนต้นทุน (%)
 
 ### 5. **ฟีเจอร์เพิ่มเติม**
+
 - เลือกช่วงเวลา: รายเดือน, รายไตรมาส, รายปี
 - Export ข้อมูลเป็น CSV
 - Responsive design (รองรับ mobile, tablet, desktop)
@@ -49,12 +54,12 @@
 
 ### Tax Rates (อัตราภาษีไทย)
 
-| ประเภทภาษี | อัตรา | รายละเอียด |
-|-----------|-------|-----------|
-| **VAT** | 7% | ภาษีมูลค่าเพิ่ม (คำนวณจากรายได้) |
-| **Corporate Tax** | 20% | ภาษีเงินได้นิติบุคคล (คำนวณจากกำไรสุทธิก่อนภาษี) |
-| **Withholding Tax** | 3% | ภาษีหัก ณ ที่จ่าย (สำหรับบริการ B2B ต่างประเทศ) |
-| **Social Security** | 5% | ประกันสังคม (คำนวณจากเงินเดือน, สูงสุด ฿750/คน/เดือน) |
+| ประเภทภาษี          | อัตรา | รายละเอียด                                            |
+| ------------------- | ----- | ----------------------------------------------------- |
+| **VAT**             | 7%    | ภาษีมูลค่าเพิ่ม (คำนวณจากรายได้)                      |
+| **Corporate Tax**   | 20%   | ภาษีเงินได้นิติบุคคล (คำนวณจากกำไรสุทธิก่อนภาษี)      |
+| **Withholding Tax** | 3%    | ภาษีหัก ณ ที่จ่าย (สำหรับบริการ B2B ต่างประเทศ)       |
+| **Social Security** | 5%    | ประกันสังคม (คำนวณจากเงินเดือน, สูงสุด ฿750/คน/เดือน) |
 
 ### Tax Calculation Logic
 
@@ -64,17 +69,13 @@ const vat = revenue.total * 0.07;
 
 // Corporate Tax (20% on net profit before tax)
 // Only if profit > 0
-const corporateTax = netProfitBeforeTax > 0 
-  ? netProfitBeforeTax * 0.20 
-  : 0;
+const corporateTax = netProfitBeforeTax > 0 ? netProfitBeforeTax * 0.2 : 0;
 
 // Withholding Tax (not applicable for our case)
 const withholdingTax = 0; // Foreign B2B services exempt
 
 // Social Security (5% on salaries, capped at ฿750/person/month)
-const socialSecurity = salaries > 0 
-  ? Math.min(salaries * 0.05, 750) 
-  : 0;
+const socialSecurity = salaries > 0 ? Math.min(salaries * 0.05, 750) : 0;
 
 // Total Taxes
 const totalTaxes = vat + corporateTax + withholdingTax + socialSecurity;
@@ -88,11 +89,13 @@ const netProfitAfterTax = netProfitBeforeTax - corporateTax;
 ## 📊 P&L Statement Structure
 
 ### Revenue (รายได้)
+
 - Subscriptions (Basic ฿299, Pro ฿999, Enterprise ฿8,000)
 - Add-ons (ซื้อ credits เพิ่ม)
 - Other (รายได้อื่นๆ เช่น white-label, consulting)
 
 ### COGS - Cost of Goods Sold (ต้นทุนขาย)
+
 - API Costs (Gemini, Replicate)
 - Storage Costs (Firebase Storage)
 - Compute Costs (Cloud Run, Cloud Functions)
@@ -100,12 +103,14 @@ const netProfitAfterTax = netProfitBeforeTax - corporateTax;
 - Bandwidth Costs (Network egress)
 
 ### Gross Profit (กำไรขั้นต้น)
+
 ```
 Gross Profit = Revenue - COGS
 Gross Margin % = (Gross Profit / Revenue) × 100
 ```
 
 ### Operating Expenses (ค่าใช้จ่ายดำเนินงาน)
+
 - Salaries (เงินเดือนพนักงาน) - ฿0 in pre-revenue stage
 - Marketing (15% of revenue) - โฆษณา, SEO
 - Infrastructure (฿2,000/month) - Domain, SSL, monitoring
@@ -113,12 +118,14 @@ Gross Margin % = (Gross Profit / Revenue) × 100
 - Other (฿1,000/month) - ค่าใช้จ่ายอื่นๆ
 
 ### EBITDA
+
 ```
 EBITDA = Gross Profit - Operating Expenses
 EBITDA Margin % = (EBITDA / Revenue) × 100
 ```
 
 ### Net Profit (กำไรสุทธิ)
+
 ```
 Net Profit Before Tax = EBITDA (no interest, depreciation for SaaS)
 Net Profit After Tax = Net Profit Before Tax - Corporate Tax (20%)
@@ -130,9 +137,11 @@ Net Margin % = (Net Profit After Tax / Revenue) × 100
 ## 🗂️ Files Created
 
 ### 1. Type Definitions
+
 **File:** [src/types/analytics.ts](../src/types/analytics.ts) (expanded)
 
 Added types:
+
 - `TaxRates` - Thai tax rate structure
 - `THAI_TAX_RATES` - Constant with 20% corp tax, 7% VAT, 3% withholding, 5% social security
 - `SUBSCRIPTION_PRICING` - Pricing for Free/Basic/Pro/Enterprise
@@ -142,9 +151,11 @@ Added types:
 - `HistoricalProfitLoss` - 6-period trend data
 
 ### 2. Service Layer
+
 **File:** [src/services/profitLossAnalyzer.ts](../src/services/profitLossAnalyzer.ts) (NEW - 480 lines)
 
 Functions:
+
 - `getDateRange()` - Calculate period dates (supports Thai calendar)
 - `getPreviousPeriod()` - Get previous period for comparison
 - `calculateRevenue()` - Aggregate subscription revenue from Firestore
@@ -156,9 +167,11 @@ Functions:
 - `exportProfitLossReport()` - Generate CSV export
 
 ### 3. React Component
+
 **File:** [src/components/admin/ProfitLossComparisonDashboard.tsx](../src/components/admin/ProfitLossComparisonDashboard.tsx) (NEW - 615 lines)
 
 Features:
+
 - 4 tab views (Summary, Detailed, Comparison, Trends)
 - Period selector (month/quarter/year)
 - Real-time data loading with useEffect + useCallback
@@ -168,9 +181,11 @@ Features:
 - Responsive layout
 
 ### 4. CSS Styling
+
 **File:** [src/components/admin/ProfitLossComparisonDashboard.css](../src/components/admin/ProfitLossComparisonDashboard.css) (NEW - 620 lines)
 
 Styles:
+
 - Dark theme with gradient backgrounds
 - Card-based layout with hover effects
 - Responsive grid (desktop → tablet → mobile)
@@ -179,9 +194,11 @@ Styles:
 - Breakpoints: 1024px (tablet), 640px (mobile)
 
 ### 5. Integration
+
 **File:** [src/components/admin/AdminDashboard.tsx](../src/components/admin/AdminDashboard.tsx) (MODIFIED)
 
 Changes:
+
 - Updated `TabView` type: Added 'profit-loss'
 - Imported `ProfitLossComparisonDashboard`
 - Added tab button "📊 Profit & Loss"
@@ -194,8 +211,8 @@ Changes:
 ### Data Flow
 
 ```
-User selects period → 
-  calculateProfitLoss() → 
+User selects period →
+  calculateProfitLoss() →
     calculateRevenue() (from Firestore subscriptions) +
     getProjectCostSummary() (from existing service) +
     calculateOperatingExpenses() +
@@ -224,6 +241,7 @@ User selects period →
 ### For Admin Users
 
 1. **เข้าถึง Dashboard:**
+
    ```
    Login as admin → Admin Dashboard → Tab "📊 Profit & Loss"
    ```
@@ -248,10 +266,10 @@ User selects period →
 
 ```typescript
 // Import service
-import { 
-  calculateProfitLoss, 
-  getComparison, 
-  getHistoricalData 
+import {
+  calculateProfitLoss,
+  getComparison,
+  getHistoricalData,
 } from '@/services/profitLossAnalyzer';
 
 // Get current month P&L
@@ -271,7 +289,7 @@ console.log(historical.trends.revenueGrowth); // [5.2, 3.1, -2.4, 8.7, 12.3]
 
 ## ⚠️ Known Limitations
 
-1. **Manual OpEx Entry:** 
+1. **Manual OpEx Entry:**
    - Operating expenses ยังเป็นค่าประมาณการ
    - ควรสร้าง collection `expenses` ใน Firestore สำหรับบันทึกค่าใช้จ่ายจริง
 
@@ -368,14 +386,18 @@ Revenue Growth: [50%, -20%, 50%, 22.2%, 13.6%]
 ## 📝 Error Status
 
 ### Compilation
+
 ✅ **No blocking TypeScript errors**
+
 - profitLossAnalyzer.ts: ✅ Clean
 - ProfitLossComparisonDashboard.tsx: ⚠️ 1 inline style warning (non-critical)
 - AdminDashboard.tsx: ⚠️ 2 inline style warnings (existing, non-critical)
 - analytics.ts: ✅ Clean
 
 ### Linting
+
 ✅ **All critical issues resolved**
+
 - useCallback properly implemented
 - aria-label added to select
 - No unused variables
@@ -391,6 +413,7 @@ Revenue Growth: [50%, -20%, 50%, 22.2%, 13.6%]
 **Production Ready:** ✅ Yes
 
 ### ไฟล์ที่สร้าง:
+
 1. ✅ [src/types/analytics.ts](../src/types/analytics.ts) - Extended with P&L types
 2. ✅ [src/services/profitLossAnalyzer.ts](../src/services/profitLossAnalyzer.ts) - New service (480 lines)
 3. ✅ [src/components/admin/ProfitLossComparisonDashboard.tsx](../src/components/admin/ProfitLossComparisonDashboard.tsx) - New component (615 lines)

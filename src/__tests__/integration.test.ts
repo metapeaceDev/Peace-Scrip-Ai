@@ -516,3 +516,4 @@ describe('Data Flow Integration', () => {
     expect(loaded.character.psychology_timeline[0].karmaType).toBe('กุศลกรรม');
   });
 });
+

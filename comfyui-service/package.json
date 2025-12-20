@@ -12,7 +12,12 @@
     "docker:run": "docker run -p 8000:8000 --gpus all peace-comfyui-service",
     "docker:compose": "docker-compose up -d"
   },
-  "keywords": ["comfyui", "lora", "stable-diffusion", "image-generation"],
+  "keywords": [
+    "comfyui",
+    "lora",
+    "stable-diffusion",
+    "image-generation"
+  ],
   "author": "Peace Script Team",
   "license": "MIT",
   "dependencies": {

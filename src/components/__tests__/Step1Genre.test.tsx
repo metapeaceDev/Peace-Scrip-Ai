@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import Step1Genre from '../Step1Genre';
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 
 // Mock dependencies
 vi.mock('../services/geminiService', () => ({
@@ -443,3 +443,4 @@ describe('Step1Genre - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

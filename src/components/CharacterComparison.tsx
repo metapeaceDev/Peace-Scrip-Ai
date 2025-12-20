@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { Character } from '../../types';
+import type { Character } from '../types';
 import { calculatePsychologyProfile, calculateReaction } from '../services/psychologyCalculator';
 
 interface CharacterComparisonProps {
@@ -285,3 +285,4 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
 };
 
 export default CharacterComparison;
+

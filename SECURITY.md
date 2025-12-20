@@ -158,7 +158,7 @@ We take security seriously. If you discover a security vulnerability, please fol
 
 ```bash
 # ❌ BAD
-const apiKey = "AIzaSyC-Y-j2mQny-YqukGPT4QIDvKOkGewNO48"
+const apiKey = "AIzaSy_YOUR_KEY_HERE"
 
 # ✅ GOOD
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY

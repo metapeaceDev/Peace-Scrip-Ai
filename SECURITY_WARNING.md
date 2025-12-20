@@ -15,6 +15,7 @@
 ## 🔧 Recommended Actions
 
 ### Option 1: Use Environment Variables (BEST PRACTICE)
+
 ```bash
 # Windows PowerShell
 $env:GOOGLE_APPLICATION_CREDENTIALS="C:\secure\path\service-account-key.json"
@@ -24,6 +25,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="/secure/path/service-account-key.json"
 ```
 
 ### Option 2: Generate New Key (If Compromised)
+
 1. Go to Firebase Console
 2. Project Settings → Service Accounts
 3. Generate New Private Key
@@ -32,10 +34,11 @@ export GOOGLE_APPLICATION_CREDENTIALS="/secure/path/service-account-key.json"
 
 ## ✅ Security Checklist
 
-- [x] `.gitignore` includes service-account*.json
+- [x] `.gitignore` includes service-account\*.json
 - [ ] Key file stored outside project folder
 - [ ] Environment variable configured
 - [ ] Old key revoked (if ever committed to Git)
 
 ---
+
 **DO NOT commit this file to Git - keep it local only**

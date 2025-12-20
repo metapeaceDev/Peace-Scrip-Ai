@@ -1,12 +1,12 @@
 /**
  * Logging Utility for Peace Script AI
- * 
+ *
  * Replaces console.log with structured logging
  * Automatically disabled in production unless explicitly enabled
- * 
+ *
  * Usage:
  *   import { logger } from '@/utils/logger';
- *   
+ *
  *   logger.info('User logged in', { userId: '123' });
  *   logger.error('Payment failed', { error: err.message });
  *   logger.debug('Request payload', { data });
@@ -71,7 +71,7 @@ class Logger {
       try {
         // Send to Firebase Analytics or Sentry
         // Example: Sentry.captureException(new Error(logEntry.message));
-        
+
         // For now, we'll just use console.error as fallback
         if (typeof window !== 'undefined' && window.console) {
           console.error('[Logger]', logEntry);
@@ -89,7 +89,7 @@ class Logger {
     if (!this.shouldLog('debug')) return;
 
     // const logEntry = this.formatLog('debug', message, context);
-    
+
     if (this.isDevelopment) {
       console.log(`🔍 [DEBUG] ${message}`, context || '');
     }
@@ -102,7 +102,7 @@ class Logger {
     if (!this.shouldLog('info')) return;
 
     // const logEntry = this.formatLog('info', message, context);
-    
+
     if (this.isDevelopment) {
       console.log(`ℹ️ [INFO] ${message}`, context || '');
     } else if (this.enableProductionLogs) {
@@ -117,7 +117,7 @@ class Logger {
     if (!this.shouldLog('warn')) return;
 
     // const logEntry = this.formatLog('warn', message, context);
-    
+
     if (this.isDevelopment) {
       console.warn(`⚠️ [WARN] ${message}`, context || '');
     } else if (this.enableProductionLogs) {
@@ -131,11 +131,14 @@ class Logger {
   error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
     const logEntry = this.formatLog('error', message, {
       ...context,
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      } : error,
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
     });
 
     // Always log errors to console

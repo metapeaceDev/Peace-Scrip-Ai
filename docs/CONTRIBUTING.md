@@ -5,6 +5,7 @@ Thank you for your interest in contributing to Peace Script AI! 🎬
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 18+
 - Docker & Docker Compose (for backend)
 - Git
@@ -12,12 +13,14 @@ Thank you for your interest in contributing to Peace Script AI! 🎬
 ### Getting Started
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
    cd Peace-Scrip-Ai
    ```
 
 2. **Install dependencies**
+
    ```bash
    # Frontend
    npm install
@@ -27,6 +30,7 @@ Thank you for your interest in contributing to Peace Script AI! 🎬
    ```
 
 3. **Setup environment**
+
    ```bash
    # Frontend
    cp .env.example .env
@@ -38,6 +42,7 @@ Thank you for your interest in contributing to Peace Script AI! 🎬
    ```
 
 4. **Run development servers**
+
    ```bash
    # Frontend (http://localhost:5173)
    npm run dev
@@ -49,16 +54,19 @@ Thank you for your interest in contributing to Peace Script AI! 🎬
 ## Code Standards
 
 ### TypeScript
+
 - Use TypeScript for all new code
 - Avoid `any` types where possible
 - Add proper type definitions
 
 ### React Components
+
 - Use functional components with hooks
 - Keep components small and focused
 - Add prop types
 
 ### Code Style
+
 ```bash
 # Format code
 npm run format
@@ -84,6 +92,7 @@ npm run test:coverage
 ```
 
 ### Writing Tests
+
 - Place tests in `src/test/` directory
 - Name test files as `ComponentName.test.tsx`
 - Aim for >80% code coverage
@@ -101,6 +110,7 @@ Use conventional commits format:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -110,6 +120,7 @@ Use conventional commits format:
 - `chore`: Build/tooling changes
 
 **Examples:**
+
 ```bash
 git commit -m "feat(character): add AI portrait generation"
 git commit -m "fix(api): resolve CORS issue in production"
@@ -119,12 +130,14 @@ git commit -m "docs(readme): update installation instructions"
 ## Pull Request Process
 
 1. Create a feature branch
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
 2. Make your changes
 3. Run tests and linting
+
    ```bash
    npm run test
    npm run lint
@@ -136,6 +149,7 @@ git commit -m "docs(readme): update installation instructions"
 6. Create a Pull Request
 
 ### PR Requirements
+
 - ✅ All tests pass
 - ✅ No linting errors
 - ✅ TypeScript compiles without errors

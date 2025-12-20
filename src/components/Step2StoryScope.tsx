@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 import { generateBoundary } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
@@ -1124,3 +1124,4 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
 };
 
 export default Step2StoryScope;
+

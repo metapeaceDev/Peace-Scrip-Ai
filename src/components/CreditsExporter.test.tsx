@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CreditsExporter } from './CreditsExporter';
-import type { TeamMember } from '../../types';
+import type { TeamMember } from '../types';
 
 describe('CreditsExporter', () => {
   const mockMembers: TeamMember[] = [
@@ -677,3 +677,4 @@ describe('CreditsExporter', () => {
     });
   });
 });
+

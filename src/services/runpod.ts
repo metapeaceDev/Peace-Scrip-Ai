@@ -260,10 +260,7 @@ export class RunPodService {
   /**
    * Wait for pod to be ready
    */
-  async waitForPodReady(
-    podId: string,
-    timeoutMs: number = 300000
-  ): Promise<boolean> {
+  async waitForPodReady(podId: string, timeoutMs: number = 300000): Promise<boolean> {
     const startTime = Date.now();
     const pollInterval = 5000; // 5 seconds
 
@@ -300,7 +297,7 @@ export class RunPodService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({ query }),
     });
@@ -328,3 +325,4 @@ export class RunPodService {
 
 // Singleton instance
 export const runPodService = new RunPodService();
+

@@ -1,6 +1,6 @@
 /**
  * Quota Monitor Service
- * 
+ *
  * Tracks API usage for Gemini APIs to prevent quota exhaustion
  * Provides warnings and suggestions before hitting limits
  */
@@ -28,15 +28,17 @@ const quotaTrackers: Record<string, QuotaTracker> = {
 export function recordRequest(model: 'gemini-2.5' | 'gemini-2.0'): void {
   const tracker = quotaTrackers[model];
   const now = Date.now();
-  
+
   // Clean up requests older than 1 minute
   tracker.requests = tracker.requests.filter(timestamp => now - timestamp < QUOTA_LIMITS.window);
-  
+
   // Add new request
   tracker.requests.push(now);
-  
+
   // Note: This only tracks requests from this session, not global quota
-  console.log(`📊 ${model} - Requests this session: ${tracker.requests.length}/${QUOTA_LIMITS[model]} (Note: May have quota from previous usage)`);
+  console.log(
+    `📊 ${model} - Requests this session: ${tracker.requests.length}/${QUOTA_LIMITS[model]} (Note: May have quota from previous usage)`
+  );
 }
 
 /**
@@ -51,24 +53,24 @@ export function checkQuotaStatus(model: 'gemini-2.5' | 'gemini-2.0'): {
 } {
   const tracker = quotaTrackers[model];
   const now = Date.now();
-  
+
   // Clean up old requests
   tracker.requests = tracker.requests.filter(timestamp => now - timestamp < QUOTA_LIMITS.window);
-  
+
   const used = tracker.requests.length;
   const limit = QUOTA_LIMITS[model];
   const available = limit - used;
   const percentage = (used / limit) * 100;
-  
+
   let warning: string | null = null;
-  
+
   if (percentage >= 90) {
     const resetIn = Math.ceil((QUOTA_LIMITS.window - (now - tracker.requests[0])) / 1000);
     warning = `⚠️ ${model} quota at ${percentage.toFixed(0)}%! Quota resets in ${resetIn}s. Consider enabling ComfyUI.`;
   } else if (percentage >= 70) {
     warning = `⚡ ${model} quota at ${percentage.toFixed(0)}%. Approaching limit.`;
   }
-  
+
   return { available, used, limit, percentage, warning };
 }
 
@@ -78,11 +80,11 @@ export function checkQuotaStatus(model: 'gemini-2.5' | 'gemini-2.0'): {
 export function getTimeUntilReset(model: 'gemini-2.5' | 'gemini-2.0'): number {
   const tracker = quotaTrackers[model];
   if (tracker.requests.length === 0) return 0;
-  
+
   const oldestRequest = tracker.requests[0];
   const resetTime = oldestRequest + QUOTA_LIMITS.window;
   const now = Date.now();
-  
+
   return Math.max(0, Math.ceil((resetTime - now) / 1000)); // seconds
 }
 
@@ -100,7 +102,7 @@ export function shouldWarnBeforeRequest(model: 'gemini-2.5' | 'gemini-2.0'): boo
 export function getQuotaSummary(): string {
   const gem25 = checkQuotaStatus('gemini-2.5');
   const gem20 = checkQuotaStatus('gemini-2.0');
-  
+
   return `
 📊 API Quota Status:
   Gemini 2.5: ${gem25.used}/${gem25.limit} (${gem25.percentage.toFixed(0)}%)
@@ -116,5 +118,6 @@ export function getQuotaSummary(): string {
 export function resetQuotas(): void {
   quotaTrackers['gemini-2.5'].requests = [];
   quotaTrackers['gemini-2.0'].requests = [];
-  console.log("✅ Quota trackers reset");
+  console.log('✅ Quota trackers reset');
 }
+

@@ -1,6 +1,6 @@
 /**
  * Performance Monitor Service
- * 
+ *
  * Tracks and reports performance metrics
  */
 
@@ -23,7 +23,7 @@ class PerformanceMonitor {
     this.metrics.set(name, {
       name,
       startTime: performance.now(),
-      metadata
+      metadata,
     });
   }
 
@@ -56,11 +56,7 @@ class PerformanceMonitor {
   /**
    * Measure async operation
    */
-  async measure<T>(
-    name: string,
-    fn: () => Promise<T>,
-    metadata?: Record<string, any>
-  ): Promise<T> {
+  async measure<T>(name: string, fn: () => Promise<T>, metadata?: Record<string, any>): Promise<T> {
     this.start(name, metadata);
     try {
       const result = await fn();
@@ -90,8 +86,8 @@ class PerformanceMonitor {
    * Get average duration for operation type
    */
   getAverage(namePattern: string): number {
-    const matching = this.getAllMetrics().filter(m => 
-      m.name.includes(namePattern) && m.duration !== undefined
+    const matching = this.getAllMetrics().filter(
+      m => m.name.includes(namePattern) && m.duration !== undefined
     );
 
     if (matching.length === 0) return 0;
@@ -105,13 +101,13 @@ class PerformanceMonitor {
    */
   getSummary() {
     const all = this.getAllMetrics();
-    
+
     if (all.length === 0) {
       return {
         count: 0,
         average: 0,
         min: 0,
-        max: 0
+        max: 0,
       };
     }
 
@@ -122,9 +118,9 @@ class PerformanceMonitor {
       average: durations.reduce((a, b) => a + b, 0) / durations.length,
       min: Math.min(...durations),
       max: Math.max(...durations),
-      slowest: all.reduce((prev, curr) => 
+      slowest: all.reduce((prev, curr) =>
         (curr.duration || 0) > (prev.duration || 0) ? curr : prev
-      ).name
+      ).name,
     };
   }
 
@@ -163,8 +159,8 @@ export const BrowserPerf = {
    * Get Largest Contentful Paint
    */
   getLCP(): Promise<number> {
-    return new Promise((resolve) => {
-      const observer = new PerformanceObserver((list) => {
+    return new Promise(resolve => {
+      const observer = new PerformanceObserver(list => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1] as any;
         resolve(lastEntry.renderTime || lastEntry.loadTime);
@@ -202,7 +198,8 @@ export const BrowserPerf = {
       fcp: BrowserPerf.getFCP(),
       tti: BrowserPerf.getTTI(),
       pageLoad: BrowserPerf.getPageLoadTime(),
-      domReady: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart
+      domReady: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
     };
-  }
+  },
 };
+

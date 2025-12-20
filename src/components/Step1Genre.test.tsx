@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Step1Genre from './Step1Genre';
-import type { ScriptData } from '../../types';
-import { GENRES } from '../../constants';
+import type { ScriptData } from '../types';
+import { GENRES } from '../constants';
 import * as geminiService from '../services/geminiService';
 
 // Mock services
@@ -91,8 +91,8 @@ describe('Step1Genre', () => {
     });
 
     it('should render language selector', () => {
-      render(<Step1Genre {...defaultProps} />);
-      const select = screen.getByDisplayValue(/ภาษาไทย/) as HTMLSelectElement;
+      const { container } = render(<Step1Genre {...defaultProps} />);
+      const select = container.querySelector('#projectLanguage') as HTMLSelectElement;
       expect(select).toBeInTheDocument();
       expect(select.name).toBe('language');
     });
@@ -372,7 +372,7 @@ describe('Step1Genre', () => {
         onloadend: null as any,
         result: 'data:image/png;base64,uploaded',
       };
-      vi.spyOn(window, 'FileReader').mockImplementation(() => mockReader as any);
+      vi.spyOn(window, 'FileReader').mockImplementation(function() { return mockReader; } as any);
 
       fireEvent.change(fileInput, { target: { files: [file] } });
 
@@ -692,3 +692,4 @@ describe('Step1Genre', () => {
     });
   });
 });
+

@@ -1,11 +1,16 @@
 /**
  * Profit & Loss Comparison Dashboard
- * 
+ *
  * หน้าเปรียบเทียบกำไร-ขาดทุน พร้อมภาษีหลังหักและรายละเอียดครบถ้วน
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { ProfitLossStatement, PeriodComparison, HistoricalProfitLoss, ComparisonPeriod } from '../../types/analytics';
+import type {
+  ProfitLossStatement,
+  PeriodComparison,
+  HistoricalProfitLoss,
+  ComparisonPeriod,
+} from '../../types/analytics';
 import {
   calculateProfitLoss,
   getComparison,
@@ -20,20 +25,22 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalProfitLoss | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedView, setSelectedView] = useState<'summary' | 'detailed' | 'comparison' | 'trends'>('summary');
+  const [selectedView, setSelectedView] = useState<
+    'summary' | 'detailed' | 'comparison' | 'trends'
+  >('summary');
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Load current P&L
       const pnl = await calculateProfitLoss(periodType);
       setCurrentPL(pnl);
-      
+
       // Load comparison
       const comp = await getComparison(periodType);
       setComparison(comp);
-      
+
       // Load historical data
       const historical = await getHistoricalData(periodType, 6);
       setHistoricalData(historical);
@@ -70,7 +77,8 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
     const isPositive = change.amount >= 0;
     return (
       <span className={`pnl-change ${isPositive ? 'positive' : 'negative'}`}>
-        {isPositive ? '▲' : '▼'} {formatMoney(Math.abs(change.amount))} ({formatPercent(Math.abs(change.percentage))})
+        {isPositive ? '▲' : '▼'} {formatMoney(Math.abs(change.amount))} (
+        {formatPercent(Math.abs(change.percentage))})
       </span>
     );
   }
@@ -94,18 +102,18 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
           <h1>📊 Profit & Loss Analysis</h1>
           <p className="pnl-subtitle">รายงานกำไร-ขาดทุน พร้อมภาษีหลังหัก</p>
         </div>
-        
+
         <div className="pnl-header-controls">
-          <select 
-            value={periodType} 
-            onChange={(e) => setPeriodType(e.target.value as ComparisonPeriod)}
+          <select
+            value={periodType}
+            onChange={e => setPeriodType(e.target.value as ComparisonPeriod)}
             aria-label="เลือกประเภทเวลา"
           >
             <option value="month">รายเดือน</option>
             <option value="quarter">รายไตรมาส</option>
             <option value="year">รายปี</option>
           </select>
-          
+
           <button onClick={handleExport} className="pnl-export-btn">
             📥 Export CSV
           </button>
@@ -116,7 +124,8 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
       <div className="pnl-period-banner">
         <h2>{currentPL.period.label}</h2>
         <p className="pnl-date-range">
-          {currentPL.period.start.toLocaleDateString('th-TH')} - {currentPL.period.end.toLocaleDateString('th-TH')}
+          {currentPL.period.start.toLocaleDateString('th-TH')} -{' '}
+          {currentPL.period.end.toLocaleDateString('th-TH')}
         </p>
       </div>
 
@@ -169,9 +178,7 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
               <div className="pnl-metric-content">
                 <h3>ต้นทุนขาย</h3>
                 <p className="pnl-metric-value">{formatMoney(currentPL.cogs.total)}</p>
-                <p className="pnl-metric-subtitle">
-                  APIs: {formatMoney(currentPL.cogs.apiCosts)}
-                </p>
+                <p className="pnl-metric-subtitle">APIs: {formatMoney(currentPL.cogs.apiCosts)}</p>
               </div>
             </div>
 
@@ -212,12 +219,12 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
               <div className="pnl-metric-icon">✅</div>
               <div className="pnl-metric-content">
                 <h3>กำไรสุทธิ (หลังหักภาษี)</h3>
-                <p className={`pnl-metric-value ${currentPL.netProfitAfterTax >= 0 ? 'positive' : 'negative'}`}>
+                <p
+                  className={`pnl-metric-value ${currentPL.netProfitAfterTax >= 0 ? 'positive' : 'negative'}`}
+                >
                   {formatMoney(currentPL.netProfitAfterTax)}
                 </p>
-                <p className="pnl-metric-subtitle">
-                  Margin: {formatPercent(currentPL.netMargin)}
-                </p>
+                <p className="pnl-metric-subtitle">Margin: {formatPercent(currentPL.netMargin)}</p>
               </div>
             </div>
           </div>
@@ -262,157 +269,299 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
               <tbody>
                 {/* Revenue Section */}
                 <tr className="pnl-section-header">
-                  <td colSpan={3}><strong>รายได้ (REVENUE)</strong></td>
+                  <td colSpan={3}>
+                    <strong>รายได้ (REVENUE)</strong>
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Subscriptions</td>
                   <td className="pnl-amount">{formatMoney(currentPL.revenue.subscriptions)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.revenue.subscriptions / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.revenue.subscriptions / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Add-ons</td>
                   <td className="pnl-amount">{formatMoney(currentPL.revenue.addons)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.revenue.addons / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.revenue.addons / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Other</td>
                   <td className="pnl-amount">{formatMoney(currentPL.revenue.other)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.revenue.other / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.revenue.other / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr className="pnl-subtotal">
-                  <td><strong>รายได้รวม</strong></td>
-                  <td className="pnl-amount"><strong>{formatMoney(currentPL.revenue.total)}</strong></td>
-                  <td className="pnl-percent"><strong>100.00%</strong></td>
+                  <td>
+                    <strong>รายได้รวม</strong>
+                  </td>
+                  <td className="pnl-amount">
+                    <strong>{formatMoney(currentPL.revenue.total)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>100.00%</strong>
+                  </td>
                 </tr>
 
                 {/* COGS Section */}
                 <tr className="pnl-section-header">
-                  <td colSpan={3}><strong>ต้นทุนขาย (COST OF GOODS SOLD)</strong></td>
+                  <td colSpan={3}>
+                    <strong>ต้นทุนขาย (COST OF GOODS SOLD)</strong>
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">API Costs</td>
                   <td className="pnl-amount negative">{formatMoney(currentPL.cogs.apiCosts)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.cogs.apiCosts / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.cogs.apiCosts / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Storage Costs</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.cogs.storageCosts)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.cogs.storageCosts / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.cogs.storageCosts)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.cogs.storageCosts / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Compute Costs</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.cogs.computeCosts)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.cogs.computeCosts / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.cogs.computeCosts)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.cogs.computeCosts / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Database Costs</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.cogs.databaseCosts)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.cogs.databaseCosts / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.cogs.databaseCosts)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.cogs.databaseCosts / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Bandwidth Costs</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.cogs.bandwidthCosts)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.cogs.bandwidthCosts / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.cogs.bandwidthCosts)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.cogs.bandwidthCosts / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr className="pnl-subtotal">
-                  <td><strong>ต้นทุนขายรวม</strong></td>
-                  <td className="pnl-amount negative"><strong>{formatMoney(currentPL.cogs.total)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent((currentPL.cogs.total / currentPL.revenue.total) * 100)}</strong></td>
+                  <td>
+                    <strong>ต้นทุนขายรวม</strong>
+                  </td>
+                  <td className="pnl-amount negative">
+                    <strong>{formatMoney(currentPL.cogs.total)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>
+                      {formatPercent((currentPL.cogs.total / currentPL.revenue.total) * 100)}
+                    </strong>
+                  </td>
                 </tr>
 
                 {/* Gross Profit */}
                 <tr className="pnl-total">
-                  <td><strong>กำไรขั้นต้น (GROSS PROFIT)</strong></td>
-                  <td className="pnl-amount"><strong>{formatMoney(currentPL.grossProfit)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent(currentPL.grossMargin)}</strong></td>
+                  <td>
+                    <strong>กำไรขั้นต้น (GROSS PROFIT)</strong>
+                  </td>
+                  <td className="pnl-amount">
+                    <strong>{formatMoney(currentPL.grossProfit)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>{formatPercent(currentPL.grossMargin)}</strong>
+                  </td>
                 </tr>
 
                 {/* Operating Expenses */}
                 <tr className="pnl-section-header">
-                  <td colSpan={3}><strong>ค่าใช้จ่ายดำเนินงาน (OPERATING EXPENSES)</strong></td>
+                  <td colSpan={3}>
+                    <strong>ค่าใช้จ่ายดำเนินงาน (OPERATING EXPENSES)</strong>
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Salaries</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.operatingExpenses.salaries)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.operatingExpenses.salaries / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.operatingExpenses.salaries)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.operatingExpenses.salaries / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Marketing</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.operatingExpenses.marketing)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.operatingExpenses.marketing / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.operatingExpenses.marketing)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.operatingExpenses.marketing / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Infrastructure</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.operatingExpenses.infrastructure)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.operatingExpenses.infrastructure / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.operatingExpenses.infrastructure)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.operatingExpenses.infrastructure / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Software</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.operatingExpenses.software)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.operatingExpenses.software / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.operatingExpenses.software)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.operatingExpenses.software / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Other</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.operatingExpenses.other)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.operatingExpenses.other / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.operatingExpenses.other)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.operatingExpenses.other / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr className="pnl-subtotal">
-                  <td><strong>ค่าใช้จ่ายรวม</strong></td>
-                  <td className="pnl-amount negative"><strong>{formatMoney(currentPL.operatingExpenses.total)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent((currentPL.operatingExpenses.total / currentPL.revenue.total) * 100)}</strong></td>
+                  <td>
+                    <strong>ค่าใช้จ่ายรวม</strong>
+                  </td>
+                  <td className="pnl-amount negative">
+                    <strong>{formatMoney(currentPL.operatingExpenses.total)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>
+                      {formatPercent(
+                        (currentPL.operatingExpenses.total / currentPL.revenue.total) * 100
+                      )}
+                    </strong>
+                  </td>
                 </tr>
 
                 {/* EBITDA */}
                 <tr className="pnl-total">
-                  <td><strong>EBITDA</strong></td>
-                  <td className="pnl-amount"><strong>{formatMoney(currentPL.ebitda)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent(currentPL.ebitdaMargin)}</strong></td>
+                  <td>
+                    <strong>EBITDA</strong>
+                  </td>
+                  <td className="pnl-amount">
+                    <strong>{formatMoney(currentPL.ebitda)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>{formatPercent(currentPL.ebitdaMargin)}</strong>
+                  </td>
                 </tr>
 
                 {/* Taxes */}
                 <tr className="pnl-section-header">
-                  <td colSpan={3}><strong>ภาษี (TAXES)</strong></td>
+                  <td colSpan={3}>
+                    <strong>ภาษี (TAXES)</strong>
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">VAT (7%)</td>
                   <td className="pnl-amount negative">{formatMoney(currentPL.taxes.vat)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.taxes.vat / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.taxes.vat / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Corporate Tax (20%)</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.taxes.corporateTax)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.taxes.corporateTax / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.taxes.corporateTax)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent((currentPL.taxes.corporateTax / currentPL.revenue.total) * 100)}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Withholding Tax (3%)</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.taxes.withholdingTax)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.taxes.withholdingTax / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.taxes.withholdingTax)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.taxes.withholdingTax / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="pnl-indent">Social Security (5%)</td>
-                  <td className="pnl-amount negative">{formatMoney(currentPL.taxes.socialSecurity)}</td>
-                  <td className="pnl-percent">{formatPercent((currentPL.taxes.socialSecurity / currentPL.revenue.total) * 100)}</td>
+                  <td className="pnl-amount negative">
+                    {formatMoney(currentPL.taxes.socialSecurity)}
+                  </td>
+                  <td className="pnl-percent">
+                    {formatPercent(
+                      (currentPL.taxes.socialSecurity / currentPL.revenue.total) * 100
+                    )}
+                  </td>
                 </tr>
                 <tr className="pnl-subtotal">
-                  <td><strong>ภาษีรวม</strong></td>
-                  <td className="pnl-amount negative"><strong>{formatMoney(currentPL.taxes.total)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent((currentPL.taxes.total / currentPL.revenue.total) * 100)}</strong></td>
+                  <td>
+                    <strong>ภาษีรวม</strong>
+                  </td>
+                  <td className="pnl-amount negative">
+                    <strong>{formatMoney(currentPL.taxes.total)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>
+                      {formatPercent((currentPL.taxes.total / currentPL.revenue.total) * 100)}
+                    </strong>
+                  </td>
                 </tr>
 
                 {/* Net Profit Before Tax */}
                 <tr className="pnl-total">
-                  <td><strong>กำไรสุทธิก่อนหักภาษี</strong></td>
-                  <td className="pnl-amount"><strong>{formatMoney(currentPL.netProfitBeforeTax)}</strong></td>
-                  <td className="pnl-percent"><strong>{formatPercent((currentPL.netProfitBeforeTax / currentPL.revenue.total) * 100)}</strong></td>
+                  <td>
+                    <strong>กำไรสุทธิก่อนหักภาษี</strong>
+                  </td>
+                  <td className="pnl-amount">
+                    <strong>{formatMoney(currentPL.netProfitBeforeTax)}</strong>
+                  </td>
+                  <td className="pnl-percent">
+                    <strong>
+                      {formatPercent(
+                        (currentPL.netProfitBeforeTax / currentPL.revenue.total) * 100
+                      )}
+                    </strong>
+                  </td>
                 </tr>
 
                 {/* Net Profit After Tax */}
                 <tr className="pnl-final">
-                  <td><strong>กำไรสุทธิหลังหักภาษี</strong></td>
-                  <td className={`pnl-amount ${currentPL.netProfitAfterTax >= 0 ? 'positive' : 'negative'}`}>
+                  <td>
+                    <strong>กำไรสุทธิหลังหักภาษี</strong>
+                  </td>
+                  <td
+                    className={`pnl-amount ${currentPL.netProfitAfterTax >= 0 ? 'positive' : 'negative'}`}
+                  >
                     <strong>{formatMoney(currentPL.netProfitAfterTax)}</strong>
                   </td>
-                  <td className="pnl-percent"><strong>{formatPercent(currentPL.netMargin)}</strong></td>
+                  <td className="pnl-percent">
+                    <strong>{formatPercent(currentPL.netMargin)}</strong>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -459,9 +608,7 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
                   <span className="pnl-label">งวดปัจจุบัน:</span>
                   <span>{formatMoney(comparison.current.cogs.total)}</span>
                 </div>
-                <div className="pnl-comparison-change">
-                  {formatChange(comparison.changes.cogs)}
-                </div>
+                <div className="pnl-comparison-change">{formatChange(comparison.changes.cogs)}</div>
               </div>
             </div>
 
@@ -541,23 +688,28 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
         <div className="pnl-content">
           <div className="pnl-trends-section">
             <h3>📈 แนวโน้มกำไร-ขาดทุน (6 งวดล่าสุด)</h3>
-            
+
             {/* Simple Bar Chart */}
             <div className="pnl-chart">
               <div className="pnl-chart-bars">
                 {historicalData.periods.map((period, index) => {
-                  const maxValue = Math.max(...historicalData.periods.map(p => Math.abs(p.netProfitAfterTax)));
-                  const height = maxValue > 0 ? (Math.abs(period.netProfitAfterTax) / maxValue) * 100 : 0;
+                  const maxValue = Math.max(
+                    ...historicalData.periods.map(p => Math.abs(p.netProfitAfterTax))
+                  );
+                  const height =
+                    maxValue > 0 ? (Math.abs(period.netProfitAfterTax) / maxValue) * 100 : 0;
                   const isPositive = period.netProfitAfterTax >= 0;
-                  
+
                   return (
                     <div key={index} className="pnl-chart-bar-container">
                       <div className="pnl-chart-bar-wrapper">
-                        <div 
+                        <div
                           className={`pnl-chart-bar ${isPositive ? 'positive' : 'negative'}`}
                           style={{ height: `${height}%` } as React.CSSProperties}
                         >
-                          <span className="pnl-bar-value">{formatMoney(period.netProfitAfterTax)}</span>
+                          <span className="pnl-bar-value">
+                            {formatMoney(period.netProfitAfterTax)}
+                          </span>
                         </div>
                       </div>
                       <div className="pnl-chart-label">{period.period.label}</div>
@@ -612,3 +764,4 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
     </div>
   );
 };
+

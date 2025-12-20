@@ -11,16 +11,19 @@ Voice Cloning is now fully operational using Coqui XTTS-v2. This guide covers de
 ### System Requirements
 
 **Python:**
+
 - Python 3.11+ (tested with 3.11.14)
 - ⚠️ Python 3.9 is NOT compatible
 
 **Hardware:**
+
 - Minimum: 4GB RAM
 - Recommended: 8GB+ RAM
 - CPU: Any modern processor (tested on Apple M1)
 - GPU: Optional (CUDA support available but not required)
 
 **Storage:**
+
 - Minimum: 5GB free space
 - Model files: ~2GB
 - Voice samples: ~100MB per hour of audio
@@ -89,6 +92,7 @@ pip install -r requirements.txt
 **Download size:** ~200MB+
 
 **Key packages installed:**
+
 - `TTS==0.22.0` - Coqui TTS
 - `torch==2.4.1` - PyTorch
 - `torchaudio==2.4.1` - Audio processing
@@ -177,21 +181,23 @@ Create `ecosystem.config.js`:
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'voice-cloning',
-    script: 'venv-tts/bin/python',
-    args: 'server.py',
-    cwd: './backend/voice-cloning',
-    interpreter: 'none',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '2G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 8001
-    }
-  }]
+  apps: [
+    {
+      name: 'voice-cloning',
+      script: 'venv-tts/bin/python',
+      args: 'server.py',
+      cwd: './backend/voice-cloning',
+      interpreter: 'none',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '2G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 8001,
+      },
+    },
+  ],
 };
 ```
 
@@ -250,7 +256,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Timeouts for long synthesis
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -358,17 +364,17 @@ Response:
 
 XTTS-v2 supports 17 languages:
 
-| Code | Language | Code | Language |
-|------|----------|------|----------|
-| `en` | English | `es` | Spanish |
-| `fr` | French | `de` | German |
-| `it` | Italian | `pt` | Portuguese |
-| `pl` | Polish | `tr` | Turkish |
-| `ru` | Russian | `nl` | Dutch |
-| `cs` | Czech | `ar` | Arabic |
-| `zh-cn` | Chinese | `hu` | Hungarian |
-| `ko` | Korean | `ja` | Japanese |
-| `hi` | Hindi | | |
+| Code    | Language | Code | Language   |
+| ------- | -------- | ---- | ---------- |
+| `en`    | English  | `es` | Spanish    |
+| `fr`    | French   | `de` | German     |
+| `it`    | Italian  | `pt` | Portuguese |
+| `pl`    | Polish   | `tr` | Turkish    |
+| `ru`    | Russian  | `nl` | Dutch      |
+| `cs`    | Czech    | `ar` | Arabic     |
+| `zh-cn` | Chinese  | `hu` | Hungarian  |
+| `ko`    | Korean   | `ja` | Japanese   |
+| `hi`    | Hindi    |      |            |
 
 ---
 
@@ -398,6 +404,7 @@ TTS_DEVICE=cuda
 ```
 
 **Performance comparison:**
+
 - CPU (M1): ~10-15 seconds for 6s audio
 - GPU (NVIDIA): ~2-3 seconds for 6s audio
 
@@ -594,39 +601,46 @@ sqlite3 voices.db < backup.sql
 ### From Plan A (Standard TTS) to Plan C (Voice Cloning)
 
 1. **Backup existing data**
+
 ```bash
 cp -r uploads uploads.backup
 ```
 
 2. **Install Python 3.11+**
+
 ```bash
 pyenv install 3.11.14
 pyenv local 3.11.14
 ```
 
 3. **Create new environment**
+
 ```bash
 python -m venv venv-tts
 source venv-tts/bin/activate
 ```
 
 4. **Install dependencies**
+
 ```bash
 pip install -r requirements.txt
 ```
 
 5. **Download model**
+
 ```bash
 python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/xtts_v2')"
 ```
 
 6. **Test server**
+
 ```bash
 python server.py
 curl http://localhost:8001/health
 ```
 
 7. **Update frontend**
+
 - Remove Plan A disclaimers
 - Update API endpoints
 - Test voice upload UI
@@ -671,16 +685,19 @@ curl http://localhost:8001/health
 ## Performance Benchmarks
 
 ### Model Loading
+
 - Initial load: 20-30 seconds (CPU)
 - Memory usage: ~1.9GB RAM
 - Model size: 1.8GB disk
 
 ### Voice Upload
+
 - Processing: < 1 second
 - Max file size: 50MB
 - Formats: WAV, MP3, FLAC, OGG, M4A, WebM
 
 ### Voice Synthesis
+
 - Speed: ~0.5s per second of audio (CPU)
 - Average: 10-15 seconds for 6s audio
 - Quality: 24kHz, 16-bit, professional

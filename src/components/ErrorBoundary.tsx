@@ -14,7 +14,7 @@ class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: null
+    errorInfo: null,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -25,7 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     // Send to Sentry if available
@@ -52,21 +52,34 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="bg-gray-800 border border-red-500/50 rounded-xl shadow-2xl max-w-2xl w-full p-8">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 bg-red-900/30 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
-                <p className="text-gray-400 text-sm mt-1">Peace Script encountered an unexpected error</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Peace Script encountered an unexpected error
+                </p>
               </div>
             </div>
 
             {this.state.error && (
               <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 mb-6">
-                <h2 className="text-sm font-bold text-red-400 mb-2 uppercase tracking-wider">Error Details</h2>
+                <h2 className="text-sm font-bold text-red-400 mb-2 uppercase tracking-wider">
+                  Error Details
+                </h2>
                 <p className="text-white font-mono text-sm mb-2">{this.state.error.toString()}</p>
-                
+
                 {this.state.errorInfo && (
                   <details className="mt-3">
                     <summary className="text-gray-400 text-xs cursor-pointer hover:text-white transition-colors">
@@ -87,7 +100,7 @@ class ErrorBoundary extends Component<Props, State> {
               >
                 Reload Application
               </button>
-              
+
               <button
                 onClick={() => {
                   if (window.confirm('This will clear all local data. Are you sure?')) {
@@ -127,3 +140,4 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
+

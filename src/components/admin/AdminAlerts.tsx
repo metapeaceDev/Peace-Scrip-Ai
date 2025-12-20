@@ -1,6 +1,6 @@
 /**
  * Admin Alerts Component
- * 
+ *
  * แสดง alerts และ notifications สำหรับ admin เพื่อติดตามเหตุการณ์สำคัญ
  */
 
@@ -32,13 +32,13 @@ export const AdminAlerts: React.FC = () => {
   async function loadAlerts() {
     try {
       setLoading(true);
-      
+
       // ในการใช้จริงควรมี collection /admin-alerts ใน Firestore
       // ตอนนี้ใช้ dummy data เพื่อแสดง UI
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Dummy alerts data
       const dummyAlerts: AdminAlert[] = [
         {
@@ -46,7 +46,8 @@ export const AdminAlerts: React.FC = () => {
           type: 'cost-spike',
           severity: 'high',
           title: 'Unusual Cost Spike Detected',
-          message: 'API costs increased by 300% in the last hour. User making excessive Veo video requests.',
+          message:
+            'API costs increased by 300% in the last hour. User making excessive Veo video requests.',
           userId: 'user123',
           userEmail: 'heavy.user@example.com',
           data: { cost: 450, normalCost: 150 },
@@ -90,11 +91,9 @@ export const AdminAlerts: React.FC = () => {
           resolved: false,
         },
       ];
-      
-      const filtered = filter === 'unresolved' 
-        ? dummyAlerts.filter(a => !a.resolved)
-        : dummyAlerts;
-      
+
+      const filtered = filter === 'unresolved' ? dummyAlerts.filter(a => !a.resolved) : dummyAlerts;
+
       setAlerts(filtered);
       setLoading(false);
     } catch (error) {
@@ -105,12 +104,18 @@ export const AdminAlerts: React.FC = () => {
 
   function getAlertIcon(type: AdminAlert['type']) {
     switch (type) {
-      case 'cost-spike': return '💸';
-      case 'abuse-detected': return '🚨';
-      case 'quota-exceeded': return '⚠️';
-      case 'system-error': return '❌';
-      case 'new-enterprise': return '🎉';
-      default: return '📢';
+      case 'cost-spike':
+        return '💸';
+      case 'abuse-detected':
+        return '🚨';
+      case 'quota-exceeded':
+        return '⚠️';
+      case 'system-error':
+        return '❌';
+      case 'new-enterprise':
+        return '🎉';
+      default:
+        return '📢';
     }
   }
 
@@ -166,7 +171,13 @@ export const AdminAlerts: React.FC = () => {
             </button>
           </div>
           <button className="btn-refresh" onClick={loadAlerts}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
             Refresh
@@ -182,28 +193,28 @@ export const AdminAlerts: React.FC = () => {
         </div>
       ) : (
         <div className="alerts-list">
-          {alerts.map((alert) => (
+          {alerts.map(alert => (
             <div
               key={alert.id}
               className={`alert-item ${getSeverityClass(alert.severity)} ${alert.resolved ? 'resolved' : ''}`}
             >
               <div className="alert-icon">{getAlertIcon(alert.type)}</div>
-              
+
               <div className="alert-content">
                 <div className="alert-header-row">
                   <h4 className="alert-title">{alert.title}</h4>
                   <span className="alert-time">{formatTime(alert.createdAt)}</span>
                 </div>
-                
+
                 <p className="alert-message">{alert.message}</p>
-                
+
                 {alert.userEmail && (
                   <div className="alert-user">
                     <span className="user-label">User:</span>
                     <span className="user-email">{alert.userEmail}</span>
                   </div>
                 )}
-                
+
                 {alert.data && (
                   <div className="alert-data">
                     <details>
@@ -213,7 +224,7 @@ export const AdminAlerts: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="alert-actions">
                 <span className={`severity-badge ${getSeverityClass(alert.severity)}`}>
                   {alert.severity.toUpperCase()}
@@ -231,10 +242,11 @@ export const AdminAlerts: React.FC = () => {
 
       <div className="alerts-footer">
         <p className="footer-note">
-          💡 <strong>Note:</strong> This is a preview with sample data. 
-          In production, alerts will be generated automatically based on system monitoring.
+          💡 <strong>Note:</strong> This is a preview with sample data. In production, alerts will
+          be generated automatically based on system monitoring.
         </p>
       </div>
     </div>
   );
 };
+

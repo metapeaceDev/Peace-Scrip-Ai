@@ -3,6 +3,7 @@
 ## Overview
 
 Peace Script AI uses comprehensive testing strategy:
+
 - **Unit Tests**: Component and utility testing
 - **Integration Tests**: Service and API testing
 - **Coverage Target**: 80%+
@@ -31,21 +32,25 @@ src/
 ## 🚀 Running Tests
 
 ### Run All Tests
+
 ```bash
 npm test
 ```
 
 ### Run with Coverage
+
 ```bash
 npm run test:coverage
 ```
 
 ### Watch Mode
+
 ```bash
 npm run test:watch
 ```
 
 ### Run Specific Test
+
 ```bash
 npx vitest src/test/App.test.tsx
 ```
@@ -54,18 +59,19 @@ npx vitest src/test/App.test.tsx
 
 ## 📊 Coverage Goals
 
-| Category | Target | Current |
-|----------|--------|---------|
-| Statements | 80% | Measuring... |
-| Branches | 75% | Measuring... |
-| Functions | 80% | Measuring... |
-| Lines | 80% | Measuring... |
+| Category   | Target | Current      |
+| ---------- | ------ | ------------ |
+| Statements | 80%    | Measuring... |
+| Branches   | 75%    | Measuring... |
+| Functions  | 80%    | Measuring... |
+| Lines      | 80%    | Measuring... |
 
 ---
 
 ## ✅ Test Checklist
 
 ### Component Tests
+
 - [x] App.test.tsx
 - [x] StepIndicator.test.tsx
 - [x] Step1Genre.test.tsx
@@ -78,10 +84,12 @@ npx vitest src/test/App.test.tsx
 - [x] TeamManager.test.tsx (pending)
 
 ### Service Tests
+
 - [x] geminiService.test.ts
 - [ ] api.test.ts (pending)
 
 ### Utility Tests
+
 - [ ] monitoring.test.ts (pending)
 - [ ] errorBoundary.test.tsx (pending)
 
@@ -90,6 +98,7 @@ npx vitest src/test/App.test.tsx
 ## 🔧 Test Configuration
 
 ### vitest.config.ts
+
 ```typescript
 import { defineConfig } from 'vitest/config';
 
@@ -101,15 +110,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/test/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/dist/'
-      ]
-    }
-  }
+      exclude: ['node_modules/', 'src/test/', '**/*.d.ts', '**/*.config.*', '**/dist/'],
+    },
+  },
 });
 ```
 
@@ -118,6 +121,7 @@ export default defineConfig({
 ## 📝 Writing Tests
 
 ### Component Test Template
+
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -132,7 +136,7 @@ describe('YourComponent', () => {
   it('handles user interaction', () => {
     const mockFn = vi.fn();
     render(<YourComponent onClick={mockFn} />);
-    
+
     fireEvent.click(screen.getByRole('button'));
     expect(mockFn).toHaveBeenCalled();
   });
@@ -140,6 +144,7 @@ describe('YourComponent', () => {
 ```
 
 ### Service Test Template
+
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import { yourService } from '../services/yourService';
@@ -185,11 +190,13 @@ describe('yourService', () => {
 ## 🐛 Debugging Tests
 
 ### Run Tests in Debug Mode
+
 ```bash
 node --inspect-brk ./node_modules/.bin/vitest
 ```
 
 ### VS Code Debug Configuration
+
 ```json
 {
   "type": "node",
@@ -206,11 +213,13 @@ node --inspect-brk ./node_modules/.bin/vitest
 ## 📈 CI/CD Integration
 
 Tests run automatically on:
+
 - Pull requests
 - Commits to main branch
 - Pre-deployment
 
 ### GitHub Actions
+
 ```yaml
 - name: Run Tests
   run: npm test
@@ -234,4 +243,4 @@ After running `npm run test:coverage`:
 
 ---
 
-*Last Updated: 30 พฤศจิกายน 2568*
+_Last Updated: 30 พฤศจิกายน 2568_

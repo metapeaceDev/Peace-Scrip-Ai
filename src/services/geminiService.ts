@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import type { ScriptData, PlotPoint, Character, GeneratedScene } from '../../types';
-import { EMPTY_CHARACTER } from '../../constants';
+import type { ScriptData, PlotPoint, Character, GeneratedScene } from '../types';
+import { EMPTY_CHARACTER, DIALECT_PRESETS, ACCENT_PATTERNS } from '../constants';
 import {
   generateWithComfyUI as generateWithBackendComfyUI,
   checkBackendStatus,
@@ -9,14 +9,12 @@ import { formatPsychologyForPrompt, calculatePsychologyProfile } from './psychol
 import type { GenerationMode } from './comfyuiWorkflowBuilder';
 import { MODE_PRESETS } from './comfyuiWorkflowBuilder';
 import { hasAccessToModel, deductCredits } from './userStore';
-import { checkQuota, recordUsage } from './subscriptionManager';
+import { checkQuota, recordUsage, checkVeoQuota, recordVeoUsage } from './subscriptionManager';
 import { auth } from '../config/firebase';
+import { recordGeneration } from './modelUsageTracker';
+import { API_PRICING } from '../types/analytics';
 import { loadRenderSettings } from './deviceManager';
-import {
-  generateAnimateDiffVideo,
-  generateSVDVideo,
-  generateHotshotXL,
-} from './replicateService';
+import { generateAnimateDiffVideo, generateSVDVideo, generateHotshotXL } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
 import { getSavedComfyUIUrl, checkComfyUIStatus } from './comfyuiInstaller';
 
@@ -30,6 +28,24 @@ const getAI = () => {
 };
 
 const ai = getAI();
+
+/**
+ * Count tokens for a given text using Gemini model
+ */
+async function countTokens(text: string, modelId: string = 'gemini-1.5-flash'): Promise<number> {
+  try {
+    // Use a default model for counting if specific one not available
+    const model = modelId.includes('flash') ? 'gemini-1.5-flash' : 'gemini-1.5-pro';
+    const { totalTokens } = await ai.models.countTokens({
+      model: model,
+      contents: [{ parts: [{ text }] }],
+    });
+    return totalTokens || Math.ceil(text.length / 4); // Fallback to char est.
+  } catch (error) {
+    console.warn('Token counting failed, using fallback:', error);
+    return Math.ceil(text.length / 4);
+  }
+}
 
 // --- IMAGE GENERATION PROVIDERS ---
 // AI Model Configuration with Pricing
@@ -216,7 +232,10 @@ const GEMINI_25_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_20_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
 const USE_COMFYUI_BACKEND = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
 const COMFYUI_ENABLED = import.meta.env.VITE_COMFYUI_ENABLED === 'true';
-const COMFYUI_DEFAULT_URL = import.meta.env.VITE_COMFYUI_URL || import.meta.env.VITE_COMFYUI_API_URL || "http://localhost:8188";
+const COMFYUI_DEFAULT_URL =
+  import.meta.env.VITE_COMFYUI_URL ||
+  import.meta.env.VITE_COMFYUI_API_URL ||
+  'http://localhost:8188';
 
 /**
  * Get ComfyUI API URL (uses getSavedComfyUIUrl for auto-cleanup of old URLs)
@@ -500,13 +519,16 @@ async function generateVideoWithComfyUI(
     // 🔥 LAYER 7: FORCE CLEANUP before video generation
     const cachedUrl = localStorage.getItem('comfyui_url');
     if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
-      console.warn('🗑️ LAYER 7 CLEANUP: Removing Cloudflare URL before video generation:', cachedUrl);
+      console.warn(
+        '🗑️ LAYER 7 CLEANUP: Removing Cloudflare URL before video generation:',
+        cachedUrl
+      );
       localStorage.removeItem('comfyui_url');
     }
 
     // Determine if using AnimateDiff or SVD
     const useAnimateDiff = options.useAnimateDiff !== false; // Default to true
-    
+
     // Calculate optimal parameters from psychology if available
     let finalFrameCount = options.frameCount;
     let finalFPS = options.fps;
@@ -537,7 +559,7 @@ async function generateVideoWithComfyUI(
       inputs: Record<string, any>;
       class_type: string;
     }
-    
+
     interface Workflow {
       [key: string]: WorkflowNode;
     }
@@ -564,7 +586,9 @@ async function generateVideoWithComfyUI(
         },
         '3': {
           inputs: {
-            text: options.negativePrompt || 'low quality, blurry, distorted, watermark, static, frozen, duplicate frames',
+            text:
+              options.negativePrompt ||
+              'low quality, blurry, distorted, watermark, static, frozen, duplicate frames',
             clip: ['1', 1],
           },
           class_type: 'CLIPTextEncode',
@@ -727,7 +751,7 @@ async function generateVideoWithComfyUI(
     // Queue prompt to ComfyUI with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for queue
-    
+
     try {
       const comfyuiUrl = getComfyUIApiUrl();
       const queueResponse = await fetch(`${comfyuiUrl}/prompt`, {
@@ -786,7 +810,9 @@ async function generateVideoWithComfyUI(
       clearTimeout(timeoutId);
       const err = error as { name?: string };
       if (err.name === 'AbortError') {
-        throw new Error('ComfyUI connection timeout. Please check if ComfyUI server is running and accessible.');
+        throw new Error(
+          'ComfyUI connection timeout. Please check if ComfyUI server is running and accessible.'
+        );
       }
       throw error;
     }
@@ -805,6 +831,7 @@ async function generateImageWithGemini25(
   prompt: string,
   referenceImageBase64?: string
 ): Promise<string> {
+  const startTime = Date.now();
   // Skip quota monitoring for now
   // recordRequest('gemini-2.5');
 
@@ -832,26 +859,66 @@ async function generateImageWithGemini25(
   // Add text prompt AFTER image
   parts.push({ text: prompt });
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_25_IMAGE_MODEL,
-    contents: { parts },
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: GEMINI_25_IMAGE_MODEL,
+      contents: { parts },
+    });
 
-  type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
-  const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
-    part.inlineData?.mimeType?.startsWith('image/')
-  );
+    type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
+    const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
+      part.inlineData?.mimeType?.startsWith('image/')
+    );
 
-  if (imageData?.inlineData?.data) {
-    return `data:${imageData.inlineData.mimeType};base64,${imageData.inlineData.data}`;
+    if (imageData?.inlineData?.data) {
+      // Track successful generation
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const duration = (Date.now() - startTime) / 1000;
+        recordGeneration({
+          userId,
+          type: 'image',
+          modelId: 'gemini-2.5-flash',
+          modelName: 'Gemini 2.5 Flash Image',
+          provider: 'gemini',
+          costInCredits: 0,
+          costInTHB: API_PRICING.GEMINI['2.5-flash'].image,
+          success: true,
+          duration,
+          metadata: { prompt },
+        }).catch(err => console.error('Failed to track generation:', err));
+      }
+
+      return `data:${imageData.inlineData.mimeType};base64,${imageData.inlineData.data}`;
+    }
+    throw new Error('No image data found in Gemini 2.5 response');
+  } catch (error) {
+    // Track failed generation
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      recordGeneration({
+        userId,
+        type: 'image',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash Image',
+        provider: 'gemini',
+        costInCredits: 0,
+        costInTHB: 0,
+        success: false,
+        duration,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+    throw error;
   }
-  throw new Error('No image data found in Gemini 2.5 response');
 }
 
 async function generateImageWithGemini20(
   prompt: string,
   referenceImageBase64?: string
 ): Promise<string> {
+  const startTime = Date.now();
   // Skip quota monitoring for now
   // recordRequest('gemini-2.0');
 
@@ -879,20 +946,59 @@ async function generateImageWithGemini20(
   // Add text prompt AFTER image
   parts.push({ text: prompt });
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_20_IMAGE_MODEL,
-    contents: { parts },
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: GEMINI_20_IMAGE_MODEL,
+      contents: { parts },
+    });
 
-  type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
-  const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
-    part.inlineData?.mimeType?.startsWith('image/')
-  );
+    type ResponsePart = { inlineData?: { mimeType?: string; data?: string } };
+    const imageData = response.candidates?.[0]?.content?.parts?.find((part: ResponsePart) =>
+      part.inlineData?.mimeType?.startsWith('image/')
+    );
 
-  if (imageData?.inlineData?.data) {
-    return `data:${imageData.inlineData.mimeType};base64,${imageData.inlineData.data}`;
+    if (imageData?.inlineData?.data) {
+      // Track successful generation
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const duration = (Date.now() - startTime) / 1000;
+        recordGeneration({
+          userId,
+          type: 'image',
+          modelId: 'gemini-2.0-flash',
+          modelName: 'Gemini 2.0 Flash Image',
+          provider: 'gemini',
+          costInCredits: 0,
+          costInTHB: 0, // Free
+          success: true,
+          duration,
+          metadata: { prompt },
+        }).catch(err => console.error('Failed to track generation:', err));
+      }
+
+      return `data:${imageData.inlineData.mimeType};base64,${imageData.inlineData.data}`;
+    }
+    throw new Error('No image data found in Gemini 2.0 response');
+  } catch (error) {
+    // Track failed generation
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+      recordGeneration({
+        userId,
+        type: 'image',
+        modelId: 'gemini-2.0-flash',
+        modelName: 'Gemini 2.0 Flash Image',
+        provider: 'gemini',
+        costInCredits: 0,
+        costInTHB: 0,
+        success: false,
+        duration,
+        metadata: { prompt },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+    throw error;
   }
-  throw new Error('No image data found in Gemini 2.0 response');
 }
 
 // --- COMFYUI-FIRST CASCADE ---
@@ -1013,7 +1119,9 @@ async function generateImageWithCascade(
         ),
       ]);
 
-      const status = backendStatus as { platform?: { supportsFaceID?: boolean; os?: string; hasNvidiaGPU?: boolean } };
+      const status = backendStatus as {
+        platform?: { supportsFaceID?: boolean; os?: string; hasNvidiaGPU?: boolean };
+      };
       platformSupport = status.platform?.supportsFaceID ?? false;
       isMacPlatform = !platformSupport;
 
@@ -1654,6 +1762,7 @@ async function detectDocumentLanguage(text: string): Promise<'Thai' | 'English'>
 
 // --- UNIFIED IMPORT FUNCTION (High Context) ---
 export async function parseDocumentToScript(rawText: string): Promise<Partial<ScriptData>> {
+  const startTime = Date.now();
   // Gemini 2.5 Flash has a massive context window. We can process huge scripts in one pass.
   // Truncate to a safe limit (approx 800k chars is plenty safe for 1M tokens)
   const contextText = rawText.slice(0, 800000);
@@ -1724,7 +1833,37 @@ export async function parseDocumentToScript(rawText: string): Promise<Partial<Sc
       },
     });
 
-    const jsonStr = extractJsonFromResponse(response.text || "{}");
+    // Track Usage
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+
+      // Granular Tracking: Use Token Counting
+      const inputTokens = await countTokens(prompt, 'gemini-1.5-flash');
+      const outputTokens = await countTokens(response.text || '', 'gemini-1.5-flash');
+
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Script Analysis)',
+        provider: 'gemini',
+        costInCredits: 0, // Free feature for now? Or maybe charge credits?
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Script Analysis',
+          tokens: { input: inputTokens, output: outputTokens },
+        },
+      }).catch(err => console.error('Failed to track generation:', err));
+    }
+
+    const jsonStr = extractJsonFromResponse(response.text || '{}');
     const parsedData = JSON.parse(jsonStr);
 
     return {
@@ -1807,7 +1946,7 @@ export async function generateCharacterDetails(
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
     // ✅ Record usage after successful generation
@@ -1972,7 +2111,7 @@ Return ONLY a valid JSON array of characters:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
 
     // Transform to full Character objects with IDs
@@ -2172,7 +2311,7 @@ Return ONLY a valid JSON array of 2-4 new characters:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const charactersArray = JSON.parse(text) as Array<Partial<Character>>;
 
     // Transform to full Character objects with IDs
@@ -2245,7 +2384,7 @@ export async function fillMissingCharacterDetails(
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     return JSON.parse(text);
   } catch (error) {
     console.error('Error filling missing character details:', error);
@@ -2280,7 +2419,7 @@ export async function generateFullScriptOutline(
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const parsed = JSON.parse(text);
 
     const result: Partial<ScriptData> = {
@@ -2304,6 +2443,7 @@ export async function generateScene(
   _totalScenesForPoint: number,
   sceneNumber: number
 ): Promise<GeneratedScene> {
+  const startTime = Date.now();
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
   if (userId) {
@@ -2512,7 +2652,7 @@ IMPORTANT: Use these psychological profiles to:
       config: { responseMimeType: 'application/json' },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const parsedScene = JSON.parse(text);
 
     const processedScene = {
@@ -2524,7 +2664,7 @@ IMPORTANT: Use these psychological profiles to:
         situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
           ...sit,
           dialogue: Array.isArray(sit.dialogue)
-            ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
+            ? (sit.dialogue as Array<Record<string, unknown>>).map(d => ({
                 ...d,
                 id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
               }))
@@ -2539,6 +2679,33 @@ IMPORTANT: Use these psychological profiles to:
         type: 'scene',
         credits: 1, // 1 credit per scene
       });
+
+      // Track cost
+      const duration = (Date.now() - startTime) / 1000;
+
+      // Granular Tracking: Use Token Counting
+      const inputTokens = await countTokens(prompt, 'gemini-1.5-flash');
+      const outputTokens = await countTokens(response.text || '', 'gemini-1.5-flash');
+
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: prompt.substring(0, 100) + '...',
+          tokens: { input: inputTokens, output: outputTokens },
+        },
+      }).catch(err => console.error('Failed to track generation:', err));
     }
 
     return processedScene;
@@ -2625,7 +2792,7 @@ DO NOT change the structure, just improve the quality of content within it.
       throw new Error('No response from AI model');
     }
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const parsedScene = JSON.parse(text);
 
     // Validate response structure
@@ -2636,35 +2803,37 @@ DO NOT change the structure, just improve the quality of content within it.
       throw new Error('AI response missing situations array');
     }
 
-  const processedScene = {
-    ...parsedScene,
-    sceneNumber,
-    storyboard: existingScene.storyboard || [],
-    sceneDesign: {
-      ...parsedScene.sceneDesign,
-      situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
-        ...sit,
-        dialogue: Array.isArray(sit.dialogue)
-          ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
-              ...d,
-              id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
-            }))
-          : [],
-      })),
-    },
-  };
+    const processedScene = {
+      ...parsedScene,
+      sceneNumber,
+      storyboard: existingScene.storyboard || [],
+      sceneDesign: {
+        ...parsedScene.sceneDesign,
+        situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
+          ...sit,
+          dialogue: Array.isArray(sit.dialogue)
+            ? (sit.dialogue as Array<Record<string, unknown>>).map(d => ({
+                ...d,
+                id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
+              }))
+            : [],
+        })),
+      },
+    };
 
-  if (userId) {
-    await recordUsage(userId, {
-      type: 'scene',
-      credits: 1,
-    });
-  }
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'scene',
+        credits: 1,
+      });
+    }
 
-  return processedScene;
+    return processedScene;
   } catch (error) {
     console.error('Error refining scene:', error);
-    throw new Error(`Failed to refine scene: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to refine scene: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -2702,12 +2871,13 @@ export async function regenerateWithEdits(
     .join('\n\n');
 
   const editedSceneJson = JSON.stringify(editedScene.sceneDesign, null, 2);
-  
+
   // Extract character list from edited scene for emphasis
   const editedCharacterList = editedScene.sceneDesign.characters || [];
-  const characterListStr = editedCharacterList.length > 0 
-    ? editedCharacterList.map(c => `"${c}"`).join(', ')
-    : 'No characters';
+  const characterListStr =
+    editedCharacterList.length > 0
+      ? editedCharacterList.map(c => `"${c}"`).join(', ')
+      : 'No characters';
 
   const prompt = `
 You are regenerating Scene #${sceneNumber} for plot point: "${plotPoint.title}".
@@ -2832,7 +3002,7 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
       throw new Error('No response from AI model');
     }
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const parsedScene = JSON.parse(text);
 
     // Validate response structure
@@ -2846,7 +3016,7 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
     // ⚠️ CRITICAL VALIDATION - Restore user's character list if AI removed any
     const aiCharacters = parsedScene.sceneDesign.characters || [];
     const missingCharacters = editedCharacterList.filter(char => !aiCharacters.includes(char));
-    
+
     if (missingCharacters.length > 0) {
       console.warn(
         `⚠️ AI removed characters that user added: ${missingCharacters.join(', ')}. Restoring them.`
@@ -2854,9 +3024,11 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
       // Force restore the exact character list from edited scene
       parsedScene.sceneDesign.characters = [...editedCharacterList];
     }
-    
+
     // Also check if AI added unwanted characters
-    const extraCharacters = aiCharacters.filter((char: string) => !editedCharacterList.includes(char));
+    const extraCharacters = aiCharacters.filter(
+      (char: string) => !editedCharacterList.includes(char)
+    );
     if (extraCharacters.length > 0) {
       console.warn(
         `⚠️ AI added characters that user didn't want: ${extraCharacters.join(', ')}. Removing them.`
@@ -2868,16 +3040,17 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
     const charactersWithDialogue = new Set<string>();
     parsedScene.sceneDesign.situations.forEach((sit: Record<string, unknown>) => {
       if (Array.isArray(sit.dialogue)) {
-        (sit.dialogue as Array<Record<string, unknown>>).forEach((d) => {
-          if (d.character && typeof d.character === 'string') charactersWithDialogue.add(d.character);
+        (sit.dialogue as Array<Record<string, unknown>>).forEach(d => {
+          if (d.character && typeof d.character === 'string')
+            charactersWithDialogue.add(d.character);
         });
       }
     });
-    
+
     const charactersWithoutDialogue = editedCharacterList.filter(
       char => !charactersWithDialogue.has(char)
     );
-    
+
     if (charactersWithoutDialogue.length > 0) {
       console.warn(
         `⚠️ Characters without dialogue: ${charactersWithoutDialogue.join(', ')}. This may affect scene completeness.`
@@ -2906,36 +3079,38 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
       }
     }
 
-  const processedScene = {
-    ...parsedScene,
-    sceneNumber,
-    storyboard: editedScene.storyboard || [],
-    sceneDesign: {
-      ...parsedScene.sceneDesign,
-      characters: editedCharacterList, // Force use edited character list
-      situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
-        ...sit,
-        dialogue: Array.isArray(sit.dialogue)
-          ? (sit.dialogue as Array<Record<string, unknown>>).map((d) => ({
-              ...d,
-              id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
-            }))
-          : [],
-      })),
-    },
-  };
+    const processedScene = {
+      ...parsedScene,
+      sceneNumber,
+      storyboard: editedScene.storyboard || [],
+      sceneDesign: {
+        ...parsedScene.sceneDesign,
+        characters: editedCharacterList, // Force use edited character list
+        situations: parsedScene.sceneDesign.situations.map((sit: Record<string, unknown>) => ({
+          ...sit,
+          dialogue: Array.isArray(sit.dialogue)
+            ? (sit.dialogue as Array<Record<string, unknown>>).map(d => ({
+                ...d,
+                id: d.id || `gen-${Math.random().toString(36).substr(2, 9)}`,
+              }))
+            : [],
+        })),
+      },
+    };
 
-  if (userId) {
-    await recordUsage(userId, {
-      type: 'scene',
-      credits: 1,
-    });
-  }
+    if (userId) {
+      await recordUsage(userId, {
+        type: 'scene',
+        credits: 1,
+      });
+    }
 
-  return processedScene;
+    return processedScene;
   } catch (error) {
     console.error('Error regenerating with edits:', error);
-    throw new Error(`Failed to regenerate with edits: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to regenerate with edits: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -2953,27 +3128,31 @@ export async function convertDialogueToDialect(
 ): Promise<string> {
   try {
     const speechPattern = character.speechPattern;
-    
+
     // If no speech pattern or standard settings, return original
-    if (!speechPattern || 
-        (speechPattern.dialect === 'standard' && 
-         speechPattern.accent === 'none' && 
-         speechPattern.formalityLevel === 'informal' && 
-         speechPattern.personality === 'polite')) {
+    if (
+      !speechPattern ||
+      (speechPattern.dialect === 'standard' &&
+        speechPattern.accent === 'none' &&
+        speechPattern.formalityLevel === 'informal' &&
+        speechPattern.personality === 'polite')
+    ) {
       return dialogue;
     }
 
     // Import dialect presets
-    const { DIALECT_PRESETS, ACCENT_PATTERNS } = await import('../../constants');
-    
+    // const { DIALECT_PRESETS, ACCENT_PATTERNS } = await import('../constants');
+
     // Build conversion prompt
-    const dialectInfo = speechPattern.dialect !== 'standard' 
-      ? DIALECT_PRESETS[speechPattern.dialect as keyof typeof DIALECT_PRESETS]
-      : null;
-    
-    const accentInfo = speechPattern.accent !== 'none'
-      ? ACCENT_PATTERNS[speechPattern.accent as keyof typeof ACCENT_PATTERNS]
-      : null;
+    const dialectInfo =
+      speechPattern.dialect !== 'standard'
+        ? DIALECT_PRESETS[speechPattern.dialect as keyof typeof DIALECT_PRESETS]
+        : null;
+
+    const accentInfo =
+      speechPattern.accent !== 'none'
+        ? ACCENT_PATTERNS[speechPattern.accent as keyof typeof ACCENT_PATTERNS]
+        : null;
 
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านการแปลงภาษาพูดและสำเนียงในภาษาไทย
 
@@ -2983,16 +3162,26 @@ export async function convertDialogueToDialect(
 บทบาท: ${character.role || 'ไม่ระบุ'}
 
 # การตั้งค่าการพูด
-${dialectInfo ? `
+${
+  dialectInfo
+    ? `
 ภาษาถิ่น: ${dialectInfo.name}
-คำศัพท์ทั่วไป: ${Object.entries(dialectInfo.commonWords || {}).map(([k, v]) => `"${k}" → "${v}"`).join(', ')}
+คำศัพท์ทั่วไป: ${Object.entries(dialectInfo.commonWords || {})
+        .map(([k, v]) => `"${k}" → "${v}"`)
+        .join(', ')}
 ท้ายประโยค: ${dialectInfo.suffixes?.join(', ') || 'ไม่มี'}
 ตัวอย่าง: ${dialectInfo.examples?.slice(0, 3).join(' | ') || 'ไม่มี'}
-` : ''}
-${accentInfo ? `
+`
+    : ''
+}
+${
+  accentInfo
+    ? `
 สำเนียง: ${accentInfo.name}
 กฎการแปลง: ${accentInfo.rules?.map((r: { pattern: string; replacement: string }) => `"${r.pattern}" → "${r.replacement}"`).join(', ') || 'ไม่มี'}
-` : ''}
+`
+    : ''
+}
 ระดับความเป็นทางการ: ${speechPattern.formalityLevel}
 บุคลิกการพูด: ${speechPattern.personality}
 ${speechPattern.speechTics && speechPattern.speechTics.length > 0 ? `คำพูดติดปาก: ${speechPattern.speechTics.join(', ')}` : ''}
@@ -3025,7 +3214,7 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
       model: 'gemini-2.0-flash-exp',
       contents: prompt,
     });
-    
+
     const convertedDialogue = (response.text || '').trim();
 
     // Remove surrounding quotes if present
@@ -3125,12 +3314,14 @@ export async function generateCharacterImage(
     console.log('🔍 Extracted age:', age);
 
     // 🇹🇭 CRITICAL: Extract ethnicity/nationality for Thai characters
-    const ethnicityMatch = facialFeatures.match(/ethnicity[:\s]+([^,]+)/i) ||
-                          facialFeatures.match(/เชื้อชาติ[:\s]*([^,]+)/i) ||
-                          facialFeatures.match(/\b(Thai|ไทย|Southeast Asian|Asian)\b/i);
-    const nationalityMatch = facialFeatures.match(/nationality[:\s]+([^,]+)/i) ||
-                            facialFeatures.match(/สัญชาติ[:\s]*([^,]+)/i);
-    
+    const ethnicityMatch =
+      facialFeatures.match(/ethnicity[:\s]+([^,]+)/i) ||
+      facialFeatures.match(/เชื้อชาติ[:\s]*([^,]+)/i) ||
+      facialFeatures.match(/\b(Thai|ไทย|Southeast Asian|Asian)\b/i);
+    const nationalityMatch =
+      facialFeatures.match(/nationality[:\s]+([^,]+)/i) ||
+      facialFeatures.match(/สัญชาติ[:\s]*([^,]+)/i);
+
     let ethnicity = '';
     if (ethnicityMatch) {
       ethnicity = ethnicityMatch[1].trim().toLowerCase();
@@ -3146,7 +3337,8 @@ export async function generateCharacterImage(
     // Build ethnicity-specific keywords for Thai people
     let ethnicityKeywords = '';
     if (ethnicity.includes('thai') || ethnicity.includes('ไทย')) {
-      ethnicityKeywords = 'Thai person, Southeast Asian features, Thai ethnicity, Asian facial features, tan skin tone, Thai face, warm skin tone, monolid eyes, black hair, Southeast Asian appearance';
+      ethnicityKeywords =
+        'Thai person, Southeast Asian features, Thai ethnicity, Asian facial features, tan skin tone, Thai face, warm skin tone, monolid eyes, black hair, Southeast Asian appearance';
     } else if (ethnicity.includes('asian') || ethnicity.includes('เอเชีย')) {
       ethnicityKeywords = 'Asian person, Asian facial features, monolid eyes, Asian ethnicity';
     }
@@ -3537,10 +3729,7 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
 }
 
 import type { MotionEdit } from '../types/motionEdit';
-import { 
-  buildVideoPromptWithMotion, 
-  motionEditToAnimateDiffParams
-} from './motionEditorService';
+import { buildVideoPromptWithMotion, motionEditToAnimateDiffParams } from './motionEditorService';
 
 export async function generateStoryboardVideo(
   prompt: string,
@@ -3564,7 +3753,7 @@ export async function generateStoryboardVideo(
 ): Promise<string> {
   try {
     console.log(`🎬 Generating video with model: ${preferredModel}`);
-    
+
     // 🆕 Get current user ID for quota tracking
     const currentUserId = auth.currentUser?.uid;
 
@@ -3577,7 +3766,7 @@ export async function generateStoryboardVideo(
     // 🆕 PRIORITY: Use Motion Editor data if provided
     if (options?.motionEdit && options?.character) {
       console.log('🎬 MOTION EDITOR MODE ACTIVE');
-      
+
       // Build comprehensive prompt from Motion Editor
       enhancedPrompt = buildVideoPromptWithMotion(
         options.motionEdit,
@@ -3603,10 +3792,9 @@ export async function generateStoryboardVideo(
   - FPS: ${finalFPS}
   - Frames: ${finalFrameCount}
   - Motion Strength: ${finalMotionStrength.toFixed(2)}`);
-      
     } else if (options?.character && options?.currentScene && options?.shotData) {
       console.log('🧠 Psychology-Driven Motion Enhancement ACTIVE');
-      
+
       // Build comprehensive video prompt with motion intelligence
       enhancedPrompt = buildVideoPrompt(
         options.shotData,
@@ -3618,13 +3806,10 @@ export async function generateStoryboardVideo(
       // Auto-calculate optimal parameters
       const recommendedFPS = getRecommendedFPS(options.shotData);
       const recommendedFrames = getRecommendedFrameCount(
-        options.shotData, 
+        options.shotData,
         finalFPS || recommendedFPS
       );
-      const recommendedStrength = getMotionModuleStrength(
-        options.shotData,
-        options.character
-      );
+      const recommendedStrength = getMotionModuleStrength(options.shotData, options.character);
 
       finalFPS = finalFPS || recommendedFPS;
       finalFrameCount = recommendedFrames;
@@ -3643,28 +3828,30 @@ export async function generateStoryboardVideo(
     // 🔧 FIX: Check ComfyUI FIRST if user explicitly selected it
     if (preferredModel === 'comfyui-svd' || preferredModel === 'comfyui-animatediff') {
       console.warn('🎬 USER SELECTED COMFYUI:', preferredModel);
-      
+
       // Check if ComfyUI is actually running (not just enabled in env)
       const status = await checkComfyUIStatus();
-      
+
       console.warn('🔍 ComfyUI Status:', status);
-      
+
       if (!status.running) {
         const errorMsg = `ComfyUI is not running. Please start ComfyUI server first.\n\nLocal: ${COMFYUI_DEFAULT_URL}\nStatus: ${status.error || 'Not responding'}`;
         console.error('❌', errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
-          const useAnimateDiff = preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
+          const useAnimateDiff =
+            preferredModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
           console.warn(`🎬 ComfyUI Mode: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
-          
+
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
             lora: LORA_MODELS.DETAIL_ENHANCER,
             loraStrength: 0.8,
-            negativePrompt: 'low quality, blurry, static, watermark, frozen frames, duplicate frames',
+            negativePrompt:
+              'low quality, blurry, static, watermark, frozen frames, duplicate frames',
             frameCount: finalFrameCount || 25,
             fps: finalFPS || 8,
             motionStrength: finalMotionStrength || 0.8,
@@ -3688,7 +3875,7 @@ export async function generateStoryboardVideo(
         throw new Error(errorMsg);
       }
     }
-    
+
     // 2. Try Veo for 'auto' mode or explicit selection
     if (preferredModel === 'gemini-veo' || preferredModel === 'auto') {
       try {
@@ -3698,83 +3885,99 @@ export async function generateStoryboardVideo(
             throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
           }
         }
-        
+
         // 🆕 1. Check Veo Quota (จำกัดจำนวนคลิปต่อเดือน)
-        const { checkVeoQuota } = await import('./subscriptionManager');
+        // const { checkVeoQuota } = await import('./subscriptionManager');
         const veoQuotaCheck = await checkVeoQuota(currentUserId || 'anonymous');
-        
+
         if (!veoQuotaCheck.allowed) {
           console.warn('⚠️ Veo quota exceeded:', veoQuotaCheck.reason);
           throw new Error(veoQuotaCheck.reason || 'Veo quota exceeded');
         }
-        
+
         console.log(`✅ Veo quota OK: ${veoQuotaCheck.remaining}/${veoQuotaCheck.limit} remaining`);
-        
+
         // Try Tier 1: Gemini Veo 3.1 (best quality, limited quota)
         console.log('🎬 Tier 1: Trying Gemini Veo 3.1...');
 
         // Check credits for paid model
         const modelConfig = VIDEO_MODELS_CONFIG.PRO.GEMINI_VEO;
 
-      const model = 'veo-3.1-fast-generate-preview';
-      type VeoParams = {
-        model: string;
-        prompt: string;
-        config: { numberOfVideos: number; resolution: string; aspectRatio: string };
-        image?: { imageBytes: string; mimeType: string };
-      };
-      const params: VeoParams = {
-        model,
-        prompt: `Cinematic shot. ${enhancedPrompt}`, // Use enhanced prompt!
-        config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' },
-      };
-      if (base64Image) {
-        const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
-        const mimeMatch = base64Image.match(/^data:(image\/\w+);base64,/);
-        params.image = {
-          imageBytes: cleanBase64,
-          mimeType: mimeMatch ? mimeMatch[1] : 'image/png',
+        const model = 'veo-3.1-fast-generate-preview';
+        type VeoParams = {
+          model: string;
+          prompt: string;
+          config: { numberOfVideos: number; resolution: string; aspectRatio: string };
+          image?: { imageBytes: string; mimeType: string };
         };
-      }
-
-      let operation = await ai.models.generateVideos(params);
-      const timeout = 120000;
-      const startTime = Date.now();
-
-      while (!operation.done) {
-        if (Date.now() - startTime > timeout) throw new Error('Video generation timed out.');
-
-        // Fake progress for Gemini Veo since we don't get percentage
-        if (onProgress) {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min((elapsed / 30000) * 100, 95); // Assume 30s avg
-          onProgress(progress);
+        const params: VeoParams = {
+          model,
+          prompt: `Cinematic shot. ${enhancedPrompt}`, // Use enhanced prompt!
+          config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' },
+        };
+        if (base64Image) {
+          const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+          const mimeMatch = base64Image.match(/^data:(image\/\w+);base64,/);
+          params.image = {
+            imageBytes: cleanBase64,
+            mimeType: mimeMatch ? mimeMatch[1] : 'image/png',
+          };
         }
 
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-      }
+        let operation = await ai.models.generateVideos(params);
+        const timeout = 120000;
+        const startTime = Date.now();
 
-      if (onProgress) onProgress(100);
+        while (!operation.done) {
+          if (Date.now() - startTime > timeout) throw new Error('Video generation timed out.');
 
-      const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (!videoUri) throw new Error('No video URI returned');
+          // Fake progress for Gemini Veo since we don't get percentage
+          if (onProgress) {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / 30000) * 100, 95); // Assume 30s avg
+            onProgress(progress);
+          }
 
-      // 🆕 Record Veo usage (บันทึกการใช้งาน Veo)
-      const { recordVeoUsage } = await import('./subscriptionManager');
-      await recordVeoUsage(currentUserId || 'anonymous', modelConfig.costPerGen || 0);
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          operation = await ai.operations.getVideosOperation({ operation: operation });
+        }
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'PLACEHOLDER_KEY';
-      console.log('✅ Tier 1 Success: Gemini Veo 3.1');
-      const veoUrl = `${videoUri}&key=${apiKey}`;
-      
-      // 🆕 Persist video URL to permanent storage
-      const permanentUrl = await persistVideoUrl(veoUrl, {
-        projectId: options?.currentScene?.sceneDesign?.sceneName,
-        sceneId: options?.currentScene?.sceneNumber?.toString(),
-      });
-      return permanentUrl;
-      
+        if (onProgress) onProgress(100);
+
+        const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (!videoUri) throw new Error('No video URI returned');
+
+        // 🆕 Record Veo usage (บันทึกการใช้งาน Veo)
+        // const { recordVeoUsage } = await import('./subscriptionManager');
+        await recordVeoUsage(currentUserId || 'anonymous', modelConfig.costPerGen || 0);
+
+        // Track cost
+        if (currentUserId) {
+          const duration = (Date.now() - startTime) / 1000;
+          recordGeneration({
+            userId: currentUserId,
+            type: 'video',
+            modelId: 'gemini-veo-3',
+            modelName: 'Gemini Veo 3.1',
+            provider: 'gemini',
+            costInCredits: modelConfig.costPerGen || 0,
+            costInTHB: API_PRICING.GEMINI['veo-3'].video5s, // Assuming 5s
+            success: true,
+            duration,
+            metadata: { prompt: enhancedPrompt },
+          }).catch(err => console.error('Failed to track generation:', err));
+        }
+
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'PLACEHOLDER_KEY';
+        console.log('✅ Tier 1 Success: Gemini Veo 3.1');
+        const veoUrl = `${videoUri}&key=${apiKey}`;
+
+        // 🆕 Persist video URL to permanent storage
+        const permanentUrl = await persistVideoUrl(veoUrl, {
+          projectId: options?.currentScene?.sceneDesign?.sceneName,
+          sceneId: options?.currentScene?.sceneNumber?.toString(),
+        });
+        return permanentUrl;
       } catch (veoError: unknown) {
         const err = veoError as { message?: string };
         console.error('❌ Tier 1 (Veo) failed:', err);
@@ -3784,18 +3987,22 @@ export async function generateStoryboardVideo(
     }
 
     // 🆕 NEW TIER 2: Replicate (Quick Start - No Deployment)
-    if (preferredModel === 'replicate-animatediff' || preferredModel === 'replicate-svd' || preferredModel === 'auto') {
+    if (
+      preferredModel === 'replicate-animatediff' ||
+      preferredModel === 'replicate-svd' ||
+      preferredModel === 'auto'
+    ) {
       try {
         const useReplicateApiKey = import.meta.env.VITE_REPLICATE_API_KEY;
-        
+
         if (useReplicateApiKey) {
           console.log('🎬 Tier 2 (Replicate): Attempting cloud generation...');
-          
+
           // ⚠️ DISABLED: LTX-Video temporarily disabled due to model version error (422)
           // TODO: Update to latest model version when available
           // try {
           //   console.log('🎬 Tier 2a: Trying Replicate LTX-Video (High Quality Priority)...');
-          //   
+          //
           //   const videoUrl = await generateLTXVideo(
           //     enhancedPrompt,
           //     base64Image,
@@ -3810,9 +4017,9 @@ export async function generateStoryboardVideo(
           //     },
           //     onProgress
           //   );
-          //   
+          //
           //   console.log('✅ Tier 2a Success: Replicate LTX-Video (High Quality)');
-          //   
+          //
           //   // 🆕 Persist video URL to permanent storage
           //   const permanentUrl = await persistVideoUrl(videoUrl, {
           //     projectId: options?.currentScene?.sceneDesign?.sceneName,
@@ -3824,11 +4031,11 @@ export async function generateStoryboardVideo(
           //   console.error('❌ Tier 2a (Replicate LTX-Video) failed:', err);
           //   console.log('⏭️ Falling back to Tier 2b: Hotshot-XL...');
           // }
-          
+
           // Try Hotshot-XL as second fallback (cheaper, still good quality)
           try {
             console.log('🎬 Tier 2b: Trying Replicate Hotshot-XL (Fast & Cheap Fallback)...');
-            
+
             const videoUrl = await generateHotshotXL(
               enhancedPrompt,
               base64Image,
@@ -3843,9 +4050,9 @@ export async function generateStoryboardVideo(
               },
               onProgress
             );
-            
+
             console.log('✅ Tier 2b Success: Replicate Hotshot-XL');
-            
+
             // 🆕 Persist video URL to permanent storage
             const permanentUrl = await persistVideoUrl(videoUrl, {
               projectId: options?.currentScene?.sceneDesign?.sceneName,
@@ -3857,7 +4064,7 @@ export async function generateStoryboardVideo(
             console.error('❌ Tier 2b (Replicate Hotshot-XL) failed:', err);
             console.log('⏭️ Falling back to Tier 2c: AnimateDiff...');
           }
-          
+
           // Try AnimateDiff third (works with or without image)
           if (preferredModel !== 'replicate-svd') {
             try {
@@ -3867,7 +4074,7 @@ export async function generateStoryboardVideo(
                   throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
                 }
               }
-              
+
               console.log('🎬 Tier 2c: Trying Replicate AnimateDiff v3...');
               const videoUrl = await generateAnimateDiffVideo(
                 enhancedPrompt,
@@ -3880,9 +4087,9 @@ export async function generateStoryboardVideo(
                 },
                 onProgress
               );
-              
+
               console.log('✅ Tier 2c Success: Replicate AnimateDiff');
-              
+
               // 🆕 Persist video URL to permanent storage
               const permanentUrl = await persistVideoUrl(videoUrl, {
                 projectId: options?.currentScene?.sceneDesign?.sceneName,
@@ -3895,7 +4102,7 @@ export async function generateStoryboardVideo(
               if (preferredModel === 'replicate-animatediff') throw animateError;
             }
           }
-          
+
           // Try SVD if image is available (last Replicate fallback)
           if (base64Image) {
             try {
@@ -3905,12 +4112,12 @@ export async function generateStoryboardVideo(
                   throw new Error(`Upgrade required: You do not have access to ${preferredModel}.`);
                 }
               }
-              
+
               console.log('🎬 Tier 2d: Trying Replicate SVD (Image-to-Video)...');
-              
+
               // Convert motion strength to SVD motion_bucket_id (1-255)
               const motionBucketId = Math.round((finalMotionStrength || 0.7) * 180) + 50;
-              
+
               const videoUrl = await generateSVDVideo(
                 base64Image,
                 {
@@ -3921,9 +4128,9 @@ export async function generateStoryboardVideo(
                 },
                 onProgress
               );
-              
+
               console.log('✅ Tier 2d Success: Replicate SVD');
-              
+
               // 🆕 Persist video URL to permanent storage
               const permanentUrl = await persistVideoUrl(videoUrl, {
                 projectId: options?.currentScene?.sceneDesign?.sceneName,
@@ -3952,13 +4159,16 @@ export async function generateStoryboardVideo(
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
           const useAnimateDiff = options?.useAnimateDiff !== false;
-          console.log(`🎬 Tier 3 (Auto Fallback): Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`);
-          
+          console.log(
+            `🎬 Tier 3 (Auto Fallback): Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`
+          );
+
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
             lora: LORA_MODELS.DETAIL_ENHANCER,
             loraStrength: 0.8,
-            negativePrompt: 'low quality, blurry, static, watermark, frozen frames, duplicate frames',
+            negativePrompt:
+              'low quality, blurry, static, watermark, frozen frames, duplicate frames',
             frameCount: finalFrameCount || 25,
             fps: finalFPS || 8,
             motionStrength: finalMotionStrength || 0.8,
@@ -3981,10 +4191,8 @@ export async function generateStoryboardVideo(
 
     if (preferredModel === 'pollinations-video') {
       // Pollinations Video not available - fallback to Replicate AnimateDiff
-      console.warn(
-        '⚠️ Pollinations Video not available, falling back to Replicate AnimateDiff...'
-      );
-      
+      console.warn('⚠️ Pollinations Video not available, falling back to Replicate AnimateDiff...');
+
       // Try Replicate AnimateDiff as fallback
       const replicateKey = import.meta.env.VITE_REPLICATE_API_KEY;
       if (replicateKey) {
@@ -4001,9 +4209,9 @@ export async function generateStoryboardVideo(
             },
             onProgress
           );
-          
+
           console.log('✅ Pollinations Fallback Success: Replicate AnimateDiff');
-          
+
           // Persist video URL to permanent storage
           const permanentUrl = await persistVideoUrl(videoUrl, {
             projectId: options?.currentScene?.sceneDesign?.sceneName,
@@ -4017,7 +4225,7 @@ export async function generateStoryboardVideo(
           );
         }
       }
-      
+
       throw new Error(
         'Pollinations Video not available and no Replicate API key configured. Please use ComfyUI or Gemini Veo instead.'
       );
@@ -4025,7 +4233,11 @@ export async function generateStoryboardVideo(
 
     if (preferredModel === 'luma-dream-machine' || preferredModel === 'runway-gen3') {
       // These are paid models, check credits
-      const allModels = [...Object.values(VIDEO_MODELS_CONFIG.BASIC || {}), ...Object.values(VIDEO_MODELS_CONFIG.PRO || {}), ...Object.values(VIDEO_MODELS_CONFIG.ENTERPRISE || {})];
+      const allModels = [
+        ...Object.values(VIDEO_MODELS_CONFIG.BASIC || {}),
+        ...Object.values(VIDEO_MODELS_CONFIG.PRO || {}),
+        ...Object.values(VIDEO_MODELS_CONFIG.ENTERPRISE || {}),
+      ];
       const modelConfig = allModels.find(m => m.id === preferredModel);
       if (modelConfig && modelConfig.costPerGen) {
         // Simulate API call
@@ -4057,10 +4269,11 @@ export async function generateMoviePoster(
     if (customPrompt && customPrompt.trim().length > 0) {
       // User provided custom prompt - enhance it with language directive
       prompt = customPrompt;
-      
+
       // 🇹🇭 CRITICAL: Add language directive based on project language
       if (scriptData.language === 'Thai') {
-        prompt += ' TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.';
+        prompt +=
+          ' TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.';
       } else if (scriptData.language === 'English') {
         prompt += ' TEXT IN ENGLISH ONLY. No Chinese, No Thai text.';
       }
@@ -4072,7 +4285,9 @@ export async function generateMoviePoster(
       ];
 
       // Add secondary genres if available
-      const secondaryGenres = scriptData.secondaryGenres?.filter(g => g && g !== scriptData.mainGenre);
+      const secondaryGenres = scriptData.secondaryGenres?.filter(
+        g => g && g !== scriptData.mainGenre
+      );
       if (secondaryGenres && secondaryGenres.length > 0) {
         parts.push(`Secondary Genres: ${secondaryGenres.join(', ')}.`);
       }
@@ -4098,7 +4313,7 @@ export async function generateMoviePoster(
             const ethnicityNote = ethnicity ? ` (${ethnicity})` : '';
             return `${c.name}${ethnicityNote} - ${desc}`;
           });
-        
+
         if (characterDescriptions.length > 0) {
           parts.push(`Characters: ${characterDescriptions.join(', ')}.`);
         }
@@ -4106,7 +4321,9 @@ export async function generateMoviePoster(
 
       // 🇹🇭 CRITICAL: Add language directive based on project language
       if (scriptData.language === 'Thai') {
-        parts.push('TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือในโปสเตอร์ต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.');
+        parts.push(
+          'TEXT IN THAI LANGUAGE ONLY. ตัวหนังสือในโปสเตอร์ต้องเป็นภาษาไทยเท่านั้น. NO CHINESE, NO ENGLISH TEXT.'
+        );
       } else if (scriptData.language === 'English') {
         parts.push('TEXT IN ENGLISH ONLY. No Chinese, No Thai text.');
       }
@@ -4120,7 +4337,8 @@ export async function generateMoviePoster(
     return await generateImageWithCascade(prompt, {
       useLora: true,
       loraType: 'DETAIL_ENHANCER',
-      negativePrompt: 'low quality, amateur, blurry, text errors, ugly, chinese characters, wrong language text',
+      negativePrompt:
+        'low quality, amateur, blurry, text errors, ugly, chinese characters, wrong language text',
       onProgress: onProgress,
     });
   } catch (error: unknown) {
@@ -4143,7 +4361,9 @@ export async function generateBoundary(
   mode: 'fresh' | 'refine' | 'use-edited' = 'fresh',
   fieldName?: 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline'
 ): Promise<Partial<ScriptData>> {
-  console.log(`🧠 Generating Boundary. Language: ${scriptData.language}, Mode: ${mode}, Field: ${fieldName || 'all'}`);
+  console.log(
+    `🧠 Generating Boundary. Language: ${scriptData.language}, Mode: ${mode}, Field: ${fieldName || 'all'}`
+  );
   try {
     const isThai = scriptData.language === 'Thai';
     const langInstruction = isThai
@@ -4153,16 +4373,35 @@ export async function generateBoundary(
     // Mode-specific context
     let modeInstruction = '';
     if (mode === 'fresh') {
-      modeInstruction = '\n**REGENERATION MODE: Fresh Start**\nGenerate completely new content without referencing existing data. Create original ideas.';
+      modeInstruction =
+        '\n**REGENERATION MODE: Fresh Start**\nGenerate completely new content without referencing existing data. Create original ideas.';
     } else if (mode === 'refine') {
-      const currentValue = fieldName 
-        ? (fieldName === 'timeline' ? JSON.stringify(scriptData.timeline) : scriptData[fieldName as keyof ScriptData])
-        : JSON.stringify({bigIdea: scriptData.bigIdea, premise: scriptData.premise, theme: scriptData.theme, logLine: scriptData.logLine, synopsis: scriptData.synopsis, timeline: scriptData.timeline});
+      const currentValue = fieldName
+        ? fieldName === 'timeline'
+          ? JSON.stringify(scriptData.timeline)
+          : scriptData[fieldName as keyof ScriptData]
+        : JSON.stringify({
+            bigIdea: scriptData.bigIdea,
+            premise: scriptData.premise,
+            theme: scriptData.theme,
+            logLine: scriptData.logLine,
+            synopsis: scriptData.synopsis,
+            timeline: scriptData.timeline,
+          });
       modeInstruction = `\n**REGENERATION MODE: Refine Existing**\nImprove and enhance the existing content while keeping its core structure and ideas:\n${fieldName ? `- Current ${fieldName}: ${currentValue || 'Not set'}` : `- Current Data: ${currentValue}`}`;
     } else if (mode === 'use-edited') {
-      const currentValue = fieldName 
-        ? (fieldName === 'timeline' ? JSON.stringify(scriptData.timeline) : scriptData[fieldName as keyof ScriptData])
-        : JSON.stringify({bigIdea: scriptData.bigIdea, premise: scriptData.premise, theme: scriptData.theme, logLine: scriptData.logLine, synopsis: scriptData.synopsis, timeline: scriptData.timeline});
+      const currentValue = fieldName
+        ? fieldName === 'timeline'
+          ? JSON.stringify(scriptData.timeline)
+          : scriptData[fieldName as keyof ScriptData]
+        : JSON.stringify({
+            bigIdea: scriptData.bigIdea,
+            premise: scriptData.premise,
+            theme: scriptData.theme,
+            logLine: scriptData.logLine,
+            synopsis: scriptData.synopsis,
+            timeline: scriptData.timeline,
+          });
       modeInstruction = `\n**REGENERATION MODE: Use Edited Data**\nBuild upon user's edits and expand naturally:\n${fieldName ? `- User's Edit for ${fieldName}: ${currentValue || 'Not set'}` : `- User's Edits: ${currentValue}`}`;
     }
 
@@ -4362,7 +4601,7 @@ IMPORTANT:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
     console.log('✅ Generated boundary:', result);
@@ -4415,7 +4654,7 @@ Return ONLY a JSON object:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
     console.log('✅ Generated title:', result.title);
@@ -4500,7 +4739,7 @@ function getTypeGuidelines(type: string): string {
  * Also suggests optimal scene count per point (1-10 scenes)
  */
 export async function generateStructure(
-  scriptData: ScriptData, 
+  scriptData: ScriptData,
   mode: 'fresh' | 'refine' | 'use-edited' = 'fresh'
 ): Promise<Partial<ScriptData>> {
   try {
@@ -4512,12 +4751,17 @@ export async function generateStructure(
     // Mode-specific instructions
     let modeInstruction = '';
     if (mode === 'fresh') {
-      modeInstruction = '\n**REGENERATION MODE: Fresh Start**\nCreate completely new plot point descriptions without referencing existing ones. Be original and creative.';
+      modeInstruction =
+        '\n**REGENERATION MODE: Fresh Start**\nCreate completely new plot point descriptions without referencing existing ones. Be original and creative.';
     } else if (mode === 'refine') {
-      const existingDescriptions = scriptData.structure.map(p => `${p.title}: ${p.description || 'Not set'}`).join('\n');
+      const existingDescriptions = scriptData.structure
+        .map(p => `${p.title}: ${p.description || 'Not set'}`)
+        .join('\n');
       modeInstruction = `\n**REGENERATION MODE: Refine Existing**\nImprove the quality while keeping core structure:\n${existingDescriptions}`;
     } else if (mode === 'use-edited') {
-      const existingDescriptions = scriptData.structure.map(p => `${p.title}: ${p.description || 'Not set'}`).join('\n');
+      const existingDescriptions = scriptData.structure
+        .map(p => `${p.title}: ${p.description || 'Not set'}`)
+        .join('\n');
       modeInstruction = `\n**REGENERATION MODE: Use Edited Data**\nBuild upon user's edits:\n${existingDescriptions}`;
     }
 
@@ -4626,7 +4870,7 @@ IMPORTANT:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
     console.log('✅ Generated structure:', result);
@@ -4672,11 +4916,16 @@ export async function generateSinglePlotPoint(
 
     // Context from other plot points (for continuity)
     const previousPoint = plotPointIndex > 0 ? scriptData.structure[plotPointIndex - 1] : null;
-    const nextPoint = plotPointIndex < scriptData.structure.length - 1 ? scriptData.structure[plotPointIndex + 1] : null;
+    const nextPoint =
+      plotPointIndex < scriptData.structure.length - 1
+        ? scriptData.structure[plotPointIndex + 1]
+        : null;
 
     const contextInfo = [];
     if (previousPoint) {
-      contextInfo.push(`Previous (${previousPoint.title}): ${previousPoint.description || 'Not set'}`);
+      contextInfo.push(
+        `Previous (${previousPoint.title}): ${previousPoint.description || 'Not set'}`
+      );
     }
     if (nextPoint) {
       contextInfo.push(`Next (${nextPoint.title}): ${nextPoint.description || 'Not set'}`);
@@ -4749,7 +4998,7 @@ Return ONLY a valid JSON object:
       },
     });
 
-    const text = extractJsonFromResponse(response.text || "{}");
+    const text = extractJsonFromResponse(response.text || '{}');
     const result = JSON.parse(text);
 
     console.log(`✅ Generated single plot point (${plotPoint.title}):`, result);
@@ -4765,17 +5014,16 @@ Return ONLY a valid JSON object:
  */
 function getPlotPointDefinition(title: string): string {
   const definitions: Record<string, string> = {
-    'Equilibrium': 'The ordinary world, protagonist\'s life before the adventure begins',
+    Equilibrium: "The ordinary world, protagonist's life before the adventure begins",
     'Inciting Incident': 'The event that disrupts the ordinary world and starts the story',
     'Turning Point': 'The protagonist commits to the journey/goal, life changes irreversibly',
     'Act Break': 'Entering the new world, facing initial conflicts',
     'Rising Action': 'Complications mount, problems get worse despite efforts',
-    'Crisis': 'The biggest obstacle, preventing the character from reaching the goal',
+    Crisis: 'The biggest obstacle, preventing the character from reaching the goal',
     'Falling Action': 'The lowest point, protagonist reflects and finds the ultimate solution',
-    'Climax': 'The final confrontation, the protagonist\'s biggest challenge',
-    'Ending': 'The resolution, how the protagonist and world have changed',
+    Climax: "The final confrontation, the protagonist's biggest challenge",
+    Ending: 'The resolution, how the protagonist and world have changed',
   };
   return definitions[title] || 'A critical point in the story structure';
 }
-
 

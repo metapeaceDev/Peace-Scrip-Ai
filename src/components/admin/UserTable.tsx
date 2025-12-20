@@ -1,11 +1,11 @@
 /**
  * User Table Component
- * 
+ *
  * แสดงตาราง users พร้อม search, filter, pagination
  */
 
 import React from 'react';
-import type { UserListItem, SubscriptionTier } from '../../../types';
+import type { UserListItem, SubscriptionTier } from '../../types';
 
 interface UserTableProps {
   users: UserListItem[];
@@ -40,20 +40,20 @@ export const UserTable: React.FC<UserTableProps> = ({
     <div className="user-table-section">
       <div className="table-header">
         <h2>👥 Users ({totalUsers})</h2>
-        
+
         <div className="table-controls">
           <input
             type="text"
             className="search-input"
             placeholder="Search by email, name, or ID..."
             value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={e => onSearch(e.target.value)}
           />
-          
+
           <select
             className="filter-select"
             value={filterTier}
-            onChange={(e) => onFilterChange('tier', e.target.value)}
+            onChange={e => onFilterChange('tier', e.target.value)}
           >
             <option value="all">All Tiers</option>
             <option value="free">FREE</option>
@@ -61,11 +61,11 @@ export const UserTable: React.FC<UserTableProps> = ({
             <option value="pro">PRO</option>
             <option value="enterprise">ENTERPRISE</option>
           </select>
-          
+
           <select
             className="filter-select"
             value={filterStatus}
-            onChange={(e) => onFilterChange('status', e.target.value)}
+            onChange={e => onFilterChange('status', e.target.value)}
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -107,10 +107,14 @@ export const UserTable: React.FC<UserTableProps> = ({
                   <td>{(currentPage - 1) * pageSize + index + 1}</td>
                   <td>
                     <div className="user-info-cell">
-                      <img 
-                        src={user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email)} 
-                        alt="" 
-                        className="user-avatar" 
+                      <img
+                        src={
+                          user.photoURL ||
+                          'https://ui-avatars.com/api/?name=' +
+                            encodeURIComponent(user.displayName || user.email)
+                        }
+                        alt=""
+                        className="user-avatar"
                       />
                       <div className="user-details">
                         <div className="user-name">{user.displayName || 'User'}</div>
@@ -124,19 +128,19 @@ export const UserTable: React.FC<UserTableProps> = ({
                     </span>
                   </td>
                   <td>
-                    <span className={`status-badge status-${user.status}`}>
-                      {user.status}
-                    </span>
+                    <span className={`status-badge status-${user.status}`}>{user.status}</span>
                   </td>
                   <td>
                     <div className="credits-cell">
-                      <span>{user.credits.used}/{user.credits.max}</span>
+                      <span>
+                        {user.credits.used}/{user.credits.max}
+                      </span>
                       <div className="progress-bar">
-                        <div 
+                        <div
                           className="progress-fill"
-                          style={{ 
+                          style={{
                             width: `${(user.credits.used / user.credits.max) * 100}%`,
-                            backgroundColor: getProgressColor(user.credits.used / user.credits.max)
+                            backgroundColor: getProgressColor(user.credits.used / user.credits.max),
                           }}
                         />
                       </div>
@@ -148,7 +152,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                     ) : user.veoVideos.max === -1 ? (
                       <span>{user.veoVideos.used}</span>
                     ) : (
-                      <span>{user.veoVideos.used}/{user.veoVideos.max}</span>
+                      <span>
+                        {user.veoVideos.used}/{user.veoVideos.max}
+                      </span>
                     )}
                   </td>
                   <td>{formatDate(user.lastActive)}</td>
@@ -170,11 +176,11 @@ export const UserTable: React.FC<UserTableProps> = ({
           >
             ← Previous
           </button>
-          
+
           <span className="page-info">
             Page {currentPage} of {totalPages}
           </span>
-          
+
           <button
             className="page-btn"
             disabled={currentPage === totalPages}
@@ -191,17 +197,17 @@ export const UserTable: React.FC<UserTableProps> = ({
 // Helper functions
 function formatDate(date?: Date): string {
   if (!date) return '-';
-  
+
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
+
   if (days === 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days}d ago`;
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
   if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-  
+
   return date.toLocaleDateString();
 }
 
@@ -210,3 +216,4 @@ function getProgressColor(ratio: number): string {
   if (ratio < 0.8) return '#ff9800'; // Orange
   return '#f44336'; // Red
 }
+

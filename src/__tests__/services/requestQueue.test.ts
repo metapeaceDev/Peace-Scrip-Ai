@@ -15,7 +15,7 @@ describe('Request Queue Integration', () => {
       defaultTimeout: 5000,
       defaultMaxRetries: 2,
     });
-    
+
     // Prevent unhandled error events during tests
     queue.on('error', () => {
       // Ignore - tests will handle via waitForCompletion
@@ -37,7 +37,7 @@ describe('Request Queue Integration', () => {
       const request = queue.getRequest(requestId);
       expect(request).toBeTruthy();
       expect(request?.payload).toEqual({ test: 'data' });
-      
+
       // Status might be 'pending' or 'processing' depending on timing
       expect(['pending', 'processing']).toContain(request?.status);
     });
@@ -45,16 +45,14 @@ describe('Request Queue Integration', () => {
     it('should reject when queue is full', async () => {
       // Stop queue from processing
       queue.setMaxConcurrent(0);
-      
+
       // Fill the queue
       for (let i = 0; i < 10; i++) {
         await queue.enqueue({ index: i });
       }
 
       // Should throw when full
-      await expect(queue.enqueue({ overflow: true })).rejects.toThrow(
-        'Queue is full'
-      );
+      await expect(queue.enqueue({ overflow: true })).rejects.toThrow('Queue is full');
     });
 
     it('should process requests with correct priority order', async () => {
@@ -80,11 +78,11 @@ describe('Request Queue Integration', () => {
       queue.setMaxConcurrent(2);
 
       // Wait for processing
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Verify all processed
       expect(processedOrder.length).toBe(3);
-      
+
       // High priority should be processed before low
       const highIndex = processedOrder.indexOf('high');
       const lowIndex = processedOrder.indexOf('low');
@@ -99,7 +97,7 @@ describe('Request Queue Integration', () => {
         concurrent++;
         maxConcurrent = Math.max(maxConcurrent, concurrent);
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         concurrent--;
         callback({ success: true });
@@ -112,7 +110,7 @@ describe('Request Queue Integration', () => {
       await queue.enqueue({ id: 4 });
 
       // Wait for all to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       expect(maxConcurrent).toBe(2); // Should not exceed maxConcurrent
     });
@@ -122,15 +120,15 @@ describe('Request Queue Integration', () => {
     it('should track request from pending to completed', async () => {
       const states: string[] = [];
 
-      queue.on('enqueued', (request) => {
+      queue.on('enqueued', request => {
         states.push(`enqueued:${request.status}`);
       });
 
-      queue.on('processing', (request) => {
+      queue.on('processing', request => {
         states.push(`processing:${request.status}`);
       });
 
-      queue.on('completed', (request) => {
+      queue.on('completed', request => {
         states.push(`completed:${request.status}`);
       });
 
@@ -140,7 +138,7 @@ describe('Request Queue Integration', () => {
 
       await queue.enqueue({ test: 'lifecycle' });
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       expect(states).toContain('enqueued:pending');
       expect(states).toContain('processing:processing');
@@ -169,9 +167,7 @@ describe('Request Queue Integration', () => {
 
       const requestId = await queue.enqueue({ test: 'failure' }, { maxRetries: 1 });
 
-      await expect(queue.waitForCompletion(requestId)).rejects.toThrow(
-        'Processing failed'
-      );
+      await expect(queue.waitForCompletion(requestId)).rejects.toThrow('Processing failed');
     }, 10000); // 10s timeout
   });
 
@@ -188,10 +184,7 @@ describe('Request Queue Integration', () => {
         }
       });
 
-      const requestId = await queue.enqueue(
-        { test: 'retry' },
-        { maxRetries: 3 }
-      );
+      const requestId = await queue.enqueue({ test: 'retry' }, { maxRetries: 3 });
 
       const result = await queue.waitForCompletion(requestId);
 
@@ -207,14 +200,9 @@ describe('Request Queue Integration', () => {
         setTimeout(() => callback(null, new Error('Persistent failure')), 10);
       });
 
-      const requestId = await queue.enqueue(
-        { test: 'max-retries' },
-        { maxRetries: 2 }
-      );
+      const requestId = await queue.enqueue({ test: 'max-retries' }, { maxRetries: 2 });
 
-      await expect(queue.waitForCompletion(requestId)).rejects.toThrow(
-        'Persistent failure'
-      );
+      await expect(queue.waitForCompletion(requestId)).rejects.toThrow('Persistent failure');
 
       // Initial attempt + retries
       expect(attempts).toBeGreaterThanOrEqual(2);
@@ -227,14 +215,9 @@ describe('Request Queue Integration', () => {
         // Never complete - will timeout
       });
 
-      const requestId = await queue.enqueue(
-        { test: 'timeout' },
-        { timeout: 200, maxRetries: 1 }
-      );
+      const requestId = await queue.enqueue({ test: 'timeout' }, { timeout: 200, maxRetries: 1 });
 
-      await expect(queue.waitForCompletion(requestId)).rejects.toThrow(
-        'Request timeout'
-      );
+      await expect(queue.waitForCompletion(requestId)).rejects.toThrow('Request timeout');
     }, 10000);
   });
 
@@ -253,7 +236,7 @@ describe('Request Queue Integration', () => {
       expect(metrics1.totalRequests).toBe(3);
 
       // Wait for completion
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const metrics2 = queue.getMetrics();
       expect(metrics2.completedRequests).toBe(3);
@@ -269,7 +252,7 @@ describe('Request Queue Integration', () => {
       await queue.enqueue({ id: 1 });
       await queue.enqueue({ id: 2 });
 
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       const metrics = queue.getMetrics();
       expect(metrics.averageWaitTime).toBeGreaterThanOrEqual(0);
@@ -281,7 +264,7 @@ describe('Request Queue Integration', () => {
     it('should cancel pending request', async () => {
       // Stop processing temporarily
       queue.setMaxConcurrent(0);
-      
+
       const requestId = await queue.enqueue({ test: 'cancel' });
 
       // Wait for enqueue to settle
@@ -293,7 +276,7 @@ describe('Request Queue Integration', () => {
       const request = queue.getRequest(requestId);
       expect(request?.status).toBe('failed');
       expect(request?.error?.message).toBe('Cancelled by user');
-      
+
       // Restore processing
       queue.setMaxConcurrent(2);
     });
@@ -306,7 +289,7 @@ describe('Request Queue Integration', () => {
       const requestId = await queue.enqueue({ test: 'cancel-processing' });
 
       // Wait for processing to start
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       const cancelled = queue.cancel(requestId);
       expect(cancelled).toBe(false);
@@ -322,7 +305,7 @@ describe('Request Queue Integration', () => {
         concurrent++;
         maxConcurrent = Math.max(maxConcurrent, concurrent);
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         concurrent--;
         callback({ success: true });
@@ -333,12 +316,12 @@ describe('Request Queue Integration', () => {
       await queue.enqueue({ id: 2 });
       await queue.enqueue({ id: 3 });
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Increase maxConcurrent
       queue.setMaxConcurrent(3);
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       expect(maxConcurrent).toBeGreaterThanOrEqual(2);
     });
@@ -348,7 +331,7 @@ describe('Request Queue Integration', () => {
     it('should report correct queue state', async () => {
       // Stop processing
       queue.setMaxConcurrent(0);
-      
+
       expect(queue.getQueueLength()).toBe(0);
       expect(queue.getProcessingCount()).toBe(0);
       expect(queue.isFull()).toBe(false);
@@ -363,7 +346,7 @@ describe('Request Queue Integration', () => {
 
       expect(queue.getQueueLength()).toBeGreaterThanOrEqual(8);
       expect(queue.isFull()).toBe(true);
-      
+
       // Restore processing
       queue.setMaxConcurrent(2);
     });
@@ -374,7 +357,7 @@ describe('Request Queue Integration', () => {
       });
 
       await queue.enqueue({ id: 1 });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const metrics1 = queue.getMetrics();
       expect(metrics1.completedRequests).toBe(1);
@@ -386,3 +369,4 @@ describe('Request Queue Integration', () => {
     });
   });
 });
+

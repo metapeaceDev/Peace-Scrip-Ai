@@ -785,3 +785,4 @@ describe('AuthPage', () => {
     });
   });
 });
+

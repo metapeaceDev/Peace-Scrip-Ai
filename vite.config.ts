@@ -1,9 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+      filename: 'stats.html',
+    }),
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -54,7 +63,7 @@ export default defineConfig({
               return 'lodash-vendor';
             }
           }
-          
+
           // Code split large app modules
           if (id.includes('src/components/Step5Output')) {
             return 'step5-output';

@@ -18,6 +18,7 @@
 4. ในส่วน `data` จะมี field: **`confirmUrl`**
 
 5. **Copy URL นั้น** (จะเป็นแบบนี้):
+
    ```
    https://peace-script-ai.web.app/accept-admin-invitation?token=xxx...
    ```
@@ -48,7 +49,7 @@ const admin = require('firebase-admin');
 
 admin.auth().setCustomUserClaims('BUh46GBe8RZYGLHC1XigPnn0CWg1', {
   admin: true,
-  adminRole: 'super-admin'
+  adminRole: 'super-admin',
 });
 ```
 

@@ -1,9 +1,9 @@
 /**
  * Redis Queue System with Bull
- * 
+ *
  * Manages image and video generation jobs with priority queuing,
  * progress tracking, and automatic retry on failure.
- * 
+ *
  * Benefits:
  * - Handles concurrent jobs efficiently
  * - Prevents server overload
@@ -311,7 +311,7 @@ export async function getEstimatedWaitTime(
 
   // Get jobs with higher or equal priority
   const jobs = await queue.getJobs(['waiting', 'active']);
-  const higherPriorityJobs = jobs.filter((job) => {
+  const higherPriorityJobs = jobs.filter(job => {
     const jobPriority = job.opts.priority || 10;
     return jobPriority <= userPriority;
   });
@@ -382,3 +382,4 @@ export function setupQueueListeners(): void {
 
   console.log('✅ Queue event listeners setup');
 }
+

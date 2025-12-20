@@ -1,11 +1,15 @@
 /**
  * Real-time Device Detection Hook
- * 
+ *
  * Auto-detect GPU/CPU capabilities and recommend optimal backend
  */
 
 import { useState, useEffect } from 'react';
-import { detectSystemResources, type SystemResources, type DeviceType } from '../services/deviceManager';
+import {
+  detectSystemResources,
+  type SystemResources,
+  type DeviceType,
+} from '../services/deviceManager';
 
 export interface BackendRecommendation {
   name: string; // Display name
@@ -42,30 +46,36 @@ export function useDeviceDetection(): DeviceDetectionResult {
         // 🔥 FORCE CLEANUP: Remove old Cloudflare URLs BEFORE detection
         const cachedUrl = localStorage.getItem('comfyui_url');
         if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
-          console.warn('🗑️ FORCE CLEANUP: Removing old Cloudflare URL from useDeviceDetection:', cachedUrl);
+          console.warn(
+            '🗑️ FORCE CLEANUP: Removing old Cloudflare URL from useDeviceDetection:',
+            cachedUrl
+          );
           localStorage.removeItem('comfyui_url');
         }
-        
+
         console.log('🔍 Detecting system resources...');
         const detected = await detectSystemResources();
-        
+
         if (mounted) {
           setResources(detected);
           setIsDetecting(false);
           console.log('✅ Device detection complete:', detected);
-          
+
           // Save to localStorage for next session
-          localStorage.setItem('last_device_detection', JSON.stringify({
-            timestamp: Date.now(),
-            resources: detected
-          }));
+          localStorage.setItem(
+            'last_device_detection',
+            JSON.stringify({
+              timestamp: Date.now(),
+              resources: detected,
+            })
+          );
         }
       } catch (err) {
         console.error('❌ Device detection failed:', err);
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Unknown error');
           setIsDetecting(false);
-          
+
           // Try to load from localStorage
           const cached = localStorage.getItem('last_device_detection');
           if (cached) {
@@ -93,7 +103,7 @@ export function useDeviceDetection(): DeviceDetectionResult {
     isDetecting,
     error,
     recommendedBackend,
-    allBackends
+    allBackends,
   };
 }
 
@@ -101,12 +111,12 @@ export function useDeviceDetection(): DeviceDetectionResult {
  * Select optimal backend based on system resources
  */
 function selectOptimalBackend(resources: SystemResources): BackendRecommendation {
-  const hasGPU = resources.devices.some(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+  const hasGPU = resources.devices.some(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
-  
-  const gpuDevice = resources.devices.find(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+
+  const gpuDevice = resources.devices.find(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
 
   // Priority 1: Local ComfyUI with GPU (FREE + FAST)
@@ -119,7 +129,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
       speed: gpuDevice?.type === 'cuda' ? 'very-fast' : 'fast',
       quality: 'excellent',
       reason: `Your ${gpuDevice?.name || 'GPU'} detected - using local ComfyUI (FREE)`,
-      deviceUsed: gpuDevice?.type
+      deviceUsed: gpuDevice?.type,
     };
   }
 
@@ -133,9 +143,9 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
       cost: 0.02,
       speed: 'fast',
       quality: 'excellent',
-      reason: hasGPU 
+      reason: hasGPU
         ? 'Local ComfyUI not running - using cloud ComfyUI ($0.02/video)'
-        : 'No local GPU - using cloud ComfyUI ($0.02/video)'
+        : 'No local GPU - using cloud ComfyUI ($0.02/video)',
     };
   }
 
@@ -148,7 +158,7 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
       cost: 0.018,
       speed: 'medium',
       quality: 'good',
-      reason: 'Cloud ComfyUI unavailable - using Replicate Hotshot-XL ($0.018/video)'
+      reason: 'Cloud ComfyUI unavailable - using Replicate Hotshot-XL ($0.018/video)',
     };
   }
 
@@ -157,10 +167,10 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
   return {
     name: 'Gemini Veo 3.1',
     type: 'gemini-veo',
-    cost: 0.50,
+    cost: 0.5,
     speed: 'medium',
     quality: 'excellent',
-    reason: 'Using Gemini Veo 3.1 (premium quality, $0.50/video)'
+    reason: 'Using Gemini Veo 3.1 (premium quality, $0.50/video)',
   };
 }
 
@@ -169,13 +179,13 @@ function selectOptimalBackend(resources: SystemResources): BackendRecommendation
  */
 function getAllBackendOptions(resources: SystemResources): BackendRecommendation[] {
   const options: BackendRecommendation[] = [];
-  
-  const hasGPU = resources.devices.some(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+
+  const hasGPU = resources.devices.some(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
-  
-  const gpuDevice = resources.devices.find(d => 
-    (d.type === 'cuda' || d.type === 'mps') && d.available
+
+  const gpuDevice = resources.devices.find(
+    d => (d.type === 'cuda' || d.type === 'mps') && d.available
   );
 
   // Option 1: Local ComfyUI
@@ -188,7 +198,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
       speed: gpuDevice?.type === 'cuda' ? 'very-fast' : 'fast',
       quality: 'excellent',
       reason: `Use your ${gpuDevice?.name || 'GPU'} (FREE)`,
-      deviceUsed: gpuDevice?.type
+      deviceUsed: gpuDevice?.type,
     });
   }
 
@@ -202,7 +212,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
       cost: 0.02,
       speed: 'fast',
       quality: 'excellent',
-      reason: 'Cloud GPU (RTX 3090)'
+      reason: 'Cloud GPU (RTX 3090)',
     });
   }
 
@@ -213,7 +223,7 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
     cost: 0.018,
     speed: 'medium',
     quality: 'good',
-    reason: 'Fast & cheap GIF animations'
+    reason: 'Fast & cheap GIF animations',
   });
 
   // Option 4: HuggingFace (FREE but rate limited)
@@ -223,17 +233,17 @@ function getAllBackendOptions(resources: SystemResources): BackendRecommendation
     cost: 0,
     speed: 'slow',
     quality: 'moderate',
-    reason: 'FREE tier (rate limited)'
+    reason: 'FREE tier (rate limited)',
   });
 
   // Option 5: Gemini Veo (Premium)
   options.push({
     name: 'Gemini Veo 3.1',
     type: 'gemini-veo',
-    cost: 0.50,
+    cost: 0.5,
     speed: 'medium',
     quality: 'excellent',
-    reason: 'Premium quality (720p, 30-120s)'
+    reason: 'Premium quality (720p, 30-120s)',
   });
 
   return options;
@@ -263,18 +273,21 @@ function isLocalComfyUIRunning(): boolean {
 export async function checkBackendHealth(url: string): Promise<boolean> {
   try {
     const response = await fetch(`${url}/health`, {
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(3000),
     });
     const healthy = response.ok;
-    
+
     // Cache result
     if (url.includes('localhost:8188')) {
-      localStorage.setItem('comfyui_local_status', JSON.stringify({
-        timestamp: Date.now(),
-        running: healthy
-      }));
+      localStorage.setItem(
+        'comfyui_local_status',
+        JSON.stringify({
+          timestamp: Date.now(),
+          running: healthy,
+        })
+      );
     }
-    
+
     return healthy;
   } catch (error) {
     return false;
@@ -286,19 +299,19 @@ export async function checkBackendHealth(url: string): Promise<boolean> {
  */
 export function formatDeviceInfo(device: SystemResources['devices'][0]): string {
   const parts = [device.name];
-  
+
   if (device.vram) {
     parts.push(`${Math.round(device.vram / 1024)} GB VRAM`);
   }
-  
+
   if (device.utilization !== undefined) {
     parts.push(`${device.utilization}% used`);
   }
-  
+
   if (device.temperature !== undefined) {
     parts.push(`${device.temperature}°C`);
   }
-  
+
   return parts.join(' • ');
 }
 
@@ -339,3 +352,4 @@ export function getBackendEmoji(type: BackendRecommendation['type']): string {
       return '🎬';
   }
 }
+

@@ -25,7 +25,7 @@ describe('Load Balancer Integration', () => {
     vi.clearAllMocks();
 
     // Default mocks
-    vi.spyOn(runpodModule.runPodService, 'deployPod').mockResolvedValue('pod-123');
+    vi.spyOn(runpodModule.runPodService, 'deployPod').mockResolvedValue({ id: 'pod-123', status: 'RUNNING' } as any);
     vi.spyOn(runpodModule.runPodService, 'waitForPodReady').mockResolvedValue(true);
     vi.spyOn(runpodModule.runPodService, 'getPodStatus').mockResolvedValue({
       id: 'pod-123',
@@ -55,7 +55,7 @@ describe('Load Balancer Integration', () => {
 
   describe('Auto-scaling Up', () => {
     it('should scale up when threshold is exceeded', async () => {
-      const scaledUpPromise = new Promise((resolve) => {
+      const scaledUpPromise = new Promise(resolve => {
         balancer.once('scaled-up', resolve);
       });
 
@@ -64,10 +64,7 @@ describe('Load Balancer Integration', () => {
 
       expect(podId).toBe('pod-123');
       expect(runpodModule.runPodService.deployPod).toHaveBeenCalled();
-      expect(runpodModule.runPodService.waitForPodReady).toHaveBeenCalledWith(
-        'pod-123',
-        300000
-      );
+      expect(runpodModule.runPodService.waitForPodReady).toHaveBeenCalledWith('pod-123', 300000);
 
       await scaledUpPromise;
 
@@ -79,9 +76,9 @@ describe('Load Balancer Integration', () => {
     it('should not scale beyond maxPods', async () => {
       // Mock different pod IDs for each deployment
       vi.spyOn(runpodModule.runPodService, 'deployPod')
-        .mockResolvedValueOnce('pod-1')
-        .mockResolvedValueOnce('pod-2')
-        .mockResolvedValueOnce('pod-3');
+        .mockResolvedValueOnce({ id: 'pod-1', status: 'RUNNING' } as any)
+        .mockResolvedValueOnce({ id: 'pod-2', status: 'RUNNING' } as any)
+        .mockResolvedValueOnce({ id: 'pod-3', status: 'RUNNING' } as any);
 
       // Scale to max
       await balancer.scaleUp(); // pod 1
@@ -128,7 +125,7 @@ describe('Load Balancer Integration', () => {
       // Advance time to make pod idle
       vi.advanceTimersByTime(2000); // Beyond podIdleTimeout
 
-      const scaledDownPromise = new Promise((resolve) => {
+      const scaledDownPromise = new Promise(resolve => {
         balancer.once('scaled-down', resolve);
       });
 
@@ -177,9 +174,7 @@ describe('Load Balancer Integration', () => {
       await balancer.scaleUp();
 
       // Make pod unhealthy
-      vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(
-        false
-      );
+      vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(false);
 
       // Trigger health check manually (since we have long interval)
       await (balancer as any).performHealthChecks();
@@ -189,15 +184,13 @@ describe('Load Balancer Integration', () => {
     });
 
     it('should emit event when pod becomes unhealthy', async () => {
-      const unhealthyPromise = new Promise((resolve) => {
+      const unhealthyPromise = new Promise(resolve => {
         balancer.once('pod-unhealthy', resolve);
       });
 
       await balancer.scaleUp();
 
-      vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(
-        false
-      );
+      vi.spyOn(runpodModule.runPodService, 'checkComfyUIHealth').mockResolvedValue(false);
 
       await (balancer as any).performHealthChecks();
 
@@ -210,16 +203,16 @@ describe('Load Balancer Integration', () => {
     it('should select pod with least active requests', async () => {
       // Deploy multiple pods
       vi.spyOn(runpodModule.runPodService, 'deployPod')
-        .mockResolvedValueOnce('pod-1')
-        .mockResolvedValueOnce('pod-2');
+        .mockResolvedValueOnce({ id: 'pod-1', status: 'RUNNING' } as any)
+        .mockResolvedValueOnce({ id: 'pod-2', status: 'RUNNING' } as any);
 
       await balancer.scaleUp();
       await balancer.scaleUp();
 
       // Simulate different request loads
       const metrics = balancer.getMetrics();
-      const pod1 = metrics.podMetrics.find((p) => p.podId === 'pod-1');
-      const pod2 = metrics.podMetrics.find((p) => p.podId === 'pod-2');
+      const pod1 = metrics.podMetrics.find(p => p.podId === 'pod-1');
+      const pod2 = metrics.podMetrics.find(p => p.podId === 'pod-2');
 
       if (pod1) pod1.activeRequests = 5;
       if (pod2) pod2.activeRequests = 2;
@@ -275,7 +268,7 @@ describe('Load Balancer Integration', () => {
     });
 
     it('should emit config-updated event', async () => {
-      const configUpdatedPromise = new Promise((resolve) => {
+      const configUpdatedPromise = new Promise(resolve => {
         balancer.once('config-updated', resolve);
       });
 
@@ -289,8 +282,8 @@ describe('Load Balancer Integration', () => {
   describe('Shutdown', () => {
     it('should stop all pods on shutdown', async () => {
       vi.spyOn(runpodModule.runPodService, 'deployPod')
-        .mockResolvedValueOnce('pod-1')
-        .mockResolvedValueOnce('pod-2');
+        .mockResolvedValueOnce({ id: 'pod-1', status: 'RUNNING' } as any)
+        .mockResolvedValueOnce({ id: 'pod-2', status: 'RUNNING' } as any);
 
       await balancer.scaleUp();
       await balancer.scaleUp();
@@ -318,7 +311,7 @@ describe('Load Balancer Integration', () => {
         new Error('Deployment failed')
       );
 
-      const errorPromise = new Promise((resolve) => {
+      const errorPromise = new Promise(resolve => {
         balancer.once('scale-error', resolve);
       });
 
@@ -338,13 +331,11 @@ describe('Load Balancer Integration', () => {
 
       await balancer.scaleUp();
 
-      vi.spyOn(runpodModule.runPodService, 'stopPod').mockRejectedValue(
-        new Error('Stop failed')
-      );
+      vi.spyOn(runpodModule.runPodService, 'stopPod').mockRejectedValue(new Error('Stop failed'));
 
       vi.advanceTimersByTime(2000);
 
-      const errorPromise = new Promise((resolve) => {
+      const errorPromise = new Promise(resolve => {
         balancer.once('scale-error', resolve);
       });
 
@@ -362,3 +353,4 @@ describe('Load Balancer Integration', () => {
     });
   });
 });
+

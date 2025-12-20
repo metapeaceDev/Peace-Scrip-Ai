@@ -11,6 +11,7 @@
 ### ✅ จุดแข็งที่พบ (Strengths)
 
 #### 1. TypeScript Configuration - ممتاز (Excellent)
+
 ```json
 ✅ strict: true
 ✅ strictNullChecks: true
@@ -20,6 +21,7 @@
 ```
 
 #### 2. Environment Variables - ครบถ้วน
+
 ```bash
 ✅ .env.example มี Firebase config ครบถ้วน (7 variables)
 ✅ มี Gemini API Key configuration
@@ -29,6 +31,7 @@
 ```
 
 #### 3. Security Configuration - ดีมาก
+
 ```gitignore
 ✅ .gitignore ครอบคลุม:
    - service-account*.json
@@ -38,6 +41,7 @@
 ```
 
 #### 4. Code Quality - สูง
+
 ```
 ✅ ESLint configuration ครบถ้วน
 ✅ Prettier configuration
@@ -46,6 +50,7 @@
 ```
 
 #### 5. Documentation - ครบถ้วน
+
 ```
 ✅ README.md - comprehensive
 ✅ QUICK_START.md
@@ -61,12 +66,15 @@
 ### 🔴 Priority 1: Critical Security Issue
 
 #### Issue 1.1: Service Account Key ใน Repository
-**ปัญหา**: 
+
+**ปัญหา**:
+
 - 🔥 พบไฟล์ `service-account-key.json` อยู่ในโฟลเดอร์โปรเจ็ค
 - ⚠️ ไฟล์นี้มี private key ของ Firebase Admin SDK
 - ⚠️ ถึงแม้จะมีใน .gitignore แล้ว แต่ควรตรวจสอบว่าไม่ได้ถูก commit ไป
 
 **วิธีแก้ไข**:
+
 ```bash
 # 1. ตรวจสอบว่าไฟล์อยู่ใน Git history หรือไม่
 git log --all --full-history -- "*service-account-key.json"
@@ -85,7 +93,8 @@ git push origin --force --all
 
 **ผลกระทบ**: 🔥 **CRITICAL** - อาจถูกนำไปใช้โดยไม่ได้รับอนุญาต
 
-**คำแนะนำ**: 
+**คำแนะนำ**:
+
 - ✅ .gitignore มีการป้องกันแล้ว
 - ⚠️ ควร revoke key เดิมและสร้างใหม่ถ้าเคย commit ไปแล้ว
 
@@ -94,7 +103,9 @@ git push origin --force --all
 ### 🟡 Priority 2: Moderate Issues
 
 #### Issue 2.1: Dependencies Security Vulnerabilities
+
 **ปัญหา**: พบช่องโหว่ด้านความปลอดภัย (moderate severity) ใน:
+
 - `@vitest/coverage-v8` (<=2.2.0-beta.2)
 - `@vitest/ui` (<=0.0.122 || 0.31.0 - 2.2.0-beta.2)
 - `esbuild` (<=0.24.2)
@@ -102,6 +113,7 @@ git push origin --force --all
 - `vitest` (multiple versions)
 
 **วิธีแก้ไข**:
+
 ```bash
 # อัปเดต dependencies ที่มีช่องโหว่
 npm update @vitest/coverage-v8 @vitest/ui vitest vite esbuild
@@ -117,23 +129,29 @@ npm audit
 ---
 
 #### Issue 2.2: Markdown Lint Warnings
+
 **ปัญหา**: พบ warnings ใน documentation files (687 warnings รวมทั้งโปรเจ็ค)
+
 - ไม่มี language specification ใน code blocks
 - ไม่มีบรรทัดว่างรอบ lists และ headings
 - Table formatting ไม่สม่ำเสมอ
 
 **ตัวอย่างใน README.md**:
+
 ```markdown
 # ❌ ไม่ดี
 ```
+
 code without language
-```
+
+````
 
 # ✅ ดี
 ```bash
 code with language
-```
-```
+````
+
+````
 
 **วิธีแก้ไข**: เพิ่ม language identifiers และปรับ formatting
 **ผลกระทบ**: 🟢 **LOW** - เป็นเพียง documentation formatting
@@ -148,15 +166,17 @@ code with language
 1. `src/components/PaymentSuccess.tsx:18`
    ```typescript
    // TODO: Update user subscription status in Firebase
-   ```
+````
 
 2. `src/services/paymentService.ts:142-143`
+
    ```typescript
    stripeMonthlyLink: '', // TODO: Contact Sales (no direct checkout)
    stripeYearlyLink: '', // TODO: Contact Sales (no direct checkout)
    ```
 
 3. `src/services/errorHandler.ts:257`
+
    ```typescript
    // TODO: Send to monitoring service (e.g., Sentry) in production
    ```
@@ -176,7 +196,9 @@ code with language
 ### 🟢 Priority 3: Nice to Have
 
 #### Issue 3.1: Test Coverage Gaps
+
 **ปัญหา**: มี tests ที่ fail อยู่ 24 tests (1.2%)
+
 - Test Files: 61 passed, 1 with failures
 - Tests: 1935 passed | 24 failed
 
@@ -191,6 +213,7 @@ code with language
 ### Phase 1: Security Hardening (สัปดาห์ที่ 1) 🔥 URGENT
 
 #### Task 1.1: Service Account Key Security ✅ CRITICAL
+
 ```bash
 # Timeline: วันนี้ (1 ชั่วโมง)
 # Priority: 🔥 HIGHEST
@@ -210,6 +233,7 @@ git log --all --full-history -- "*service-account-key.json"
 ```
 
 **Deliverables**:
+
 - [ ] ตรวจสอบ Git history เสร็จ
 - [ ] Revoke และสร้าง key ใหม่ (ถ้าจำเป็น)
 - [ ] ยืนยันว่า key ปลอดภัย
@@ -217,6 +241,7 @@ git log --all --full-history -- "*service-account-key.json"
 ---
 
 #### Task 1.2: Dependencies Security Update ⚠️ IMPORTANT
+
 ```bash
 # Timeline: สัปดาห์ที่ 1 (2 ชั่วโมง)
 # Priority: 🟡 HIGH
@@ -242,6 +267,7 @@ npm run dev
 ```
 
 **Deliverables**:
+
 - [ ] Dependencies อัปเดตเสร็จ
 - [ ] Security audit ผ่าน (0 vulnerabilities)
 - [ ] Tests ยังผ่านทั้งหมด
@@ -252,6 +278,7 @@ npm run dev
 ### Phase 2: Code Quality Improvements (สัปดาห์ที่ 2-3)
 
 #### Task 2.1: Resolve TODO Comments
+
 ```bash
 # Timeline: สัปดาห์ที่ 2 (4-6 ชั่วโมง)
 # Priority: 🟡 MEDIUM
@@ -265,6 +292,7 @@ npm run dev
 **TODO Resolution Plan**:
 
 **1. Payment System TODOs (High Priority)**
+
 ```typescript
 // File: src/components/PaymentSuccess.tsx
 // TODO: Update user subscription status in Firebase
@@ -278,6 +306,7 @@ npm run dev
 ```
 
 **2. Error Monitoring TODOs (Medium Priority)**
+
 ```typescript
 // File: src/services/errorHandler.ts
 // TODO: Send to monitoring service (e.g., Sentry)
@@ -291,6 +320,7 @@ npm run dev
 ```
 
 **3. Feature TODOs (Lower Priority)**
+
 ```typescript
 // File: src/services/mindProcessors.ts
 // TODO: Check if character has active upadana
@@ -304,6 +334,7 @@ npm run dev
 ```
 
 **Deliverables**:
+
 - [ ] All critical TODOs resolved
 - [ ] GitHub Issues created for remaining TODOs
 - [ ] Code reviewed and tested
@@ -311,6 +342,7 @@ npm run dev
 ---
 
 #### Task 2.2: Fix Failing Tests
+
 ```bash
 # Timeline: สัปดาห์ที่ 2-3 (6-8 ชั่วโมง)
 # Priority: 🟢 MEDIUM
@@ -328,6 +360,7 @@ npm run test:coverage
 ```
 
 **Deliverables**:
+
 - [ ] All 1959 tests passing (currently 1935/1959)
 - [ ] Coverage maintained at >98%
 - [ ] No regression in existing features
@@ -335,6 +368,7 @@ npm run test:coverage
 ---
 
 #### Task 2.3: Markdown Documentation Cleanup (Optional)
+
 ```bash
 # Timeline: สัปดาห์ที่ 3 (3-4 ชั่วโมง)
 # Priority: 🟢 LOW
@@ -359,6 +393,7 @@ npm run lint:md
 ```
 
 **Deliverables**:
+
 - [ ] Markdown lint errors reduced to <100
 - [ ] All code blocks have language identifiers
 - [ ] Proper formatting in README.md
@@ -368,6 +403,7 @@ npm run lint:md
 ### Phase 3: Production Hardening (สัปดาห์ที่ 4)
 
 #### Task 3.1: Error Monitoring Integration
+
 ```bash
 # Install Sentry
 npm install @sentry/react @sentry/tracing
@@ -387,6 +423,7 @@ VITE_SENTRY_DSN=your_sentry_dsn_here
 ```
 
 **Deliverables**:
+
 - [ ] Sentry integrated
 - [ ] Error tracking working in production
 - [ ] Alert notifications configured
@@ -394,6 +431,7 @@ VITE_SENTRY_DSN=your_sentry_dsn_here
 ---
 
 #### Task 3.2: Performance Monitoring
+
 ```bash
 # Add performance monitoring
 # src/utils/performance.ts
@@ -403,7 +441,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
   fn();
   const end = performance.now();
   console.log(`${name}: ${end - start}ms`);
-  
+
   // Send to analytics
   if (import.meta.env.PROD) {
     Sentry.metrics.timing(name, end - start);
@@ -412,6 +450,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ```
 
 **Deliverables**:
+
 - [ ] Performance metrics collected
 - [ ] Dashboard for monitoring
 - [ ] Alerts for slow operations
@@ -421,6 +460,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ## 📈 Success Metrics
 
 ### ก่อนการปรับปรุง (Current State)
+
 ```
 ✅ TypeScript Errors: 0 (excellent)
 ⚠️ Security Vulnerabilities: 6 moderate
@@ -432,6 +472,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ```
 
 ### หลังการปรับปรุง (Target State)
+
 ```
 ✅ TypeScript Errors: 0 (maintain)
 ✅ Security Vulnerabilities: 0
@@ -449,14 +490,17 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ## 🎯 Priority Matrix
 
 ### ต้องทำทันที (This Week)
+
 1. 🔥 **Task 1.1**: Service Account Security Check (1 hour)
 2. 🟡 **Task 1.2**: Update Vulnerable Dependencies (2 hours)
 
 ### สำคัญ (Next 2 Weeks)
+
 3. 🟡 **Task 2.1**: Resolve Critical TODOs (6 hours)
 4. 🟢 **Task 2.2**: Fix Failing Tests (8 hours)
 
 ### Nice to Have (Next Month)
+
 5. 🟢 **Task 2.3**: Markdown Cleanup (4 hours)
 6. 🟢 **Task 3.1**: Sentry Integration (4 hours)
 7. 🟢 **Task 3.2**: Performance Monitoring (4 hours)
@@ -466,6 +510,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ## 📝 Checklist สำหรับการดำเนินการ
 
 ### Week 1: Security & Critical Issues
+
 - [ ] ตรวจสอบ service-account-key.json ใน Git history
 - [ ] Revoke และสร้าง key ใหม่ (ถ้าจำเป็น)
 - [ ] อัปเดต dependencies ที่มีช่องโหว่
@@ -473,18 +518,21 @@ export const measurePerformance = (name: string, fn: () => void) => {
 - [ ] รัน `npm test` และยืนยันว่าไม่มี regression
 
 ### Week 2: Code Quality
+
 - [ ] สร้าง GitHub Issues สำหรับ TODOs ทั้งหมด
 - [ ] แก้ไข Payment-related TODOs
 - [ ] แก้ไข Error Monitoring TODOs
 - [ ] เริ่มแก้ไข failing tests
 
 ### Week 3: Testing & Documentation
+
 - [ ] แก้ไข failing tests จนครบ 100%
 - [ ] รัน full test suite และ coverage report
 - [ ] ทำ markdown cleanup (optional)
 - [ ] อัปเดต documentation ตามการเปลี่ยนแปลง
 
 ### Week 4: Production Readiness
+
 - [ ] ติดตั้งและ configure Sentry
 - [ ] ทดสอบ error tracking
 - [ ] เพิ่ม performance monitoring
@@ -496,6 +544,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
 ## 🚀 Next Steps
 
 ### Immediate Actions (Today)
+
 ```bash
 # 1. Security Check
 git log --all --full-history -- "*service-account-key.json"
@@ -512,6 +561,7 @@ npm run build
 ```
 
 ### Follow-up (This Week)
+
 - Schedule time blocks for each task
 - Create GitHub project board for tracking
 - Set up automated reminders
@@ -522,21 +572,27 @@ npm run build
 ## 📊 Conclusion
 
 ### สรุปภาพรวม
+
 โปรเจ็ค Peace Script AI อยู่ในสถานะที่**ดีมาก** โดยรวม:
+
 - ✅ TypeScript configuration เป็นเลิศ
 - ✅ Test coverage สูง (98.8%)
 - ✅ Documentation ครบถ้วน
 - ✅ Build pipeline ทำงานได้ดี
 
 ### ประเด็นที่ต้องแก้ไข
+
 มีเพียง**ไม่กี่จุด**ที่ต้องปรับปรุง:
+
 - 🔥 Security: ตรวจสอบ service account key
 - 🟡 Dependencies: อัปเดต packages ที่มีช่องโหว่
 - 🟡 TODOs: ทำให้เสร็จหรือสร้าง issues
 - 🟢 Tests: แก้ไข 24 failing tests
 
 ### คำแนะนำสุดท้าย
+
 แผนนี้ออกแบบมาให้**เป็นขั้นตอน**และ**ทำได้จริง** โดย:
+
 - แบ่งเป็น 4 สัปดาห์
 - จัดลำดับความสำคัญชัดเจน
 - มี deliverables ที่วัดผลได้

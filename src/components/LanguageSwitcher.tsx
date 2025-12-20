@@ -97,3 +97,4 @@ export function useTranslation() {
     language: getCurrentLanguage(),
   };
 }
+

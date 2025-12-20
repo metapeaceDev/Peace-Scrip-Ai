@@ -18,7 +18,10 @@ export interface InstallProgress {
   error?: string;
 }
 
-const COMFYUI_DEFAULT_URL = import.meta.env.VITE_COMFYUI_URL || import.meta.env.VITE_COMFYUI_API_URL || "http://localhost:8188";
+const COMFYUI_DEFAULT_URL =
+  import.meta.env.VITE_COMFYUI_URL ||
+  import.meta.env.VITE_COMFYUI_API_URL ||
+  'http://localhost:8188';
 const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL; // Optional cloud fallback
 
 /**
@@ -30,13 +33,13 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(url, { 
+
+      const response = await fetch(url, {
         signal: controller.signal,
         mode: 'cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
       });
-      
+
       clearTimeout(timeoutId);
       return response;
     } catch (err) {
@@ -48,14 +51,14 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
   try {
     // Try local installation (silent error to avoid console spam)
     const localResponse = await silentFetch(`${COMFYUI_DEFAULT_URL}/system_stats`, 2000);
-    
+
     if (localResponse?.ok) {
       const stats = await localResponse.json();
       return {
         installed: true,
         running: true,
         version: stats.system?.comfyui_version || 'unknown',
-        url: COMFYUI_DEFAULT_URL
+        url: COMFYUI_DEFAULT_URL,
       };
     }
   } catch (localError) {
@@ -66,12 +69,12 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
   if (COMFYUI_CLOUD_URL) {
     try {
       const cloudResponse = await silentFetch(`${COMFYUI_CLOUD_URL}/system_stats`, 3000);
-      
+
       if (cloudResponse?.ok) {
         return {
           installed: true,
           running: true,
-          url: COMFYUI_CLOUD_URL
+          url: COMFYUI_CLOUD_URL,
         };
       }
     } catch (cloudError) {
@@ -82,7 +85,7 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
   return {
     installed: false,
     running: false,
-    error: "ComfyUI is not running. Please install and start ComfyUI."
+    error: 'ComfyUI is not running. Please install and start ComfyUI.',
   };
 }
 
@@ -97,7 +100,7 @@ export function getInstallInstructions(): {
 } {
   const userAgent = navigator.userAgent.toLowerCase();
   let os: 'windows' | 'mac' | 'linux' | 'unknown' = 'unknown';
-  
+
   if (userAgent.includes('win')) {
     os = 'windows';
   } else if (userAgent.includes('mac')) {
@@ -108,47 +111,48 @@ export function getInstallInstructions(): {
 
   const instructions = {
     windows: [
-      "1. Download ComfyUI Portable (Windows)",
-      "2. Extract the ZIP file to your Desktop",
+      '1. Download ComfyUI Portable (Windows)',
+      '2. Extract the ZIP file to your Desktop',
       "3. Run 'run_nvidia_gpu.bat' (for NVIDIA GPU) or 'run_cpu.bat' (for CPU)",
-      "4. Wait for ComfyUI to start (browser will open automatically)",
-      "5. Return to Peace Script AI and click 'Check Again'"
+      '4. Wait for ComfyUI to start (browser will open automatically)',
+      "5. Return to Peace Script AI and click 'Check Again'",
     ],
     mac: [
-      "1. Download ComfyUI for macOS",
-      "2. Extract the ZIP file",
-      "3. Open Terminal and navigate to the ComfyUI folder",
-      "4. Run: python3 main.py",
-      "5. Wait for ComfyUI to start at http://localhost:8188",
-      "6. Return to Peace Script AI and click 'Check Again'"
+      '1. Download ComfyUI for macOS',
+      '2. Extract the ZIP file',
+      '3. Open Terminal and navigate to the ComfyUI folder',
+      '4. Run: python3 main.py',
+      '5. Wait for ComfyUI to start at http://localhost:8188',
+      "6. Return to Peace Script AI and click 'Check Again'",
     ],
     linux: [
-      "1. Download ComfyUI for Linux",
-      "2. Extract and open terminal in that folder",
-      "3. Run: python3 main.py",
-      "4. ComfyUI will start at http://localhost:8188",
-      "5. Return to Peace Script AI and click 'Check Again'"
+      '1. Download ComfyUI for Linux',
+      '2. Extract and open terminal in that folder',
+      '3. Run: python3 main.py',
+      '4. ComfyUI will start at http://localhost:8188',
+      "5. Return to Peace Script AI and click 'Check Again'",
     ],
     unknown: [
-      "1. Visit https://github.com/comfyanonymous/ComfyUI",
-      "2. Follow installation instructions for your OS",
-      "3. Start ComfyUI at http://localhost:8188",
-      "4. Return to Peace Script AI and click 'Check Again'"
-    ]
+      '1. Visit https://github.com/comfyanonymous/ComfyUI',
+      '2. Follow installation instructions for your OS',
+      '3. Start ComfyUI at http://localhost:8188',
+      "4. Return to Peace Script AI and click 'Check Again'",
+    ],
   };
 
   const downloadUrls = {
-    windows: "https://github.com/comfyanonymous/ComfyUI/releases/latest/download/ComfyUI_windows_portable_nvidia_cu121_or_cpu.7z",
-    mac: "https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip",
-    linux: "https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip",
-    unknown: "https://github.com/comfyanonymous/ComfyUI"
+    windows:
+      'https://github.com/comfyanonymous/ComfyUI/releases/latest/download/ComfyUI_windows_portable_nvidia_cu121_or_cpu.7z',
+    mac: 'https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip',
+    linux: 'https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip',
+    unknown: 'https://github.com/comfyanonymous/ComfyUI',
   };
 
   return {
     os,
     instructions: instructions[os],
     downloadUrl: downloadUrls[os],
-    isOneClick: os === 'windows' // Windows has portable version
+    isOneClick: os === 'windows', // Windows has portable version
   };
 }
 
@@ -160,16 +164,16 @@ export async function* monitorInstallation(): AsyncGenerator<InstallProgress> {
   yield {
     step: 'download',
     progress: 0,
-    message: 'Downloading ComfyUI...'
+    message: 'Downloading ComfyUI...',
   };
 
   // In the future, this would actually download and install
   // For now, we guide users through manual installation
-  
+
   yield {
     step: 'download',
     progress: 100,
-    message: 'Download instructions provided'
+    message: 'Download instructions provided',
   };
 }
 
@@ -185,23 +189,23 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
     // This would query ComfyUI's /object_info endpoint to check available models
     const response = await fetch(`${comfyUrl}/object_info`);
     await response.json(); // Just validate the response
-    
+
     // Check for required checkpoint models (Flux, SDXL, etc.)
     const hasCheckpoint = true; // Simplified for now
-    
+
     // Check for LoRA models
     const hasLora = true; // Simplified for now
-    
+
     return {
       checkpointModel: hasCheckpoint,
       loraModels: hasLora,
-      missingModels: []
+      missingModels: [],
     };
   } catch (error) {
     return {
       checkpointModel: false,
       loraModels: false,
-      missingModels: ['Unable to verify models']
+      missingModels: ['Unable to verify models'],
     };
   }
 }
@@ -211,7 +215,9 @@ export async function checkRequiredModels(comfyUrl: string): Promise<{
  * 🚫 DEPRECATED: No longer saves to localStorage - use .env instead
  */
 export function saveComfyUIUrl(_url: string): void {
-  console.warn('⚠️ saveComfyUIUrl() is deprecated. Please update VITE_COMFYUI_URL in .env file instead.');
+  console.warn(
+    '⚠️ saveComfyUIUrl() is deprecated. Please update VITE_COMFYUI_URL in .env file instead.'
+  );
   console.info('💡 URL not saved. Current URL from .env:', COMFYUI_DEFAULT_URL);
   // Do nothing - .env is single source of truth
 }
@@ -226,7 +232,8 @@ export function getSavedComfyUIUrl(): string {
     console.warn('🗑️ Cleaning up deprecated localStorage key: comfyui_url');
     localStorage.removeItem('comfyui_url');
   }
-  
+
   // ✅ ALWAYS return .env value (single source of truth)
   return COMFYUI_DEFAULT_URL;
 }
+

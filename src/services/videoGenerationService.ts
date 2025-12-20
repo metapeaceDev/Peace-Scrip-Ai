@@ -14,7 +14,7 @@
 
 import { generateStoryboardVideo } from './geminiService';
 import { updateEmotionalState } from './psychologyCalculator';
-import type { GeneratedScene, Character } from '../../types';
+import type { GeneratedScene, Character } from '../types';
 
 // Flexible Shot interface for video generation
 export interface VideoShot {
@@ -601,3 +601,4 @@ export function exportMovieData(movieData: {
 
   console.log('✅ Movie data exported successfully');
 }
+

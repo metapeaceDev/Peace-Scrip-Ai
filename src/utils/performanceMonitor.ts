@@ -1,16 +1,18 @@
 /**
  * Performance Monitor for Buddhist Psychology System
- * 
+ *
  * Tracks execution time and memory usage of:
  * - Javana Decision Engine
  * - Parami Synergy Calculations
  * - Anusaya Tracking
  * - Psychology Evolution
- * 
+ *
  * @module performanceMonitor
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { logger } from './logger';
 
 export interface PerformanceMetric {
   name: string;
@@ -43,7 +45,7 @@ class PerformanceMonitor {
    */
   enable(): void {
     this.enabled = true;
-    console.log('🔍 Performance monitoring enabled');
+    logger.info('🔍 Performance monitoring enabled');
   }
 
   /**
@@ -52,7 +54,7 @@ class PerformanceMonitor {
   disable(): void {
     this.enabled = false;
     this.metrics = [];
-    console.log('🔍 Performance monitoring disabled');
+    logger.info('🔍 Performance monitoring disabled');
   }
 
   /**
@@ -117,11 +119,7 @@ class PerformanceMonitor {
   /**
    * Measure synchronous function
    */
-  measureSync<T>(
-    name: string,
-    fn: () => T,
-    metadata?: Record<string, any>
-  ): T {
+  measureSync<T>(name: string, fn: () => T, metadata?: Record<string, any>): T {
     if (!this.enabled) {
       return fn();
     }
@@ -218,7 +216,7 @@ class PerformanceMonitor {
    * Get metrics by name pattern
    */
   getMetricsByName(pattern: string): PerformanceMetric[] {
-    return this.metrics.filter((m) => m.name.includes(pattern));
+    return this.metrics.filter(m => m.name.includes(pattern));
   }
 
   /**
@@ -239,7 +237,7 @@ class PerformanceMonitor {
     const metrics = this.getMetricsByName(pattern);
     if (metrics.length === 0) return { min: 0, max: 0 };
 
-    const times = metrics.map((m) => m.executionTime);
+    const times = metrics.map(m => m.executionTime);
     return {
       min: Math.min(...times),
       max: Math.max(...times),
@@ -250,12 +248,7 @@ class PerformanceMonitor {
    * Get performance summary
    */
   getSummary(): Record<string, any> {
-    const categories = [
-      'javana',
-      'parami',
-      'anusaya',
-      'psychology',
-    ];
+    const categories = ['javana', 'parami', 'anusaya', 'psychology'];
 
     const summary: Record<string, any> = {};
 
@@ -263,7 +256,7 @@ class PerformanceMonitor {
       const metrics = this.getMetricsByName(category);
       if (metrics.length === 0) continue;
 
-      const times = metrics.map((m) => m.executionTime);
+      const times = metrics.map(m => m.executionTime);
       const avg = times.reduce((a, b) => a + b, 0) / times.length;
 
       summary[category] = {
@@ -271,11 +264,12 @@ class PerformanceMonitor {
         avgTime: Number(avg.toFixed(2)),
         minTime: Number(Math.min(...times).toFixed(2)),
         maxTime: Number(Math.max(...times).toFixed(2)),
-        threshold: this.thresholds[`${category}Decision` as keyof PerformanceThresholds] ||
-                   this.thresholds[`${category}Calculation` as keyof PerformanceThresholds] ||
-                   this.thresholds[`${category}Tracking` as keyof PerformanceThresholds] ||
-                   this.thresholds[`${category}Update` as keyof PerformanceThresholds] ||
-                   0,
+        threshold:
+          this.thresholds[`${category}Decision` as keyof PerformanceThresholds] ||
+          this.thresholds[`${category}Calculation` as keyof PerformanceThresholds] ||
+          this.thresholds[`${category}Tracking` as keyof PerformanceThresholds] ||
+          this.thresholds[`${category}Update` as keyof PerformanceThresholds] ||
+          0,
       };
     }
 
@@ -287,7 +281,7 @@ class PerformanceMonitor {
    */
   clear(): void {
     this.metrics = [];
-    console.log('🔍 Performance metrics cleared');
+    logger.info('🔍 Performance metrics cleared');
   }
 
   /**
@@ -295,7 +289,7 @@ class PerformanceMonitor {
    */
   setThresholds(thresholds: Partial<PerformanceThresholds>): void {
     this.thresholds = { ...this.thresholds, ...thresholds };
-    console.log('🔍 Performance thresholds updated', this.thresholds);
+    logger.info('🔍 Performance thresholds updated', { thresholds: this.thresholds });
   }
 
   /**
@@ -318,14 +312,14 @@ class PerformanceMonitor {
    */
   logReport(): void {
     if (!this.enabled) {
-      console.log('🔍 Performance monitoring is disabled');
+      logger.debug('🔍 Performance monitoring is disabled');
       return;
     }
 
-    console.group('📊 Performance Report');
-    console.log('Total metrics:', this.metrics.length);
-    console.table(this.getSummary());
-    console.groupEnd();
+    logger.info('📊 Performance Report', {
+      totalMetrics: this.metrics.length,
+      summary: this.getSummary(),
+    });
   }
 }
 
@@ -339,7 +333,7 @@ if (import.meta.env.DEV) {
 
 /**
  * Decorator for measuring method performance
- * 
+ *
  * @example
  * class MyService {
  *   @measured('myMethod')
@@ -347,11 +341,7 @@ if (import.meta.env.DEV) {
  * }
  */
 export function measured(name: string) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
@@ -364,3 +354,4 @@ export function measured(name: string) {
     return descriptor;
   };
 }
+

@@ -99,24 +99,27 @@ export class PsychologyTTSService {
         method: 'GET',
         signal: AbortSignal.timeout(2000), // 2 second timeout
       });
-      
+
       if (!response.ok) {
         this.isAvailable = false;
         return false;
       }
-      
+
       const data = await response.json();
       this.isAvailable = data.status === 'healthy' && data.model_loaded;
-      
+
       if (!silent && this.isAvailable) {
         console.log('✅ TTS server available:', this.baseURL);
       }
-      
+
       return this.isAvailable;
     } catch (error) {
       // Only log error if not in silent mode and not a connection refused error
       if (!silent && !(error instanceof TypeError && error.message.includes('fetch'))) {
-        console.warn('TTS server not available:', error instanceof Error ? error.message : 'Unknown error');
+        console.warn(
+          'TTS server not available:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
       }
       this.isAvailable = false;
       return false;
@@ -229,3 +232,4 @@ export class PsychologyTTSService {
 
 // Export singleton instance
 export const psychologyTTS = new PsychologyTTSService();
+

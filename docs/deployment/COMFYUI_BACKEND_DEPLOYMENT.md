@@ -44,11 +44,13 @@
 ### Frontend Requirements (Already Implemented)
 
 **Files:**
+
 - `src/services/geminiService.ts` - Main video generation logic with 3-tier fallback
 - `src/services/comfyuiBackendClient.ts` - Client for calling ComfyUI backend API
 - `src/services/comfyuiWorkflowBuilder.ts` - Workflow JSON generator for ComfyUI
 
 **API Endpoints Expected:**
+
 ```
 POST   /api/comfyui/generate   - Submit video generation job
 GET    /api/comfyui/job/{id}   - Poll job status
@@ -58,6 +60,7 @@ GET    /api/queue/stats         - Queue statistics
 ```
 
 **Environment Variables (.env):**
+
 ```bash
 VITE_COMFYUI_SERVICE_URL=http://localhost:8000  # Backend URL
 VITE_USE_COMFYUI_BACKEND=false                   # Enable/disable backend
@@ -66,6 +69,7 @@ VITE_USE_COMFYUI_BACKEND=false                   # Enable/disable backend
 ### Backend Requirements (To Be Implemented)
 
 **Core Components:**
+
 1. **FastAPI Server** - REST API for job queue management
 2. **ComfyUI Instance** - Image/video generation engine
 3. **Job Queue System** - Redis or in-memory queue
@@ -73,6 +77,7 @@ VITE_USE_COMFYUI_BACKEND=false                   # Enable/disable backend
 5. **Firebase Authentication** - Verify user tokens
 
 **Models Required:**
+
 ```
 ComfyUI/models/
 ├── checkpoints/
@@ -88,6 +93,7 @@ ComfyUI/models/
 ```
 
 **GPU Requirements:**
+
 - **Minimum:** NVIDIA GPU with 8GB+ VRAM (T4, RTX 3060)
 - **Recommended:** NVIDIA GPU with 16GB+ VRAM (RTX 4090, A4000)
 - **VRAM Usage:**
@@ -101,6 +107,7 @@ ComfyUI/models/
 ### 1. **RunPod** ⭐ RECOMMENDED
 
 **Pros:**
+
 - GPU-first platform with best pricing
 - Pre-built ComfyUI templates available
 - Flexible GPU selection (RTX 3090, RTX 4090, A4000, etc.)
@@ -108,6 +115,7 @@ ComfyUI/models/
 - Community templates for ComfyUI + AnimateDiff
 
 **Pricing (Approx):**
+
 ```
 RTX 3090 (24GB):  $0.44/hr  (~$320/month) ✅ Best Value
 RTX 4090 (24GB):  $0.64/hr  (~$460/month)
@@ -123,17 +131,20 @@ A4000 (16GB):     $0.34/hr  (~$245/month)
 ### 2. **Replicate**
 
 **Pros:**
+
 - Serverless - pay per generation
 - No infrastructure management
 - Official AnimateDiff and SVD models available
 - Automatic scaling
 
 **Cons:**
+
 - Higher per-generation cost
 - Less control over workflows
 - May need to fork models for custom workflows
 
 **Pricing (Approx):**
+
 ```
 AnimateDiff:  $0.0055/sec  (~$0.17 for 3sec video)
 SVD:          $0.0145/sec  (~$0.44 for 3sec video)
@@ -148,16 +159,19 @@ SVD:          $0.0145/sec  (~$0.44 for 3sec video)
 ### 3. **Hugging Face Spaces**
 
 **Pros:**
+
 - Free tier with GPU (limited hours)
 - Community models readily available
 - Easy deployment via Gradio/Streamlit
 
 **Cons:**
+
 - Free GPU limited to 48 hours/month
 - Performance inconsistent (shared resources)
 - Paid tier expensive ($20-30/month for basic GPU)
 
 **Pricing:**
+
 ```
 Free:           48 GPU hours/month (T4)
 Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
@@ -172,11 +186,13 @@ Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
 ### 4. **Railway**
 
 **Pros:**
+
 - Simple deployment (like Heroku)
 - Environment variable management
 - Automatic HTTPS
 
 **Cons:**
+
 - **NO GPU SUPPORT** ❌
 - Only CPU instances available
 
@@ -187,11 +203,13 @@ Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
 ### 5. **Self-Hosted (Local Machine)**
 
 **Pros:**
+
 - No recurring costs
 - Full control
 - No API rate limits
 
 **Cons:**
+
 - Requires powerful GPU at home
 - Power consumption costs
 - Downtime if machine offline
@@ -206,12 +224,14 @@ Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
 ## 🏆 Final Recommendation
 
 ### For Production: **RunPod (RTX 3090)**
+
 - **Cost:** ~$320/month
 - **Performance:** Excellent (24GB VRAM)
 - **Uptime:** 99.9%
 - **Setup:** Use RunPod ComfyUI template
 
 ### For Testing: **Hugging Face Spaces Free Tier**
+
 - **Cost:** $0 (48 GPU hours/month)
 - **Performance:** Moderate
 - **Uptime:** Limited
@@ -222,6 +242,7 @@ Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
 ## 🚀 Deployment Steps (RunPod)
 
 ### Step 1: Create RunPod Account
+
 1. Go to https://runpod.io
 2. Sign up & add payment method
 3. Deposit $10+ credit
@@ -229,12 +250,14 @@ Paid T4:        $0.60/hr (~$432/month) ❌ Expensive
 ### Step 2: Deploy ComfyUI Pod
 
 **Option A: Use Pre-built Template (EASIEST)**
+
 ```bash
 # Search RunPod templates for "ComfyUI AnimateDiff"
 # One-click deploy with pre-installed models
 ```
 
 **Option B: Custom Deployment**
+
 ```bash
 # 1. Create new GPU Pod
 # 2. Select GPU: RTX 3090 (24GB)
@@ -320,14 +343,14 @@ async def generate_video(
     # Verify Firebase token
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Unauthorized")
-    
+
     token = authorization.split("Bearer ")[1]
     try:
         decoded_token = auth.verify_id_token(token)
         user_id = decoded_token['uid']
     except Exception as e:
         raise HTTPException(401, f"Invalid token: {e}")
-    
+
     # Create job
     job_id = str(uuid.uuid4())
     jobs[job_id] = {
@@ -337,7 +360,7 @@ async def generate_video(
         "userId": user_id,
         "createdAt": time.time()
     }
-    
+
     # Start background task (simplified - use Celery/Redis for production)
     # For now, execute ComfyUI workflow synchronously
     try:
@@ -345,7 +368,7 @@ async def generate_video(
         workflow_path = f"/tmp/workflow_{job_id}.json"
         with open(workflow_path, 'w') as f:
             json.dump(req.workflow, f)
-        
+
         # Execute ComfyUI
         result = subprocess.run(
             ["python", "/workspace/ComfyUI/main.py", "--input", workflow_path],
@@ -353,7 +376,7 @@ async def generate_video(
             text=True,
             timeout=300  # 5 minute timeout
         )
-        
+
         if result.returncode == 0:
             jobs[job_id]["state"] = "completed"
             jobs[job_id]["progress"] = 100
@@ -363,11 +386,11 @@ async def generate_video(
         else:
             jobs[job_id]["state"] = "failed"
             jobs[job_id]["failedReason"] = result.stderr
-    
+
     except Exception as e:
         jobs[job_id]["state"] = "failed"
         jobs[job_id]["failedReason"] = str(e)
-    
+
     return {"data": {"jobId": job_id}}
 
 @app.get("/api/comfyui/job/{job_id}")
@@ -377,7 +400,7 @@ async def get_job_status(
 ):
     if job_id not in jobs:
         raise HTTPException(404, "Job not found")
-    
+
     return {"data": jobs[job_id]}
 
 @app.get("/health/detailed")
@@ -409,11 +432,13 @@ python main.py
 ### Step 7: Expose Public URL
 
 **In RunPod:**
+
 1. Go to pod settings
 2. Enable "Expose HTTP Ports"
 3. Get public URL: `https://<pod-id>.runpod.io`
 
 **Update `.env` in frontend:**
+
 ```bash
 VITE_COMFYUI_SERVICE_URL=https://<pod-id>.runpod.io
 VITE_USE_COMFYUI_BACKEND=true
@@ -486,6 +511,7 @@ Break-even point: ~1700 videos/month
 ```
 
 **Recommendation:**
+
 - **< 1700 videos/month** → Use Replicate ✅
 - **> 1700 videos/month** → Use RunPod ✅
 
@@ -517,16 +543,19 @@ Break-even point: ~1700 videos/month
 ## 🆘 Troubleshooting
 
 ### "ComfyUI Backend timeout"
+
 - Check if pod is running
 - Verify public URL is correct
 - Check firewall/port settings
 
 ### "Job failed: CUDA out of memory"
+
 - Reduce frame count (25 → 16)
 - Use smaller resolution (512x512 → 256x256)
 - Upgrade to larger GPU
 
 ### "Model not found"
+
 - Verify model files exist in `/workspace/ComfyUI/models/`
 - Check file names match exactly (case-sensitive)
 - Re-download models if corrupted

@@ -8,7 +8,7 @@ Python FastAPI server for video generation using ComfyUI + AnimateDiff/SVD.
 
 - ✅ Job queue management
 - ✅ Firebase Authentication
-- ✅ Progress tracking  
+- ✅ Progress tracking
 - ✅ Multi-worker support (concurrent jobs)
 - ✅ CORS support for frontend
 - ✅ RESTful API endpoints
@@ -53,12 +53,14 @@ Server will start at `http://localhost:8000`
 ## 📚 API Documentation
 
 Once running, visit:
+
 - **Swagger UI:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
 
 ### Key Endpoints
 
 #### Submit Job
+
 ```bash
 POST /api/comfyui/generate
 Authorization: Bearer <firebase-token>
@@ -80,6 +82,7 @@ Response:
 ```
 
 #### Check Job Status
+
 ```bash
 GET /api/comfyui/job/{jobId}
 Authorization: Bearer <firebase-token>
@@ -98,6 +101,7 @@ Response:
 ```
 
 #### Health Check
+
 ```bash
 GET /health/detailed
 
@@ -121,14 +125,14 @@ Response:
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `0.0.0.0` | Server host |
-| `PORT` | `8000` | Server port |
-| `COMFYUI_PATH` | `/workspace/ComfyUI` | Path to ComfyUI installation |
-| `MAX_CONCURRENT_JOBS` | `2` | Max parallel jobs |
-| `JOB_TIMEOUT` | `300` | Job timeout (seconds) |
-| `FIREBASE_SERVICE_ACCOUNT` | `firebase-service-account.json` | Firebase credentials |
+| Variable                   | Default                         | Description                  |
+| -------------------------- | ------------------------------- | ---------------------------- |
+| `HOST`                     | `0.0.0.0`                       | Server host                  |
+| `PORT`                     | `8000`                          | Server port                  |
+| `COMFYUI_PATH`             | `/workspace/ComfyUI`            | Path to ComfyUI installation |
+| `MAX_CONCURRENT_JOBS`      | `2`                             | Max parallel jobs            |
+| `JOB_TIMEOUT`              | `300`                           | Job timeout (seconds)        |
+| `FIREBASE_SERVICE_ACCOUNT` | `firebase-service-account.json` | Firebase credentials         |
 
 ### Firebase Setup (Optional)
 
@@ -179,12 +183,14 @@ docker run -d \
 ## 📊 Monitoring
 
 ### Check Queue Stats
+
 ```bash
 curl http://localhost:8000/api/queue/stats \
   -H "Authorization: Bearer <token>"
 ```
 
 ### Check Worker Stats
+
 ```bash
 curl http://localhost:8000/api/comfyui/workers \
   -H "Authorization: Bearer <token>"
@@ -216,15 +222,18 @@ curl -X POST http://localhost:8000/api/comfyui/generate \
 ## 🚨 Troubleshooting
 
 ### "ComfyUI not found"
+
 - Check `COMFYUI_PATH` in `.env`
 - Verify ComfyUI is installed: `ls $COMFYUI_PATH`
 
 ### "Firebase initialization failed"
+
 - Verify `firebase-service-account.json` exists
 - Check JSON format is valid
 - Or disable Firebase by removing the file
 
 ### "CUDA out of memory"
+
 - Reduce `MAX_CONCURRENT_JOBS` to 1
 - Use smaller batch sizes in workflows
 - Upgrade GPU
@@ -232,6 +241,7 @@ curl -X POST http://localhost:8000/api/comfyui/generate \
 ## 📝 Development
 
 ### Project Structure
+
 ```
 comfyui-backend/
 ├── main.py                           # FastAPI server

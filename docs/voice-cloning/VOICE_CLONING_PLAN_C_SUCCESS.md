@@ -10,18 +10,18 @@
 
 ## 📊 Implementation Timeline
 
-| Phase | Status | Duration | Details |
-|-------|--------|----------|---------|
-| **Phase 1** | ✅ | ~5 min | Python Environment Setup |
-| **Phase 2** | ✅ | ~5 min | Dependencies Installation |
-| **Phase 3** | ✅ | ~2 min | Installation Verification |
-| **Phase 4** | ✅ | ~3 min | XTTS-v2 Model Download |
-| **Phase 5** | ✅ | ~30 sec | Backend Server Testing |
-| **Phase 6** | ✅ | ~5 sec | Voice Upload Testing |
-| **Phase 7** | ✅ | ~10 sec | Voice Cloning Synthesis |
-| **Phase 8** | ✅ | ~2 min | Frontend Update |
-| **Phase 9** | ⏳ | Pending | End-to-End Testing |
-| **Phase 10** | ⏳ | Pending | Documentation Update |
+| Phase        | Status | Duration | Details                   |
+| ------------ | ------ | -------- | ------------------------- |
+| **Phase 1**  | ✅     | ~5 min   | Python Environment Setup  |
+| **Phase 2**  | ✅     | ~5 min   | Dependencies Installation |
+| **Phase 3**  | ✅     | ~2 min   | Installation Verification |
+| **Phase 4**  | ✅     | ~3 min   | XTTS-v2 Model Download    |
+| **Phase 5**  | ✅     | ~30 sec  | Backend Server Testing    |
+| **Phase 6**  | ✅     | ~5 sec   | Voice Upload Testing      |
+| **Phase 7**  | ✅     | ~10 sec  | Voice Cloning Synthesis   |
+| **Phase 8**  | ✅     | ~2 min   | Frontend Update           |
+| **Phase 9**  | ⏳     | Pending  | End-to-End Testing        |
+| **Phase 10** | ⏳     | Pending  | Documentation Update      |
 
 **Total Implementation Time: ~25 minutes**
 
@@ -32,12 +32,14 @@
 ### ✅ Phase 1-3: Environment & Dependencies (COMPLETED)
 
 **Environment Setup:**
+
 - Installed `pyenv 2.6.16` via Homebrew
 - Installed `Python 3.11.14` via pyenv
 - Created isolated virtual environment `venv-tts`
 - Set local Python version with `.python-version` file
 
 **Dependencies Installed (100+ packages):**
+
 ```bash
 TTS==0.22.0                    # Coqui TTS library
 torch==2.4.1                   # PyTorch (downgraded from 2.9.1)
@@ -49,6 +51,7 @@ gruut[de,es,fr,en]==2.3.4     # Phonemization
 ```
 
 **Compatibility Fixes:**
+
 - Downgraded `transformers` 4.57.3 → 4.39.3 (BeamSearchScorer compatibility)
 - Downgraded `torch` 2.9.1 → 2.4.1 (weights_only security policy)
 
@@ -57,11 +60,13 @@ gruut[de,es,fr,en]==2.3.4     # Phonemization
 ### ✅ Phase 4: XTTS-v2 Model (COMPLETED)
 
 **Model Download:**
+
 - Size: ~1.8 GB
 - Location: `~/Library/Application Support/tts/tts_models--multilingual--multi-dataset--xtts_v2`
 - Download time: ~2 minutes
 
 **Model Capabilities:**
+
 - **17 Languages Supported:**
   - English (en), Spanish (es), French (fr), German (de)
   - Italian (it), Portuguese (pt), Polish (pl), Turkish (tr)
@@ -70,6 +75,7 @@ gruut[de,es,fr,en]==2.3.4     # Phonemization
   - Japanese (ja), Hindi (hi)
 
 **Zero-Shot Voice Cloning:**
+
 - Requires only 6-30 seconds of reference audio
 - Supports custom voice samples
 - High-quality synthesis
@@ -79,6 +85,7 @@ gruut[de,es,fr,en]==2.3.4     # Phonemization
 ### ✅ Phase 5: Backend Server (COMPLETED)
 
 **Server Details:**
+
 - **URL:** http://localhost:8001
 - **Status:** Running ✅
 - **Device:** CPU (Mac M1 compatible)
@@ -86,6 +93,7 @@ gruut[de,es,fr,en]==2.3.4     # Phonemization
 - **Loading Time:** ~20-25 seconds on CPU
 
 **Available Endpoints:**
+
 ```bash
 GET  /health               # Server health check
 POST /voice/upload         # Upload voice sample
@@ -95,6 +103,7 @@ DELETE /voice/delete/<id> # Delete voice sample
 ```
 
 **Health Check Response:**
+
 ```json
 {
   "status": "healthy",
@@ -112,6 +121,7 @@ DELETE /voice/delete/<id> # Delete voice sample
 ### ✅ Phase 6: Voice Upload (COMPLETED)
 
 **Upload Test Result:**
+
 ```json
 {
   "success": true,
@@ -126,6 +136,7 @@ DELETE /voice/delete/<id> # Delete voice sample
 ```
 
 **Audio Preprocessing:**
+
 - Automatic conversion to WAV format
 - Resampling to 22050 Hz (XTTS requirement)
 - Mono conversion
@@ -136,6 +147,7 @@ DELETE /voice/delete/<id> # Delete voice sample
 ### ✅ Phase 7: Voice Synthesis (COMPLETED)
 
 **Synthesis Test:**
+
 ```bash
 Input:
 - Voice ID: TestVoice_20251217_030958
@@ -149,6 +161,7 @@ Output:
 ```
 
 **Synthesis Performance:**
+
 - Generation time: ~10 seconds (CPU)
 - Audio quality: Professional-grade
 - Voice similarity: High accuracy
@@ -160,6 +173,7 @@ Output:
 **UI Changes:**
 
 **BEFORE (Plan A - Temporary):**
+
 ```tsx
 // Yellow warning badge
 <span className="bg-yellow-600/20 text-yellow-400">
@@ -174,6 +188,7 @@ Output:
 ```
 
 **AFTER (Plan C - Full Voice Cloning):**
+
 ```tsx
 // Green success badge
 <span className="bg-green-600/20 text-green-400">
@@ -189,6 +204,7 @@ Output:
 ```
 
 **Footer Message:**
+
 ```tsx
 // BEFORE (Warning)
 ⚠️ สำคัญ: ปัจจุบันใช้เสียง Standard TTS ชั่วคราว
@@ -207,6 +223,7 @@ Output:
 ### Phase 9: End-to-End Testing
 
 **Remaining Tests:**
+
 1. ✅ Voice upload via frontend UI
 2. ⏳ Voice cloning with Thai text (needs Thai language support)
 3. ⏳ Voice playback in frontend
@@ -214,6 +231,7 @@ Output:
 5. ⏳ Character-specific voice assignments
 
 **Next Steps:**
+
 ```bash
 1. Test full workflow:
    - Record voice → Upload → Clone → Synthesize → Play
@@ -227,6 +245,7 @@ Output:
 ### Phase 10: Documentation Update
 
 **Documents to Update:**
+
 1. ⏳ `DEPLOYMENT.md` - Add Python 3.11 requirements
 2. ⏳ `INSTALLATION_GUIDE.md` - Voice cloning setup
 3. ⏳ `VOICE_CLONING_ROADMAP.md` - Mark Plan C as complete
@@ -234,6 +253,7 @@ Output:
 5. ⏳ Create deployment script for production
 
 **Production Deployment Checklist:**
+
 ```bash
 □ Update .env with correct ports
 □ Create systemd service file
@@ -288,16 +308,19 @@ TTS_DEVICE=cpu
 ## 📈 Performance Metrics
 
 ### Model Loading
+
 - **Initial Load:** 20-25 seconds (CPU)
 - **Memory Usage:** ~1.9 GB RAM
 - **Model Size:** 1.8 GB on disk
 
 ### Voice Upload
+
 - **Processing Time:** < 1 second
 - **Max File Size:** 50 MB (configurable)
 - **Supported Formats:** WAV, MP3, FLAC, OGG, M4A, WebM
 
 ### Voice Synthesis
+
 - **Generation Speed:** ~0.5 seconds per second of audio (CPU)
 - **Average Synthesis:** 10-15 seconds for 6s audio
 - **Audio Quality:** 24kHz, 16-bit, professional grade
@@ -307,6 +330,7 @@ TTS_DEVICE=cpu
 ## 🚀 Next Actions
 
 ### Immediate (Phase 9)
+
 1. **Test voice upload via frontend**
    - Upload real voice sample through UI
    - Verify file storage
@@ -323,6 +347,7 @@ TTS_DEVICE=cpu
    - Thai language compatibility check
 
 ### Short-term (Phase 10)
+
 1. **Update documentation**
    - Installation guide for production
    - API documentation
@@ -363,18 +388,18 @@ TTS_DEVICE=cpu
 
 ## 🎯 Success Criteria
 
-| Criteria | Status | Notes |
-|----------|--------|-------|
-| Python 3.11+ installed | ✅ | Version 3.11.14 |
-| Coqui TTS installed | ✅ | Version 0.22.0 |
-| XTTS-v2 model downloaded | ✅ | 1.8 GB loaded |
-| Server running | ✅ | Port 8001 |
-| Voice upload works | ✅ | Tested successfully |
-| Voice synthesis works | ✅ | 6.3s audio generated |
-| Frontend updated | ✅ | Plan A disclaimers removed |
-| End-to-end testing | ⏳ | In progress |
-| Documentation complete | ⏳ | Pending |
-| Production deployment | ⏳ | Pending |
+| Criteria                 | Status | Notes                      |
+| ------------------------ | ------ | -------------------------- |
+| Python 3.11+ installed   | ✅     | Version 3.11.14            |
+| Coqui TTS installed      | ✅     | Version 0.22.0             |
+| XTTS-v2 model downloaded | ✅     | 1.8 GB loaded              |
+| Server running           | ✅     | Port 8001                  |
+| Voice upload works       | ✅     | Tested successfully        |
+| Voice synthesis works    | ✅     | 6.3s audio generated       |
+| Frontend updated         | ✅     | Plan A disclaimers removed |
+| End-to-end testing       | ⏳     | In progress                |
+| Documentation complete   | ⏳     | Pending                    |
+| Production deployment    | ⏳     | Pending                    |
 
 ---
 
@@ -383,6 +408,7 @@ TTS_DEVICE=cpu
 **Plan C (Full Upgrade)** has been successfully implemented with 7 out of 10 phases completed. The voice cloning system is now operational and ready for testing.
 
 ### What Works Now:
+
 ✅ Full Coqui XTTS-v2 voice cloning
 ✅ Voice upload and storage
 ✅ High-quality voice synthesis
@@ -391,11 +417,13 @@ TTS_DEVICE=cpu
 ✅ Updated frontend UI
 
 ### What's Next:
+
 ⏳ Complete end-to-end testing
 ⏳ Finalize documentation
 ⏳ Deploy to production
 
 ### Estimated Time to Full Completion:
+
 **~1-2 hours** (Phases 9-10)
 
 ---

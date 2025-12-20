@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { ParamiPortfolio, AnusayaProfile } from '../../../types';
+import type { ParamiPortfolio, AnusayaProfile } from '../types';
 
 describe('Buddhist Psychology UI Components - Phase 3', () => {
   describe('ParamiEvolutionChart', () => {
@@ -127,9 +127,7 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
         { key: 'avijja', value: 95, threshold: 90 },
       ];
 
-      const criticalCount = criticalAnusayas.filter(
-        (a) => a.value >= a.threshold
-      ).length;
+      const criticalCount = criticalAnusayas.filter(a => a.value >= a.threshold).length;
 
       expect(criticalCount).toBe(5);
     });
@@ -202,13 +200,13 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
         { type: 'vaca', classification: 'kusala' as const },
       ];
 
-      const kayaActions = actions.filter((a) => a.type === 'kaya');
+      const kayaActions = actions.filter(a => a.type === 'kaya');
       expect(kayaActions.length).toBe(2);
 
-      const vacaActions = actions.filter((a) => a.type === 'vaca');
+      const vacaActions = actions.filter(a => a.type === 'vaca');
       expect(vacaActions.length).toBe(2);
 
-      const manoActions = actions.filter((a) => a.type === 'mano');
+      const manoActions = actions.filter(a => a.type === 'mano');
       expect(manoActions.length).toBe(1);
     });
 
@@ -222,8 +220,8 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
       ];
 
       const total = actions.length;
-      const kusala = actions.filter((a) => a.classification === 'kusala').length;
-      const akusala = actions.filter((a) => a.classification === 'akusala').length;
+      const kusala = actions.filter(a => a.classification === 'kusala').length;
+      const akusala = actions.filter(a => a.classification === 'akusala').length;
 
       const kusalaPercent = (kusala / total) * 100;
       const akusalaPercent = (akusala / total) * 100;
@@ -301,3 +299,4 @@ describe('Buddhist Psychology UI Components - Phase 3', () => {
     });
   });
 });
+

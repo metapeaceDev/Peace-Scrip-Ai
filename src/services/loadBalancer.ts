@@ -136,9 +136,7 @@ export class LoadBalancer extends EventEmitter {
    */
   private async selectPod(): Promise<PodMetrics | null> {
     // Filter active pods
-    const activePods = Array.from(this.pods.values()).filter(
-      (pod) => pod.status === 'RUNNING'
-    );
+    const activePods = Array.from(this.pods.values()).filter(pod => pod.status === 'RUNNING');
 
     if (activePods.length === 0) {
       // No active pods, try to start one
@@ -163,7 +161,7 @@ export class LoadBalancer extends EventEmitter {
     console.log(`Executing request on pod ${podId}`);
 
     // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     return { success: true, podId, payload };
   }
@@ -297,9 +295,7 @@ export class LoadBalancer extends EventEmitter {
   private findIdlePod(): PodMetrics | null {
     const now = Date.now();
     const idlePods = Array.from(this.pods.values()).filter(
-      (pod) =>
-        pod.activeRequests === 0 &&
-        now - pod.lastUsed.getTime() > this.config.podIdleTimeout
+      pod => pod.activeRequests === 0 && now - pod.lastUsed.getTime() > this.config.podIdleTimeout
     );
 
     if (idlePods.length === 0) return null;
@@ -322,27 +318,25 @@ export class LoadBalancer extends EventEmitter {
    * Perform health checks on all pods
    */
   private async performHealthChecks(): Promise<void> {
-    const healthPromises = Array.from(this.pods.entries()).map(
-      async ([podId, metrics]) => {
-        try {
-          const isHealthy = await runPodService.checkComfyUIHealth(podId);
-          const podStatus = await runPodService.getPodStatus(podId);
+    const healthPromises = Array.from(this.pods.entries()).map(async ([podId, metrics]) => {
+      try {
+        const isHealthy = await runPodService.checkComfyUIHealth(podId);
+        const podStatus = await runPodService.getPodStatus(podId);
 
-          if (!isHealthy || podStatus.status !== 'RUNNING') {
-            console.warn(`Pod ${podId} is unhealthy, removing from pool`);
-            this.pods.delete(podId);
-            this.emit('pod-unhealthy', { podId });
-          } else {
-            // Update metrics
-            metrics.status = podStatus.status;
-            metrics.uptime = podStatus.uptime || 0;
-          }
-        } catch (error) {
-          console.error(`Health check failed for pod ${podId}:`, error);
+        if (!isHealthy || podStatus.status !== 'RUNNING') {
+          console.warn(`Pod ${podId} is unhealthy, removing from pool`);
           this.pods.delete(podId);
+          this.emit('pod-unhealthy', { podId });
+        } else {
+          // Update metrics
+          metrics.status = podStatus.status;
+          metrics.uptime = podStatus.uptime || 0;
         }
+      } catch (error) {
+        console.error(`Health check failed for pod ${podId}:`, error);
+        this.pods.delete(podId);
       }
-    );
+    });
 
     await Promise.all(healthPromises);
   }
@@ -352,7 +346,7 @@ export class LoadBalancer extends EventEmitter {
    */
   getMetrics(): LoadBalancerMetrics {
     const activePods = Array.from(this.pods.values()).filter(
-      (pod) => pod.status === 'RUNNING'
+      pod => pod.status === 'RUNNING'
     ).length;
 
     const totalCost = Array.from(this.pods.values()).reduce(
@@ -390,10 +384,8 @@ export class LoadBalancer extends EventEmitter {
     }
 
     // Stop all pods
-    const stopPromises = Array.from(this.pods.keys()).map((podId) =>
-      runPodService.stopPod(podId).catch((err) =>
-        console.error(`Failed to stop pod ${podId}:`, err)
-      )
+    const stopPromises = Array.from(this.pods.keys()).map(podId =>
+      runPodService.stopPod(podId).catch(err => console.error(`Failed to stop pod ${podId}:`, err))
     );
 
     await Promise.all(stopPromises);
@@ -430,3 +422,4 @@ export const loadBalancer = new LoadBalancer({
   podIdleTimeout: 600000, // 10 minutes
   healthCheckInterval: 30000, // 30 seconds
 });
+

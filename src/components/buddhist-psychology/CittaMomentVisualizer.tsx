@@ -1,16 +1,16 @@
 /**
  * CittaMomentVisualizer Component
- * 
+ *
  * Interactive visualization of the 17-moment mind process (Citta Vithi)
  * in Abhidhamma Buddhist Psychology
- * 
+ *
  * Features:
  * - Step-by-step animation of mind moments
  * - Real-time Javana decision visualization
  * - Kusala/Akusala classification display
  * - Interactive timeline
  * - Sensory input tracking
- * 
+ *
  * Phase 3: Advanced UI Features
  */
 
@@ -23,7 +23,15 @@ interface CittaMoment {
   nameThai: string;
   description: string;
   duration: number; // milliseconds for animation
-  type: 'bhavanga' | 'dvara' | 'vinnana' | 'sampaticchana' | 'santirana' | 'votthapana' | 'javana' | 'tadarammana';
+  type:
+    | 'bhavanga'
+    | 'dvara'
+    | 'vinnana'
+    | 'sampaticchana'
+    | 'santirana'
+    | 'votthapana'
+    | 'javana'
+    | 'tadarammana';
   isDecisionPoint?: boolean;
 }
 
@@ -224,14 +232,14 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
 
     const moment = CITTA_MOMENTS[currentMoment];
     const duration = moment.duration / speed;
-    
+
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           setCurrentMoment(current => current + 1);
           return 0;
         }
-        return prev + (100 / (duration / 50)); // Update every 50ms
+        return prev + 100 / (duration / 50); // Update every 50ms
       });
     }, 50);
 
@@ -287,9 +295,7 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
     <div className="citta-moment-visualizer p-6 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg shadow-xl">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-2xl font-bold text-white mb-2">
-          Citta Vithi: 17-Moment Mind Process
-        </h3>
+        <h3 className="text-2xl font-bold text-white mb-2">Citta Vithi: 17-Moment Mind Process</h3>
         <div className="flex items-center gap-4 text-sm text-gray-400">
           {sensoryInput && (
             <div className="flex items-center gap-2">
@@ -301,11 +307,13 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
             </div>
           )}
           {decision !== 'pending' && (
-            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-              decision === 'kusala' 
-                ? 'bg-green-500/20 text-green-400' 
-                : 'bg-red-500/20 text-red-400'
-            }`}>
+            <div
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                decision === 'kusala'
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-red-500/20 text-red-400'
+              }`}
+            >
               {decision === 'kusala' ? 'Kusala (Wholesome)' : 'Akusala (Unwholesome)'}
             </div>
           )}
@@ -317,27 +325,17 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
         <div className="mb-6 p-6 bg-gray-800/80 rounded-lg border-2 border-purple-500">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-sm text-gray-400">
-                Moment {activeMoment.id} of 17
-              </div>
-              <div className="text-2xl font-bold text-white">
-                {activeMoment.nameThai}
-              </div>
-              <div className="text-lg text-gray-300">
-                {activeMoment.name}
-              </div>
+              <div className="text-sm text-gray-400">Moment {activeMoment.id} of 17</div>
+              <div className="text-2xl font-bold text-white">{activeMoment.nameThai}</div>
+              <div className="text-lg text-gray-300">{activeMoment.name}</div>
             </div>
             {activeMoment.isDecisionPoint && (
               <div className="px-4 py-2 bg-red-500/20 rounded-lg border border-red-500">
-                <div className="text-xs text-red-400 font-bold">
-                  DECISION POINT
-                </div>
+                <div className="text-xs text-red-400 font-bold">DECISION POINT</div>
               </div>
             )}
           </div>
-          <div className="text-sm text-gray-400 mb-3">
-            {activeMoment.description}
-          </div>
+          <div className="text-sm text-gray-400 mb-3">{activeMoment.description}</div>
           {/* Progress Bar */}
           <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden">
             <div
@@ -416,7 +414,7 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
           <label className="text-sm text-gray-400">Speed:</label>
           <select
             value={speed}
-            onChange={(e) => {
+            onChange={e => {
               // Speed control would need to be passed as prop or state
               console.log('Speed:', e.target.value);
             }}
@@ -457,3 +455,4 @@ export const CittaMomentVisualizer: React.FC<CittaMomentVisualizerProps> = ({
 };
 
 export default CittaMomentVisualizer;
+

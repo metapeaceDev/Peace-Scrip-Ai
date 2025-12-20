@@ -17,6 +17,7 @@
 ### 2. Firebase Security
 
 #### Firestore Rules
+
 - [ ] **All collections have access control rules**
 - [ ] **User data protected** (users can only access their own data)
 - [ ] **Admin-only endpoints protected** with custom claims
@@ -24,12 +25,14 @@
 - [ ] **Test rules**: `firebase emulators:start --only firestore`
 
 #### Storage Rules
+
 - [ ] **File size limits enforced** (10MB for images, 50MB for videos)
 - [ ] **File type validation** (images, videos only)
 - [ ] **User isolation** (users can only access their own files)
 - [ ] **Public read restrictions** (token-based access for videos)
 
 #### Authentication
+
 - [ ] **Email verification required** for new accounts
 - [ ] **Password strength requirements** implemented
 - [ ] **Rate limiting** on login attempts
@@ -56,24 +59,27 @@
 ### 4. Code Security
 
 #### TypeScript
+
 - [ ] **strictNullChecks enabled** (prevent null/undefined errors)
 - [ ] **No `any` types** in production code
 - [ ] **Proper type definitions** for all functions
 - [ ] **Input validation** on all user inputs
 
 #### Dependencies
+
 - [ ] **Run security audit**: `npm audit`
 - [ ] **Fix high/critical vulnerabilities**: `npm audit fix`
 - [ ] **Update dependencies**: Check for outdated packages
   ```bash
   npm outdated
   ```
-- [ ] **Remove unused dependencies**: 
+- [ ] **Remove unused dependencies**:
   ```bash
   npx depcheck
   ```
 
 #### Code Quality
+
 - [ ] **ESLint passing** with no warnings
 - [ ] **Prettier formatting** consistent
 - [ ] **No console.log in production** (use proper logging)
@@ -142,6 +148,7 @@
 **Risk**: HIGH - Complete access to Firebase project
 
 **Fix**:
+
 ```bash
 # 1. Remove from Git history
 git filter-branch --force --index-filter \
@@ -166,6 +173,7 @@ rm service-account-key.json
 **Risk**: MEDIUM - App might deploy with missing config
 
 **Fix**:
+
 ```bash
 # Run validation before every build
 npm run validate:env
@@ -191,7 +199,7 @@ import rateLimit from 'express-rate-limit';
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP'
+  message: 'Too many requests from this IP',
 });
 
 app.use('/api/', limiter);
@@ -256,7 +264,7 @@ async function logAdminAction(userId: string, action: string, details: any) {
     details,
     timestamp: FieldValue.serverTimestamp(),
     ip: request.ip,
-    userAgent: request.headers['user-agent']
+    userAgent: request.headers['user-agent'],
   });
 }
 ```
@@ -266,17 +274,20 @@ async function logAdminAction(userId: string, action: string, details: any) {
 ## 📋 Regular Maintenance Tasks
 
 ### Weekly
+
 - [ ] Review authentication logs
 - [ ] Check for failed login attempts
 - [ ] Monitor error rates
 
 ### Monthly
+
 - [ ] Run `npm audit` and fix vulnerabilities
 - [ ] Review and update dependencies
 - [ ] Check Firebase usage and quotas
 - [ ] Review access logs
 
 ### Quarterly
+
 - [ ] Full security audit
 - [ ] Review and update security policies
 - [ ] Penetration testing (if applicable)
@@ -316,9 +327,9 @@ Before deploying to production, confirm:
 - [ ] Backup and recovery procedures tested
 - [ ] Team trained on security procedures
 
-**Signed by**: _________________  
-**Date**: _________________  
-**Role**: _________________
+**Signed by**: ********\_********  
+**Date**: ********\_********  
+**Role**: ********\_********
 
 ---
 

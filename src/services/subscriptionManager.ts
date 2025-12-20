@@ -5,7 +5,7 @@
  * ตรวจสอบการใช้งานตามแผนที่ผู้ใช้เลือก
  */
 
-import { UserSubscription, SubscriptionTier } from '../../types';
+import { UserSubscription, SubscriptionTier } from '../types';
 import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -14,18 +14,18 @@ import { db } from '../config/firebase';
 export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   free: {
     tier: 'free',
-    credits: 50,        // FREE tier - Pollinations only (Local GPU ไม่ตัดเครดิต)
+    credits: 50, // FREE tier - Pollinations only (Local GPU ไม่ตัดเครดิต)
     maxCredits: 50,
     features: {
       maxResolution: '1024x1024',
-      allowedImageModels: ['pollinations'],  // ✅ Pollinations only
-      allowedVideoModels: ['pollinations-video'],  // ✅ Pollinations Video only
+      allowedImageModels: ['pollinations'], // ✅ Pollinations only
+      allowedVideoModels: ['pollinations-video'], // ✅ Pollinations Video only
       videoDurationLimit: 5, // 5 วินาที
       storageLimit: 0.5, // 500MB
-      maxProjects: 3,     // ✅ จำกัด 3 projects
-      maxCharacters: 5,   // ✅ จำกัด 5 characters
+      maxProjects: 3, // ✅ จำกัด 3 projects
+      maxCharacters: 5, // ✅ จำกัด 5 characters
       maxScenes: 15,
-      maxTeamMembers: 5,  // ✅ เพิ่มทีมได้ 5 คน
+      maxTeamMembers: 5, // ✅ เพิ่มทีมได้ 5 คน
       maxVeoVideosPerMonth: 0, // ❌ ไม่มีสิทธิ์ใช้ Veo
       exportFormats: ['pdf'],
       allowLocalGPU: true, // ✅ อนุญาตใช้ Local GPU (ไม่ตัดเครดิต)
@@ -33,15 +33,20 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   },
   basic: {
     tier: 'basic',
-    credits: 200,       // BASIC tier - Replicate API (เราจ่าย, ตัดเครดิต)
+    credits: 200, // BASIC tier - Replicate API (เราจ่าย, ตัดเครดิต)
     maxCredits: 200,
     features: {
       maxResolution: '2048x2048',
-      allowedImageModels: ['pollinations', 'replicate-sdxl', 'gemini-2.0'],  // ✅ Replicate + Gemini
-      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx'],  // ✅ Replicate Video
+      allowedImageModels: ['pollinations', 'replicate-sdxl', 'gemini-2.0'], // ✅ Replicate + Gemini
+      allowedVideoModels: [
+        'pollinations-video',
+        'replicate-animatediff',
+        'replicate-svd',
+        'replicate-ltx',
+      ], // ✅ Replicate Video
       videoDurationLimit: 10, // 10 วินาที
       storageLimit: 2, // 2GB
-      maxProjects: 7,     // ✅ จำกัด 7 projects
+      maxProjects: 7, // ✅ จำกัด 7 projects
       maxCharacters: 15,
       maxScenes: 70,
       maxTeamMembers: 15, // ✅ เพิ่มทีมได้ 15 คน
@@ -52,16 +57,28 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
   },
   pro: {
     tier: 'pro',
-    credits: 800,       // PRO tier - Replicate Pro ONLY (เราจ่าย, ตัดเครดิต)
+    credits: 800, // PRO tier - Replicate Pro ONLY (เราจ่าย, ตัดเครดิต)
     maxCredits: 800,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['pollinations', 'replicate-sdxl', 'replicate-flux', 'gemini-2.0', 'gemini-2.5', 'stable-diffusion'],  // ✅ Pro Models
-      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx'],  // ✅ Replicate ONLY (NO Veo)
+      allowedImageModels: [
+        'pollinations',
+        'replicate-sdxl',
+        'replicate-flux',
+        'gemini-2.0',
+        'gemini-2.5',
+        'stable-diffusion',
+      ], // ✅ Pro Models
+      allowedVideoModels: [
+        'pollinations-video',
+        'replicate-animatediff',
+        'replicate-svd',
+        'replicate-ltx',
+      ], // ✅ Replicate ONLY (NO Veo)
       videoDurationLimit: 120, // 2 นาที
       storageLimit: 10, // 10GB
-      maxProjects: 25,    // ✅ จำกัด 25 projects
-      maxCharacters: 50,  // ✅ จำกัด 50 characters
+      maxProjects: 25, // ✅ จำกัด 25 projects
+      maxCharacters: 50, // ✅ จำกัด 50 characters
       maxScenes: 200,
       maxTeamMembers: 50, // ✅ เพิ่มทีมได้ 50 คน
       maxVeoVideosPerMonth: 0, // ❌ ไม่มีสิทธิ์ใช้ Veo (กำไรสูง 60-70%!)
@@ -75,12 +92,28 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, UserSubscription> = {
     maxCredits: -1,
     features: {
       maxResolution: '4096x4096',
-      allowedImageModels: ['pollinations', 'replicate-sdxl', 'replicate-flux', 'gemini-2.0', 'gemini-2.5', 'stable-diffusion', 'comfyui'],
-      allowedVideoModels: ['pollinations-video', 'replicate-animatediff', 'replicate-svd', 'replicate-ltx', 'gemini-veo', 'comfyui-svd', 'comfyui-animatediff'],
+      allowedImageModels: [
+        'pollinations',
+        'replicate-sdxl',
+        'replicate-flux',
+        'gemini-2.0',
+        'gemini-2.5',
+        'stable-diffusion',
+        'comfyui',
+      ],
+      allowedVideoModels: [
+        'pollinations-video',
+        'replicate-animatediff',
+        'replicate-svd',
+        'replicate-ltx',
+        'gemini-veo',
+        'comfyui-svd',
+        'comfyui-animatediff',
+      ],
       videoDurationLimit: -1, // Unlimited
       storageLimit: -1, // Unlimited
-      maxProjects: -1,    // ✅ Unlimited
-      maxCharacters: -1,  // ✅ Unlimited
+      maxProjects: -1, // ✅ Unlimited
+      maxCharacters: -1, // ✅ Unlimited
       maxScenes: -1,
       maxTeamMembers: -1, // ✅ Unlimited team members
       maxVeoVideosPerMonth: 25, // ✅ จำกัด 25 คลิป Veo/เดือน (ควบคุมต้นทุน, มีกำไรดี!)
@@ -122,19 +155,19 @@ const CREDIT_COSTS = {
     fullScript: 5,
   },
   imageGeneration: {
-    '512x512': 2,        // เพิ่มจาก 1 → 2 (ต้นทุน $0.02)
-    '1024x1024': 5,      // เพิ่มจาก 3 → 5 (ต้นทุน $0.04)
-    '2048x2048': 12,     // เพิ่มจาก 8 → 12 (ต้นทุน $0.12)
-    '4096x4096': 30,     // เพิ่มจาก 15 → 30 (ต้นทุน $0.30)
+    '512x512': 2, // เพิ่มจาก 1 → 2 (ต้นทุน $0.02)
+    '1024x1024': 5, // เพิ่มจาก 3 → 5 (ต้นทุน $0.04)
+    '2048x2048': 12, // เพิ่มจาก 8 → 12 (ต้นทุน $0.12)
+    '4096x4096': 30, // เพิ่มจาก 15 → 30 (ต้นทุน $0.30)
   },
   videoGeneration: {
     replicate: {
-      perSecond: 4,      // เพิ่มจาก 2 → 4 (ต้นทุน $0.025-0.15/sec)
-      minimum: 20,       // เพิ่มจาก 10 → 20 (5sec × 4cr/sec)
+      perSecond: 4, // เพิ่มจาก 2 → 4 (ต้นทุน $0.025-0.15/sec)
+      minimum: 20, // เพิ่มจาก 10 → 20 (5sec × 4cr/sec)
     },
     veo: {
-      perSecond: 10,     // เพิ่มจาก 5 → 10 (ต้นทุน $0.10/sec)
-      minimum: 60,       // เพิ่มจาก 25 → 60 (5sec × 12cr/sec)
+      perSecond: 10, // เพิ่มจาก 5 → 10 (ต้นทุน $0.10/sec)
+      minimum: 60, // เพิ่มจาก 25 → 60 (5sec × 12cr/sec)
     },
   },
   storage: {
@@ -181,7 +214,7 @@ export async function getUserSubscription(userId: string): Promise<UsageRecord> 
         monthlyUsage: {
           month: new Date().toISOString().slice(0, 7),
           creditsUsed: 0,
-          veoVideosGenerated: 0,  // 🆕 เพิ่ม Veo tracking
+          veoVideosGenerated: 0, // 🆕 เพิ่ม Veo tracking
           resetAt: getNextMonthDate(),
         },
         lastUpdated: new Date(),
@@ -569,7 +602,7 @@ export function getPlansComparison(): Array<{
       name: 'Free',
       price: '฿0/เดือน',
       features: [
-        '20 credits/เดือน',  // อัพเดตจาก 30 → 20
+        '20 credits/เดือน', // อัพเดตจาก 30 → 20
         '1 โปรเจกต์',
         '3 ตัวละคร',
         '10 ซีน',
@@ -580,9 +613,9 @@ export function getPlansComparison(): Array<{
     {
       tier: 'basic',
       name: 'Basic',
-      price: '฿299/เดือน',  // อัพเดตจาก ฿399 → ฿299
+      price: '฿299/เดือน', // อัพเดตจาก ฿399 → ฿299
       features: [
-        '150 credits/เดือน',  // ไม่เปลี่ยน (ยังเป็น 150)
+        '150 credits/เดือน', // ไม่เปลี่ยน (ยังเป็น 150)
         '5 โปรเจกต์',
         '10 ตัวละคร',
         '50 ซีน',
@@ -597,7 +630,7 @@ export function getPlansComparison(): Array<{
       name: 'Pro',
       price: '฿999/เดือน',
       features: [
-        '600 credits/เดือน',  // อัพเดตจาก 500 → 600
+        '600 credits/เดือน', // อัพเดตจาก 500 → 600
         '20 โปรเจกต์',
         '50 ตัวละคร',
         '200 ซีน',
@@ -624,3 +657,4 @@ export function getPlansComparison(): Array<{
     },
   ];
 }
+

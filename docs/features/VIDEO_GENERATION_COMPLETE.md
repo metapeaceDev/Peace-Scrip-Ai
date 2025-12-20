@@ -3,6 +3,7 @@
 ## ✅ สิ่งที่สำเร็จแล้ว (Completed)
 
 ### 1. **Video Generation Service** (`/src/services/videoGenerationService.ts`) ✅
+
 - **449 บรรทัด** - Comprehensive video generation pipeline
 - **Functions ที่สร้าง:**
   - `generateShotVideo()` - สร้างวิดีโอจาก shot เดียว
@@ -19,11 +20,11 @@
   - ✅ รองรับ VideoShot interface ที่ flexible
 
 ### 2. **Video Generation Test Page** (`/src/pages/VideoGenerationTestPage.tsx`) ✅
+
 - **524 บรรทัด** - Complete test interface
 - **Test Modes:**
   - 🎯 **Single Shot Test** - ทดสอบ shot เดียว พร้อม progress bar
   - 🎯 **Batch Processing Test** - ทดสอบ 3 shots พร้อมกัน
-  
 - **UI Components:**
   - ✅ Test mode selector (Single/Batch)
   - ✅ Shot configuration display
@@ -34,12 +35,14 @@
   - ✅ ใช้ SVG icons แทน lucide-react (ไม่ต้องติดตั้ง dependencies เพิ่ม)
 
 ### 3. **App.tsx Integration** ✅
+
 - เพิ่ม route `video-test` สำหรับหน้าทดสอบ
 - เพิ่มปุ่ม "Video Test" ใน Studio header
 - Navigation ระหว่าง Studio ↔ Video Test ทำงานได้สมบูรณ์
 - Import VideoGenerationTestPage สำเร็จ
 
 ### 4. **Type Definitions & Configuration** ✅
+
 - เพิ่ม `VideoShot` interface รองรับทั้ง types.ts และ test types
 - เพิ่ม `VideoGenerationOptions` สำหรับ config video generation
 - เพิ่ม `VideoGenerationProgress` สำหรับ track progress
@@ -47,6 +50,7 @@
 - เพิ่ม `ImportMetaEnv` ใน global.d.ts รองรับ import.meta.env
 
 ### 5. **Build & Deployment** ✅
+
 - ✅ TypeScript compilation สำเร็จ (ไม่มี errors)
 - ✅ Vite build สำเร็จ
   - Bundle size: 753.58 KB (199.82 KB gzipped)
@@ -61,6 +65,7 @@
 ## 🎯 การใช้งาน Video Generation Test
 
 ### วิธีเข้าถึง:
+
 1. Login เข้า Peace Script AI
 2. คลิกปุ่ม **"Video Test"** (สีม่วง) ที่ header ของ Studio
 3. เลือก Test Mode:
@@ -68,6 +73,7 @@
    - **Batch Processing Test** - ทดสอบ 3 shots พร้อมกัน
 
 ### Single Shot Test:
+
 ```typescript
 Shot Configuration:
 - Type: Medium Close-Up
@@ -78,6 +84,7 @@ Shot Configuration:
 ```
 
 ### Batch Processing Test:
+
 ```typescript
 Scene: Opening Meditation Scene
 Shot 1: Wide Shot - Temple establishing shot (4s)
@@ -87,6 +94,7 @@ Total: 10 seconds
 ```
 
 ### API Status Display:
+
 - ✅ Veo 3.1 API: Configured/Missing
 - Model: veo-3.1-fast-generate-preview
 - Resolution: 720p
@@ -122,6 +130,7 @@ Display in UI + Download Option
 ```
 
 ### Video Prompt Structure:
+
 ```
 Shot Type + Camera Angle + Movement + Lighting +
 Description + Cast + Set + Costume +
@@ -134,21 +143,22 @@ smooth motion, 4K resolution"
 ## 🔥 Key Features
 
 ### 1. **Flexible Shot Interface**
+
 ```typescript
 interface VideoShot {
   shotId?: string;
   scene?: string;
   shot?: number;
-  shotType?: string;      // Legacy support
-  shotSize?: string;      // types.ts support
-  angle?: string;         // Legacy
-  perspective?: string;   // types.ts
+  shotType?: string; // Legacy support
+  shotSize?: string; // types.ts support
+  angle?: string; // Legacy
+  perspective?: string; // types.ts
   movement?: string;
-  lighting?: string;      // Legacy
+  lighting?: string; // Legacy
   lightingDesign?: string; // types.ts
   description?: string;
-  duration?: number;      // Legacy
-  durationSec?: number;   // types.ts
+  duration?: number; // Legacy
+  durationSec?: number; // types.ts
   cast?: string;
   set?: string;
   costume?: string;
@@ -156,18 +166,20 @@ interface VideoShot {
 ```
 
 ### 2. **Progress Tracking**
+
 ```typescript
 interface VideoGenerationProgress {
-  shotIndex: number;        // Current shot being processed
-  totalShots: number;       // Total shots in batch
-  currentProgress: number;  // 0-100%
+  shotIndex: number; // Current shot being processed
+  totalShots: number; // Total shots in batch
+  currentProgress: number; // 0-100%
   status: 'queued' | 'generating' | 'completed' | 'failed';
-  videoUrl?: string;        // URL when completed
-  error?: string;           // Error message if failed
+  videoUrl?: string; // URL when completed
+  error?: string; // Error message if failed
 }
 ```
 
 ### 3. **Batch Processing with Resilience**
+
 - ต่อเนื่องแม้มี shots ล้มเหลว
 - 2-second delay ระหว่าง shots เพื่อหลีกเลี่ยง rate limits
 - Track ผลลัพธ์แต่ละ shot แยกกัน
@@ -178,6 +190,7 @@ interface VideoGenerationProgress {
 ## 🧪 Testing Checklist
 
 ### ✅ Unit Tests (Conceptual - Ready for Implementation)
+
 - [ ] generateShotVideo() with valid shot data
 - [ ] generateShotVideo() with missing fields (fallback handling)
 - [ ] generateSceneVideos() batch processing
@@ -186,6 +199,7 @@ interface VideoGenerationProgress {
 - [ ] Progress tracking accuracy
 
 ### ✅ Integration Tests
+
 - [ ] Veo API call success
 - [ ] Veo API timeout handling
 - [ ] Fallback to AnimateDiff
@@ -194,6 +208,7 @@ interface VideoGenerationProgress {
 - [ ] End-to-end batch processing
 
 ### ✅ Manual Testing (Available Now)
+
 - ✅ Access Video Test page from Studio
 - ✅ Single shot test UI
 - ✅ Batch processing test UI
@@ -206,6 +221,7 @@ interface VideoGenerationProgress {
 ## 🚀 Next Steps (Week 3-4)
 
 ### Priority 1: Veo API Testing 🔴 CRITICAL
+
 - [ ] Verify `VITE_GEMINI_API_KEY` environment variable
 - [ ] Test real Veo API call with test page
 - [ ] Measure actual generation time (expected: 30-120s)
@@ -213,6 +229,7 @@ interface VideoGenerationProgress {
 - [ ] Test error scenarios (invalid API key, rate limits, timeouts)
 
 ### Priority 2: Studio Integration
+
 - [ ] เพิ่มปุ่ม "Generate Video" ใน Studio.tsx
 - [ ] เชื่อมต่อ storyboard images กับ video generation
 - [ ] แสดง progress ใน Studio UI
@@ -220,6 +237,7 @@ interface VideoGenerationProgress {
 - [ ] Display videos ใน Motion Editor
 
 ### Priority 3: Video Stitching (Week 3)
+
 - [ ] Setup FFmpeg backend service
 - [ ] Implement video download from URLs
 - [ ] Implement video concatenation with transitions
@@ -227,6 +245,7 @@ interface VideoGenerationProgress {
 - [ ] Test complete movie generation (all scenes)
 
 ### Priority 4: Monitoring & Analytics
+
 - [ ] Add Sentry error tracking
 - [ ] Log video generation metrics (time, success rate)
 - [ ] Track API usage (credits consumed)
@@ -237,6 +256,7 @@ interface VideoGenerationProgress {
 ## 📊 Project Progress Update
 
 ### Overall Score: **85/100** ⭐⭐⭐⭐⭐
+
 - Core Features: 88/100 (+3)
 - Buddhist Psychology: 95/100 (no change)
 - Code Quality: 87/100 (+2)
@@ -246,6 +266,7 @@ interface VideoGenerationProgress {
 - Documentation: 98/100 (+3)
 
 ### Week 1-2 Video Pipeline: **75%** Complete ✅
+
 - ✅ Service architecture (100%)
 - ✅ Test page UI (100%)
 - ✅ App integration (100%)
@@ -255,6 +276,7 @@ interface VideoGenerationProgress {
 - ⏳ Production monitoring (0%)
 
 ### Critical Gaps:
+
 1. ❌ **Veo API Testing** - MUST TEST WITH REAL API (Week 3, Day 1-3)
 2. ⏳ **ComfyUI Backend** - NOT DEPLOYED (Week 3-4)
 3. ⏳ **Video Stitching** - Requires FFmpeg service (Week 3-4)
@@ -265,6 +287,7 @@ interface VideoGenerationProgress {
 ## 💡 Usage Examples
 
 ### Example 1: Generate Single Shot Video
+
 ```typescript
 import { generateShotVideo } from './services/videoGenerationService';
 
@@ -288,13 +311,14 @@ const videoUrl = await generateShotVideo(
     preferredModel: 'gemini-veo',
     fps: 24,
   },
-  (progress) => console.log(`Progress: ${progress}%`)
+  progress => console.log(`Progress: ${progress}%`)
 );
 
 console.log('Video generated:', videoUrl);
 ```
 
 ### Example 2: Batch Process Scene
+
 ```typescript
 import { generateSceneVideos } from './services/videoGenerationService';
 
@@ -328,21 +352,25 @@ console.log(`Total duration: ${result.totalDuration}s`);
 ## 🎓 Technical Learnings
 
 ### 1. **Icon Dependencies Management**
+
 - **Problem:** lucide-react ไม่ได้ติดตั้งในโปรเจค
 - **Solution:** ใช้ SVG inline จาก heroicons
 - **Benefit:** ลด bundle size, ไม่ต้อง install package เพิ่ม
 
 ### 2. **Type Compatibility**
+
 - **Challenge:** shotList มี 2 types (legacy vs types.ts)
 - **Solution:** สร้าง VideoShot interface ที่รองรับทั้งสอง
 - **Pattern:** Optional properties (shotType? | shotSize?)
 
 ### 3. **Progress Tracking Architecture**
+
 - **Approach:** Callback-based progress reporting
 - **Benefits:** Real-time UI updates, cancellable operations
 - **Implementation:** onProgress callback ทุก function layer
 
 ### 4. **Error Resilience**
+
 - **Pattern:** Try-catch with continue (ไม่ fail ทั้งหมด)
 - **Logging:** console.error + error state management
 - **UX:** แสดง error แต่ continue processing shots อื่น
@@ -352,6 +380,7 @@ console.log(`Total duration: ${result.totalDuration}s`);
 ## 📝 Code Quality Metrics
 
 ### Service Layer (`videoGenerationService.ts`)
+
 - Lines of Code: 449
 - Functions: 7 public, 1 private
 - Test Coverage: 0% (ready for unit tests)
@@ -359,6 +388,7 @@ console.log(`Total duration: ${result.totalDuration}s`);
 - TypeScript Strict: ✅ Pass
 
 ### UI Layer (`VideoGenerationTestPage.tsx`)
+
 - Lines of Code: 524
 - Components: 1 main, multiple sections
 - State Management: useState hooks (6 states)
@@ -366,6 +396,7 @@ console.log(`Total duration: ${result.totalDuration}s`);
 - Accessibility: Basic (can improve)
 
 ### Integration (`App.tsx`)
+
 - New Route: `video-test`
 - Navigation: Bidirectional (Studio ↔ Test)
 - Layout: Consistent header/navigation
@@ -376,16 +407,19 @@ console.log(`Total duration: ${result.totalDuration}s`);
 ## 🔒 Security Considerations
 
 ### API Key Management
+
 - ✅ Using `import.meta.env.VITE_GEMINI_API_KEY`
 - ✅ Not exposed in client code
 - ⚠️ Need server-side proxy for production (Phase 2)
 
 ### Video URL Handling
+
 - ✅ Direct URLs from Veo API (signed URLs)
 - ⏳ Need Firebase Storage for long-term storage
 - ⏳ Need URL expiration handling
 
 ### Rate Limiting
+
 - ✅ 2-second delay between batch shots
 - ⏳ Need server-side rate limiting (Phase 2)
 - ⏳ Need queue system for large jobs (Bull + Redis)
@@ -395,6 +429,7 @@ console.log(`Total duration: ${result.totalDuration}s`);
 ## 📈 Performance Benchmarks (Expected)
 
 ### Single Shot Generation:
+
 - Veo API call: 30-120 seconds
 - AnimateDiff fallback: 15-45 seconds
 - SVD fallback: 10-30 seconds
@@ -402,11 +437,13 @@ console.log(`Total duration: ${result.totalDuration}s`);
 - **Total: 32-125 seconds per shot**
 
 ### Batch Processing (3 shots):
+
 - Sequential processing: 96-375 seconds (1.6-6.3 minutes)
 - Delay overhead: 4 seconds (2s × 2 gaps)
 - **Total: 100-379 seconds (1.7-6.3 minutes)**
 
 ### Optimization Opportunities:
+
 - ⏳ Parallel processing (multiple Veo calls)
 - ⏳ Pre-warming API connections
 - ⏳ Caching similar prompts
@@ -417,15 +454,18 @@ console.log(`Total duration: ${result.totalDuration}s`);
 ## ✅ Deployment Status
 
 ### Production URL:
+
 🌐 **https://peace-script-ai.web.app**
 
 ### Deployed Features:
+
 - ✅ Video Generation Service (backend logic)
 - ✅ Video Test Page (UI)
 - ✅ Studio Integration (navigation)
 - ✅ All dependencies bundled
 
 ### Environment Variables Required:
+
 ```bash
 VITE_GEMINI_API_KEY=<your-gemini-api-key>
 VITE_FIREBASE_API_KEY=<your-firebase-key>
@@ -433,6 +473,7 @@ VITE_FIREBASE_PROJECT_ID=peace-script-ai
 ```
 
 ### Deploy Command:
+
 ```bash
 npm run build && firebase deploy --only hosting
 ```
@@ -441,9 +482,10 @@ npm run build && firebase deploy --only hosting
 
 ## 🎉 Summary
 
-**Week 1-2 CRITICAL Priority สำเร็จ!** 
+**Week 1-2 CRITICAL Priority สำเร็จ!**
 
 เราได้สร้าง **Complete Video Generation Pipeline** พร้อม:
+
 - ✅ Comprehensive service layer (449 lines)
 - ✅ Full-featured test UI (524 lines)
 - ✅ Seamless app integration
@@ -451,6 +493,7 @@ npm run build && firebase deploy --only hosting
 - ✅ Ready for real Veo API testing
 
 **ขั้นตอนถัดไป (Week 3):**
+
 1. Test Veo API จริง (Day 1-3) 🔴 CRITICAL
 2. Integrate กับ Studio (Day 4-7)
 3. Deploy ComfyUI backend (Day 8-10)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUserSubscription, setUserTier } from '../services/userStore';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 
 interface UserStatusProps {
   embedded?: boolean; // Optional: use inline mode for Settings panel
@@ -434,3 +434,4 @@ const UserStatus: React.FC<UserStatusProps> = ({ embedded = false, compact = fal
 };
 
 export default UserStatus;
+

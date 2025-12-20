@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 import { generateStructure, generateSinglePlotPoint } from '../services/geminiService';
 import { useTranslation } from './LanguageSwitcher';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
@@ -78,7 +78,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
     try {
       console.log(`🌐 [Step4] Regenerating Plot Point ${index} with mode: ${mode}`);
       const result = await generateSinglePlotPoint(scriptData, index, mode);
-      
+
       if (result.description) {
         const newStructure = [...scriptData.structure];
         newStructure[index] = {
@@ -124,7 +124,9 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
     setError(null);
 
     try {
-      console.log(`🌐 [Step4] Generating Structure with mode: ${mode}, language: ${scriptData.language}`);
+      console.log(
+        `🌐 [Step4] Generating Structure with mode: ${mode}, language: ${scriptData.language}`
+      );
       const result = await generateStructure(scriptData, mode);
 
       if (result.structure) {
@@ -180,11 +182,7 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
           }`}
-          title={
-            !scriptData.mainGenre
-              ? t('step4.selectGenreFirst')
-              : t('step4.generateButton')
-          }
+          title={!scriptData.mainGenre ? t('step4.selectGenreFirst') : t('step4.generateButton')}
         >
           {isGenerating ? (
             <>
@@ -330,26 +328,26 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                             <span>Regenerate</span>
                           </button>
                           <div className="flex items-center gap-2">
-                          <label
-                            htmlFor={`scene-count-${globalIndex}`}
-                            className="text-sm text-gray-400"
-                          >
-                            {t('step4.scenes')}
-                          </label>
-                          <select
-                            id={`scene-count-${globalIndex}`}
-                            value={scriptData.scenesPerPoint[point.title] || 1}
-                            onChange={e =>
-                              handleSceneCountChange(point.title, parseInt(e.target.value))
-                            }
-                            className="bg-gray-700 border border-gray-600 rounded-md py-1 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                              <option key={num} value={num}>
-                                {num}
-                              </option>
-                            ))}
-                          </select>
+                            <label
+                              htmlFor={`scene-count-${globalIndex}`}
+                              className="text-sm text-gray-400"
+                            >
+                              {t('step4.scenes')}
+                            </label>
+                            <select
+                              id={`scene-count-${globalIndex}`}
+                              value={scriptData.scenesPerPoint[point.title] || 1}
+                              onChange={e =>
+                                handleSceneCountChange(point.title, parseInt(e.target.value))
+                              }
+                              className="bg-gray-700 border border-gray-600 rounded-md py-1 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                            >
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
@@ -390,7 +388,9 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
         onClose={() => setStructureModal({ isOpen: false })}
         onConfirm={handleGenerateStructureConfirm}
         sceneName="Story Structure"
-        hasEdits={scriptData.structure.some(point => point.description && point.description.trim() !== '')}
+        hasEdits={scriptData.structure.some(
+          point => point.description && point.description.trim() !== ''
+        )}
       />
 
       {/* Individual Plot Point Modal */}
@@ -408,3 +408,4 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 };
 
 export default Step4Structure;
+

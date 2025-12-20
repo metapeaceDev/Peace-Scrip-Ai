@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { TeamMember, Payment } from '../../types';
+import type { TeamMember, Payment } from '../types';
 
 interface FinancialDashboardProps {
   members: TeamMember[];
@@ -300,3 +300,4 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
     </div>
   );
 };
+

@@ -4,7 +4,7 @@
  * Based on DigitalMindModel v14 - Complete Buddhist Psychology
  */
 
-import type { Character, ParamiPortfolio, AnusayaProfile } from '../../types';
+import type { Character, ParamiPortfolio, AnusayaProfile } from '../types';
 
 // ========================================================================
 // PARAMI SYNERGY MATRIX
@@ -466,8 +466,8 @@ export function formatParamiDisplay(parami: ParamiPortfolio): Array<{
       progress: Math.round(progress),
       target_kilesa: String(
         ('target_kilesa' in p ? p.target_kilesa : undefined) ||
-        PARAMI_KILESA_COUNTER_MAP[key]?.primary_kilesa ||
-        ''
+          PARAMI_KILESA_COUNTER_MAP[key]?.primary_kilesa ||
+          ''
       ),
     };
   });
@@ -485,9 +485,7 @@ export function calculateParamiSynergy(
   if (!config) return 0;
 
   // Get supporting paramis levels
-  const supportingLevels = config.supporting_paramis.map(
-    p => portfolio[p]?.level || 0
-  );
+  const supportingLevels = config.supporting_paramis.map(p => portfolio[p]?.level || 0);
 
   // Parse boost formula (simplified implementation)
   // Example formula: '0.1 * (khanti.level + adhitthana.level + metta.level)'
@@ -518,67 +516,114 @@ export function updateParamiFromAction(
   const allActions = [...action.กาย, ...action.วาจา, ...action.ใจ].join(' ').toLowerCase();
 
   // Dana (Generosity)
-  if (allActions.includes('ช่วย') || allActions.includes('ให้') || allActions.includes('แบ่งปัน') ||
-      allActions.includes('help') || allActions.includes('give') || allActions.includes('share')) {
+  if (
+    allActions.includes('ช่วย') ||
+    allActions.includes('ให้') ||
+    allActions.includes('แบ่งปัน') ||
+    allActions.includes('help') ||
+    allActions.includes('give') ||
+    allActions.includes('share')
+  ) {
     updated.dana = { ...updated.dana, exp: updated.dana.exp + 10 };
   }
 
   // Sila (Morality)
-  if (allActions.includes('ซื่อสัตย์') || allActions.includes('ถูกต้อง') ||
-      allActions.includes('honest') || allActions.includes('right')) {
+  if (
+    allActions.includes('ซื่อสัตย์') ||
+    allActions.includes('ถูกต้อง') ||
+    allActions.includes('honest') ||
+    allActions.includes('right')
+  ) {
     updated.sila = { ...updated.sila, exp: updated.sila.exp + 10 };
   }
 
   // Nekkhamma (Renunciation)
-  if (allActions.includes('ปล่อยวาง') || allActions.includes('ไม่ยึดติด') ||
-      allActions.includes('let go') || allActions.includes('renounce')) {
+  if (
+    allActions.includes('ปล่อยวาง') ||
+    allActions.includes('ไม่ยึดติด') ||
+    allActions.includes('let go') ||
+    allActions.includes('renounce')
+  ) {
     updated.nekkhamma = { ...updated.nekkhamma, exp: updated.nekkhamma.exp + 10 };
   }
 
   // Viriya (Energy)
-  if (allActions.includes('พยายาม') || allActions.includes('เพียร') ||
-      allActions.includes('try') || allActions.includes('effort')) {
+  if (
+    allActions.includes('พยายาม') ||
+    allActions.includes('เพียร') ||
+    allActions.includes('try') ||
+    allActions.includes('effort')
+  ) {
     updated.viriya = { ...updated.viriya, exp: updated.viriya.exp + 10 };
   }
 
   // Khanti (Patience)
-  if (allActions.includes('อดทน') || allActions.includes('อดกลั้น') || allActions.includes('ใจเย็น') ||
-      allActions.includes('patient') || allActions.includes('endure')) {
+  if (
+    allActions.includes('อดทน') ||
+    allActions.includes('อดกลั้น') ||
+    allActions.includes('ใจเย็น') ||
+    allActions.includes('patient') ||
+    allActions.includes('endure')
+  ) {
     updated.khanti = { ...updated.khanti, exp: updated.khanti.exp + 10 };
   }
 
   // Sacca (Truthfulness)
-  if (allActions.includes('จริงใจ') || allActions.includes('ความจริง') ||
-      allActions.includes('truthful') || allActions.includes('sincere')) {
+  if (
+    allActions.includes('จริงใจ') ||
+    allActions.includes('ความจริง') ||
+    allActions.includes('truthful') ||
+    allActions.includes('sincere')
+  ) {
     updated.sacca = { ...updated.sacca, exp: updated.sacca.exp + 10 };
   }
 
   // Adhitthana (Determination)
-  if (allActions.includes('มุ่งมั่น') || allActions.includes('ตั้งใจ') ||
-      allActions.includes('determined') || allActions.includes('resolved')) {
+  if (
+    allActions.includes('มุ่งมั่น') ||
+    allActions.includes('ตั้งใจ') ||
+    allActions.includes('determined') ||
+    allActions.includes('resolved')
+  ) {
     updated.adhitthana = { ...updated.adhitthana, exp: updated.adhitthana.exp + 10 };
   }
 
   // Metta (Loving-kindness)
-  if (allActions.includes('เมตตา') || allActions.includes('รัก') || allActions.includes('ใจดี') ||
-      allActions.includes('kind') || allActions.includes('love') || allActions.includes('care')) {
+  if (
+    allActions.includes('เมตตา') ||
+    allActions.includes('รัก') ||
+    allActions.includes('ใจดี') ||
+    allActions.includes('kind') ||
+    allActions.includes('love') ||
+    allActions.includes('care')
+  ) {
     updated.metta = { ...updated.metta, exp: updated.metta.exp + 10 };
   }
 
   // Upekkha (Equanimity)
-  if (allActions.includes('สงบ') || allActions.includes('วางเฉย') ||
-      allActions.includes('calm') || allActions.includes('equanimity')) {
+  if (
+    allActions.includes('สงบ') ||
+    allActions.includes('วางเฉย') ||
+    allActions.includes('calm') ||
+    allActions.includes('equanimity')
+  ) {
     updated.upekkha = { ...updated.upekkha, exp: updated.upekkha.exp + 10 };
   }
 
   // Panna (Wisdom)
-  if (allActions.includes('ปัญญา') || allActions.includes('เข้าใจ') || allActions.includes('รู้เท่าทัน') ||
-      allActions.includes('wisdom') || allActions.includes('understand') || allActions.includes('insight')) {
+  if (
+    allActions.includes('ปัญญา') ||
+    allActions.includes('เข้าใจ') ||
+    allActions.includes('รู้เท่าทัน') ||
+    allActions.includes('wisdom') ||
+    allActions.includes('understand') ||
+    allActions.includes('insight')
+  ) {
     updated.panna = { ...updated.panna, exp: updated.panna.exp + 10 };
   }
 
   // Handle level ups
-  Object.keys(updated).forEach((key) => {
+  Object.keys(updated).forEach(key => {
     const paramiKey = key as keyof ParamiPortfolio;
     while (updated[paramiKey].exp >= 100) {
       updated[paramiKey] = {

@@ -99,7 +99,11 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Voice Reading Settings
               </h2>
@@ -110,7 +114,12 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
               className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-all"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -121,12 +130,17 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
           <div>
             <h3 className="text-lg font-semibold text-cyan-400 mb-3 flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                />
               </svg>
               เลือก TTS Engine
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(Object.keys(engineInfo) as TTSEngine[]).map((engine) => {
+              {(Object.keys(engineInfo) as TTSEngine[]).map(engine => {
                 const info = engineInfo[engine];
                 const isSelected = settings.engine === engine;
                 return (
@@ -142,8 +156,16 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-semibold text-white">{info.name}</h4>
                       {isSelected && (
-                        <svg className="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        <svg
+                          className="w-5 h-5 text-cyan-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       )}
                     </div>
@@ -164,7 +186,12 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
             <div className="bg-gray-700/30 border border-gray-600 rounded-lg p-4">
               <h3 className="text-md font-semibold text-yellow-400 mb-3 flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
                 </svg>
                 API Configuration
               </h3>
@@ -175,7 +202,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                   <input
                     type="password"
                     value={settings.googleApiKey || ''}
-                    onChange={(e) => setSettings({ ...settings, googleApiKey: e.target.value })}
+                    onChange={e => setSettings({ ...settings, googleApiKey: e.target.value })}
                     placeholder="AIza..."
                     className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                   />
@@ -197,7 +224,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                     <input
                       type="password"
                       value={settings.azureApiKey || ''}
-                      onChange={(e) => setSettings({ ...settings, azureApiKey: e.target.value })}
+                      onChange={e => setSettings({ ...settings, azureApiKey: e.target.value })}
                       placeholder="Enter your Azure Speech key"
                       className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                     />
@@ -207,7 +234,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                     <input
                       type="text"
                       value={settings.azureRegion || ''}
-                      onChange={(e) => setSettings({ ...settings, azureRegion: e.target.value })}
+                      onChange={e => setSettings({ ...settings, azureRegion: e.target.value })}
                       placeholder="southeastasia"
                       className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                     />
@@ -230,17 +257,19 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                     <input
                       type="password"
                       value={settings.awsAccessKey || ''}
-                      onChange={(e) => setSettings({ ...settings, awsAccessKey: e.target.value })}
+                      onChange={e => setSettings({ ...settings, awsAccessKey: e.target.value })}
                       placeholder="AKIA..."
                       className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-300 mb-2">AWS Secret Access Key</label>
+                    <label className="block text-sm text-gray-300 mb-2">
+                      AWS Secret Access Key
+                    </label>
                     <input
                       type="password"
                       value={settings.awsSecretKey || ''}
-                      onChange={(e) => setSettings({ ...settings, awsSecretKey: e.target.value })}
+                      onChange={e => setSettings({ ...settings, awsSecretKey: e.target.value })}
                       placeholder="Enter secret key"
                       className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                     />
@@ -250,7 +279,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                     <input
                       type="text"
                       value={settings.awsRegion || ''}
-                      onChange={(e) => setSettings({ ...settings, awsRegion: e.target.value })}
+                      onChange={e => setSettings({ ...settings, awsRegion: e.target.value })}
                       placeholder="ap-southeast-1"
                       className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                     />
@@ -268,17 +297,17 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
 
               {settings.engine === 'pythainlp' && (
                 <div>
-                  <label className="block text-sm text-gray-300 mb-2">PyThaiNLP Server Endpoint</label>
+                  <label className="block text-sm text-gray-300 mb-2">
+                    PyThaiNLP Server Endpoint
+                  </label>
                   <input
                     type="text"
                     value={settings.pythainlpEndpoint || ''}
-                    onChange={(e) => setSettings({ ...settings, pythainlpEndpoint: e.target.value })}
+                    onChange={e => setSettings({ ...settings, pythainlpEndpoint: e.target.value })}
                     placeholder="http://localhost:8000/tts"
                     className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    💡 ต้องรัน PyThaiNLP TTS server ก่อน
-                  </p>
+                  <p className="text-xs text-gray-400 mt-1">💡 ต้องรัน PyThaiNLP TTS server ก่อน</p>
                 </div>
               )}
             </div>
@@ -288,17 +317,24 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
           <div className="bg-gray-700/30 border border-gray-600 rounded-lg p-4">
             <h3 className="text-md font-semibold text-cyan-400 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
               </svg>
               Voice Controls
             </h3>
-            
+
             <div className="space-y-4">
               {/* Rate */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-sm text-gray-300">Speed (ความเร็ว)</label>
-                  <span className="text-sm text-cyan-400 font-mono">{settings.rate.toFixed(2)}x</span>
+                  <span className="text-sm text-cyan-400 font-mono">
+                    {settings.rate.toFixed(2)}x
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -306,7 +342,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                   max="2.0"
                   step="0.05"
                   value={settings.rate}
-                  onChange={(e) => setSettings({ ...settings, rate: parseFloat(e.target.value) })}
+                  onChange={e => setSettings({ ...settings, rate: parseFloat(e.target.value) })}
                   className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -320,7 +356,9 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-sm text-gray-300">Pitch (โทนเสียง)</label>
-                  <span className="text-sm text-cyan-400 font-mono">{settings.pitch.toFixed(2)}</span>
+                  <span className="text-sm text-cyan-400 font-mono">
+                    {settings.pitch.toFixed(2)}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -328,7 +366,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                   max="2.0"
                   step="0.05"
                   value={settings.pitch}
-                  onChange={(e) => setSettings({ ...settings, pitch: parseFloat(e.target.value) })}
+                  onChange={e => setSettings({ ...settings, pitch: parseFloat(e.target.value) })}
                   className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -342,7 +380,9 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-sm text-gray-300">Volume (ระดับเสียง)</label>
-                  <span className="text-sm text-cyan-400 font-mono">{Math.round(settings.volume * 100)}%</span>
+                  <span className="text-sm text-cyan-400 font-mono">
+                    {Math.round(settings.volume * 100)}%
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -350,7 +390,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
                   max="1"
                   step="0.05"
                   value={settings.volume}
-                  onChange={(e) => setSettings({ ...settings, volume: parseFloat(e.target.value) })}
+                  onChange={e => setSettings({ ...settings, volume: parseFloat(e.target.value) })}
                   className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -367,7 +407,7 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
             <h3 className="text-md font-semibold text-cyan-400 mb-3">ทดสอบเสียง</h3>
             <textarea
               value={previewText}
-              onChange={(e) => setPreviewText(e.target.value)}
+              onChange={e => setPreviewText(e.target.value)}
               rows={2}
               className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500 mb-3"
               placeholder="พิมพ์ข้อความเพื่อทดสอบเสียง..."
@@ -377,7 +417,11 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-2 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                  clipRule="evenodd"
+                />
               </svg>
               Preview เสียง
             </button>
@@ -405,3 +449,4 @@ export const TTSSettingsModal: React.FC<TTSSettingsModalProps> = ({
 };
 
 export default TTSSettingsModal;
+

@@ -7,6 +7,7 @@
 ## ✨ Features
 
 ### 1. **ปุ่ม Preview Voice**
+
 - ตำแหน่ง: Voice Cloning Section ใน Step 3 Character
 - สถานะ:
   - **Enabled**: เมื่ออัพโหลดเสียงตัวอย่างแล้ว (สีม่วง)
@@ -15,9 +16,11 @@
 - Icon: 🎤 Play/Pause button
 
 ### 2. **Character Introduction Generation**
+
 ระบบสร้างข้อความแนะนำตัวอัตโนมัติจาก Character Data:
 
 #### ข้อมูลที่นำมาใช้:
+
 1. **ชื่อ (Name)**: "สวัสดีค่ะ ฉันชื่อ..."
 2. **บทบาท (Role)**: ตัวละครเอก, ตัวประกอบ, ตัวร้าย, ตัวเสริม
 3. **คำอธิบาย (Description)**: รายละเอียดตัวละคร
@@ -40,11 +43,13 @@
    - คำพูดเฉพาะตัว (Speech Tics)
 
 #### ตัวอย่างข้อความที่สร้าง:
+
 ```
 สวัสดีค่ะ ฉันชื่อสายฝน บทบาทของฉันเป็นตัวละครเอก อายุ 25 ปี ผู้หญิง ส่วนสูง 165 ซม. รูปร่างสมส่วน สไตล์การแต่งกายของฉันคือโมเดิร์นสตรีท บุคลิกภาพของฉันเป็นคนที่มั่นใจในตัวเองและเห็นอกเห็นใจผู้อื่น เป้าหมายของฉันคือเป็นนักออกแบบชื่อดัง ฉันพูดภาษาเหนือนะคะ
 ```
 
 ### 3. **Text-to-Speech Synthesis**
+
 - **Backend**: Voice Cloning API (Cloud Run)
 - **Endpoint**: `/voice/synthesize`
 - **Model**: XTTS-v2 (Coqui TTS)
@@ -52,19 +57,21 @@
 - **Speed**: 1.0x
 
 #### Parameters:
+
 ```typescript
 {
-  text: string;           // Generated introduction text
-  voice_id: string;       // Voice sample ID
-  language: 'th';         // Thai language
-  speed: 1.0;             // Normal speed
+  text: string; // Generated introduction text
+  voice_id: string; // Voice sample ID
+  language: 'th'; // Thai language
+  speed: 1.0; // Normal speed
 }
 ```
 
 ### 4. **Audio Playback**
+
 - **Format**: WAV (synthesized by backend)
 - **Playback**: Browser Audio API
-- **Controls**: 
+- **Controls**:
   - Click to play
   - Click again to stop
 - **Cleanup**: Automatic URL.revokeObjectURL() after playback
@@ -74,21 +81,24 @@
 ### Frontend Changes
 
 #### 1. **New State**
+
 ```typescript
 const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
 ```
 
 #### 2. **Enhanced generateIntroductionScript()**
+
 Location: [src/components/Step3Character.tsx](src/components/Step3Character.tsx#L1070-L1160)
 
 ```typescript
 const generateIntroductionScript = (character: Character): string => {
   // Comprehensive character data extraction
   // Returns Thai introduction text
-}
+};
 ```
 
 #### 3. **New Handler: handlePreviewVoice()**
+
 Location: [src/components/Step3Character.tsx](src/components/Step3Character.tsx#L1162-L1225)
 
 ```typescript
@@ -98,10 +108,11 @@ const handlePreviewVoice = async () => {
   // 3. Call voiceCloningService.synthesizeSpeech()
   // 4. Play audio with loading states
   // 5. Handle errors and cleanup
-}
+};
 ```
 
 #### 4. **UI Button**
+
 Location: [src/components/Step3Character.tsx](src/components/Step3Character.tsx#L1875-L1920)
 
 ```tsx
@@ -118,6 +129,7 @@ Location: [src/components/Step3Character.tsx](src/components/Step3Character.tsx#
 ### Backend (Already Exists)
 
 #### `/voice/synthesize` Endpoint
+
 Location: [backend/voice-cloning/server.py](backend/voice-cloning/server.py#L337-L437)
 
 ```python
@@ -125,7 +137,7 @@ Location: [backend/voice-cloning/server.py](backend/voice-cloning/server.py#L337
 def synthesize_speech():
     """
     Generate speech using cloned voice
-    
+
     Supports:
     - 14+ audio formats input
     - Multi-language TTS
@@ -216,11 +228,13 @@ describe('Voice Preview Feature', () => {
 ## 📈 Performance Metrics
 
 ### Expected Response Times:
+
 - **Text Generation**: < 50ms (client-side)
 - **API Call**: 2-5 seconds (depends on text length)
 - **Audio Playback**: Immediate after API response
 
 ### Resource Usage:
+
 - **Audio File Size**: ~100-500 KB per preview
 - **Memory**: ~5-10 MB during playback
 - **Bandwidth**: ~0.5 MB per preview
@@ -235,12 +249,14 @@ describe('Voice Preview Feature', () => {
 ## 🚀 Deployment Status
 
 ### ✅ Deployed to Production
+
 - **Frontend**: https://peace-script-ai.web.app
 - **Backend**: https://voice-cloning-624211706340.us-central1.run.app
 - **Date**: 2025-12-20
 - **Build**: #14
 
 ### Deployment Log:
+
 ```
 ✓ Frontend Build: 4.67s (1515 modules)
 ✓ Firebase Deploy: 39 files uploaded
@@ -251,16 +267,19 @@ describe('Voice Preview Feature', () => {
 ## 📝 Future Enhancements
 
 ### Priority 1 (Next Sprint):
+
 - [ ] ปรับแต่งความเร็วเสียง (Speed control UI)
 - [ ] เลือกภาษา (Multi-language support)
 - [ ] ดาวน์โหลดเสียงแนะนำตัว (Download button)
 
 ### Priority 2:
+
 - [ ] แก้ไขข้อความแนะนำตัวได้ (Edit text before preview)
 - [ ] บันทึกเสียงแนะนำตัวไว้ในโปรเจกต์
 - [ ] Progress bar ระหว่างรอ API
 
 ### Priority 3:
+
 - [ ] เลือก Emotion/Mood สำหรับเสียง
 - [ ] Multiple voice samples per character
 - [ ] Voice comparison (A/B testing)

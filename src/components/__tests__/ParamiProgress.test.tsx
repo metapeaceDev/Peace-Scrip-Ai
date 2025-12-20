@@ -6,7 +6,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { ParamiProgress } from '../ParamiProgress';
-import type { Character, ParamiPortfolio } from '../../../types';
+import type { Character, ParamiPortfolio } from '../types';
 
 const createMockCharacter = (paramiData?: Partial<ParamiPortfolio>): Character => {
   const defaultParami: ParamiPortfolio = {
@@ -421,3 +421,4 @@ describe('ParamiProgress', () => {
     });
   });
 });
+

@@ -25,6 +25,7 @@
 ### System Requirements
 
 **สำหรับ Open Source Mode:**
+
 - **CPU**: Intel i5/AMD Ryzen 5 ขึ้นไป (4+ cores recommended)
 - **RAM**: 16GB+ (32GB สำหรับ advanced models)
 - **Storage**: 50GB+ ว่าง
@@ -32,6 +33,7 @@
 - **OS**: macOS 11+, Windows 10+, Ubuntu 20.04+
 
 **สำหรับ Hybrid/Cloud Mode:**
+
 - **RAM**: 8GB
 - **Storage**: 10GB
 - **Internet**: 10 Mbps+
@@ -173,6 +175,7 @@ sudo apt install -y git
 ### Step 2: Install Redis (Queue System)
 
 **ทำไมต้องใช้ Redis?**
+
 - รองรับ concurrent jobs
 - Priority queue (ENTERPRISE > PRO > BASIC > FREE)
 - Auto-retry on failure
@@ -211,6 +214,7 @@ docker run -d -p 6379:6379 --name redis redis:alpine
 ### Step 3: Install Ollama (Text Generation)
 
 **ทำไมต้องใช้ Ollama?**
+
 - Text generation ฟรี 100%
 - ประหยัด ฿0.35 ต่อโปรเจกต์
 - ไม่ต้องพึ่ง API keys
@@ -244,6 +248,7 @@ ollama run llama3.2:7b "สวัสดี"
 ### Step 4: Install ComfyUI (Image/Video Generation)
 
 **ทำไมต้องใช้ ComfyUI?**
+
 - Image generation ฟรี 100%
 - ประหยัด ฿16.80 ต่อรูป
 - คุณภาพสูง (FLUX models)
@@ -260,6 +265,7 @@ cd ComfyUI
 #### Install Dependencies
 
 **macOS:**
+
 ```bash
 # Create virtual environment
 python3 -m venv venv
@@ -271,6 +277,7 @@ pip install torch torchvision torchaudio
 ```
 
 **Windows:**
+
 ```powershell
 # Create virtual environment
 python -m venv venv
@@ -282,6 +289,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 ```
 
 **Linux:**
+
 ```bash
 # Same as macOS
 python3 -m venv venv
@@ -303,6 +311,7 @@ python main.py
 ### Step 5: Download AI Models
 
 **Model Storage Requirements:**
+
 - FLUX.1-schnell: 16GB
 - SDXL Turbo: 6.5GB
 - LoRA models: ~700MB
@@ -328,6 +337,7 @@ bash scripts/download-lora-models.sh
 ```
 
 **What you get:**
+
 - ✅ IP-Adapter FaceID Plus v2 (character consistency)
 - ✅ LCM LoRA (4-8 step generation)
 - ✅ Detail Tweaker (quality boost)
@@ -399,28 +409,33 @@ npm install --save-dev @types/bull
 ### Step 8: Start Everything
 
 **Terminal 1: Redis**
+
 ```bash
 redis-server
 ```
 
 **Terminal 2: Ollama**
+
 ```bash
 ollama serve
 ```
 
 **Terminal 3: ComfyUI**
+
 ```bash
 cd ~/Desktop/ComfyUI
 python main.py
 ```
 
 **Terminal 4: Peace Script**
+
 ```bash
 cd /path/to/peace-script-ai
 npm run dev
 ```
 
 **Access App:**
+
 - http://localhost:5173
 
 ---
@@ -500,17 +515,20 @@ ls -lh ~/Desktop/ComfyUI/models/checkpoints/
 ### ❌ Out of memory
 
 **Solution 1: Use smaller models**
+
 ```bash
 ollama pull llama3.2:3b  # Only 2GB RAM
 ```
 
 **Solution 2: Close other apps**
+
 ```bash
 # macOS: Force quit heavy apps
 # Windows: Task Manager → End heavy processes
 ```
 
 **Solution 3: Increase swap space**
+
 ```bash
 # Linux
 sudo fallocate -l 8G /swapfile
@@ -524,19 +542,19 @@ sudo swapon /swapfile
 
 ### Text Generation
 
-| Model | Size | RAM | Speed | Quality |
-|-------|------|-----|-------|---------|
-| Llama 3.2 3B | 2GB | 8GB | 1-2s | ⭐⭐⭐ |
-| Llama 3.2 7B | 4GB | 16GB | 3-5s | ⭐⭐⭐⭐ |
-| Qwen 2.5 14B | 9GB | 32GB | 8-12s | ⭐⭐⭐⭐⭐ |
+| Model        | Size | RAM  | Speed | Quality    |
+| ------------ | ---- | ---- | ----- | ---------- |
+| Llama 3.2 3B | 2GB  | 8GB  | 1-2s  | ⭐⭐⭐     |
+| Llama 3.2 7B | 4GB  | 16GB | 3-5s  | ⭐⭐⭐⭐   |
+| Qwen 2.5 14B | 9GB  | 32GB | 8-12s | ⭐⭐⭐⭐⭐ |
 
 ### Image Generation
 
-| Model | Size | VRAM | Speed | Quality |
-|-------|------|------|-------|---------|
-| SDXL Turbo | 6.5GB | 6GB | 5s | ⭐⭐⭐⭐ |
-| FLUX schnell | 16GB | 12GB | 20s | ⭐⭐⭐⭐⭐ |
-| FLUX dev | 16GB | 16GB | 45s | ⭐⭐⭐⭐⭐ |
+| Model        | Size  | VRAM | Speed | Quality    |
+| ------------ | ----- | ---- | ----- | ---------- |
+| SDXL Turbo   | 6.5GB | 6GB  | 5s    | ⭐⭐⭐⭐   |
+| FLUX schnell | 16GB  | 12GB | 20s   | ⭐⭐⭐⭐⭐ |
+| FLUX dev     | 16GB  | 16GB | 45s   | ⭐⭐⭐⭐⭐ |
 
 ---
 
@@ -544,11 +562,11 @@ sudo swapon /swapfile
 
 ### Per 100 Projects
 
-| Setup | Cost | Time | Setup Difficulty |
-|-------|------|------|------------------|
-| **Cloud Only** | ฿3,465 | Fast (3-10s) | ⭐ Easy |
-| **Hybrid** | ฿500-1,500 | Medium (10-30s) | ⭐⭐ Medium |
-| **Full Open Source** | **฿0** | Slower (20-60s) | ⭐⭐⭐ Hard |
+| Setup                | Cost       | Time            | Setup Difficulty |
+| -------------------- | ---------- | --------------- | ---------------- |
+| **Cloud Only**       | ฿3,465     | Fast (3-10s)    | ⭐ Easy          |
+| **Hybrid**           | ฿500-1,500 | Medium (10-30s) | ⭐⭐ Medium      |
+| **Full Open Source** | **฿0**     | Slower (20-60s) | ⭐⭐⭐ Hard      |
 
 **Savings: ฿3,465/100 projects = 100% cost reduction! 🎉**
 
@@ -576,6 +594,7 @@ sudo swapon /swapfile
 **Installation Complete! 🎉**
 
 เริ่มสร้างโปรเจกต์แรกของคุณได้เลย:
+
 ```bash
 npm run dev
 # Then open http://localhost:5173

@@ -87,3 +87,4 @@ export function isUsingCloud(): boolean {
   const config = getProviderConfig();
   return config.mode === 'cloud' || config.mode === 'hybrid';
 }
+

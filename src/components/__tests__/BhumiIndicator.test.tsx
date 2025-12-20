@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BhumiIndicator } from '../BhumiIndicator';
-import type { Character } from '../../../types';
+import type { Character } from '../types';
 
 describe('BhumiIndicator', () => {
   const mockCharacterHumanBhumi: Character = {
@@ -346,3 +346,4 @@ describe('BhumiIndicator', () => {
     });
   });
 });
+

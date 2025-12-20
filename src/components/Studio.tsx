@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ProjectMetadata, ProjectType } from '../../types';
-import { PROJECT_TYPES } from '../../constants';
+import { ProjectMetadata, ProjectType } from '../types';
+import { PROJECT_TYPES } from '../constants';
 import ComfyUIStatus from './ComfyUIStatus';
 import { auth } from '../config/firebase';
 import { PermissionGuard } from './RoleManagement';
@@ -86,7 +86,7 @@ const Studio: React.FC<StudioProps> = ({
           <div className="flex gap-3 items-center">
             {/* Notification Bell */}
             {auth.currentUser && <NotificationBell />}
-            
+
             {/* Admin Button - Only visible for admins */}
             {isAdmin && onViewChange && (
               <button
@@ -220,10 +220,7 @@ const Studio: React.FC<StudioProps> = ({
                   </div>
 
                   <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-1">
-                    <PermissionGuard
-                      permission="canExport"
-                      userRole={project.userRole || 'viewer'}
-                    >
+                    <PermissionGuard permission="canExport" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => {
                           e.stopPropagation();
@@ -248,10 +245,7 @@ const Studio: React.FC<StudioProps> = ({
                     </PermissionGuard>
 
                     {/* 2-Step Delete Button */}
-                    <PermissionGuard
-                      permission="canDelete"
-                      userRole={project.userRole || 'viewer'}
-                    >
+                    <PermissionGuard permission="canDelete" userRole={project.userRole || 'viewer'}>
                       <button
                         onClick={e => handleDeleteClick(e, project.id)}
                         className={`p-1.5 rounded-full backdrop-blur-sm transition-all flex items-center gap-1 ${
@@ -376,3 +370,4 @@ const Studio: React.FC<StudioProps> = ({
 };
 
 export default Studio;
+

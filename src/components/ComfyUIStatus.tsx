@@ -252,3 +252,4 @@ const ComfyUIStatus: React.FC<ComfyUIStatusProps> = ({ compact = false }) => {
 };
 
 export default ComfyUIStatus;
+

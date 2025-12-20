@@ -46,10 +46,12 @@ const functions = getFunctions();
  * เฉพาะ super-admin เท่านั้นที่สามารถเรียกใช้ได้
  * ระบบจะส่งอีเมลคำเชิญไปให้ผู้ใช้ยืนยันก่อน
  */
-export async function addAdmin(data: AddAdminData): Promise<{ success: boolean; message: string; invitationId?: string }> {
+export async function addAdmin(
+  data: AddAdminData
+): Promise<{ success: boolean; message: string; invitationId?: string }> {
   try {
     console.log('🚀 Calling createAdminInvitation with:', { email: data.email, role: data.role });
-    
+
     const createAdminInvitation = httpsCallable(functions, 'createAdminInvitation');
     const result = await createAdminInvitation({
       email: data.email,
@@ -57,8 +59,13 @@ export async function addAdmin(data: AddAdminData): Promise<{ success: boolean; 
       permissions: data.permissions,
     });
 
-    const response = result.data as { success: boolean; message: string; invitationId?: string; expiresAt?: string };
-    
+    const response = result.data as {
+      success: boolean;
+      message: string;
+      invitationId?: string;
+      expiresAt?: string;
+    };
+
     console.log('✅ Admin invitation sent successfully:', response);
     return {
       success: response.success,
@@ -70,10 +77,10 @@ export async function addAdmin(data: AddAdminData): Promise<{ success: boolean; 
     console.error('❌ Error code:', error.code);
     console.error('❌ Error message:', error.message);
     console.error('❌ Error details:', error.details);
-    
+
     // Parse Firebase error messages
     let errorMessage = 'ไม่สามารถส่งคำเชิญได้';
-    
+
     if (error.code === 'permission-denied') {
       errorMessage = 'คุณไม่มีสิทธิ์เชิญ Admin (ต้องเป็น Super Admin เท่านั้น)';
     } else if (error.code === 'unauthenticated') {
@@ -89,7 +96,7 @@ export async function addAdmin(data: AddAdminData): Promise<{ success: boolean; 
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     throw new Error(errorMessage);
   }
 }
@@ -105,24 +112,25 @@ export async function removeAdmin(userId: string): Promise<{ success: boolean; m
     const result = await revokeAdminAccess({ userId });
 
     const response = result.data as { success: boolean; message: string };
-    
+
     console.log('✅ Admin removed successfully:', response);
     return response;
   } catch (error: any) {
     console.error('❌ Error removing admin:', error);
-    
+
     let errorMessage = 'Failed to remove admin';
-    
+
     if (error.code === 'permission-denied') {
       if (error.message.includes('your own')) {
         errorMessage = 'You cannot remove your own admin access.';
       } else {
-        errorMessage = 'You do not have permission to remove admins. Only super-admins can perform this action.';
+        errorMessage =
+          'You do not have permission to remove admins. Only super-admins can perform this action.';
       }
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     throw new Error(errorMessage);
   }
 }
@@ -132,7 +140,9 @@ export async function removeAdmin(userId: string): Promise<{ success: boolean; m
  * เฉพาะ super-admin เท่านั้นที่สามารถเรียกใช้ได้
  * ไม่สามารถแก้ไขตัวเองได้
  */
-export async function updateAdmin(data: UpdateAdminData): Promise<{ success: boolean; message: string }> {
+export async function updateAdmin(
+  data: UpdateAdminData
+): Promise<{ success: boolean; message: string }> {
   try {
     const updateAdminPermissions = httpsCallable(functions, 'updateAdminPermissions');
     const result = await updateAdminPermissions({
@@ -142,26 +152,27 @@ export async function updateAdmin(data: UpdateAdminData): Promise<{ success: boo
     });
 
     const response = result.data as { success: boolean; message: string };
-    
+
     console.log('✅ Admin updated successfully:', response);
     return response;
   } catch (error: any) {
     console.error('❌ Error updating admin:', error);
-    
+
     let errorMessage = 'Failed to update admin';
-    
+
     if (error.code === 'permission-denied') {
       if (error.message.includes('your own')) {
         errorMessage = 'You cannot modify your own permissions.';
       } else {
-        errorMessage = 'You do not have permission to update admins. Only super-admins can perform this action.';
+        errorMessage =
+          'You do not have permission to update admins. Only super-admins can perform this action.';
       }
     } else if (error.code === 'not-found') {
       errorMessage = 'Admin user not found.';
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     throw new Error(errorMessage);
   }
 }
@@ -177,7 +188,7 @@ export async function getAllAdmins(): Promise<AdminUser[]> {
     const querySnapshot = await getDocs(q);
 
     const admins: AdminUser[] = [];
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach(doc => {
       const data = doc.data();
       admins.push({
         userId: doc.id,
@@ -214,7 +225,9 @@ export async function isEmailAdmin(email: string): Promise<boolean> {
 /**
  * Default permissions สำหรับแต่ละ role
  */
-export function getDefaultPermissionsForRole(role: 'super-admin' | 'admin' | 'viewer'): AdminPermissions {
+export function getDefaultPermissionsForRole(
+  role: 'super-admin' | 'admin' | 'viewer'
+): AdminPermissions {
   switch (role) {
     case 'super-admin':
       return {
@@ -289,7 +302,7 @@ export async function getPendingInvitations(): Promise<PendingInvitation[]> {
     const querySnapshot = await getDocs(q);
 
     const invitations: PendingInvitation[] = [];
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach(doc => {
       const data = doc.data();
       invitations.push({
         id: doc.id,
@@ -317,20 +330,22 @@ export async function getPendingInvitations(): Promise<PendingInvitation[]> {
  * ลบ pending invitation
  * เฉพาะ super-admin เท่านั้นที่สามารถเรียกใช้ได้
  */
-export async function cancelInvitation(invitationId: string): Promise<{ success: boolean; message: string }> {
+export async function cancelInvitation(
+  invitationId: string
+): Promise<{ success: boolean; message: string }> {
   try {
     const cancelAdminInvitation = httpsCallable(functions, 'cancelAdminInvitation');
     const result = await cancelAdminInvitation({ invitationId });
 
     const response = result.data as { success: boolean; message: string };
-    
+
     console.log('✅ Invitation cancelled successfully:', response);
     return response;
   } catch (error: any) {
     console.error('❌ Error cancelling invitation:', error);
-    
+
     let errorMessage = 'ไม่สามารถยกเลิกคำเชิญได้';
-    
+
     if (error.code === 'permission-denied') {
       errorMessage = 'คุณไม่มีสิทธิ์ยกเลิกคำเชิญ (ต้องเป็น Super Admin เท่านั้น)';
     } else if (error.code === 'not-found') {
@@ -338,7 +353,8 @@ export async function cancelInvitation(invitationId: string): Promise<{ success:
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     throw new Error(errorMessage);
   }
 }
+

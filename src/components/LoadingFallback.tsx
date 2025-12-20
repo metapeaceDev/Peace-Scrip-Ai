@@ -1,14 +1,12 @@
 /**
  * Loading Fallback Component
- * 
+ *
  * Shown while lazy-loaded components are being loaded
  */
 
 import React from 'react';
 
-const LoadingFallback: React.FC<{ message?: string }> = ({ 
-  message = 'Loading...' 
-}) => {
+const LoadingFallback: React.FC<{ message?: string }> = ({ message = 'Loading...' }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
       <div className="text-center">
@@ -20,3 +18,4 @@ const LoadingFallback: React.FC<{ message?: string }> = ({
 };
 
 export default LoadingFallback;
+

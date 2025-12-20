@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Step4Structure from './Step4Structure';
-import type { ScriptData } from '../../types';
+import type { ScriptData } from '../types';
 import * as geminiService from '../services/geminiService';
 
 // Mock dependencies
@@ -846,3 +846,4 @@ describe('Step4Structure', () => {
     });
   });
 });
+

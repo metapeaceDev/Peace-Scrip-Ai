@@ -1,5 +1,5 @@
 import React from 'react';
-import { SubscriptionTier } from '../../types';
+import { SubscriptionTier } from '../types';
 
 interface PricingPageProps {
   onSelectTier: (tier: SubscriptionTier) => void;
@@ -316,3 +316,4 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
 };
 
 export default PricingPage;
+

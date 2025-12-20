@@ -55,27 +55,34 @@ npm run dev
 ### Required Software
 
 1. **Node.js** (v18 หรือสูงกว่า)
+
    ```bash
    node --version  # ควรเป็น v18.x.x หรือสูงกว่า
    ```
+
    Download: https://nodejs.org/
 
 2. **Git**
+
    ```bash
    git --version
    ```
+
    Download: https://git-scm.com/
 
 3. **Firebase CLI**
+
    ```bash
    npm install -g firebase-tools
    firebase --version
    ```
 
 4. **Google Cloud SDK** (gcloud CLI)
+
    ```bash
    gcloud --version
    ```
+
    Download: https://cloud.google.com/sdk/docs/install
 
 5. **Python** (v3.8+) - สำหรับ Voice Cloning Backend
@@ -132,12 +139,14 @@ cd ..
 ### วิธีการตั้งค่า (แนะนำ)
 
 **ขั้นตอนที่ 1**: คัดลอกไฟล์ template
+
 ```bash
 # คัดลอก .env.example มาเป็น .env.local
 cp .env.example .env.local
 ```
 
 **ขั้นตอนที่ 2**: แก้ไข `.env.local` ใส่ค่าจริง
+
 ```bash
 # เปิดด้วย editor ที่ชอบ
 code .env.local   # VS Code
@@ -146,6 +155,7 @@ nano .env.local   # Terminal editor
 ```
 
 **ขั้นตอนที่ 3**: Validate ว่าครบถ้วนหรือไม่
+
 ```bash
 # ตรวจสอบว่ามี environment variables ครบหรือไม่
 npm run validate:env
@@ -200,7 +210,8 @@ VITE_RUNPOD_ENDPOINT_ID=your-endpoint-id
 # ดูเพิ่มเติมใน .env.example
 ```
 
-**📝 หมายเหตุ**: 
+**📝 หมายเหตุ**:
+
 - ดูรายการ environment variables ทั้งหมดใน [.env.example](./.env.example)
 - ตรวจสอบว่าครบด้วย `npm run validate:env`
 
@@ -219,7 +230,8 @@ SMTP_PASSWORD=your-app-password
 ADMIN_EMAIL=admin@peace-script-ai.web.app
 ```
 
-**หมายเหตุ**: 
+**หมายเหตุ**:
+
 - ใช้ Google App Password สำหรับ SMTP_PASSWORD (ไม่ใช่รหัสผ่าน Gmail ปกติ)
 - สร้าง App Password ที่: https://myaccount.google.com/apppasswords
 
@@ -370,6 +382,7 @@ cd ..
 ### ก่อน Deploy ต้องทำ:
 
 #### 1. ตรวจสอบ Environment Variables
+
 ```bash
 # Validate ทั้งหมด
 npm run validate:env:prod
@@ -379,6 +392,7 @@ npm run security:check
 ```
 
 #### 2. ตรวจสอบไฟล์ Sensitive
+
 ```bash
 # ตรวจสอบว่าไฟล์เหล่านี้ไม่ถูก commit
 git status | grep -E '\.env|service-account'
@@ -390,6 +404,7 @@ git log --all --full-history -- "*service-account*.json"
 #### 3. อ่าน Security Checklist
 
 **📚 เอกสารที่ต้องอ่าน:**
+
 - [SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md) - **ต้องอ่าน!** Security best practices ครบถ้วน
 - [PROJECT_AUDIT_REPORT.md](./PROJECT_AUDIT_REPORT.md) - รายงานการตรวจสอบโปรเจค
 
@@ -424,6 +439,7 @@ npm audit
 ```
 
 **⚠️ หากพบปัญหา:**
+
 - อ่าน [SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md) Section: "Critical Security Issues"
 - หรือดูที่ [PROJECT_AUDIT_REPORT.md](./PROJECT_AUDIT_REPORT.md) Section: "Critical Issues"
 
@@ -440,6 +456,7 @@ npm audit
 **สาเหตุ**: ยังไม่ได้สร้างไฟล์ `.env.local` หรือใส่ค่าไม่ครบ
 
 **วิธีแก้**:
+
 ```bash
 # 1. สร้างไฟล์จาก template
 cp .env.example .env.local
@@ -460,6 +477,7 @@ npm run validate:env
 **อาการ**: `firebase login` ไม่สำเร็จ
 
 **วิธีแก้**:
+
 ```bash
 # Clear credentials และ login ใหม่
 firebase logout
@@ -476,6 +494,7 @@ firebase login --interactive
 **อาการ**: Error ขณะติดตั้ง dependencies
 
 **วิธีแก้**:
+
 ```bash
 # ลบ node_modules และ lock file
 rm -rf node_modules package-lock.json
@@ -494,6 +513,7 @@ npm install --legacy-peer-deps
 **อาการ**: `firebase deploy --only functions` ไม่สำเร็จ
 
 **วิธีแก้**:
+
 ```bash
 # 1. ตรวจสอบ Node.js version
 node --version  # ต้องเป็น v18 ขึ้นไป
@@ -521,6 +541,7 @@ firebase functions:log
 **อาการ**: แอปรันได้ แต่ Firebase ไม่ทำงาน
 
 **วิธีแก้**:
+
 ```bash
 # 1. ตรวจสอบว่าไฟล์มีอยู่
 ls -la .env.local
@@ -543,6 +564,7 @@ npm run dev
 **อาการ**: Login ได้ แต่เข้า `/admin` ไม่ได้
 
 **วิธีแก้**:
+
 ```bash
 # 1. ตรวจสอบ custom claims
 node check-admin-setup.mjs
@@ -570,6 +592,7 @@ cd ..
 **อาการ**: `npm run build` แสดง TypeScript errors
 
 **วิธีแก้**:
+
 ```bash
 # 1. ตรวจสอบ errors
 npm run type-check
@@ -671,21 +694,25 @@ npm audit               # Security vulnerabilities
 ### 📊 เอกสารตามหน้าที่
 
 **สำหรับ Developer ใหม่:**
+
 1. README.md → QUICK_START.md → SETUP.md (ไฟล์นี้)
 2. DEVELOPMENT_GUIDE.md
 3. SECURITY_CHECKLIST.md
 
 **สำหรับ DevOps/Deployment:**
+
 1. SETUP.md → DEPLOYMENT_GUIDE.md
 2. SECURITY_CHECKLIST.md (ทั้งไฟล์)
 3. PROJECT_AUDIT_REPORT.md
 
 **สำหรับ Admin/Management:**
+
 1. ADMIN_README.md
 2. QUICK_START_ADMIN_MANAGEMENT.md
 3. PROJECT_STATUS.md
 
 **สำหรับ Team Lead:**
+
 1. PROJECT_AUDIT_REPORT.md (ดูคะแนนและปัญหา)
 2. IMPROVEMENT_PLAN.md (วางแผนทีม)
 3. AUDIT_SUMMARY.md (สรุปล่าสุด)
@@ -697,6 +724,7 @@ npm audit               # Security vulnerabilities
 **ก่อนเริ่มทำงาน ตรวจสอบว่า:**
 
 ### พื้นฐาน:
+
 - [ ] ✅ Node.js v18+ ติดตั้งแล้ว
 - [ ] ✅ Firebase CLI ติดตั้งแล้ว
 - [ ] ✅ Clone โปรเจคสำเร็จ
@@ -710,11 +738,13 @@ npm audit               # Security vulnerabilities
 - [ ] ✅ Service account key ไม่อยู่ใน Git
 
 ### สำหรับ Admin:
+
 - [ ] ✅ ตั้งค่า Super Admin แล้ว
 - [ ] ✅ เข้า `/admin` ได้
 - [ ] ✅ ทดสอบส่งคำเชิญ Admin ได้
 
 ### สำหรับ Production:
+
 - [ ] ✅ `npm run validate:env:prod` ผ่าน
 - [ ] ✅ `npm run security:check` ผ่าน
 - [ ] ✅ อ่าน SECURITY_CHECKLIST.md ครบ

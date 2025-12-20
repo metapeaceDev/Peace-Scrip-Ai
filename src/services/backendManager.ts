@@ -45,7 +45,7 @@ export const BACKEND_CONFIG: Record<BackendType, BackendConfig> = {
     url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
     timeout: 60000, // 1 minute
     maxRetries: 2,
-    costPerVideo: 0.50, // $0.50 per video
+    costPerVideo: 0.5, // $0.50 per video
     provider: 'google',
   },
 };
@@ -226,9 +226,7 @@ export class BackendManager {
    */
   async getAllBackendStatuses(): Promise<BackendStatus[]> {
     const backends: BackendType[] = ['local', 'cloud', 'gemini'];
-    const statuses = await Promise.all(
-      backends.map(backend => this.checkBackendHealth(backend))
-    );
+    const statuses = await Promise.all(backends.map(backend => this.checkBackendHealth(backend)));
     return statuses;
   }
 
@@ -237,7 +235,7 @@ export class BackendManager {
    */
   async ensureCloudBackendRunning(): Promise<boolean> {
     const podId = import.meta.env.VITE_RUNPOD_POD_ID;
-    
+
     if (!podId) {
       console.warn('No RunPod pod ID configured');
       return false;
@@ -254,7 +252,7 @@ export class BackendManager {
       if (status.status === 'EXITED' || status.status === 'STOPPED') {
         console.log('Resuming stopped pod...');
         await runPodService.resumePod(podId);
-        
+
         // Wait for pod to be ready
         const ready = await runPodService.waitForPodReady(podId);
         return ready;
@@ -336,3 +334,4 @@ export class BackendManager {
 
 // Singleton instance
 export const backendManager = new BackendManager();
+

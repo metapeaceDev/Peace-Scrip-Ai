@@ -57,6 +57,7 @@ generateStoryboardVideo(
 **Purpose**: Define basic shot configuration
 
 **Fields**:
+
 - `structure` (string) - Character name
 - `prompt` (string) - Scene description ⭐ Required
 - `extra` (string) - Additional details
@@ -64,6 +65,7 @@ generateStoryboardVideo(
 - `voiceover` (string) - Narration text
 
 **Shot Types Available**:
+
 - Wide Shot (24mm lens, establish environment)
 - Medium Shot (35mm lens, character + context)
 - Close-up (85mm lens, emphasize emotions)
@@ -76,6 +78,7 @@ generateStoryboardVideo(
 **Purpose**: Control camera angles, movements, and equipment
 
 **Fields**:
+
 - `shot_prompt` (string) - Camera description
 - `perspective` (CameraPerspective) - Neutral/High/Low/POV/etc.
 - `movement` (CameraMovement) - Static/Pan/Dolly/Track/etc.
@@ -83,16 +86,17 @@ generateStoryboardVideo(
 - `focal_length` (FocalLength) - 14mm to 200mm
 
 **Camera Movements**:
+
 ```typescript
-'Static'      // No movement - stable, calm
-'Pan'         // Left-right - follow action
-'Tilt'        // Up-down - reveal height
-'Dolly'       // In-out - create depth
-'Track'       // Follow character - dynamic
-'Zoom'        // Zoom in-out - change focus
-'Handheld'    // Handheld - realistic, raw
-'Crane'       // Crane shot - high angles
-'Steadicam'   // Smooth movement - follow flow
+'Static'; // No movement - stable, calm
+'Pan'; // Left-right - follow action
+'Tilt'; // Up-down - reveal height
+'Dolly'; // In-out - create depth
+'Track'; // Follow character - dynamic
+'Zoom'; // Zoom in-out - change focus
+'Handheld'; // Handheld - realistic, raw
+'Crane'; // Crane shot - high angles
+'Steadicam'; // Smooth movement - follow flow
 ```
 
 ### 3. Frame Composition Panel (3-Layer System)
@@ -100,11 +104,13 @@ generateStoryboardVideo(
 **Purpose**: Define foreground, main object, and background
 
 **Fields**:
+
 - `foreground` (string) - Front layer (create depth)
 - `object` (string) - Main subject ⭐ Required
 - `background` (string) - Back layer (context)
 
 **Example**:
+
 ```typescript
 {
   foreground: "Coffee cup on desk, soft bokeh blur",
@@ -118,11 +124,13 @@ generateStoryboardVideo(
 **Purpose**: Define lighting setup and mood
 
 **Fields**:
+
 - `description` (string) - Lighting description ⭐ Required
 - `color_temperature` (ColorTemperature) - Warm/Neutral/Cool
 - `mood` (optional) - Bright/Dim/Dark/Dramatic
 
 **Color Temperatures**:
+
 - Warm (3000K) - Cozy, intimate scenes
 - Neutral (5500K) - Natural daylight
 - Cool (6500K) - Clinical, sad scenes
@@ -132,11 +140,13 @@ generateStoryboardVideo(
 **Purpose**: Define audio and sound effects
 
 **Fields**:
+
 - `auto_sfx` (boolean) - Enable auto sound effects
 - `description` (string) - Sound description
 - `ambient` (string) - Ambient sound layer
 
 **Example**:
+
 ```typescript
 {
   auto_sfx: true,
@@ -150,6 +160,7 @@ generateStoryboardVideo(
 ### Auto-Suggestions
 
 AI automatically suggests camera, lighting, and sound based on:
+
 - Character's current mood
 - Character's energy level
 - Scene location
@@ -176,10 +187,10 @@ Users can override AI suggestions at any time:
 
 ```typescript
 const overrides: CinematicOverrides = {
-  camera_prompt: "Force static shot on tripod, no movement",
-  lighting_prompt: "Bright, even lighting regardless of mood",
-  sound_prompt: "Complete silence",
-  override_all: true // Disable all AI
+  camera_prompt: 'Force static shot on tripod, no movement',
+  lighting_prompt: 'Bright, even lighting regardless of mood',
+  sound_prompt: 'Complete silence',
+  override_all: true, // Disable all AI
 };
 ```
 
@@ -219,15 +230,15 @@ async function generateVideoWithMotion(
   baseImage?: string
 ) {
   const videoUrl = await generateStoryboardVideo(
-    "Generate cinematic video",
+    'Generate cinematic video',
     baseImage,
-    (progress) => console.log(`Progress: ${progress}%`),
+    progress => console.log(`Progress: ${progress}%`),
     'comfyui-animatediff',
     {
       character,
       currentScene: scene,
       motionEdit: motionEdit, // 🎬 Motion Editor data
-      useAnimateDiff: true
+      useAnimateDiff: true,
     }
   );
 
@@ -330,8 +341,8 @@ SHOT_PRESETS['Wide Shot'] = {
     focal_length: '24mm',
     equipment: 'Tripod',
     movement: 'Static',
-    perspective: 'Neutral'
-  }
+    perspective: 'Neutral',
+  },
 };
 
 SHOT_PRESETS['Close-up'] = {
@@ -339,8 +350,8 @@ SHOT_PRESETS['Close-up'] = {
     focal_length: '85mm',
     equipment: 'Handheld',
     movement: 'Static',
-    perspective: 'Neutral'
-  }
+    perspective: 'Neutral',
+  },
 };
 ```
 
@@ -348,21 +359,21 @@ SHOT_PRESETS['Close-up'] = {
 
 ```typescript
 MOOD_LIGHTING_MAP = {
-  'joyful': {
+  joyful: {
     description: 'Bright, even lighting with soft shadows',
     color_temperature: 'Warm',
-    mood: 'Bright'
+    mood: 'Bright',
   },
-  'sad': {
+  sad: {
     description: 'Soft, low-key lighting with deep shadows',
     color_temperature: 'Cool',
-    mood: 'Dim'
+    mood: 'Dim',
   },
-  'angry': {
+  angry: {
     description: 'Hard, dramatic lighting with strong contrast',
     color_temperature: 'Warm',
-    mood: 'Dramatic'
-  }
+    mood: 'Dramatic',
+  },
 };
 ```
 
@@ -405,11 +416,13 @@ generateStoryboardVideo()
 ## ✅ Validation Rules
 
 ### Required Fields
+
 - ✅ `shot_preview_generator_panel.prompt` - Scene description
 - ✅ `frame_control.object` - Main subject
 - ✅ `lighting_design.description` - Lighting setup
 
 ### Optional but Recommended
+
 - ⚠️ `frame_control.foreground` - For depth
 - ⚠️ `frame_control.background` - For context
 - ⚠️ `sounds.description` - If auto_sfx is disabled
@@ -417,16 +430,19 @@ generateStoryboardVideo()
 ## 🚀 Performance Considerations
 
 ### AI Suggestion Generation
+
 - Fast (<100ms)
 - Based on character psychology
 - Cached when possible
 
 ### Motion Edit Conversion
+
 - Instant conversion to AnimateDiff params
 - No API calls
 - Pure function transformation
 
 ### Video Generation
+
 - Time depends on model:
   - Gemini Veo: 20-60 seconds
   - ComfyUI + AnimateDiff: 2-5 minutes
@@ -474,6 +490,7 @@ See `src/types/motionEdit.ts` for complete TypeScript definitions:
 ## 🔮 Future Enhancements
 
 Planned features:
+
 - [ ] Motion Editor templates library
 - [ ] Export/Import motion presets
 - [ ] Real-time preview rendering

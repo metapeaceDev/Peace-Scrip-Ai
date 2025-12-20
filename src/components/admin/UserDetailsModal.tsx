@@ -1,13 +1,13 @@
 /**
  * User Details Modal Component
- * 
+ *
  * แสดงรายละเอียดเต็มของ user แต่ละคน
  * รวมถึง subscription, projects, usage history
  */
 
 import React, { useEffect, useState } from 'react';
 import { getUserDetails } from '../../services/adminAnalyticsService';
-import type { UserDetails } from '../../../types';
+import type { UserDetails } from '../../types';
 
 interface UserDetailsModalProps {
   userId: string;
@@ -123,7 +123,12 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ userId, onCl
           </div>
           <button onClick={onClose} className="close-button">
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -188,7 +193,9 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ userId, onCl
             <div className="detail-grid">
               <div className="detail-item">
                 <label>Credits Used:</label>
-                <span>{details.usage.credits.used} / {details.usage.credits.max}</span>
+                <span>
+                  {details.usage.credits.used} / {details.usage.credits.max}
+                </span>
                 <div className="progress-bar-small">
                   <div
                     className="progress-fill"
@@ -233,7 +240,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ userId, onCl
               <p className="empty-state">No projects yet</p>
             ) : (
               <div className="projects-list">
-                {details.projects.slice(0, 10).map((project) => (
+                {details.projects.slice(0, 10).map((project: any) => (
                   <div key={project.id} className="project-item">
                     <div className="project-info">
                       <h4>{project.title}</h4>
@@ -261,3 +268,4 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ userId, onCl
     </div>
   );
 };
+

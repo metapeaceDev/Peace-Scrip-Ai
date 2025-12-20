@@ -557,7 +557,7 @@ class FirestoreService {
       const DB_VERSION = 1;
       const STORE_NAME = 'projects';
 
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onerror = () => {
@@ -653,3 +653,4 @@ export async function updateUserSubscription(
     throw error;
   }
 }
+

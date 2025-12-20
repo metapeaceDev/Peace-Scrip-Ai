@@ -78,12 +78,10 @@ export class TTSService {
 
       // Get voices
       const voices = window.speechSynthesis.getVoices();
-      
+
       // Find Thai voice
-      const thaiVoice = voices.find(v => 
-        v.name.toLowerCase().includes('kanya') ||
-        v.lang === 'th-TH' ||
-        v.lang.startsWith('th')
+      const thaiVoice = voices.find(
+        v => v.name.toLowerCase().includes('kanya') || v.lang === 'th-TH' || v.lang.startsWith('th')
       );
 
       if (thaiVoice) {
@@ -101,7 +99,7 @@ export class TTSService {
         resolve();
       };
 
-      utterance.onerror = (event) => {
+      utterance.onerror = event => {
         console.error('❌ Speech error:', event);
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };
@@ -125,7 +123,7 @@ export class TTSService {
       // Split long text into chunks (Google TTS has a 5000 character limit)
       const maxChars = 4500;
       const chunks: string[] = [];
-      
+
       if (text.length > maxChars) {
         console.log('📦 Splitting text into chunks...');
         let remaining = text;
@@ -136,11 +134,11 @@ export class TTSService {
           const lastQuestion = chunk.lastIndexOf('? ');
           const lastExclaim = chunk.lastIndexOf('! ');
           const breakPoint = Math.max(lastPeriod, lastQuestion, lastExclaim);
-          
+
           if (breakPoint > maxChars * 0.7 && remaining.length > maxChars) {
             chunk = remaining.substring(0, breakPoint + 2);
           }
-          
+
           chunks.push(chunk);
           remaining = remaining.substring(chunk.length);
         }
@@ -153,7 +151,7 @@ export class TTSService {
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         console.log(`🎵 Processing chunk ${i + 1}/${chunks.length}...`);
-        
+
         const response = await fetch(
           `https://texttospeech.googleapis.com/v1/text:synthesize?key=${settings.googleApiKey}`,
           {
@@ -194,13 +192,13 @@ export class TTSService {
 
         // Play audio
         const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
-        
+
         await new Promise<void>((resolve, reject) => {
           audio.onended = () => {
             console.log(`✅ Chunk ${i + 1}/${chunks.length} completed`);
             resolve();
           };
-          audio.onerror = (e) => {
+          audio.onerror = e => {
             console.error('❌ Audio playback failed:', e);
             reject(new Error('Audio playback failed'));
           };
@@ -218,10 +216,14 @@ export class TTSService {
       console.error('❌ Google TTS error:', error);
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
-          throw new Error('Invalid Google Cloud API Key. Please check your key at https://console.cloud.google.com/apis/credentials');
+          throw new Error(
+            'Invalid Google Cloud API Key. Please check your key at https://console.cloud.google.com/apis/credentials'
+          );
         }
         if (error.message.includes('quota')) {
-          throw new Error('Google Cloud TTS quota exceeded. Check your quota at https://console.cloud.google.com/iam-admin/quotas');
+          throw new Error(
+            'Google Cloud TTS quota exceeded. Check your quota at https://console.cloud.google.com/iam-admin/quotas'
+          );
         }
       }
       throw error;
@@ -267,7 +269,7 @@ export class TTSService {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      
+
       await audio.play();
 
       return new Promise((resolve, reject) => {
@@ -298,8 +300,10 @@ export class TTSService {
     console.warn('⚠️  AWS Polly should be called from backend for security');
 
     // For now, throw error until backend proxy is implemented
-    throw new Error('AWS Polly integration requires backend implementation for security. Please use Google Cloud or Azure instead.');
-    
+    throw new Error(
+      'AWS Polly integration requires backend implementation for security. Please use Google Cloud or Azure instead.'
+    );
+
     // Proper implementation would use AWS SDK via backend:
     // import { Polly } from '@aws-sdk/client-polly';
     // const polly = new Polly({
@@ -336,11 +340,11 @@ export class TTSService {
       if (!endpoint.startsWith('http')) {
         endpoint = 'http://' + endpoint;
       }
-      
+
       // Split into chunks if needed (PyThaiNLP may have text limits)
       const maxChars = 3000;
       const chunks: string[] = [];
-      
+
       if (text.length > maxChars) {
         console.log('📦 Splitting text into chunks...');
         let remaining = text;
@@ -368,7 +372,7 @@ export class TTSService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'audio/wav, audio/mpeg, audio/*',
+            Accept: 'audio/wav, audio/mpeg, audio/*',
           },
           body: JSON.stringify({
             text: chunk,
@@ -387,7 +391,7 @@ export class TTSService {
 
         const audioBlob = await response.blob();
         console.log('📦 Audio blob size:', audioBlob.size, 'bytes');
-        
+
         if (audioBlob.size === 0) {
           throw new Error('PyThaiNLP returned empty audio');
         }
@@ -395,14 +399,14 @@ export class TTSService {
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
         audio.volume = settings.volume;
-        
+
         await new Promise<void>((resolve, reject) => {
           audio.onended = () => {
             console.log(`✅ Chunk ${i + 1}/${chunks.length} completed`);
             URL.revokeObjectURL(audioUrl);
             resolve();
           };
-          audio.onerror = (e) => {
+          audio.onerror = e => {
             console.error('❌ Audio playback failed:', e);
             URL.revokeObjectURL(audioUrl);
             reject(new Error('Audio playback failed'));
@@ -421,7 +425,9 @@ export class TTSService {
       console.error('❌ PyThaiNLP TTS error:', error);
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error(`Cannot connect to PyThaiNLP server at ${settings.pythainlpEndpoint}. Make sure the server is running.`);
+          throw new Error(
+            `Cannot connect to PyThaiNLP server at ${settings.pythainlpEndpoint}. Make sure the server is running.`
+          );
         }
       }
       throw error;
@@ -430,3 +436,4 @@ export class TTSService {
 }
 
 export const ttsService = TTSService.getInstance();
+

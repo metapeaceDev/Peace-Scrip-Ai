@@ -35,6 +35,7 @@ gcloud run services describe voice-cloning --region us-central1 --format 'value(
 ```
 
 ### ราคา (Pay as you go)
+
 - **Idle**: ฟรี (min-instances = 0)
 - **Active**: ~$0.15/hour เมื่อมีการใช้งาน
 - **Free Tier**: 2 ล้าน requests/เดือน ฟรี
@@ -55,6 +56,7 @@ gcloud run services describe voice-cloning --region us-central1 --format 'value(
 8. Deploy!
 
 ### ราคา
+
 - **Free Tier**: $5/เดือน credit
 - **After**: ~$20/เดือน สำหรับ always-on
 
@@ -74,6 +76,7 @@ gcloud run services describe voice-cloning --region us-central1 --format 'value(
 8. Deploy!
 
 ### ราคา
+
 - **Free**: นอนหลัง 15 นาที ไม่ใช้งาน
 - **Starter**: $7/เดือน, always-on
 
@@ -82,14 +85,18 @@ gcloud run services describe voice-cloning --region us-central1 --format 'value(
 ## 🎯 คำแนะนำ
 
 ### สำหรับ Production ใช้งานจริง
+
 ✅ **Google Cloud Run** (Option 1)
+
 - ดีที่สุดสำหรับ traffic ไม่แน่นอน
 - จ่ายตามการใช้งานจริง
 - Scale อัตโนมัติ
 - มี Free tier
 
 ### สำหรับ Demo/Development
+
 ✅ **Render Free Tier** (Option 3)
+
 - ฟรี (แต่นอนหลัง 15 นาที)
 - ง่ายที่สุด
 
@@ -99,17 +106,20 @@ gcloud run services describe voice-cloning --region us-central1 --format 'value(
 
 1. Copy URL ที่ได้
 2. เพิ่มใน `.env.production`:
+
 ```bash
 VITE_VOICE_CLONING_ENDPOINT=https://your-service-url.run.app
 ```
 
 3. Build และ deploy ใหม่:
+
 ```bash
 npm run build
 firebase deploy --only hosting
 ```
 
 4. ทดสอบ:
+
 ```bash
 curl https://your-service-url.run.app/health
 ```
@@ -121,11 +131,13 @@ curl https://your-service-url.run.app/health
 ### Scenario: 1,000 คลิปเสียง/เดือน (แต่ละคลิป 30 วินาที)
 
 **Google Cloud Run:**
+
 - Request time: ~15 วินาที/คลิป
 - Total: 1,000 × 15 วินาที = 15,000 วินาที = 4.17 ชั่วโมง
 - ราคา: ~$0.62/เดือน (ถูกมาก!)
 
 **Railway/Render Always-On:**
+
 - ราคา: $7-20/เดือน (คงที่ ไม่ว่าจะใช้เท่าไหร่)
 
 ---

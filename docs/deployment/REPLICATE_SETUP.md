@@ -96,18 +96,20 @@ r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ### 3.1 เปิดไฟล์ .env
 
 ```bash
-cd /Users/surasak.peace/Desktop/peace-script-basic-v1 
+cd /Users/surasak.peace/Desktop/peace-script-basic-v1
 open .env
 ```
 
 ### 3.2 เพิ่ม API Key
 
 ค้นหาบรรทัด:
+
 ```env
 VITE_REPLICATE_API_KEY=
 ```
 
 แก้เป็น:
+
 ```env
 VITE_REPLICATE_API_KEY=r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -124,6 +126,7 @@ VITE_REPLICATE_API_KEY=r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ### 4.1 หยุด Server เก่า
 
 ใน Terminal ที่รัน `npm run dev`:
+
 ```bash
 Ctrl + C
 ```
@@ -165,12 +168,15 @@ http://localhost:5173
 เมื่อมี popup เลือก video model:
 
 **สำหรับทดสอบ:**
+
 - เลือก **"Replicate AnimateDiff"** (เร็ว + ถูก)
 
 **สำหรับคุณภาพสูง:**
+
 - เลือก **"Replicate SVD"** (ต้องมีรูปภาพ base)
 
 **หรือใช้ Auto:**
+
 - เลือก **"Auto"** ให้ระบบเลือกเอง
 - จะลอง Veo → AnimateDiff → SVD อัตโนมัติ
 
@@ -197,11 +203,11 @@ Progress: [████████░░] 80%
 
 ### ราคาต่อวิดีโอ
 
-| Model | ความละเอียด | ราคา | เวลา |
-|-------|-------------|------|------|
-| **AnimateDiff v3** | 512x512 | $0.17 | 30-45s |
-| **SVD 1.1** | 1024x576 | $0.20 | 45-60s |
-| **AnimateDiff Lightning** | 512x512 | $0.10 | 15-20s |
+| Model                     | ความละเอียด | ราคา  | เวลา   |
+| ------------------------- | ----------- | ----- | ------ |
+| **AnimateDiff v3**        | 512x512     | $0.17 | 30-45s |
+| **SVD 1.1**               | 1024x576    | $0.20 | 45-60s |
+| **AnimateDiff Lightning** | 512x512     | $0.10 | 15-20s |
 
 ### การเติมเงิน
 
@@ -223,26 +229,28 @@ Progress: [████████░░] 80%
 
 ## 📊 เปรียบเทียบ Replicate vs RunPod
 
-| Feature | Replicate | RunPod |
-|---------|-----------|--------|
-| **Setup Time** | 5 นาที | 30 นาที |
-| **ความยาก** | ⭐ ง่าย | ⭐⭐⭐ ปานกลาง |
-| **ค่าใช้จ่าย** | $0.17/video | $320/เดือน |
-| **Break-even** | - | 1,882 videos/เดือน |
-| **Deployment** | ❌ ไม่ต้อง | ✅ ต้อง |
-| **Models** | ❌ ไม่ต้อง | ✅ ต้อง download 20GB |
-| **GPU** | ❌ ไม่ต้อง | ✅ ต้องจัดการเอง |
+| Feature         | Replicate             | RunPod                  |
+| --------------- | --------------------- | ----------------------- |
+| **Setup Time**  | 5 นาที                | 30 นาที                 |
+| **ความยาก**     | ⭐ ง่าย               | ⭐⭐⭐ ปานกลาง          |
+| **ค่าใช้จ่าย**  | $0.17/video           | $320/เดือน              |
+| **Break-even**  | -                     | 1,882 videos/เดือน      |
+| **Deployment**  | ❌ ไม่ต้อง            | ✅ ต้อง                 |
+| **Models**      | ❌ ไม่ต้อง            | ✅ ต้อง download 20GB   |
+| **GPU**         | ❌ ไม่ต้อง            | ✅ ต้องจัดการเอง        |
 | **แนะนำสำหรับ** | เริ่มต้น, traffic ต่ำ | Production, traffic สูง |
 
 ### คำแนะนำ
 
 **ใช้ Replicate ถ้า:**
+
 - ✅ เพิ่งเริ่มต้น
 - ✅ สร้างวิดีโอ < 1,882 videos/เดือน
 - ✅ อยากได้ผลลัพธ์เร็ว
 - ✅ ไม่อยากจัดการ infrastructure
 
 **ย้าย RunPod ถ้า:**
+
 - ✅ สร้างวิดีโอ > 1,882 videos/เดือน
 - ✅ อยากควบคุมเต็มที่
 - ✅ ต้องการ custom models
@@ -255,11 +263,13 @@ Progress: [████████░░] 80%
 ### ปัญหา: API Key ไม่ work
 
 **อาการ:**
+
 ```
 Error: Replicate API key not found!
 ```
 
 **แก้ไข:**
+
 1. เช็คว่าเพิ่ม `VITE_REPLICATE_API_KEY` ใน `.env` แล้ว
 2. เช็คว่า restart server แล้ว (`Ctrl+C` แล้ว `npm run dev`)
 3. เช็คว่า token ไม่มี space หน้า-หลัง
@@ -268,11 +278,13 @@ Error: Replicate API key not found!
 ### ปัญหา: "Insufficient credits"
 
 **อาการ:**
+
 ```
 Error: Insufficient credits to run this prediction
 ```
 
 **แก้ไข:**
+
 1. ไปที่ https://replicate.com/account/billing
 2. เติมเงิน $10-20
 3. ลองใหม่
@@ -280,11 +292,13 @@ Error: Insufficient credits to run this prediction
 ### ปัญหา: "Rate limit exceeded"
 
 **อาการ:**
+
 ```
 Error: You've exceeded your rate limit
 ```
 
 **แก้ไข:**
+
 1. รอ 1 นาที
 2. ลองใหม่
 3. ถ้ายังไม่ได้ → Upgrade plan
@@ -292,11 +306,13 @@ Error: You've exceeded your rate limit
 ### ปัญหา: วิดีโอช้า/ไม่เสร็จ
 
 **อาการ:**
+
 ```
 Timeout after 3 minutes
 ```
 
 **แก้ไข:**
+
 1. เช็ค Replicate status: https://status.replicate.com
 2. ลองใหม่อีกครั้ง
 3. ถ้ายังไม่ได้ → Contact support
@@ -304,11 +320,13 @@ Timeout after 3 minutes
 ### ปัญหา: Console แสดง error
 
 **อาการ:**
+
 ```
 Failed to fetch prediction status: 401 Unauthorized
 ```
 
 **แก้ไข:**
+
 1. API Key ไม่ถูกต้อง
 2. สร้าง token ใหม่ที่ https://replicate.com/account/api-tokens
 3. แทนที่ token เดิมใน `.env`
@@ -327,18 +345,16 @@ Failed to fetch prediction status: 401 Unauthorized
 import { generateAnimateDiffLightning } from './replicateService';
 
 // Call it
-const videoUrl = await generateAnimateDiffLightning(
-  prompt,
-  { numFrames: 16 },
-  onProgress
-);
+const videoUrl = await generateAnimateDiffLightning(prompt, { numFrames: 16 }, onProgress);
 ```
 
 **ข้อดี:**
+
 - ⚡ เร็วกว่า 2 เท่า (15-20s)
 - 💰 ถูกกว่า ($0.10/video)
 
 **ข้อเสีย:**
+
 - 📉 คุณภาพต่ำกว่าเล็กน้อย
 
 ### Adjust Motion Strength (SVD)
@@ -356,6 +372,7 @@ const videoUrl = await generateSVDVideo(
 ```
 
 **Motion Bucket ID:**
+
 - `1-80`: น้อย (subtle motion)
 - `80-150`: ปานกลาง (default = 127)
 - `150-255`: มาก (dramatic motion)
@@ -369,7 +386,7 @@ const videoUrl = await generateAnimateDiffVideo(
   image,
   {
     numFrames: 32, // Default: 16
-    fps: 8,        // Duration = 32/8 = 4 seconds
+    fps: 8, // Duration = 32/8 = 4 seconds
   },
   onProgress
 );
@@ -379,7 +396,7 @@ const videoUrl = await generateSVDVideo(
   image,
   {
     numFrames: 25, // Default: 14
-    fps: 6,        // Duration = 25/6 = 4.2 seconds
+    fps: 6, // Duration = 25/6 = 4.2 seconds
   },
   onProgress
 );
@@ -433,19 +450,22 @@ const videoUrl = await generateSVDVideo(
 ✅ **Tier 1:** Gemini Veo (720p, 30-120s) - Production  
 ✅ **Tier 2:** Replicate AnimateDiff (512x512, 2-3s) - Ready!  
 ✅ **Tier 3:** Replicate SVD (1024x576, 2-3s) - Ready!  
-✅ **Fallback Chain:** Automatic Veo → AnimateDiff → SVD  
+✅ **Fallback Chain:** Automatic Veo → AnimateDiff → SVD
 
 **การใช้งาน:**
+
 - เลือก model ตอน generate video
 - หรือปล่อยให้ "Auto" เลือกเอง
 - System จะลอง Tier 1 → 2 → 3 จนกว่าจะสำเร็จ
 
 **ต้นทุน:**
+
 - Tier 1 (Veo): Quota-based (มี credit)
 - Tier 2 (AnimateDiff): $0.17/video
 - Tier 3 (SVD): $0.20/video
 
 **Next Steps:**
+
 - ถ้า traffic สูง (>1,882 videos/mo) → ดู `COMFYUI_BACKEND_DEPLOYMENT.md`
 - ถ้าอยากควบคุมเต็มที่ → Deploy RunPod
 - ถ้าพอใจ Replicate → ใช้ต่อ!
@@ -453,6 +473,7 @@ const videoUrl = await generateSVDVideo(
 ---
 
 **ต้องการความช่วยเหลือ:**
+
 - 📧 Email: support@peace-script-ai.com
 - 💬 Discord: [Peace Script AI Community]
 - 📖 Docs: `docs/MASTER_INDEX.md`

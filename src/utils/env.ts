@@ -1,14 +1,16 @@
 /**
  * Environment Variable Validation
- * 
+ *
  * This utility validates required environment variables at application startup.
  * It helps catch configuration errors early before they cause runtime issues.
- * 
+ *
  * Usage:
  * - Import and call validateEnv() at the start of your application
  * - It will throw an error if required variables are missing
  * - It will warn about missing optional variables
  */
+
+import { logger } from './logger';
 
 interface EnvVariable {
   name: string;
@@ -69,7 +71,7 @@ const ENV_VARIABLES: EnvVariable[] = [
     required: true,
     description: 'Backend API URL',
     defaultValue: 'http://localhost:5000',
-    validator: (value) => {
+    validator: value => {
       try {
         new URL(value);
         return true;
@@ -129,7 +131,7 @@ export function validateEnv(): ValidationResult {
   const missingRequired: string[] = [];
   const missingOptional: string[] = [];
 
-  ENV_VARIABLES.forEach((envVar) => {
+  ENV_VARIABLES.forEach(envVar => {
     const value = import.meta.env[envVar.name];
 
     // Check if variable exists
@@ -151,7 +153,7 @@ export function validateEnv(): ValidationResult {
     // Validate value if validator is provided
     if (envVar.validator && !envVar.validator(value)) {
       const errorMsg = `❌ Invalid value for ${envVar.name}: ${envVar.validationError || 'Validation failed'}\n   Current value: ${value}`;
-      
+
       if (envVar.required) {
         errors.push(errorMsg);
       } else {
@@ -173,31 +175,31 @@ export function validateEnv(): ValidationResult {
  * Log validation results to console
  */
 export function logValidationResults(result: ValidationResult): void {
-  console.group('🔍 Environment Variable Validation');
+  logger.info('🔍 Environment Variable Validation');
 
   if (result.valid) {
-    console.log('✅ All required environment variables are configured correctly!');
+    logger.info('✅ All required environment variables are configured correctly!');
   } else {
-    console.error('❌ Environment validation failed!');
-    console.error('\n' + result.errors.join('\n\n'));
+    logger.error('❌ Environment validation failed!');
+    logger.error('Validation Errors', { errors: result.errors });
   }
 
   if (result.warnings.length > 0) {
-    console.warn('\n' + result.warnings.join('\n\n'));
+    logger.warn('Validation Warnings', { warnings: result.warnings });
   }
 
   // Summary
   const totalVars = ENV_VARIABLES.length;
   const configuredVars = totalVars - result.missingRequired.length - result.missingOptional.length;
-  
-  console.log(`\n📊 Summary: ${configuredVars}/${totalVars} variables configured`);
-  
+
+  logger.info('📊 Validation Summary', { configured: configuredVars, total: totalVars });
+
   if (result.missingRequired.length > 0) {
-    console.error(`   Missing Required: ${result.missingRequired.join(', ')}`);
+    logger.error('Missing Required Variables', { missing: result.missingRequired });
   }
-  
+
   if (result.missingOptional.length > 0) {
-    console.warn(`   Missing Optional: ${result.missingOptional.join(', ')}`);
+    logger.warn('Missing Optional Variables', { missing: result.missingOptional });
   }
 
   console.groupEnd();
@@ -249,3 +251,4 @@ export function isDevelopment(): boolean {
 export function getEnvironment(): string {
   return import.meta.env.MODE;
 }
+

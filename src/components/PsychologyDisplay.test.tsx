@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { PsychologyDisplay } from './PsychologyDisplay';
-import type { Character } from '../../types';
+import type { Character } from '../types';
 
 // Mock dependencies
 vi.mock('../services/psychologyCalculator', () => ({
@@ -366,3 +366,4 @@ describe('PsychologyDisplay', () => {
     });
   });
 });
+

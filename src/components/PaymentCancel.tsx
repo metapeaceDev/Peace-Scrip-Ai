@@ -1,6 +1,6 @@
 /**
  * Payment Cancel Page
- * 
+ *
  * Shown when user cancels Stripe payment
  */
 
@@ -16,7 +16,7 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
 
   React.useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown((prev) => {
+      setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           if (onBack) onBack();
@@ -36,17 +36,25 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
         {/* Warning Icon */}
         <div className="mb-6 flex justify-center">
           <div className="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-12 h-12 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           </div>
         </div>
 
         {/* Cancel Message */}
-        <h1 className="text-3xl font-bold text-white mb-4">
-          การชำระเงินถูกยกเลิก
-        </h1>
-        
+        <h1 className="text-3xl font-bold text-white mb-4">การชำระเงินถูกยกเลิก</h1>
+
         <p className="text-gray-300 mb-6">
           คุณได้ยกเลิกกระบวนการชำระเงิน
           <br />
@@ -55,9 +63,7 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
 
         {/* Reasons */}
         <div className="bg-gray-900/50 rounded-lg p-4 mb-6 text-left">
-          <h3 className="text-yellow-400 font-bold mb-3">
-            ต้องการความช่วยเหลือหรือไม่?
-          </h3>
+          <h3 className="text-yellow-400 font-bold mb-3">ต้องการความช่วยเหลือหรือไม่?</h3>
           <ul className="space-y-2 text-sm text-gray-300">
             <li className="flex items-start gap-2">
               <span className="text-yellow-400 mt-0.5">•</span>
@@ -84,7 +90,7 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
               ลองอีกครั้ง
             </button>
           )}
-          
+
           <button
             onClick={() => {
               if (onBack) onBack();
@@ -94,17 +100,13 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
           >
             กลับไปหน้าหลัก
           </button>
-          
-          <p className="text-gray-500 text-sm">
-            จะกลับไปหน้าหลักอัตโนมัติใน {countdown} วินาที...
-          </p>
+
+          <p className="text-gray-500 text-sm">จะกลับไปหน้าหลักอัตโนมัติใน {countdown} วินาที...</p>
         </div>
 
         {/* Support */}
         <div className="mt-6 pt-6 border-t border-gray-700">
-          <p className="text-gray-400 text-xs mb-2">
-            ต้องการความช่วยเหลือ?
-          </p>
+          <p className="text-gray-400 text-xs mb-2">ต้องการความช่วยเหลือ?</p>
           <div className="flex justify-center gap-4 text-xs">
             <a href="mailto:metapeaceofficial@gmail.com" className="text-cyan-400 hover:underline">
               📧 Email
@@ -121,3 +123,4 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
 };
 
 export default PaymentCancel;
+

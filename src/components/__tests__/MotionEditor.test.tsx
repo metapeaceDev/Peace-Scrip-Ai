@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MotionEditor } from '../MotionEditor';
 import type { MotionEdit, CinematicSuggestions } from '../../types/motionEdit';
-import type { Character } from '../../../types';
+import type { Character } from '../types';
 
 // Mock window.alert
 global.alert = vi.fn();
@@ -426,3 +426,4 @@ describe('MotionEditor', () => {
     });
   });
 });
+

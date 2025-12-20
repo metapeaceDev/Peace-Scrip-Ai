@@ -113,7 +113,7 @@ export class RequestQueue<T = any> extends EventEmitter {
     this.sortQueue();
 
     this.emit('enqueued', request);
-    
+
     // Process next in next tick to allow tests to check state
     setImmediate(() => this.processNext());
 
@@ -176,8 +176,7 @@ export class RequestQueue<T = any> extends EventEmitter {
     request.result = result;
 
     // Calculate processing time
-    const processingTime =
-      request.completedAt.getTime() - request.startedAt!.getTime();
+    const processingTime = request.completedAt.getTime() - request.startedAt!.getTime();
     this.totalProcessingTime += processingTime;
     this.totalProcessed++;
 
@@ -249,7 +248,7 @@ export class RequestQueue<T = any> extends EventEmitter {
    */
   getRequest(requestId: string): QueueRequest<T> | null {
     return (
-      this.queue.find((r) => r.id === requestId) ||
+      this.queue.find(r => r.id === requestId) ||
       this.processing.get(requestId) ||
       this.completed.get(requestId) ||
       this.failed.get(requestId) ||
@@ -261,19 +260,13 @@ export class RequestQueue<T = any> extends EventEmitter {
    * Get queue metrics
    */
   getMetrics(): QueueMetrics {
-    const avgWaitTime =
-      this.totalProcessed > 0 ? this.totalWaitTime / this.totalProcessed : 0;
+    const avgWaitTime = this.totalProcessed > 0 ? this.totalWaitTime / this.totalProcessed : 0;
     const avgProcessingTime =
-      this.totalProcessed > 0
-        ? this.totalProcessingTime / this.totalProcessed
-        : 0;
+      this.totalProcessed > 0 ? this.totalProcessingTime / this.totalProcessed : 0;
 
     return {
       totalRequests:
-        this.queue.length +
-        this.processing.size +
-        this.completed.size +
-        this.failed.size,
+        this.queue.length + this.processing.size + this.completed.size + this.failed.size,
       pendingRequests: this.queue.length,
       processingRequests: this.processing.size,
       completedRequests: this.completed.size,
@@ -289,7 +282,7 @@ export class RequestQueue<T = any> extends EventEmitter {
    */
   cancel(requestId: string): boolean {
     // Check if in queue
-    const queueIndex = this.queue.findIndex((r) => r.id === requestId);
+    const queueIndex = this.queue.findIndex(r => r.id === requestId);
     if (queueIndex !== -1) {
       const request = this.queue.splice(queueIndex, 1)[0];
       request.status = 'failed';
@@ -348,10 +341,7 @@ export class RequestQueue<T = any> extends EventEmitter {
   setMaxConcurrent(max: number): void {
     this.maxConcurrent = max;
     // Try to process more if we increased the limit
-    while (
-      this.processing.size < this.maxConcurrent &&
-      this.queue.length > 0
-    ) {
+    while (this.processing.size < this.maxConcurrent && this.queue.length > 0) {
       this.processNext();
     }
   }
@@ -423,3 +413,4 @@ export const videoQueue = new RequestQueue({
     low: 1, // Free tier users
   },
 });
+

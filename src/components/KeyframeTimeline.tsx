@@ -1,6 +1,6 @@
 /**
  * Keyframe Timeline Editor
- * 
+ *
  * Visual timeline for keyframe-based animation control
  * Features:
  * - Add/remove keyframes
@@ -8,7 +8,7 @@
  * - Interpolation curves
  * - Playback preview
  * - Export keyframe data
- * 
+ *
  * @author Peace Script Team (Adapted for TypeScript)
  */
 
@@ -38,14 +38,14 @@ export default function KeyframeTimeline({
   parameters = null,
   onTimeChange = () => {},
   playing = false,
-  onPlayingChange = () => {}
+  onPlayingChange = () => {},
 }: KeyframeTimelineProps) {
   const [localKeyframes, setLocalKeyframes] = useState<Keyframe[]>(keyframes);
   const [currentTime, setCurrentTime] = useState(0);
   const [selectedKeyframe, setSelectedKeyframe] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(playing);
   const [zoom, setZoom] = useState(1.0);
-  
+
   const timelineRef = useRef<HTMLDivElement>(null);
   const playbackInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -92,7 +92,7 @@ export default function KeyframeTimeline({
       id: `kf_${Date.now()}`,
       time: currentTime,
       parameters: parameters || {},
-      interpolation: 'linear'
+      interpolation: 'linear',
     };
 
     const updated = [...localKeyframes, newKeyframe].sort((a, b) => a.time - b.time);
@@ -114,10 +114,10 @@ export default function KeyframeTimeline({
   // Update keyframe time (drag)
   const handleKeyframeDrag = (id: string, newTime: number) => {
     const clamped = Math.max(0, Math.min(duration, newTime));
-    const updated = localKeyframes.map((kf: Keyframe) =>
-      kf.id === id ? { ...kf, time: clamped } : kf
-    ).sort((a: Keyframe, b: Keyframe) => a.time - b.time);
-    
+    const updated = localKeyframes
+      .map((kf: Keyframe) => (kf.id === id ? { ...kf, time: clamped } : kf))
+      .sort((a: Keyframe, b: Keyframe) => a.time - b.time);
+
     setLocalKeyframes(updated);
     onKeyframesChange?.(updated);
   };
@@ -125,12 +125,12 @@ export default function KeyframeTimeline({
   // Click on timeline to set time
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current) return;
-    
+
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const newTime = (clickX / rect.width) * duration;
     const clamped = Math.max(0, Math.min(duration, newTime));
-    
+
     setCurrentTime(clamped);
     onTimeChange?.(clamped);
   };
@@ -155,9 +155,12 @@ export default function KeyframeTimeline({
       {/* Header */}
       <div className="timeline-header">
         <div className="header-left">
-          <div className="header-icon" style={{
-            animation: isPlaying ? 'pulse 0.5s infinite' : 'none'
-          }}>
+          <div
+            className="header-icon"
+            style={{
+              animation: isPlaying ? 'pulse 0.5s infinite' : 'none',
+            }}
+          >
             🎞️
           </div>
           <h3 className="timeline-title">Keyframe Timeline</h3>
@@ -166,11 +169,7 @@ export default function KeyframeTimeline({
 
         <div className="header-right">
           {/* Playback Controls */}
-          <button
-            onClick={handleReset}
-            className="btn-control"
-            title="Reset to start"
-          >
+          <button onClick={handleReset} className="btn-control" title="Reset to start">
             ⏮
           </button>
           <button
@@ -219,11 +218,7 @@ export default function KeyframeTimeline({
         {/* Time markers */}
         <div className="time-markers">
           {Array.from({ length: Math.ceil(duration) + 1 }).map((_, i) => (
-            <div
-              key={i}
-              className="time-marker"
-              style={{ left: `${(i / duration) * 100}%` }}
-            >
+            <div key={i} className="time-marker" style={{ left: `${(i / duration) * 100}%` }}>
               <span className="marker-label">{i}s</span>
               <div className="marker-line" />
             </div>
@@ -236,15 +231,15 @@ export default function KeyframeTimeline({
             <div
               key={keyframe.id}
               className={`keyframe ${selectedKeyframe === keyframe.id ? 'selected' : ''}`}
-              style={{ 
+              style={{
                 left: `${(keyframe.time / duration) * 100}%`,
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setSelectedKeyframe(keyframe.id);
               }}
-              onMouseDown={(e) => {
+              onMouseDown={e => {
                 const startX = e.clientX;
                 const startTime = keyframe.time;
                 const rect = timelineRef.current?.getBoundingClientRect();
@@ -268,12 +263,12 @@ export default function KeyframeTimeline({
             >
               <div className="keyframe-diamond">◆</div>
               <div className="keyframe-time">{keyframe.time.toFixed(2)}s</div>
-              
+
               {/* Delete button */}
               {selectedKeyframe === keyframe.id && (
                 <button
                   className="btn-delete-keyframe"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation();
                     handleRemoveKeyframe(keyframe.id);
                   }}
@@ -288,9 +283,9 @@ export default function KeyframeTimeline({
         {/* Current Time Indicator */}
         <div
           className="current-time-indicator"
-          style={{ 
+          style={{
             left: `${(currentTime / duration) * 100}%`,
-            transition: isPlaying ? 'left 0.1s linear' : 'none'
+            transition: isPlaying ? 'left 0.1s linear' : 'none',
           }}
         >
           <div className="indicator-head" />
@@ -314,10 +309,15 @@ export default function KeyframeTimeline({
               {localKeyframes.find((kf: Keyframe) => kf.id === selectedKeyframe)?.time.toFixed(2)}s
             </span>
             <select
-              value={localKeyframes.find((kf: Keyframe) => kf.id === selectedKeyframe)?.interpolation || 'linear'}
-              onChange={(e) => {
+              value={
+                localKeyframes.find((kf: Keyframe) => kf.id === selectedKeyframe)?.interpolation ||
+                'linear'
+              }
+              onChange={e => {
                 const updated = localKeyframes.map((kf: Keyframe) =>
-                  kf.id === selectedKeyframe ? { ...kf, interpolation: e.target.value as Keyframe['interpolation'] } : kf
+                  kf.id === selectedKeyframe
+                    ? { ...kf, interpolation: e.target.value as Keyframe['interpolation'] }
+                    : kf
                 );
                 setLocalKeyframes(updated);
                 onKeyframesChange?.(updated);
@@ -719,3 +719,4 @@ export default function KeyframeTimeline({
     </div>
   );
 }
+

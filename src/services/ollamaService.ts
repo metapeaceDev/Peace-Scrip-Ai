@@ -1,9 +1,9 @@
 /**
  * Ollama Service - Local Text Generation
- * 
+ *
  * Provides local AI text generation as an alternative to cloud APIs.
  * Supports Llama 3.2, Qwen 2.5, DeepSeek-R1 for cost-free text generation.
- * 
+ *
  * Cost Comparison:
  * - Gemini 1.5 Flash: ~฿0.35 per project
  * - Ollama (local): ฿0 per project (100% free!)
@@ -380,3 +380,4 @@ export async function* streamText(
     reader.releaseLock();
   }
 }
+

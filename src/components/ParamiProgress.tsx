@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { Character, ParamiPortfolio } from '../../types';
+import type { Character, ParamiPortfolio } from '../types';
 
 interface ParamiProgressProps {
   character: Character;
@@ -261,3 +261,4 @@ function getSynergyParamis(key: keyof ParamiPortfolio): Array<keyof ParamiPortfo
 }
 
 export default ParamiProgress;
+

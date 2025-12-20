@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import type {
-  ImageProvider,
-  VideoProvider,
-  AIProviderSettings,
-  ProviderStatus,
-} from '../../types';
+import type { ImageProvider, VideoProvider, AIProviderSettings, ProviderStatus } from '../types';
 import { getProviderStatus, getRecommendedProvider } from '../services/providerSelector';
 import {
   detectSystemResources,
@@ -41,7 +36,12 @@ export function ProviderSettings() {
   // Device Settings States
   const [resources, setResources] = useState<SystemResources | null>(null);
   const [deviceSettings, setDeviceSettings] = useState<RenderSettings | null>(null);
-  const [deviceHealth, setDeviceHealth] = useState<{ status?: string; message?: string; local?: boolean; cloud?: boolean } | null>(null);
+  const [deviceHealth, setDeviceHealth] = useState<{
+    status?: string;
+    message?: string;
+    local?: boolean;
+    cloud?: boolean;
+  } | null>(null);
   const [deviceLoading, setDeviceLoading] = useState(true);
 
   // Load settings from localStorage on mount
@@ -149,7 +149,10 @@ export function ProviderSettings() {
     saveRenderSettings(newSettings);
   };
 
-  const handleSettingChange = (key: keyof AIProviderSettings, value: string | number | boolean | ImageProvider | VideoProvider) => {
+  const handleSettingChange = (
+    key: keyof AIProviderSettings,
+    value: string | number | boolean | ImageProvider | VideoProvider
+  ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -754,8 +757,8 @@ export function ProviderSettings() {
                       </button>
                     </div>
                     <p className="mt-3 text-xs text-gray-400">
-                      When &quot;Auto&quot; is selected, the system will choose the best provider based on
-                      this priority.
+                      When &quot;Auto&quot; is selected, the system will choose the best provider
+                      based on this priority.
                     </p>
                   </div>
 
@@ -917,3 +920,4 @@ export function getAIProviderSettings(): AIProviderSettings {
   }
   return DEFAULT_SETTINGS;
 }
+

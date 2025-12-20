@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import Step5Output from '../Step5Output';
-import type { ScriptData, GeneratedScene, Character } from '../../types';
+import type { ScriptData, GeneratedScene, Character } from '../types';
 
 // Mock window.scrollTo
 global.window.scrollTo = vi.fn();
@@ -383,3 +383,4 @@ describe('Step5Output - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
+

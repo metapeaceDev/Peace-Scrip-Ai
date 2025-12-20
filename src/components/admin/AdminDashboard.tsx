@@ -1,6 +1,6 @@
 /**
  * Admin Dashboard Component
- * 
+ *
  * Dashboard หลักสำหรับ admin ดู analytics และจัดการระบบ
  */
 
@@ -15,7 +15,13 @@ import {
   subscribeToAnalytics,
 } from '../../services/adminAnalyticsService';
 import { getProjectCostSummary } from '../../services/projectCostMonitor';
-import type { UserStats, RevenueMetrics, UsageAnalytics, UserListItem, SubscriptionTier } from '../../../types';
+import type {
+  UserStats,
+  RevenueMetrics,
+  UsageAnalytics,
+  UserListItem,
+  SubscriptionTier,
+} from '../../types';
 import { OverviewCards } from './OverviewCards';
 import { UserTable } from './UserTable';
 import { ExportButton } from './ExportButton';
@@ -51,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTier, setFilterTier] = useState<SubscriptionTier | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  
+
   // User Details Modal
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [useEnhancedModal] = useState(true); // Always use enhanced modal
@@ -68,15 +74,15 @@ export const AdminDashboard: React.FC = () => {
           logger.debug('Token refreshed', {
             email: auth.currentUser.email,
             admin: tokenResult.claims.admin,
-            adminRole: tokenResult.claims.adminRole
+            adminRole: tokenResult.claims.adminRole,
           });
         }
 
         const session = await initAdminSession();
-        
+
         if (!session.isAdmin) {
           console.error('❌ Not admin:', session);
-          
+
           // Check if user has claims but session failed
           if (auth.currentUser) {
             const tokenResult = await auth.currentUser.getIdTokenResult();
@@ -93,7 +99,7 @@ export const AdminDashboard: React.FC = () => {
               }
             }
           }
-          
+
           setAuthorized(false);
           setLoading(false);
           return;
@@ -103,7 +109,7 @@ export const AdminDashboard: React.FC = () => {
 
         // Load initial data
         await loadData();
-        
+
         setLoading(false);
       } catch (error) {
         console.error('Error initializing admin dashboard:', error);
@@ -120,7 +126,7 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!authorized) return;
 
-    const unsubscribe = subscribeToAnalytics((data) => {
+    const unsubscribe = subscribeToAnalytics(data => {
       setStats(data.stats);
       setRevenue(data.revenue);
       setUsage(data.usage);
@@ -224,8 +230,8 @@ export const AdminDashboard: React.FC = () => {
       <div className="admin-header">
         <h1>📊 Admin Analytics Dashboard</h1>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button 
-            onClick={() => window.location.href = '/'}
+          <button
+            onClick={() => (window.location.href = '/')}
             style={{
               padding: '8px 16px',
               backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -239,10 +245,10 @@ export const AdminDashboard: React.FC = () => {
               alignItems: 'center',
               gap: '8px',
               transition: 'all 0.2s',
-              height: '40px'
+              height: '40px',
             }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)')}
           >
             🏠 Back to Studio
           </button>
@@ -286,106 +292,104 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'analytics' && (
-        <div className="tab-content">{/* Analytics Tab */}
+        <div className="tab-content">
+          {/* Analytics Tab */}
 
-      {/* Overview Cards */}
-      {stats && revenue && usage && (
-        <OverviewCards 
-          stats={stats} 
-          revenue={revenue} 
-          usage={usage} 
-          averageCostPerUser={averageCostPerUser}
-        />
-      )}
-
-      {/* Analytics Charts */}
-      <div className="charts-section">
-        {revenue && (
-          <div className="chart-card full-width">
-            <RevenueChart revenue={revenue} />
-          </div>
-        )}
-
-        {usage && (
-          <div className="chart-card full-width">
-            <UsageChart usage={usage} />
-          </div>
-        )}
-      </div>
-
-      {/* Users Distribution */}
-      <div className="charts-section">
-        <div className="chart-card">
-          <h3>Users by Tier</h3>
-          {stats && (
-            <div className="tier-distribution">
-              <div className="tier-item">
-                <span className="tier-label">FREE</span>
-                <span className="tier-count">{stats.byTier.free}</span>
-              </div>
-              <div className="tier-item">
-                <span className="tier-label">BASIC</span>
-                <span className="tier-count">{stats.byTier.basic}</span>
-              </div>
-              <div className="tier-item">
-                <span className="tier-label">PRO</span>
-                <span className="tier-count">{stats.byTier.pro}</span>
-              </div>
-              <div className="tier-item">
-                <span className="tier-label">ENTERPRISE</span>
-                <span className="tier-count">{stats.byTier.enterprise}</span>
-              </div>
-            </div>
+          {/* Overview Cards */}
+          {stats && revenue && usage && (
+            <OverviewCards
+              stats={stats}
+              revenue={revenue}
+              usage={usage}
+              averageCostPerUser={averageCostPerUser}
+            />
           )}
-        </div>
 
-        <div className="chart-card">
-          <h3>Top Users</h3>
-          {usage && (
-            <div className="veo-users">
-              {usage.veoVideos.byUser.slice(0, 5).map((user, index) => (
-                <div key={index} className="veo-user-item">
-                  <span className="user-email">{user.email}</span>
-                  <span className="user-veo-count">{user.count} videos</span>
+          {/* Analytics Charts */}
+          <div className="charts-section">
+            {revenue && (
+              <div className="chart-card full-width">
+                <RevenueChart revenue={revenue} />
+              </div>
+            )}
+
+            {usage && (
+              <div className="chart-card full-width">
+                <UsageChart usage={usage} />
+              </div>
+            )}
+          </div>
+
+          {/* Users Distribution */}
+          <div className="charts-section">
+            <div className="chart-card">
+              <h3>Users by Tier</h3>
+              {stats && (
+                <div className="tier-distribution">
+                  <div className="tier-item">
+                    <span className="tier-label">FREE</span>
+                    <span className="tier-count">{stats.byTier.free}</span>
+                  </div>
+                  <div className="tier-item">
+                    <span className="tier-label">BASIC</span>
+                    <span className="tier-count">{stats.byTier.basic}</span>
+                  </div>
+                  <div className="tier-item">
+                    <span className="tier-label">PRO</span>
+                    <span className="tier-count">{stats.byTier.pro}</span>
+                  </div>
+                  <div className="tier-item">
+                    <span className="tier-label">ENTERPRISE</span>
+                    <span className="tier-count">{stats.byTier.enterprise}</span>
+                  </div>
                 </div>
-              ))}
-              {usage.veoVideos.byUser.length === 0 && (
-                <p className="no-data">No Veo videos generated yet</p>
               )}
             </div>
+
+            <div className="chart-card">
+              <h3>Top Users</h3>
+              {usage && (
+                <div className="veo-users">
+                  {usage.veoVideos.byUser.slice(0, 5).map((user: any, index: number) => (
+                    <div key={index} className="veo-user-item">
+                      <span className="user-email">{user.email}</span>
+                      <span className="user-veo-count">{user.count} videos</span>
+                    </div>
+                  ))}
+                  {usage.veoVideos.byUser.length === 0 && (
+                    <p className="no-data">No Veo videos generated yet</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* User Table */}
+          <UserTable
+            users={users}
+            totalUsers={totalUsers}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            searchQuery={searchQuery}
+            filterTier={filterTier}
+            filterStatus={filterStatus}
+            onSearch={handleSearch}
+            onFilterChange={handleFilterChange}
+            onPageChange={setCurrentPage}
+            onUserClick={setSelectedUserId}
+          />
+
+          {/* User Details Modal */}
+          {selectedUserId && useEnhancedModal && (
+            <EnhancedUserDetailsModal
+              userId={selectedUserId}
+              onClose={() => setSelectedUserId(null)}
+            />
           )}
-        </div>
-      </div>
-
-      {/* User Table */}
-      <UserTable
-        users={users}
-        totalUsers={totalUsers}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        searchQuery={searchQuery}
-        filterTier={filterTier}
-        filterStatus={filterStatus}
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-        onPageChange={setCurrentPage}
-        onUserClick={setSelectedUserId}
-      />
-
-      {/* User Details Modal */}
-      {selectedUserId && useEnhancedModal && (
-        <EnhancedUserDetailsModal
-          userId={selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-        />
-      )}
-      {selectedUserId && !useEnhancedModal && (
-        <UserDetailsModal
-          userId={selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-        />
-      )}
+          {selectedUserId && !useEnhancedModal && (
+            <UserDetailsModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+          )}
         </div>
       )}
 
@@ -419,3 +423,4 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 };
+

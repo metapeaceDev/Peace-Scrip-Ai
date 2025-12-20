@@ -4,8 +4,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  orderBy,
+  limit,
+} from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { logger } from '../utils/logger';
 
 interface Notification {
   id: string;
@@ -27,7 +37,7 @@ export const NotificationBell: React.FC = () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    console.log('🔔 Setting up notifications listener for:', user.uid);
+    logger.info('🔔 Setting up notifications listener', { userId: user.uid });
 
     // Listen to notifications
     const q = query(
@@ -37,29 +47,29 @@ export const NotificationBell: React.FC = () => {
       limit(10)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, snapshot => {
       const notifs: Notification[] = [];
       let unread = 0;
 
-      snapshot.forEach((doc) => {
+      snapshot.forEach(doc => {
         const data = doc.data();
-        
+
         // DEBUG: Log แต่ละ notification
-        console.log('📨 Notification document:', {
+        logger.debug('📨 Notification document', {
           id: doc.id,
           type: data.type,
           title: data.title,
           hasData: !!data.data,
           hasConfirmUrl: !!data.data?.confirmUrl,
           confirmUrl: data.data?.confirmUrl,
-          fullData: data.data
+          fullData: data.data,
         });
-        
+
         // EXTRA DEBUG: Log confirmUrl เต็มๆ
         if (data.type === 'admin-invitation' && data.data?.confirmUrl) {
-          console.log('✅ Found admin invitation with URL:', data.data.confirmUrl);
+          logger.info('✅ Found admin invitation with URL', { url: data.data.confirmUrl });
         }
-        
+
         notifs.push({
           id: doc.id,
           type: data.type,
@@ -78,7 +88,7 @@ export const NotificationBell: React.FC = () => {
 
       setNotifications(notifs);
       setUnreadCount(unread);
-      console.log(`🔔 Loaded ${notifs.length} notifications (${unread} unread)`);
+      logger.info('🔔 Loaded notifications', { count: notifs.length, unread });
     });
 
     return () => unsubscribe();
@@ -90,25 +100,27 @@ export const NotificationBell: React.FC = () => {
         read: true,
       });
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read', { error });
     }
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    console.log('🔔 Notification clicked:', notification);
-    console.log('📋 Type:', notification.type);
-    console.log('📦 Data:', notification.data);
-    console.log('🔗 confirmUrl:', notification.data?.confirmUrl);
-    
+    logger.info('🔔 Notification clicked', {
+      id: notification.id,
+      type: notification.type,
+      data: notification.data,
+      confirmUrl: notification.data?.confirmUrl,
+    });
+
     markAsRead(notification.id);
 
     // Handle admin invitation
     if (notification.type === 'admin-invitation') {
       if (notification.data?.confirmUrl) {
-        console.log('✅ Redirecting to:', notification.data.confirmUrl);
+        logger.info('✅ Redirecting to admin confirmation', { url: notification.data.confirmUrl });
         window.location.href = notification.data.confirmUrl;
       } else {
-        console.error('❌ No confirmUrl found in notification data!');
+        logger.error('❌ No confirmUrl found in notification data');
         alert('ไม่พบ confirmation link กรุณาติดต่อ Admin');
       }
     }
@@ -142,19 +154,14 @@ export const NotificationBell: React.FC = () => {
       {showDropdown && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setShowDropdown(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
 
           {/* Notifications Panel */}
           <div className="absolute right-0 z-20 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
             {/* Header */}
             <div className="p-4 border-b border-gray-700">
               <h3 className="text-lg font-bold text-white">การแจ้งเตือน</h3>
-              {unreadCount > 0 && (
-                <p className="text-sm text-gray-400">{unreadCount} รายการใหม่</p>
-              )}
+              {unreadCount > 0 && <p className="text-sm text-gray-400">{unreadCount} รายการใหม่</p>}
             </div>
 
             {/* Notifications List */}
@@ -164,42 +171,42 @@ export const NotificationBell: React.FC = () => {
                   <p className="text-gray-400">ไม่มีการแจ้งเตือน</p>
                 </div>
               ) : (
-                notifications.map((notification) => (
+                notifications.map(notification => (
                   <div
                     key={notification.id}
                     className={`p-4 border-b border-gray-700 transition-colors ${
-                      !notification.read
-                        ? 'bg-blue-900/20'
-                        : ''
+                      !notification.read ? 'bg-blue-900/20' : ''
                     }`}
                   >
                     {/* Notification Icon */}
                     <div className="flex items-start gap-3">
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                        notification.type === 'admin-invitation' ? 'bg-purple-500' : 'bg-blue-500'
-                      }`}>
+                      <div
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                          notification.type === 'admin-invitation' ? 'bg-purple-500' : 'bg-blue-500'
+                        }`}
+                      >
                         {notification.type === 'admin-invitation' ? '👑' : '🔔'}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         {/* Title */}
-                        <p className={`text-sm font-semibold ${
-                          !notification.read ? 'text-white' : 'text-gray-300'
-                        }`}>
+                        <p
+                          className={`text-sm font-semibold ${
+                            !notification.read ? 'text-white' : 'text-gray-300'
+                          }`}
+                        >
                           {notification.title}
                         </p>
 
                         {/* Message */}
-                        <p className="text-sm text-gray-400 mt-1">
-                          {notification.message}
-                        </p>
+                        <p className="text-sm text-gray-400 mt-1">{notification.message}</p>
 
                         {/* Action Button for Admin Invitation */}
                         {notification.type === 'admin-invitation' && (
                           <>
                             {notification.data?.confirmUrl ? (
-                              <button 
-                                onClick={(e) => {
+                              <button
+                                onClick={e => {
                                   e.stopPropagation();
                                   handleNotificationClick(notification);
                                 }}
@@ -252,3 +259,4 @@ export const NotificationBell: React.FC = () => {
 };
 
 export default NotificationBell;
+

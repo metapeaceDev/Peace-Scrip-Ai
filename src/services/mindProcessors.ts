@@ -8,7 +8,7 @@
  * - TanhaToUpadana_Escalator: Escalates tanha to upadana
  */
 
-import type { Character, AnusayaProfile, ParamiPortfolio } from '../../types';
+import type { Character, AnusayaProfile, ParamiPortfolio } from '../types';
 import type { CittaType, CittaMoment, VedanaType, HetuType } from '../types/cittaTypes';
 
 // ========================================================================
@@ -631,3 +631,4 @@ function analyzAction(action: string): SensoryInput {
     senseDoor: 'mind',
   };
 }
+

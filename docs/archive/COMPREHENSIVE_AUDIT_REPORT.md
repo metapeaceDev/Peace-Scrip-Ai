@@ -43,7 +43,7 @@
   - 29 commits rewritten
   - Old keys replaced with `***REMOVED_SECRET_KEY***`
   - Verified: `git show` confirms clean history
-- [x] New API Key created: `AIzaSyBi2pSE3dbFnW46CaD9SIXkzaXYh85l3WM`
+- [x] New API Key created: `AIzaSy_NEW_KEY_PLACEHOLDER`
 - [x] API Key Restrictions set:
   - Application: Websites only
   - Allowed: `peace-script-ai.web.app`, `localhost:5173`, `127.0.0.1:5173`
@@ -55,7 +55,7 @@
 
 - [ ] Delete old keys from Google Cloud Console:
   - URL: https://console.cloud.google.com/apis/credentials
-  - Keys: `AIzaSyC-Y-j2mQny-YqukGPT4QIDvKOkGewNO48`, `AIzaSyALCWflX-gooPrxQQOv_tef1uSwlcEdOsA`
+  - Keys: `AIzaSy_OLD_KEY_1`, `AIzaSy_OLD_KEY_2`
 
 ### 🛡️ **Security Score: 9/10** (was 7/10)
 
@@ -346,8 +346,8 @@ Poster gen:    10-30s         ⏳ API-dependent
 # 1. Clean Git history
 brew install bfg
 cd "/Users/surasak.peace/Desktop/peace-script-basic-v1 "
-bfg --replace-text <(echo "AIzaSyC-Y-j2mQny-YqukGPT4QIDvKOkGewNO48==>REMOVED") .git
-bfg --replace-text <(echo "AIzaSyALCWflX-gooPrxQQOv_tef1uSwlcEdOsA==>REMOVED") .git
+bfg --replace-text <(echo "AIzaSy_OLD_KEY_1==>REMOVED") .git
+bfg --replace-text <(echo "AIzaSy_OLD_KEY_2==>REMOVED") .git
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 
