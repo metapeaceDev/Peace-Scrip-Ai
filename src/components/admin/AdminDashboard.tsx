@@ -14,6 +14,7 @@ import {
   getUserList,
   subscribeToAnalytics,
 } from '../../services/adminAnalyticsService';
+import { getProjectCostSummary } from '../../services/projectCostMonitor';
 import type { UserStats, RevenueMetrics, UsageAnalytics, UserListItem, SubscriptionTier } from '../../../types';
 import { OverviewCards } from './OverviewCards';
 import { UserTable } from './UserTable';
@@ -39,6 +40,7 @@ export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [revenue, setRevenue] = useState<RevenueMetrics | null>(null);
   const [usage, setUsage] = useState<UsageAnalytics | null>(null);
+  const [averageCostPerUser, setAverageCostPerUser] = useState<number>(0);
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,15 +132,17 @@ export const AdminDashboard: React.FC = () => {
   // Load data
   async function loadData() {
     try {
-      const [statsData, revenueData, usageData] = await Promise.all([
+      const [statsData, revenueData, usageData, costData] = await Promise.all([
         getUserStats(),
         getRevenueMetrics(),
         getUsageAnalytics(),
+        getProjectCostSummary(),
       ]);
 
       setStats(statsData);
       setRevenue(revenueData);
       setUsage(usageData);
+      setAverageCostPerUser(costData.userCosts.averageCostPerUser);
 
       await loadUsers();
     } catch (error) {
@@ -286,7 +290,12 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Overview Cards */}
       {stats && revenue && usage && (
-        <OverviewCards stats={stats} revenue={revenue} usage={usage} />
+        <OverviewCards 
+          stats={stats} 
+          revenue={revenue} 
+          usage={usage} 
+          averageCostPerUser={averageCostPerUser}
+        />
       )}
 
       {/* Analytics Charts */}

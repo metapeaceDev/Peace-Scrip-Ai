@@ -64,12 +64,28 @@
   margin: 0.5rem 0;
 }
 
-/* Overview Cards */
+/* Overview Cards - Two Column Layout */
 .overview-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
   margin-bottom: 2rem;
+}
+
+/* Column styles */
+.cards-column {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.column-header {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
 }
 
 .overview-cards .card {
@@ -88,6 +104,14 @@
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
   border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* Responsive: Stack columns on smaller screens */
+@media (max-width: 1024px) {
+  .overview-cards {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
 }
 
 .card-icon {
