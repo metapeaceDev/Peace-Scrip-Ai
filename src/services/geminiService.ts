@@ -42,8 +42,9 @@ async function countTokens(text: string, modelId: string = 'gemini-1.5-flash'): 
     });
     return totalTokens || Math.ceil(text.length / 4); // Fallback to char est.
   } catch (error) {
-    console.warn('Token counting failed, using fallback:', error);
-    return Math.ceil(text.length / 4);
+    // Silent fallback - countTokens not critical for functionality
+    // Note: v1beta API may not support countTokens for all models
+    return Math.ceil(text.length / 4); // Estimate: ~4 chars per token
   }
 }
 

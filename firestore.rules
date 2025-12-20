@@ -146,6 +146,22 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
 
+    // User Model Usage Summary - AI model usage tracking
+    match /userModelUsage/{usageId} {
+      // Users can read their own model usage OR admin can read all
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Users can write their own model usage records
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own usage records
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Allow admin to list all usage for analytics
+      allow list: if isAdmin();
+    }
+
     // Project Invitations - for team collaboration
     match /projectInvitations/{invitationId} {
       // Anyone can read their own invitations (by email)
