@@ -147,6 +147,8 @@ async function generateWithComfyUI(
 
   // Poll for completion
   let progress = 0;
+  let lastStatus = 'queued';
+  
   while (progress < 100) {
     await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2s
     
@@ -168,8 +170,17 @@ async function generateWithComfyUI(
     }
     
     progress = jobStatus.progress || 0;
-    if (onProgress) {
-      onProgress(progress, `Processing (${Math.round(progress)}%)`);
+    
+    // Update progress callback if status changed
+    if (jobStatus.status !== lastStatus || progress > 0) {
+      lastStatus = jobStatus.status;
+      if (onProgress) {
+        const statusText = 
+          jobStatus.status === 'queued' ? 'Queued' :
+          jobStatus.status === 'processing' ? `Processing (${Math.round(progress)}%)` :
+          'Processing';
+        onProgress(progress, statusText);
+      }
     }
   }
 

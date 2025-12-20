@@ -401,6 +401,168 @@ export async function getQueueStats() {
 }
 
 /**
+ * Generate video using ComfyUI Backend Service
+ */
+export async function generateVideo(params: {
+  type: 'animatediff' | 'svd';
+  prompt: string;
+  numFrames?: number;
+  fps?: number;
+  steps?: number;
+  referenceImage?: string;
+  userId?: string;
+  onProgress?: (progress: number, details?: any) => void;
+}): Promise<{ jobId: string; queuePosition: number; status: string }> {
+  const isHealthy = await checkServiceHealth();
+  if (!isHealthy) {
+    throw new Error('ComfyUI backend service is not available');
+  }
+
+  try {
+    const idToken = await getIdToken();
+
+    const endpoint =
+      params.type === 'animatediff'
+        ? `${COMFYUI_SERVICE_URL}/api/video/generate/animatediff`
+        : `${COMFYUI_SERVICE_URL}/api/video/generate/svd`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        prompt: params.prompt,
+        numFrames: params.numFrames,
+        fps: params.fps,
+        steps: params.steps,
+        referenceImage: params.referenceImage,
+        userId: params.userId || auth.currentUser?.uid,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || 'Failed to submit video job');
+    }
+
+    const result = await response.json();
+    console.log('🎬 Video job submitted:', result);
+
+    return result;
+  } catch (error) {
+    console.error('❌ Video generation failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get video job status
+ */
+export async function getVideoJobStatus(jobId: string): Promise<{
+  jobId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  result?: any;
+  error?: string;
+}> {
+  try {
+    const idToken = await getIdToken();
+
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/job/${jobId}`, {
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get video job status');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to get video job status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel video job
+ */
+export async function cancelVideoJob(jobId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const idToken = await getIdToken();
+
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/cancel/${jobId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to cancel video job');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to cancel video job:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get video requirements
+ */
+export async function getVideoRequirements(videoType: 'animatediff' | 'svd'): Promise<{
+  ready: boolean;
+  vramOk: boolean;
+  modelsFound: boolean;
+  missing?: string[];
+}> {
+  try {
+    const response = await fetch(
+      `${COMFYUI_SERVICE_URL}/api/video/requirements/${videoType}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to get video requirements');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to get video requirements:', error);
+    throw error;
+  }
+}
+
+/**
+ * Detect available video models
+ */
+export async function detectVideoModels(): Promise<{
+  animatediff: { available: boolean; models: any };
+  svd: { available: boolean; models: any };
+}> {
+  try {
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/detect-models`);
+
+    if (!response.ok) {
+      throw new Error('Failed to detect video models');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to detect video models:', error);
+    throw error;
+  }
+}
+
+/**
  * Main export: ใช้ backend service หรือ localhost ComfyUI
  */
 export async function generateWithComfyUI(
@@ -461,5 +623,10 @@ export default {
   checkBackendStatus,
   getWorkerStats,
   getQueueStats,
+  generateVideo,
+  getVideoJobStatus,
+  cancelVideoJob,
+  getVideoRequirements,
+  detectVideoModels,
 };
 

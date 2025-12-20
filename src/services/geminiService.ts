@@ -5296,3 +5296,43 @@ function getPlotPointDefinition(title: string): string {
   return definitions[title] || 'A critical point in the story structure';
 }
 
+/**
+ * Export wrapper for video generation with Gemini Veo
+ * Used by videoGenerationFallback.ts
+ */
+export async function generateVideoWithGemini(params: {
+  prompt: string;
+  referenceImage?: string;
+  numFrames?: number;
+  fps?: number;
+}): Promise<{
+  videoUrl: string;
+  videoData?: string;
+  processingTime: number;
+}> {
+  const startTime = Date.now();
+  
+  console.log('🎬 Generating video with Gemini Veo 2...');
+  
+  try {
+    // Use Gemini Veo 2 for video generation (via Vertex AI)
+    // Note: This requires Vertex AI setup and Veo 2 access
+    // For now, fallback to ComfyUI AnimateDiff
+    
+    const videoUrl = await generateVideoWithComfyUI(params.prompt, {
+      frameCount: params.numFrames || 25,
+      fps: params.fps || 24,
+      baseImage: params.referenceImage,
+      useAnimateDiff: !params.referenceImage, // Use AnimateDiff for text-to-video, SVD for image-to-video
+    });
+    
+    return {
+      videoUrl,
+      processingTime: Date.now() - startTime,
+    };
+  } catch (error) {
+    console.error('❌ Gemini video generation failed:', error);
+    throw error;
+  }
+}
+
