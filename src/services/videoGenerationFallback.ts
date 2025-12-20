@@ -219,8 +219,8 @@ async function generateWithGeminiVeo(
  * Generate video using Replicate
  */
 async function generateWithReplicate(
-  request: VideoGenerationRequest,
-  onProgress?: (progress: number, status: string) => void
+  _request: VideoGenerationRequest,
+  _onProgress?: (progress: number, status: string) => void
 ): Promise<VideoGenerationResult> {
   // TODO: Implement Replicate integration
   // This would use Replicate's API for AnimateDiff or SVD

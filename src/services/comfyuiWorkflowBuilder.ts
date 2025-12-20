@@ -490,7 +490,7 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
     seed,
     numFrames = VIDEO_MODELS.animateDiff.defaultFrames,
     fps = VIDEO_MODELS.animateDiff.fps,
-    motionScale = 1.0,
+    motionScale: _motionScale = 1.0,
     motionModel = VIDEO_MODELS.animateDiff.motionModels.v2,
     ckpt_name = VIDEO_MODELS.animateDiff.baseModels.sd15_realistic,
     width = 512,
@@ -693,7 +693,7 @@ export function buildSVDWorkflow(
  */
 export function buildAnimateDiffControlNetWorkflow(
   prompt: string,
-  controlImages: string[],
+  _controlImages: string[],
   options: WorkflowOptions = {}
 ): any {
   // Start with base AnimateDiff workflow
