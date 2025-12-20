@@ -221,8 +221,8 @@ const Studio: React.FC<StudioProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent z-5 pointer-events-none"></div>
                   </div>
 
-                  {/* Action Buttons - Always Visible (Highest z-index) */}
-                  <div className="absolute top-2 right-2 z-50 flex gap-1.5">
+                  {/* Action Buttons - Always Visible */}
+                  <div className="absolute top-2 right-2 z-10 flex gap-1.5">
                     <PermissionGuard permission="canExport" userRole={project.userRole || 'owner'}>
                       <button
                         onClick={e => {
