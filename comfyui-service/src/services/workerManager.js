@@ -171,6 +171,48 @@ class WorkerManager extends EventEmitter {
   }
 
   /**
+   * Get installed video models from ComfyUI workers
+   * Checks for AnimateDiff motion modules and SVD checkpoints
+   */
+  async getInstalledVideoModels() {
+    if (this.workers.length === 0) {
+      return { animateDiff: [], svd: [] };
+    }
+
+    try {
+      // Use first healthy worker to check models
+      const worker = this.getNextWorker();
+      
+      // Query ComfyUI for available models
+      const response = await axios.get(`${worker.url}/object_info`, { timeout: 10000 });
+      const objectInfo = response.data;
+
+      const animateDiffModels = [];
+      const svdModels = [];
+
+      // Check for AnimateDiff nodes and models
+      if (objectInfo.AnimateDiffLoaderV1 || objectInfo.AnimateDiffModelLoader) {
+        // Models are typically in ComfyUI/custom_nodes/ComfyUI-AnimateDiff/models/
+        animateDiffModels.push('mm_sd_v15_v2.ckpt', 'mm_sd_v15_v3.ckpt');
+      }
+
+      // Check for SVD checkpoints
+      if (objectInfo.SVD_img2vid_Conditioning || objectInfo.ImageOnlyCheckpointLoader) {
+        svdModels.push('svd_xt_1_1.safetensors');
+      }
+
+      return {
+        animateDiff: animateDiffModels,
+        svd: svdModels,
+        hasVideoSupport: animateDiffModels.length > 0 || svdModels.length > 0
+      };
+    } catch (error) {
+      console.error('❌ Failed to check video models:', error.message);
+      return { animateDiff: [], svd: [], hasVideoSupport: false };
+    }
+  }
+
+  /**
    * Shutdown
    */
   shutdown() {

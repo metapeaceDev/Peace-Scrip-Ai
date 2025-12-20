@@ -7,7 +7,11 @@ import {
 } from './comfyuiBackendClient';
 import { formatPsychologyForPrompt, calculatePsychologyProfile } from './psychologyCalculator';
 import type { GenerationMode } from './comfyuiWorkflowBuilder';
-import { MODE_PRESETS } from './comfyuiWorkflowBuilder';
+import { 
+  MODE_PRESETS, 
+  buildAnimateDiffWorkflow, 
+  buildSVDWorkflow,
+} from './comfyuiWorkflowBuilder';
 import { hasAccessToModel, deductCredits } from './userStore';
 import { checkQuota, recordUsage, checkVeoQuota, recordVeoUsage } from './subscriptionManager';
 import { auth } from '../config/firebase';
@@ -330,13 +334,6 @@ function selectWorkflow(preferredWorkflow: string = PREFERRED_WORKFLOW): {
 }
 
 // Video Models Configuration
-const VIDEO_MODELS = {
-  ANIMATEDIFF: 'mm_sd_v15_v2.ckpt',
-  ANIMATEDIFF_V3: 'mm-sd-v3.safetensors',
-  SVD: 'svd_xt_1_1.safetensors', // Stable Video Diffusion
-  SVD_IMG2VID: 'svd_image_decoder.safetensors',
-};
-
 // Import video motion engine
 import {
   buildVideoPrompt,
@@ -576,198 +573,31 @@ async function generateVideoWithComfyUI(
       finalMotionStrength = finalMotionStrength || 0.8;
     }
 
-    // Build workflow based on model choice
-    interface WorkflowNode {
-      inputs: Record<string, any>;
-      class_type: string;
-    }
-
-    interface Workflow {
-      [key: string]: WorkflowNode;
-    }
-
-    let workflow: Workflow;
+    // Build workflow using new workflow builders
+    let workflow: Record<string, unknown>;
 
     if (useAnimateDiff) {
-      // ============================================
-      // ANIMATEDIFF WORKFLOW
-      // ============================================
-      workflow = {
-        '1': {
-          inputs: {
-            ckpt_name: 'sd_xl_base_1.0.safetensors', // Base model
-          },
-          class_type: 'CheckpointLoaderSimple',
-        },
-        '2': {
-          inputs: {
-            text: prompt,
-            clip: ['1', 1],
-          },
-          class_type: 'CLIPTextEncode',
-        },
-        '3': {
-          inputs: {
-            text:
-              options.negativePrompt ||
-              'low quality, blurry, distorted, watermark, static, frozen, duplicate frames',
-            clip: ['1', 1],
-          },
-          class_type: 'CLIPTextEncode',
-        },
-        '4': {
-          inputs: {
-            width: 512,
-            height: 512,
-            batch_size: finalFrameCount,
-          },
-          class_type: 'EmptyLatentImage',
-        },
-        '5': {
-          inputs: {
-            model_name: options.motionModule || VIDEO_MODELS.ANIMATEDIFF,
-          },
-          class_type: 'AnimateDiffLoaderV1',
-        },
-        '6': {
-          inputs: {
-            model: ['1', 0],
-            motion_model: ['5', 0],
-          },
-          class_type: 'AnimateDiffModelLoader',
-        },
-        '7': {
-          inputs: {
-            seed: Math.floor(Math.random() * 1000000000),
-            steps: 20,
-            cfg: 7.5,
-            sampler_name: 'euler_ancestral',
-            scheduler: 'karras',
-            denoise: 1.0,
-            model: ['6', 0],
-            positive: ['2', 0],
-            negative: ['3', 0],
-            latent_image: ['4', 0],
-            motion_scale: finalMotionStrength,
-          },
-          class_type: 'KSampler',
-        },
-        '8': {
-          inputs: {
-            samples: ['7', 0],
-            vae: ['1', 2],
-          },
-          class_type: 'VAEDecode',
-        },
-        '9': {
-          inputs: {
-            filename_prefix: 'peace-script-animatediff',
-            fps: finalFPS,
-            loop_count: 0,
-            save_image: false,
-            format: 'video/h264-mp4',
-            images: ['8', 0],
-          },
-          class_type: 'VHS_VideoCombine',
-        },
-      };
+      // eslint-disable-next-line no-console
+      console.log('🎬 Building AnimateDiff workflow');
+      workflow = buildAnimateDiffWorkflow(prompt, {
+        negativePrompt: options.negativePrompt,
+        numFrames: finalFrameCount,
+        fps: finalFPS,
+        motionScale: finalMotionStrength,
+        motionModel: options.motionModule,
+        lora: options.lora,
+        loraStrength: options.loraStrength,
+      });
+    } else if (options.baseImage) {
+      // eslint-disable-next-line no-console
+      console.log('🎬 Building SVD workflow (image-to-video)');
+      workflow = buildSVDWorkflow(options.baseImage, {
+        numFrames: finalFrameCount,
+        fps: finalFPS,
+        motionScale: Math.round(finalMotionStrength * 255), // SVD uses 0-255 for motion bucket
+      });
     } else {
-      // ============================================
-      // SVD (STABLE VIDEO DIFFUSION) WORKFLOW
-      // ============================================
-      workflow = {
-        '1': {
-          inputs: {
-            ckpt_name: VIDEO_MODELS.SVD,
-          },
-          class_type: 'ImageOnlyCheckpointLoader',
-        },
-        '2': {
-          inputs: {
-            width: 1024,
-            height: 576,
-            batch_size: finalFrameCount,
-            seed: Math.floor(Math.random() * 1000000000),
-          },
-          class_type: 'EmptyLatentVideo',
-        },
-        '3': {
-          inputs: {
-            text: prompt,
-            clip: ['1', 1],
-          },
-          class_type: 'CLIPTextEncode',
-        },
-        '4': {
-          inputs: {
-            text: options.negativePrompt || 'low quality, blurry, distorted, watermark, static',
-            clip: ['1', 1],
-          },
-          class_type: 'CLIPTextEncode',
-        },
-        '5': {
-          inputs: {
-            seed: Math.floor(Math.random() * 1000000000),
-            steps: 20,
-            cfg: 7,
-            sampler_name: 'euler',
-            scheduler: 'karras',
-            denoise: 1,
-            model: ['1', 0],
-            positive: ['3', 0],
-            negative: ['4', 0],
-            latent_video: ['2', 0],
-          },
-          class_type: 'KSampler',
-        },
-        '6': {
-          inputs: {
-            samples: ['5', 0],
-            vae: ['1', 2],
-          },
-          class_type: 'VAEDecode',
-        },
-        '7': {
-          inputs: {
-            filename_prefix: 'peace-script-svd',
-            fps: finalFPS,
-            compress_level: 4,
-            format: 'video/h264-mp4',
-            images: ['6', 0],
-          },
-          class_type: 'VHS_VideoCombine',
-        },
-      };
-    }
-
-    // If base image provided, use img2vid workflow
-    if (options.baseImage) {
-      workflow['0'] = {
-        inputs: {
-          image: options.baseImage,
-          upload: 'image',
-        },
-        class_type: 'LoadImage',
-      };
-      workflow['2']['inputs']['image'] = ['0', 0];
-    }
-
-    // Add LoRA if specified
-    if (options.lora) {
-      workflow['8'] = {
-        inputs: {
-          lora_name: options.lora,
-          strength_model: options.loraStrength || 0.8,
-          strength_clip: options.loraStrength || 0.8,
-          model: ['1', 0],
-          clip: ['1', 1],
-        },
-        class_type: 'LoraLoader',
-      };
-      // Update model references to use LoRA
-      workflow['5']['inputs']['model'] = ['8', 0];
-      workflow['3']['inputs']['clip'] = ['8', 1];
-      workflow['4']['inputs']['clip'] = ['8', 1];
+      throw new Error('SVD requires a base image. Use AnimateDiff for text-to-video.');
     }
 
     // Queue prompt to ComfyUI with timeout
@@ -798,8 +628,7 @@ async function generateVideoWithComfyUI(
 
         // Update progress (simulated for now, or could fetch from /queue)
         if (options.onProgress) {
-          // SVD takes about 30-60s usually.
-          // We map i (seconds) to percentage roughly.
+          // Video generation takes about 30-60s usually.
           const progress = Math.min((i / 60) * 100, 95);
           options.onProgress(progress);
         }
@@ -808,10 +637,13 @@ async function generateVideoWithComfyUI(
         const history = await historyResponse.json();
 
         if (history[prompt_id]?.outputs) {
-          const videos = history[prompt_id].outputs['7']?.gifs;
-          if (videos && videos.length > 0) {
+          // Check for video output from VHS_VideoCombine node
+          const outputs = history[prompt_id].outputs;
+          const videoNode = useAnimateDiff ? outputs['8'] : outputs['6'];
+          
+          if (videoNode?.gifs && videoNode.gifs.length > 0) {
             // Get video from ComfyUI
-            const videoUrl = `${comfyuiUrlForHistory}/view?filename=${videos[0].filename}&type=output`;
+            const videoUrl = `${comfyuiUrlForHistory}/view?filename=${videoNode.gifs[0].filename}&type=output`;
             const videoResponse = await fetch(videoUrl);
             const blob = await videoResponse.blob();
 
@@ -824,8 +656,8 @@ async function generateVideoWithComfyUI(
               recordGeneration({
                 userId,
                 type: 'video',
-                modelId: options.useAnimateDiff !== false ? 'comfyui-animatediff' : 'comfyui-svd',
-                modelName: options.useAnimateDiff !== false ? 'ComfyUI AnimateDiff' : 'ComfyUI SVD',
+                modelId: useAnimateDiff ? 'comfyui-animatediff' : 'comfyui-svd',
+                modelName: useAnimateDiff ? 'ComfyUI AnimateDiff' : 'ComfyUI SVD',
                 provider: 'comfyui',
                 costInCredits: 2,
                 costInTHB: API_PRICING.COMFYUI?.video || 2.0,

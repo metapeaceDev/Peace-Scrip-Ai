@@ -1,7 +1,7 @@
 /**
  * Queue Service - Bull + Redis
  * 
- * Manages image generation jobs in a queue
+ * Manages image and video generation jobs in a queue
  * Supports:
  * - Job prioritization
  * - Retry logic
@@ -15,6 +15,7 @@ import { generateWithComfyUI } from './comfyuiClient.js';
 import { saveJobToFirebase, updateJobStatus } from './firebaseService.js';
 
 let imageQueue;
+let videoQueue;
 
 /**
  * Initialize queue
@@ -70,6 +71,89 @@ export async function initializeQueue() {
   // Process jobs
   imageQueue.process(parseInt(process.env.QUEUE_CONCURRENCY) || 3, async (job) => {
     return await processImageGeneration(job);
+  });
+
+  // Initialize video queue
+  try {
+    videoQueue = new Queue('comfyui-videos', redisConfig, {
+      defaultJobOptions: {
+        attempts: 2, // Video generation is expensive, fewer retries
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+        timeout: 600000 // 10 minutes timeout for video generation
+      }
+    });
+
+    await videoQueue.isReady();
+    console.log('✅ Video queue initialized: Redis');
+  } catch (error) {
+    videoQueue = new Queue('comfyui-videos', undefined, {
+      defaultJobOptions: {
+        attempts: 2,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+        timeout: 600000
+      }
+    });
+    console.log('✅ Video queue initialized: In-memory');
+  }
+
+  // Process video jobs (lower concurrency due to resource intensity)
+  videoQueue.process(parseInt(process.env.VIDEO_QUEUE_CONCURRENCY) || 1, async (job) => {
+    return await processVideoGeneration(job);
+  });
+
+  // Video queue event listeners
+  videoQueue.on('completed', async (job, result) => {
+    console.log(`✅ Video job ${job.id} completed in ${job.finishedOn - job.processedOn}ms`);
+    
+    try {
+      const { saveVideoToStorage } = await import('./firebaseService.js');
+      const userId = job.data.userId || 'anonymous';
+      
+      // Upload video to Firebase Storage
+      const videoUrl = await saveVideoToStorage(result.videoData, userId, job.id);
+      console.log(`💾 Video uploaded to Storage: ${videoUrl}`);
+      
+      const firestoreResult = {
+        videoUrl: videoUrl,
+        workerId: result.workerId,
+        processingTime: result.processingTime,
+        filename: result.filename,
+        numFrames: result.numFrames,
+        fps: result.fps
+      };
+      
+      await updateJobStatus(job.id, 'completed', { result: firestoreResult });
+    } catch (storageError) {
+      console.error(`❌ Failed to save video to Storage:`, storageError);
+      await updateJobStatus(job.id, 'completed', { 
+        result: { 
+          videoData: result.videoData,
+          workerId: result.workerId,
+          processingTime: result.processingTime,
+          storageError: storageError.message
+        } 
+      });
+    }
+  });
+
+  videoQueue.on('failed', async (job, err) => {
+    console.error(`❌ Video job ${job.id} failed:`, err.message);
+    await updateJobStatus(job.id, 'failed', { error: err.message });
+  });
+
+  videoQueue.on('progress', async (job, progress) => {
+    console.log(`📊 Video job ${job.id}: ${progress}% complete`);
+    await updateJobStatus(job.id, 'processing', { progress });
   });
 
   // Event listeners
@@ -256,7 +340,113 @@ export async function getQueueStats() {
 export async function cleanQueue(olderThan = 24 * 3600 * 1000) {
   await imageQueue.clean(olderThan, 'completed');
   await imageQueue.clean(olderThan, 'failed');
+  await videoQueue.clean(olderThan, 'completed');
+  await videoQueue.clean(olderThan, 'failed');
   console.log(`🧹 Cleaned jobs older than ${olderThan / 3600000} hours`);
 }
 
-export { imageQueue };
+/**
+ * Add video generation job to queue
+ */
+export async function addVideoJob(jobData) {
+  const job = await videoQueue.add(jobData, {
+    priority: jobData.priority || 5,
+    jobId: jobData.jobId || `video-${Date.now()}`
+  });
+
+  // Save to Firebase
+  await saveJobToFirebase(job.id, {
+    ...jobData,
+    status: 'queued',
+    createdAt: Date.now(),
+    type: 'video'
+  });
+
+  let position = 0;
+  try {
+    if (typeof job.getPosition === 'function') {
+      position = await job.getPosition();
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not get video job position:', error.message);
+  }
+
+  return {
+    jobId: job.id,
+    queuePosition: position,
+    status: 'queued'
+  };
+}
+
+/**
+ * Process video generation
+ */
+async function processVideoGeneration(job) {
+  const { type, prompt, workflow, referenceImage, metadata } = job.data;
+  
+  try {
+    // Get available worker
+    const workerManager = getWorkerManager();
+    const worker = workerManager.getNextWorker();
+    
+    console.log(`🎬 Processing video job ${job.id} (${type}) on worker ${worker.id}`);
+    
+    await job.progress(5);
+    
+    // Generate video using ComfyUI
+    const result = await generateWithComfyUI({
+      worker,
+      prompt,
+      workflow,
+      referenceImage,
+      isVideo: true,
+      metadata,
+      onProgress: async (progress) => {
+        await job.progress(5 + (progress * 0.95)); // 5% to 100%
+      }
+    });
+    
+    await job.progress(100);
+    
+    return {
+      videoUrl: result.videoUrl,
+      videoData: result.videoData,
+      workerId: worker.id,
+      processingTime: result.processingTime,
+      numFrames: metadata?.numFrames,
+      fps: metadata?.fps,
+      filename: result.filename
+    };
+    
+  } catch (error) {
+    console.error(`❌ Video job ${job.id} processing error:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel video job
+ */
+export async function cancelVideoJob(jobId) {
+  const job = await videoQueue.getJob(jobId);
+  
+  if (!job) {
+    throw new Error('Video job not found');
+  }
+
+  const state = await job.getState();
+  
+  if (state === 'active') {
+    // Job is currently processing, attempt to stop it
+    await job.moveToFailed(new Error('Job cancelled by user'), true);
+  } else if (state === 'waiting' || state === 'delayed') {
+    // Job is queued, remove it
+    await job.remove();
+  }
+
+  await updateJobStatus(jobId, 'cancelled', { cancelledAt: Date.now() });
+  
+  return { success: true, message: 'Video job cancelled' };
+}
+
+export { imageQueue, videoQueue };

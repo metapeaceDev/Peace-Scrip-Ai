@@ -20,6 +20,7 @@ import dotenv from 'dotenv';
 import comfyuiRoutes from './routes/comfyui.js';
 import healthRoutes from './routes/health.js';
 import queueRoutes from './routes/queue.js';
+import videoRoutes from './routes/video.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initializeFirebase } from './config/firebase.js';
 import { initializeQueue } from './services/queueService.js';
@@ -63,6 +64,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/health', healthRoutes);
 app.use('/api/comfyui', comfyuiRoutes);
 app.use('/api/queue', queueRoutes);
+app.use('/api/video', videoRoutes);
 
 // Error handling
 app.use((req, res) => {
@@ -88,6 +90,8 @@ const server = app.listen(PORT, () => {
 📡 API Endpoints:
    → http://localhost:${PORT}/health
    → http://localhost:${PORT}/api/comfyui/generate
+   → http://localhost:${PORT}/api/video/generate/animatediff
+   → http://localhost:${PORT}/api/video/generate/svd
    → http://localhost:${PORT}/api/queue/status
 
 🎬 ComfyUI Service is ready!
