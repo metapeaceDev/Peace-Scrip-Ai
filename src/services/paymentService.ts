@@ -38,7 +38,7 @@ function getStripeServer(): Stripe | null {
     const secretKey = import.meta.env.VITE_STRIPE_SECRET_KEY;
     if (secretKey) {
       stripeServer = new Stripe(secretKey, {
-        apiVersion: '2025-11-17.clover',
+        apiVersion: '2025-12-15.clover',
       });
     } else {
       console.warn('Stripe secret key not configured - payment features disabled');

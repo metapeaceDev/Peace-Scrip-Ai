@@ -8,7 +8,7 @@ import type {
   DialogueLine,
   CharacterPsychologyTimeline,
 } from './types';
-import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './constants';
+import { INITIAL_SCRIPT_DATA, PROJECT_TYPES, EMPTY_CHARACTER } from './src/constants';
 import StepIndicator from './src/components/StepIndicator';
 import Step1Genre from './src/components/Step1Genre';
 import Step2StoryScope from './src/components/Step2StoryScope';
@@ -156,7 +156,7 @@ const sanitizeScriptData = (raw: unknown): ScriptData => {
   let mergedStructure = INITIAL_SCRIPT_DATA.structure;
   if (data.structure && Array.isArray(data.structure) && data.structure.length > 0) {
     // Try to map extracted points to the 9-point structure
-    mergedStructure = INITIAL_SCRIPT_DATA.structure.map(defaultPoint => {
+    mergedStructure = INITIAL_SCRIPT_DATA.structure.map((defaultPoint: any) => {
       const found = data.structure!.find(p => p.title === defaultPoint.title);
       return found ? { ...defaultPoint, description: found.description } : defaultPoint;
     });
@@ -1618,7 +1618,7 @@ function App() {
             <h1 className="text-lg font-bold text-white tracking-wider truncate max-w-[200px] sm:max-w-md">
               {scriptData.title}
               <span className="ml-2 text-xs text-cyan-500 bg-cyan-900/30 px-2 py-0.5 rounded border border-cyan-900/50 hidden sm:inline-block">
-                {PROJECT_TYPES.find(t => t.value === scriptData.projectType)?.label.split('(')[0]}
+                {PROJECT_TYPES.find((t: any) => t.value === scriptData.projectType)?.label.split('(')[0]}
               </span>
             </h1>
           </div>
