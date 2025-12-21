@@ -90,12 +90,6 @@ export const ComfyUIInstallerUI: React.FC = () => {
     });
 
     try {
-      // Determine script to run
-      const scriptName =
-        systemInfo.os === 'Windows'
-          ? 'install-comfyui-local.ps1'
-          : 'install-comfyui-local.sh';
-
       // Build script arguments
       const args: string[] = [];
       if (installOptions.skipModels) args.push('--skip-models');

@@ -10,11 +10,13 @@ const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://
 export type BackendType = 'local' | 'cloud' | 'gemini';
 
 export interface BackendInfo {
-  name: BackendType;
+  type: BackendType;
+  name: string;
   available: boolean;
   healthy: boolean;
   cost: number;
   speed: number;
+  avgSpeed: number;
   queue: number;
   jobs: number;
   totalCost: number;

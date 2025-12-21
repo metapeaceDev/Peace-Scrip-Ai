@@ -168,15 +168,16 @@ export const BackendSelectorEnhanced: React.FC = () => {
         {/* Backend Options */}
         <div className="space-y-3">
           {status.backends.map(backend => {
-            const isSelected = selectedBackend === backend.name;
-            const icon = loadBalancerClient.getBackendIcon(backend.name);
-            const displayName = loadBalancerClient.getBackendDisplayName(backend.name);
-            const description = loadBalancerClient.getBackendDescription(backend.name);
+            const backendType = backend.type as BackendType;
+            const isSelected = selectedBackend === backend.type;
+            const icon = loadBalancerClient.getBackendIcon(backendType);
+            const displayName = loadBalancerClient.getBackendDisplayName(backendType);
+            const description = loadBalancerClient.getBackendDescription(backendType);
 
             return (
               <div
-                key={backend.name}
-                onClick={() => !isLoading && handleBackendSelect(backend.name)}
+                key={backend.type}
+                onClick={() => !isLoading && handleBackendSelect(backendType)}
                 className={`
                   p-4 rounded-lg border-2 cursor-pointer transition-all
                   ${

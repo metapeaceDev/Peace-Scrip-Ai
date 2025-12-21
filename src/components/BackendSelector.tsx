@@ -8,9 +8,19 @@ import React, { useState, useEffect } from 'react';
 import { 
   loadBalancerClient, 
   type BackendType, 
-  type BackendInfo,
-  type UserPreferences 
+  type BackendInfo
 } from '../services/loadBalancerClient';
+
+interface BackendStatus {
+  type: BackendType;
+  name: string;
+  available: boolean;
+  healthy: boolean;
+  queue?: number;
+  cost?: number;
+  avgSpeed?: number;
+  responseTime?: number;
+}
 
 export const BackendSelector: React.FC = () => {
   const [statuses, setStatuses] = useState<BackendStatus[]>([]);
@@ -25,7 +35,16 @@ export const BackendSelector: React.FC = () => {
 
   const loadBackendStatuses = async () => {
     try {
-      const newStatuses = await backendManager.getAllBackendStatuses();
+      const statusData = await loadBalancerClient.getStatus();
+      const newStatuses: BackendStatus[] = statusData.backends.map((backend: BackendInfo) => ({
+        type: backend.type,
+        name: backend.name,
+        available: backend.available,
+        healthy: backend.healthy,
+        queue: backend.queue,
+        cost: backend.cost,
+        avgSpeed: backend.avgSpeed
+      }));
       setStatuses(newStatuses);
     } catch (error) {
       console.error('Failed to load backend statuses:', error);
@@ -35,17 +54,11 @@ export const BackendSelector: React.FC = () => {
   const handleBackendSelect = async (backend: BackendType) => {
     setIsLoading(true);
     try {
-      if (backend === 'cloud') {
-        // Ensure cloud backend is running
-        const running = await backendManager.ensureCloudBackendRunning();
-        if (!running) {
-          alert('Failed to start cloud backend');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      backendManager.setPreferredBackend(backend);
+      // Update user preference via load balancer
+      await loadBalancerClient.updatePreferences({
+        preferredBackend: backend
+      });
+      
       setSelectedBackend(backend);
       await loadBackendStatuses();
     } catch (error) {
@@ -101,7 +114,6 @@ export const BackendSelector: React.FC = () => {
 
       <div className="space-y-3">
         {statuses.map(status => {
-          const config = backendManager.getBackendConfig(status.type);
           const isSelected = selectedBackend === status.type;
 
           return (
@@ -145,10 +157,10 @@ export const BackendSelector: React.FC = () => {
                     </span>
                   </div>
 
-                  {status.responseTime && (
+                  {status.avgSpeed && (
                     <div>
-                      <span className="text-gray-400">Latency: </span>
-                      <span className="text-white">{status.responseTime}ms</span>
+                      <span className="text-gray-400">Speed: </span>
+                      <span className="text-white">~{status.avgSpeed}s</span>
                     </div>
                   )}
                 </div>
@@ -156,7 +168,7 @@ export const BackendSelector: React.FC = () => {
                 <div className="text-right">
                   <span className="text-gray-400">Cost: </span>
                   <span className="text-white font-semibold">
-                    {config.costPerVideo === 0 ? 'Free' : `$${config.costPerVideo.toFixed(2)}`}
+                    {(status.cost || 0) === 0 ? 'Free' : `$${(status.cost || 0).toFixed(4)}`}
                   </span>
                 </div>
               </div>
@@ -177,7 +189,7 @@ export const BackendSelector: React.FC = () => {
           If your selected backend fails, the system will automatically try other backends in
           priority order:
           <span className="block mt-1 text-blue-400 font-mono">
-            {backendManager.getBackendPriority().join(' → ')}
+            Local → Cloud → Gemini
           </span>
         </p>
       </div>
