@@ -456,17 +456,6 @@ async function retrieveVideo(workerUrl, promptId) {
     throw error;
   }
 }
-    return {
-      imageUrl,
-      imageData: `data:${mimeType};base64,${base64Image}`,
-      filename: imageInfo.filename
-    };
-    
-  } catch (error) {
-    console.error('❌ Failed to retrieve image:', error.message);
-    throw error;
-  }
-}
 
 /**
  * Verify LoRA models are installed

@@ -68,7 +68,11 @@ exports.initializeSuperAdmin = functions.https.onCall(async (data, context) => {
             adminRole: 'super-admin',
         });
         // บันทึกใน Firestore
-        await admin.firestore().collection('admin-users').doc(user.uid).set({
+        await admin
+            .firestore()
+            .collection('admin-users')
+            .doc(user.uid)
+            .set({
             email: targetEmail,
             role: 'super-admin',
             permissions: {
@@ -86,7 +90,7 @@ exports.initializeSuperAdmin = functions.https.onCall(async (data, context) => {
             success: true,
             message: `Super-admin access granted to ${targetEmail}`,
             userId: user.uid,
-            note: 'Please logout and login again to apply changes'
+            note: 'Please logout and login again to apply changes',
         };
     }
     catch (error) {
@@ -120,7 +124,7 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
             email: callerEmail,
             isAdmin: isAdmin,
             adminRole: adminRole,
-            required: 'super-admin'
+            required: 'super-admin',
         });
         throw new functions.https.HttpsError('permission-denied', `Only super-admins can create admin invitations. Your role: ${adminRole || 'none'}`);
     }
@@ -129,7 +133,7 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
         canExportData: false,
         canManageUsers: false,
         canManageSubscriptions: false,
-    } } = data;
+    }, } = data;
     // Validate inputs
     if (!email || typeof email !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid email');
@@ -147,7 +151,8 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
             throw new functions.https.HttpsError('not-found', `User with email ${email} not found. User must have an account first.`);
         }
         // ตรวจสอบว่ามี invitation ที่ pending อยู่แล้วหรือไม่
-        const existingInvitations = await admin.firestore()
+        const existingInvitations = await admin
+            .firestore()
             .collection('admin-invitations')
             .where('email', '==', email)
             .where('status', '==', 'pending')
@@ -156,7 +161,8 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
             throw new functions.https.HttpsError('already-exists', 'An invitation for this email is already pending');
         }
         // ตรวจสอบว่าเป็น admin อยู่แล้วหรือไม่
-        const existingAdmin = await admin.firestore()
+        const existingAdmin = await admin
+            .firestore()
             .collection('admin-users')
             .doc(targetUser.uid)
             .get();
@@ -183,7 +189,10 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
         });
         console.log('✅ Admin invitation created:', invitationRef.id);
         // บันทึก audit log
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: callerUid,
             adminEmail: callerEmail,
             action: 'create-admin-invitation',
@@ -200,7 +209,10 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
         // สร้าง URL สำหรับยืนยัน
         const confirmUrl = `https://peace-script-ai.web.app/accept-admin-invitation?token=${verificationToken}`;
         // สร้าง in-app notification สำหรับ user
-        await admin.firestore().collection('notifications').add({
+        await admin
+            .firestore()
+            .collection('notifications')
+            .add({
             userId: targetUser.uid,
             type: 'admin-invitation',
             title: '🎉 คุณได้รับคำเชิญเป็น Admin',
@@ -220,7 +232,10 @@ exports.createAdminInvitation = functions.https.onCall(async (data, context) => 
         console.log('🔔 In-app notification created for:', email);
         // ส่งอีเมลไปยังผู้ที่ถูกเชิญ (ถ้ามี Firebase Extension)
         try {
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: email,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -297,7 +312,8 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
     }
     try {
         // ค้นหา invitation จาก token
-        const invitationsSnapshot = await admin.firestore()
+        const invitationsSnapshot = await admin
+            .firestore()
             .collection('admin-invitations')
             .where('verificationToken', '==', verificationToken)
             .where('status', '==', 'pending')
@@ -346,7 +362,8 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
         });
         // Mark related notifications as read
         try {
-            const notificationsSnapshot = await admin.firestore()
+            const notificationsSnapshot = await admin
+                .firestore()
                 .collection('notifications')
                 .where('data.invitationId', '==', invitationDoc.id)
                 .get();
@@ -364,7 +381,10 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             // Non-fatal error
         }
         // บันทึก audit log
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: userId,
             adminEmail: userEmail,
             action: 'confirm-admin-invitation',
@@ -387,7 +407,10 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             minute: '2-digit',
         });
         // ส่งอีเมลยืนยันไปยังผู้ใช้ที่ยอมรับ
-        await admin.firestore().collection('mail').add({
+        await admin
+            .firestore()
+            .collection('mail')
+            .add({
             to: invitation.email,
             from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
             replyTo: 'support@peace-script-ai.web.app',
@@ -410,7 +433,10 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             },
         });
         // ส่งอีเมลแจ้งเตือนไปยัง Super Admin ที่เชิญ
-        await admin.firestore().collection('mail').add({
+        await admin
+            .firestore()
+            .collection('mail')
+            .add({
             to: invitation.invitedByEmail,
             from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
             replyTo: 'support@peace-script-ai.web.app',
@@ -436,7 +462,7 @@ exports.confirmAdminInvitation = functions.https.onCall(async (data, context) =>
             message: 'Admin access confirmed successfully',
             role: invitation.role,
             permissions: invitation.permissions,
-            note: 'Please refresh the page to access Admin Dashboard'
+            note: 'Please refresh the page to access Admin Dashboard',
         };
     }
     catch (error) {
@@ -491,7 +517,8 @@ exports.cancelAdminInvitation = functions.https.onCall(async (data, context) => 
             cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         // ลบ in-app notification (ถ้ามี)
-        const notificationsSnapshot = await admin.firestore()
+        const notificationsSnapshot = await admin
+            .firestore()
             .collection('notifications')
             .where('userId', '==', invitation === null || invitation === void 0 ? void 0 : invitation.userId)
             .where('type', '==', 'admin-invitation')
@@ -500,7 +527,10 @@ exports.cancelAdminInvitation = functions.https.onCall(async (data, context) => 
         const deletePromises = notificationsSnapshot.docs.map(doc => doc.ref.delete());
         await Promise.all(deletePromises);
         // บันทึก audit log
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: callerUid,
             adminEmail: callerEmail,
             action: 'cancel-admin-invitation',
@@ -516,7 +546,10 @@ exports.cancelAdminInvitation = functions.https.onCall(async (data, context) => 
         console.log('✅ Admin invitation cancelled:', invitationId);
         // ส่งอีเมลแจ้งเตือนไปยังผู้ที่ถูกยกเลิกคำเชิญ (optional)
         try {
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: invitation === null || invitation === void 0 ? void 0 : invitation.email,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 message: {
@@ -550,8 +583,7 @@ exports.cancelAdminInvitation = functions.https.onCall(async (data, context) => 
  * Helper: Generate Admin Invitation Email HTML
  */
 function generateAdminInvitationEmailHTML(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '📥 Export ข้อมูลและรายงาน',
@@ -602,8 +634,7 @@ function generateAdminInvitationEmailHTML(params) {
  * Helper: Generate Admin Invitation Email Text
  */
 function generateAdminInvitationEmailText(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '• 📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '• 📥 Export ข้อมูลและรายงาน',
@@ -639,8 +670,7 @@ ${permissionsList.join('\n')}
  * Helper: Generate Admin Confirmed Email HTML (ส่งให้ผู้ที่ยอมรับ)
  */
 function generateAdminConfirmedEmailHTML(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '📥 Export ข้อมูลและรายงาน',
@@ -687,8 +717,7 @@ function generateAdminConfirmedEmailHTML(params) {
  * Helper: Generate Admin Confirmed Email Text (ส่งให้ผู้ที่ยอมรับ)
  */
 function generateAdminConfirmedEmailText(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '• 📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '• 📥 Export ข้อมูลและรายงาน',
@@ -726,8 +755,7 @@ ${permissionsList.join('\n')}
  * Helper: Generate Admin Confirmation Notification HTML (ส่งให้ Super Admin)
  */
 function generateAdminConfirmationNotificationHTML(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     return `
 <!DOCTYPE html>
 <html>
@@ -754,8 +782,7 @@ function generateAdminConfirmationNotificationHTML(params) {
  * Helper: Generate Admin Confirmation Notification Text (ส่งให้ Super Admin)
  */
 function generateAdminConfirmationNotificationText(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     return `
 Peace Script AI - แจ้งเตือน: ยืนยัน Admin สำเร็จ ✅
 
@@ -776,8 +803,7 @@ Peace Script AI - แจ้งเตือน: ยืนยัน Admin สำ�
  * Helper: Generate Admin Granted Email HTML
  */
 function generateAdminGrantedEmailHTML(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '📥 Export ข้อมูลและรายงาน',
@@ -824,8 +850,7 @@ function generateAdminGrantedEmailHTML(params) {
  * Helper: Generate Admin Granted Email Text
  */
 function generateAdminGrantedEmailText(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     const permissionsList = [
         params.permissions.canViewAnalytics && '• 📊 ดู Analytics และสถิติระบบ',
         params.permissions.canExportData && '• 📥 Export ข้อมูลและรายงาน',
@@ -858,8 +883,7 @@ ${permissionsList.join('\n')}
  * Helper: Generate Admin Confirmation Email HTML
  */
 function generateAdminConfirmationEmailHTML(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     return `
 <!DOCTYPE html>
 <html>
@@ -890,8 +914,7 @@ function generateAdminConfirmationEmailHTML(params) {
  * Helper: Generate Admin Confirmation Email Text
  */
 function generateAdminConfirmationEmailText(params) {
-    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' :
-        params.role === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.role === 'super-admin' ? 'Super Admin' : params.role === 'admin' ? 'Admin' : 'Viewer';
     return `
 Peace Script AI - ยืนยันการเพิ่มสิทธิ์ Admin ✅
 
@@ -936,12 +959,16 @@ function generateAdminRevokedEmailText(params) {
  * Helper: Generate Admin Updated Email HTML
  */
 function generateAdminUpdatedEmailHTML(params) {
-    const roleNameTH = params.newRole === 'super-admin' ? 'Super Admin' : params.newRole === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.newRole === 'super-admin'
+        ? 'Super Admin'
+        : params.newRole === 'admin'
+            ? 'Admin'
+            : 'Viewer';
     const permissionsList = [
         params.newPermissions.canViewAnalytics && '📊 ดู Analytics',
         params.newPermissions.canExportData && '📥 Export ข้อมูล',
         params.newPermissions.canManageUsers && '👥 จัดการ Admin',
-        params.newPermissions.canManageSubscriptions && '💳 จัดการ Subscriptions'
+        params.newPermissions.canManageSubscriptions && '💳 จัดการ Subscriptions',
     ].filter(Boolean);
     return `<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0}.content{background:#f9fafb;padding:30px;border-radius:0 0 10px 10px}.badge{background:#dbeafe;color:#1e40af;padding:8px 16px;border-radius:20px;display:inline-block;font-weight:bold}.info-box{background:white;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:20px 0}.footer{text-align:center;margin-top:30px;color:#666;font-size:14px}</style></head><body><div class="container"><div class="header"><h1>🔄 สิทธิ์อัพเดทแล้ว</h1></div><div class="content"><h2>แจ้งเตือนการอัพเดทสิทธิ์</h2><p>สิทธิ์ Admin ของคุณถูกอัพเดทแล้ว</p><div class="info-box"><p><strong>📧 อีเมล:</strong> ${params.adminEmail}</p><p><strong>👤 บทบาทใหม่:</strong> <span class="badge">${roleNameTH}</span></p><p><strong>✍️ อัพเดทโดย:</strong> ${params.updatedBy}</p><p><strong>🕐 เวลา:</strong> ${params.timestamp}</p></div><div style="background:#eff6ff;border:2px solid #bfdbfe;padding:15px;border-radius:8px"><h3>🔐 สิทธิ์ปัจจุบัน:</h3><ul>${permissionsList.map(p => `<li>${p}</li>`).join('')}</ul></div></div><div class="footer"><p>© 2025 Peace Script AI</p></div></div></body></html>`;
 }
@@ -949,12 +976,16 @@ function generateAdminUpdatedEmailHTML(params) {
  * Helper: Generate Admin Updated Email Text
  */
 function generateAdminUpdatedEmailText(params) {
-    const roleNameTH = params.newRole === 'super-admin' ? 'Super Admin' : params.newRole === 'admin' ? 'Admin' : 'Viewer';
+    const roleNameTH = params.newRole === 'super-admin'
+        ? 'Super Admin'
+        : params.newRole === 'admin'
+            ? 'Admin'
+            : 'Viewer';
     const permissionsList = [
         params.newPermissions.canViewAnalytics && '• 📊 ดู Analytics',
         params.newPermissions.canExportData && '• 📥 Export ข้อมูล',
         params.newPermissions.canManageUsers && '• 👥 จัดการ Admin',
-        params.newPermissions.canManageSubscriptions && '• 💳 จัดการ Subscriptions'
+        params.newPermissions.canManageSubscriptions && '• 💳 จัดการ Subscriptions',
     ].filter(Boolean);
     return `Peace Script AI - สิทธิ์ Admin อัพเดทแล้ว 🔄
 
@@ -988,7 +1019,7 @@ exports.replicateProxy = functions.https.onCall(async (data, context) => {
         const response = await (0, node_fetch_1.default)(`https://api.replicate.com${endpoint}`, {
             method,
             headers: {
-                'Authorization': `Token ${apiToken}`,
+                Authorization: `Token ${apiToken}`,
                 'Content-Type': 'application/json',
             },
             body: body ? JSON.stringify(body) : undefined,
@@ -1020,7 +1051,7 @@ exports.checkReplicateStatus = functions.https.onCall(async (data, context) => {
     try {
         const response = await (0, node_fetch_1.default)(`https://api.replicate.com/v1/predictions/${predictionId}`, {
             headers: {
-                'Authorization': `Token ${apiToken}`,
+                Authorization: `Token ${apiToken}`,
             },
         });
         if (!response.ok) {
@@ -1055,14 +1086,14 @@ exports.grantAdminAccess = functions.https.onCall(async (data, context) => {
         uid: callerUid,
         isAdmin: isAdmin,
         adminRole: adminRole,
-        allClaims: context.auth.token
+        allClaims: context.auth.token,
     });
     if (!isAdmin || adminRole !== 'super-admin') {
         console.error('❌ Permission denied:', {
             email: callerEmail,
             isAdmin: isAdmin,
             adminRole: adminRole,
-            required: 'super-admin'
+            required: 'super-admin',
         });
         throw new functions.https.HttpsError('permission-denied', `Only super-admins can grant admin access. Your role: ${adminRole || 'none'}`);
     }
@@ -1072,7 +1103,7 @@ exports.grantAdminAccess = functions.https.onCall(async (data, context) => {
         canExportData: false,
         canManageUsers: false,
         canManageSubscriptions: false,
-    } } = data;
+    }, } = data;
     // Validate inputs
     if (!email || typeof email !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid email');
@@ -1104,7 +1135,10 @@ exports.grantAdminAccess = functions.https.onCall(async (data, context) => {
             lastAccess: null,
         });
         // บันทึก audit log
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: context.auth.uid,
             adminEmail: context.auth.token.email || 'unknown',
             action: 'grant-admin-access',
@@ -1130,7 +1164,10 @@ exports.grantAdminAccess = functions.https.onCall(async (data, context) => {
         });
         try {
             // อีเมลถึงผู้ได้รับสิทธิ์ Admin
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: email,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -1154,7 +1191,10 @@ exports.grantAdminAccess = functions.https.onCall(async (data, context) => {
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             // อีเมลยืนยันถึงผู้เพิ่มสิทธิ์
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: granterEmail,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -1248,7 +1288,10 @@ exports.revokeAdminAccess = functions.https.onCall(async (data, context) => {
         await admin.firestore().collection('admin-users').doc(userId).delete();
         // บันทึก audit log
         const targetUser = await admin.auth().getUser(userId);
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: context.auth.uid,
             adminEmail: context.auth.token.email || 'unknown',
             action: 'revoke-admin-access',
@@ -1271,7 +1314,10 @@ exports.revokeAdminAccess = functions.https.onCall(async (data, context) => {
         });
         try {
             // อีเมลถึงผู้ถูกลบสิทธิ์
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: targetUser.email,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -1291,7 +1337,10 @@ exports.revokeAdminAccess = functions.https.onCall(async (data, context) => {
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             // อีเมลยืนยันถึงผู้ลบสิทธิ์
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: revokerEmail,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -1383,7 +1432,10 @@ exports.updateAdminPermissions = functions.https.onCall(async (data, context) =>
         }
         // บันทึก audit log
         const targetUser = await admin.auth().getUser(userId);
-        await admin.firestore().collection('admin-audit-log').add({
+        await admin
+            .firestore()
+            .collection('admin-audit-log')
+            .add({
             adminId: context.auth.uid,
             adminEmail: context.auth.token.email || 'unknown',
             action: 'update-admin-permissions',
@@ -1408,7 +1460,10 @@ exports.updateAdminPermissions = functions.https.onCall(async (data, context) =>
         });
         try {
             // อีเมลถึงผู้ถูกอัพเดทสิทธิ์
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: targetUser.email,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',
@@ -1434,7 +1489,10 @@ exports.updateAdminPermissions = functions.https.onCall(async (data, context) =>
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
             // อีเมลยืนยันถึงผู้อัพเดทสิทธิ์
-            await admin.firestore().collection('mail').add({
+            await admin
+                .firestore()
+                .collection('mail')
+                .add({
                 to: updaterEmail,
                 from: 'Peace Script AI <noreply@peace-script-ai.web.app>',
                 replyTo: 'support@peace-script-ai.web.app',

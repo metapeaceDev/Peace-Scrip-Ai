@@ -4,6 +4,7 @@ import { EMPTY_CHARACTER, DIALECT_PRESETS, ACCENT_PATTERNS } from '../constants'
 import {
   generateWithComfyUI as generateWithBackendComfyUI,
   checkBackendStatus,
+  generateImageWithBackend,
 } from './comfyuiBackendClient';
 import { formatPsychologyForPrompt, calculatePsychologyProfile } from './psychologyCalculator';
 import type { GenerationMode } from './comfyuiWorkflowBuilder';
@@ -20,7 +21,7 @@ import { API_PRICING } from '../types/analytics';
 import { loadRenderSettings } from './deviceManager';
 import { generateAnimateDiffVideo, generateSVDVideo, generateHotshotXL } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
-import { getSavedComfyUIUrl, checkComfyUIStatus } from './comfyuiInstaller';
+import { getSavedComfyUIUrl } from './comfyuiInstaller';
 
 // Initialize AI with environment variable (Vite)
 const getAI = () => {
@@ -235,8 +236,18 @@ export const VIDEO_MODELS_CONFIG = {
 // Model aliases for backward compatibility
 const GEMINI_25_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_20_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
-const USE_COMFYUI_BACKEND = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
-const COMFYUI_ENABLED = import.meta.env.VITE_COMFYUI_ENABLED === 'true';
+
+// --- DEBUG: CACHE BUSTER & ENV CHECK ---
+console.log('%c 🚀 GEMINI SERVICE LOADED v2.2 (Time: ' + new Date().toLocaleTimeString() + ')', 'background: #222; color: #bada55; font-size: 16px; padding: 4px; border-radius: 4px;');
+console.log('🔧 ENV CONFIG:', {
+  VITE_USE_COMFYUI_BACKEND: import.meta.env.VITE_USE_COMFYUI_BACKEND,
+  TYPE: typeof import.meta.env.VITE_USE_COMFYUI_BACKEND,
+  IS_TRUE: import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true'
+});
+// ---------------------------------------
+
+const USE_COMFYUI_BACKEND = true; // FORCE ENABLED for Local GPU Fix
+const COMFYUI_ENABLED = true; // FORCE ENABLED
 const COMFYUI_DEFAULT_URL =
   import.meta.env.VITE_COMFYUI_URL ||
   import.meta.env.VITE_COMFYUI_API_URL ||
@@ -533,6 +544,12 @@ async function generateVideoWithComfyUI(
     onProgress?: (progress: number) => void;
   } = {}
 ): Promise<string> {
+  // 🔌 ROUTING FIX: Use Backend Service if enabled
+  if (USE_COMFYUI_BACKEND) {
+    console.log('🔌 Routing video generation through ComfyUI Backend Service (Port 8000)');
+    return await generateWithBackendComfyUI(prompt, options, options.baseImage || null);
+  }
+
   const startTime = Date.now();
   try {
     // 🔥 LAYER 7: FORCE CLEANUP before video generation
@@ -598,6 +615,18 @@ async function generateVideoWithComfyUI(
       });
     } else {
       throw new Error('SVD requires a base image. Use AnimateDiff for text-to-video.');
+    }
+
+    // 🔌 BACKEND SERVICE INTEGRATION (Fix for CORS)
+    if (USE_COMFYUI_BACKEND) {
+      console.log('🔌 Routing video generation through ComfyUI Backend Service (Port 8000)');
+      return await generateImageWithBackend(
+        prompt, 
+        workflow as Record<string, unknown>, 
+        options.baseImage || null,
+        10, 
+        options.onProgress
+      );
     }
 
     // Queue prompt to ComfyUI with timeout
@@ -3960,16 +3989,24 @@ export async function generateStoryboardVideo(
     if (mappedModel === 'comfyui-svd' || mappedModel === 'comfyui-animatediff') {
       console.warn('🎬 USER SELECTED COMFYUI:', mappedModel);
 
-      // Check if ComfyUI is actually running (not just enabled in env)
-      const status = await checkComfyUIStatus();
+      // Skip direct ComfyUI check if using backend service (has its own health checks)
+      /* 
+      // ❌ DISABLED: Direct check causes CORS issues. Always assume backend is handling it.
+      if (!USE_COMFYUI_BACKEND) {
+        // Only check ComfyUI directly if NOT using backend service
+        const status = await checkComfyUIStatus();
+        console.warn('🔍 ComfyUI Status:', status);
 
-      console.warn('🔍 ComfyUI Status:', status);
-
-      if (!status.running) {
-        const errorMsg = `ComfyUI is not running. Please start ComfyUI server first.\n\nLocal: ${COMFYUI_DEFAULT_URL}\nStatus: ${status.error || 'Not responding'}`;
-        console.error('❌', errorMsg);
-        throw new Error(errorMsg);
+        if (!status.running) {
+          const errorMsg = `ComfyUI is not running. Please start ComfyUI server first.\n\nLocal: ${COMFYUI_DEFAULT_URL}\nStatus: ${status.error || 'Not responding'}`;
+          console.error('❌', errorMsg);
+          throw new Error(errorMsg);
+        }
+      } else {
+        console.warn('🔧 Using ComfyUI Backend Service - skipping direct ComfyUI check');
       }
+      */
+      console.warn('🔧 Using ComfyUI Backend Service - skipping direct ComfyUI check (FORCED)');
 
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
