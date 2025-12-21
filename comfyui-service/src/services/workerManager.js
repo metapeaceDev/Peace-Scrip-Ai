@@ -1,19 +1,30 @@
 /**
  * ComfyUI Worker Manager
  * 
- * Manages multiple ComfyUI instances (GPU pool)
+ * Manages multiple ComfyUI instances (local + cloud GPU pool)
  * Handles load balancing and health checks
+ * Integrates with CloudWorkerManager for hybrid local/cloud routing
  */
 
 import axios from 'axios';
 import { EventEmitter } from 'events';
+import CloudWorkerManager from './cloudWorkerManager.js';
 
 class WorkerManager extends EventEmitter {
   constructor() {
     super();
-    this.workers = [];
+    this.workers = []; // Local workers
     this.currentWorkerIndex = 0;
     this.healthCheckInterval = null;
+    
+    // Initialize cloud worker manager
+    this.cloudManager = new CloudWorkerManager();
+    
+    // Forward cloud events
+    this.cloudManager.on('podSpawned', (pod) => this.emit('cloudPodSpawned', pod));
+    this.cloudManager.on('podTerminated', (pod) => this.emit('cloudPodTerminated', pod));
+    this.cloudManager.on('jobCompleted', (info) => this.emit('cloudJobCompleted', info));
+    this.cloudManager.on('costUpdated', (cost) => this.emit('cloudCostUpdated', cost));
   }
 
   /**
@@ -151,23 +162,80 @@ class WorkerManager extends EventEmitter {
   }
 
   /**
-   * Get worker stats
+   * Get worker stats (local + cloud)
    */
   getStats() {
+    const cloudStats = this.cloudManager.getStats();
+    
     return {
-      totalWorkers: this.workers.length,
-      healthyWorkers: this.workers.filter(w => w.status === 'healthy').length,
-      workers: this.workers.map(w => ({
-        id: w.id,
-        url: w.url,
-        status: w.status,
-        queueLength: w.queueLength,
-        devices: w.devices,
-        latency: w.latency,
-        lastCheck: w.lastCheck,
-        failCount: w.failCount
-      }))
+      local: {
+        totalWorkers: this.workers.length,
+        healthyWorkers: this.workers.filter(w => w.status === 'healthy').length,
+        workers: this.workers.map(w => ({
+          id: w.id,
+          url: w.url,
+          status: w.status,
+          queueLength: w.queueLength,
+          devices: w.devices,
+          latency: w.latency,
+          lastCheck: w.lastCheck,
+          failCount: w.failCount
+        }))
+      },
+      cloud: {
+        available: this.cloudManager.isAvailable(),
+        activePods: cloudStats.activePods,
+        busyPods: cloudStats.busyPods,
+        totalJobsProcessed: cloudStats.totalJobsProcessed,
+        totalCost: cloudStats.totalCost,
+        pods: cloudStats.pods
+      },
+      combined: {
+        totalWorkers: this.workers.length + cloudStats.activePods,
+        healthyWorkers: this.workers.filter(w => w.status === 'healthy').length + cloudStats.activePods
+      }
     };
+  }
+
+  /**
+   * Process job with best available worker (local or cloud)
+   */
+  async processJobSmart(job, preferLocal = true) {
+    // Try local first if preferred and available
+    if (preferLocal) {
+      try {
+        const localWorker = this.getNextWorker();
+        
+        if (localWorker && localWorker.queueLength < 3) {
+          console.log(`🖥️  Using local worker: ${localWorker.url}`);
+          return { backend: 'local', worker: localWorker };
+        }
+      } catch (error) {
+        console.log('No local workers available, trying cloud...');
+      }
+    }
+
+    // Use cloud if local unavailable or busy
+    if (this.cloudManager.isAvailable()) {
+      console.log('☁️  Using cloud worker');
+      return { backend: 'cloud', manager: this.cloudManager };
+    }
+
+    // Fallback to local (even if busy)
+    try {
+      const localWorker = this.getNextWorker();
+      console.log(`🖥️  Fallback to local worker: ${localWorker.url}`);
+      return { backend: 'local', worker: localWorker };
+    } catch (error) {
+      throw new Error('No workers available (local or cloud)');
+    }
+  }
+
+  /**
+   * Get cloud worker manager
+   */
+  getCloudManager() {
+    return this.cloudManager;
   }
 
   /**
@@ -213,12 +281,16 @@ class WorkerManager extends EventEmitter {
   }
 
   /**
-   * Shutdown
+   * Shutdown (local + cloud)
    */
-  shutdown() {
+  async shutdown() {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
+    
+    // Shutdown cloud workers
+    await this.cloudManager.shutdown();
+    
     console.log('👋 Worker manager shut down');
   }
 }

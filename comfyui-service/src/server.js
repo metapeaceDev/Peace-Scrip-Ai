@@ -21,10 +21,11 @@ import comfyuiRoutes from './routes/comfyui.js';
 import healthRoutes from './routes/health.js';
 import queueRoutes from './routes/queue.js';
 import videoRoutes from './routes/video.js';
+import cloudRoutes from './routes/cloud.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initializeFirebase } from './config/firebase.js';
 import { initializeQueue } from './services/queueService.js';
-import { startWorkerManager } from './services/workerManager.js';
+import { startWorkerManager, getWorkerManager } from './services/workerManager.js';
 
 dotenv.config();
 
@@ -34,7 +35,10 @@ const PORT = process.env.PORT || 8000;
 // Initialize services
 await initializeFirebase();
 await initializeQueue();
-await startWorkerManager();
+const workerManager = await startWorkerManager();
+
+// Store services in app.locals for route access
+app.locals.workerManager = workerManager;
 
 // Security
 app.use(helmet());
@@ -65,6 +69,7 @@ app.use('/health', healthRoutes);
 app.use('/api/comfyui', comfyuiRoutes);
 app.use('/api/queue', queueRoutes);
 app.use('/api/video', videoRoutes);
+app.use('/api/cloud', cloudRoutes);
 
 // Error handling
 app.use((req, res) => {
@@ -77,6 +82,8 @@ app.use(errorHandler);
 
 // Start server
 const server = app.listen(PORT, () => {
+  const cloudAvailable = workerManager.getCloudManager().isAvailable();
+  
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║          🎨 ComfyUI Service - Peace Script AI                ║
@@ -85,7 +92,8 @@ const server = app.listen(PORT, () => {
 ✅ Server running on port ${PORT}
 ✅ Environment: ${process.env.NODE_ENV}
 ✅ Queue: ${process.env.REDIS_URL ? 'Redis' : 'In-memory'}
-✅ Workers: ${process.env.COMFYUI_WORKERS || 1} ComfyUI instances
+✅ Local Workers: ${process.env.COMFYUI_WORKERS?.split(',').length || 1} instances
+☁️  Cloud Workers: ${cloudAvailable ? 'Available (RunPod)' : 'Not configured'}
 
 📡 API Endpoints:
    → http://localhost:${PORT}/health
@@ -93,10 +101,36 @@ const server = app.listen(PORT, () => {
    → http://localhost:${PORT}/api/video/generate/animatediff
    → http://localhost:${PORT}/api/video/generate/svd
    → http://localhost:${PORT}/api/queue/status
+   → http://localhost:${PORT}/api/cloud/status
+   → http://localhost:${PORT}/api/cloud/cost
 
-🎬 ComfyUI Service is ready!
+🎬 ComfyUI Service is ready! ${cloudAvailable ? '☁️  Hybrid cloud/local mode' : '🖥️  Local mode'}
   `);
 });
+
+// Graceful shutdown
+const gracefulShutdown = async (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  
+  server.close(async () => {
+    console.log('HTTP server closed');
+    
+    // Shutdown worker manager (terminates cloud pods)
+    await workerManager.shutdown();
+    
+    console.log('✅ Shutdown complete');
+    process.exit(0);
+  });
+  
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
