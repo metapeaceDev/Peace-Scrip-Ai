@@ -99,10 +99,10 @@
 Create `.env` file:
 
 ```env
-VITE_GEMINI_API_KEY=AIzaSyC-Y-j2mQny-YqukGPT4QIDvKOkGewNO48
+VITE_GEMINI_API_KEY=your-gemini-api-key-here
 
 # Paste your Firebase config here:
-VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_API_KEY=your-firebase-api-key
 VITE_FIREBASE_AUTH_DOMAIN=peace-script-ai.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=peace-script-ai
 VITE_FIREBASE_STORAGE_BUCKET=peace-script-ai.appspot.com
