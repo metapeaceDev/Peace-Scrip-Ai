@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "jest --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run tests/integration-failover.test.js",
+    "test:load": "node tests/load-test.ts",
     "docker:build": "docker build -t peace-comfyui-service .",
     "docker:run": "docker run -p 8000:8000 --gpus all peace-comfyui-service",
     "docker:compose": "docker-compose up -d"
@@ -21,24 +25,25 @@
   "author": "Peace Script Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "dotenv": "^16.3.1",
     "axios": "^1.6.2",
     "bull": "^4.12.0",
-    "redis": "^4.6.11",
-    "ws": "^8.16.0",
-    "uuid": "^9.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
     "firebase-admin": "^12.0.0",
-    "sharp": "^0.33.1",
     "formidable": "^3.5.1",
+    "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "express-rate-limit": "^7.1.5"
+    "redis": "^4.6.11",
+    "sharp": "^0.33.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^1.6.1",
     "nodemon": "^3.0.2",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "vitest": "^1.6.1"
   }
 }

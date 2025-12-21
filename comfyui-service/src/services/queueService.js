@@ -13,9 +13,15 @@ import Queue from 'bull';
 import { getWorkerManager } from './workerManager.js';
 import { generateWithComfyUI } from './comfyuiClient.js';
 import { saveJobToFirebase, updateJobStatus } from './firebaseService.js';
+import { 
+  processImageGenerationSmart, 
+  processVideoGenerationSmart,
+  setLoadBalancer 
+} from './smartQueueProcessor.js';
 
 let imageQueue;
 let videoQueue;
+let useSmartRouting = false; // Flag to enable smart routing
 
 /**
  * Initialize queue
@@ -70,7 +76,10 @@ export async function initializeQueue() {
 
   // Process jobs
   imageQueue.process(parseInt(process.env.QUEUE_CONCURRENCY) || 3, async (job) => {
-    return await processImageGeneration(job);
+    // Use smart routing if enabled, otherwise fallback to legacy processing
+    return useSmartRouting 
+      ? await processImageGenerationSmart(job)
+      : await processImageGeneration(job);
   });
 
   // Initialize video queue
@@ -108,7 +117,10 @@ export async function initializeQueue() {
 
   // Process video jobs (lower concurrency due to resource intensity)
   videoQueue.process(parseInt(process.env.VIDEO_QUEUE_CONCURRENCY) || 1, async (job) => {
-    return await processVideoGeneration(job);
+    // Use smart routing if enabled, otherwise fallback to legacy processing
+    return useSmartRouting
+      ? await processVideoGenerationSmart(job)
+      : await processVideoGeneration(job);
   });
 
   // Video queue event listeners
@@ -470,6 +482,23 @@ export async function cancelVideoJob(jobId) {
   await updateJobStatus(jobId, 'cancelled', { cancelledAt: Date.now() });
   
   return { success: true, message: 'Video job cancelled' };
+}
+
+/**
+ * Enable smart routing with load balancer
+ */
+export function enableSmartRouting(loadBalancer) {
+  setLoadBalancer(loadBalancer);
+  useSmartRouting = true;
+  console.log('✅ Smart routing enabled with load balancer');
+}
+
+/**
+ * Disable smart routing (use legacy processing)
+ */
+export function disableSmartRouting() {
+  useSmartRouting = false;
+  console.log('⚠️ Smart routing disabled, using legacy processing');
 }
 
 export { imageQueue, videoQueue };

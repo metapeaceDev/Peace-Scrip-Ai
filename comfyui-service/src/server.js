@@ -22,10 +22,12 @@ import healthRoutes from './routes/health.js';
 import queueRoutes from './routes/queue.js';
 import videoRoutes from './routes/video.js';
 import cloudRoutes from './routes/cloud.js';
+import loadbalancerRoutes from './routes/loadbalancer.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initializeFirebase } from './config/firebase.js';
-import { initializeQueue } from './services/queueService.js';
+import { initializeQueue, enableSmartRouting } from './services/queueService.js';
 import { startWorkerManager, getWorkerManager } from './services/workerManager.js';
+import IntelligentLoadBalancer from './services/loadBalancer.js';
 
 dotenv.config();
 
@@ -37,8 +39,16 @@ await initializeFirebase();
 await initializeQueue();
 const workerManager = await startWorkerManager();
 
+// Initialize load balancer
+const loadBalancer = new IntelligentLoadBalancer(workerManager);
+await loadBalancer.initialize();
+
+// Enable smart routing in queue service
+enableSmartRouting(loadBalancer);
+
 // Store services in app.locals for route access
 app.locals.workerManager = workerManager;
+app.locals.loadBalancer = loadBalancer;
 
 // Security
 app.use(helmet());
@@ -70,6 +80,7 @@ app.use('/api/comfyui', comfyuiRoutes);
 app.use('/api/queue', queueRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/cloud', cloudRoutes);
+app.use('/api/loadbalancer', loadbalancerRoutes);
 
 // Error handling
 app.use((req, res) => {
@@ -83,6 +94,7 @@ app.use(errorHandler);
 // Start server
 const server = app.listen(PORT, () => {
   const cloudAvailable = workerManager.getCloudManager().isAvailable();
+  const lbStats = loadBalancer.getStats();
   
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
@@ -94,6 +106,7 @@ const server = app.listen(PORT, () => {
 ✅ Queue: ${process.env.REDIS_URL ? 'Redis' : 'In-memory'}
 ✅ Local Workers: ${process.env.COMFYUI_WORKERS?.split(',').length || 1} instances
 ☁️  Cloud Workers: ${cloudAvailable ? 'Available (RunPod)' : 'Not configured'}
+🧠 Load Balancer: Active (${lbStats.backends.length} backends)
 
 📡 API Endpoints:
    → http://localhost:${PORT}/health
@@ -103,6 +116,8 @@ const server = app.listen(PORT, () => {
    → http://localhost:${PORT}/api/queue/status
    → http://localhost:${PORT}/api/cloud/status
    → http://localhost:${PORT}/api/cloud/cost
+   → http://localhost:${PORT}/api/loadbalancer/status
+   → http://localhost:${PORT}/api/loadbalancer/recommendations
 
 🎬 ComfyUI Service is ready! ${cloudAvailable ? '☁️  Hybrid cloud/local mode' : '🖥️  Local mode'}
   `);
@@ -114,6 +129,9 @@ const gracefulShutdown = async (signal) => {
   
   server.close(async () => {
     console.log('HTTP server closed');
+    
+    // Shutdown load balancer
+    await loadBalancer.shutdown();
     
     // Shutdown worker manager (terminates cloud pods)
     await workerManager.shutdown();
@@ -131,14 +149,5 @@ const gracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
 
 export default app;

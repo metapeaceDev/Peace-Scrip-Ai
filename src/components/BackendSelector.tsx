@@ -1,10 +1,16 @@
 /**
  * Backend Selector Component
  * Displays backend status and allows manual selection
+ * Connected to Intelligent Load Balancer API
  */
 
 import React, { useState, useEffect } from 'react';
-import { backendManager, BackendType, BackendStatus } from '../services/backendManager';
+import { 
+  loadBalancerClient, 
+  type BackendType, 
+  type BackendInfo,
+  type UserPreferences 
+} from '../services/loadBalancerClient';
 
 export const BackendSelector: React.FC = () => {
   const [statuses, setStatuses] = useState<BackendStatus[]>([]);
