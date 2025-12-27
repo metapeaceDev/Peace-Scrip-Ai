@@ -1,6 +1,19 @@
 # 📚 สารบัญเอกสาร Peace Script AI
 
-**อัพเดทล่าสุด:** 18 ธันวาคม 2568
+**อัพเดทล่าสุด:** 28 ธันวาคม 2568
+
+---
+
+## 🆕 อัพเดทใหม่! (28 ธ.ค. 2568)
+
+### WAN Video Models Integration
+- ✅ สร้างเอกสารวิเคราะห์ครบถ้วน (4 ไฟล์)
+- ✅ เปรียบเทียบ AnimateDiff vs WAN vs Gemini
+- ✅ วิเคราะห์ต้นทุน TCO และ ROI
+- ✅ แนะนำ POC 2 สัปดาห์
+- 📋 รอการอนุมัติเพื่อเริ่มทดลอง
+
+**Quick Start:** [WAN_INTEGRATION_INDEX.md](./WAN_INTEGRATION_INDEX.md)
 
 ---
 
@@ -63,12 +76,19 @@
 
 ---
 
-## 🎬 ComfyUI
+## 🎬 ComfyUI & Video Generation
 
+### ComfyUI Setup
 - **[comfyui-service/README.md](./comfyui-service/README.md)** ComfyUI Service
 - **[docs/deployment/COMFYUI_SETUP.md](./docs/deployment/COMFYUI_SETUP.md)** ติดตั้ง ComfyUI
 - **[docs/deployment/COMFYUI_USER_GUIDE.md](./docs/deployment/COMFYUI_USER_GUIDE.md)** คู่มือใช้งาน
 - **[docs/deployment/COMFYUI_TROUBLESHOOTING.md](./docs/deployment/COMFYUI_TROUBLESHOOTING.md)** แก้ไขปัญหา
+
+### WAN Integration (New! 🆕)
+- **[WAN_INTEGRATION_INDEX.md](./WAN_INTEGRATION_INDEX.md)** ⭐ เริ่มต้นที่นี่ - ดัชนีหลัก WAN
+- **[WAN_INTEGRATION_EXECUTIVE_SUMMARY.md](./WAN_INTEGRATION_EXECUTIVE_SUMMARY.md)** 📊 สรุปผู้บริหาร (5 นาที)
+- **[WAN_VS_ANIMATEDIFF_COMPARISON.md](./WAN_VS_ANIMATEDIFF_COMPARISON.md)** 📋 เปรียบเทียบเทคนิค
+- **[WAN_INTEGRATION_POC_GUIDE.md](./WAN_INTEGRATION_POC_GUIDE.md)** 🔬 คู่มือ POC (2 สัปดาห์)
 
 ---
 
