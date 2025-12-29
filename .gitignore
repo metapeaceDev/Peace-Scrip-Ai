@@ -172,3 +172,6 @@ logs/
 # Duplicate/unused backend folders
 comfy-backend/
 comfyui-docker-cuda12/
+
+# Archived documentation with API keys (security)
+docs/archive/
