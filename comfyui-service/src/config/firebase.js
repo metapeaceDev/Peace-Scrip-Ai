@@ -12,6 +12,15 @@ const __dirname = dirname(__filename);
 
 let initialized = false;
 
+function normalizeBucketName(bucketName) {
+  if (!bucketName) return undefined;
+  let name = String(bucketName).trim();
+  if (!name) return undefined;
+  name = name.replace(/^gs:\/\//, '');
+  name = name.replace(/\/$/, '');
+  return name || undefined;
+}
+
 export async function initializeFirebase() {
   if (initialized) {
     console.log('ℹ️  Firebase Admin already initialized');
@@ -27,7 +36,7 @@ export async function initializeFirebase() {
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+        storageBucket: normalizeBucketName(process.env.FIREBASE_STORAGE_BUCKET)
       });
 
       console.log('✅ Firebase Admin initialized with service account');
@@ -40,7 +49,7 @@ export async function initializeFirebase() {
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
         }),
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+        storageBucket: normalizeBucketName(process.env.FIREBASE_STORAGE_BUCKET)
       });
 
       console.log('✅ Firebase Admin initialized with environment variables');

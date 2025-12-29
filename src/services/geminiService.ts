@@ -24,12 +24,28 @@ import { persistVideoUrl } from './videoPersistenceService';
 import { getSavedComfyUIUrl } from './comfyuiInstaller';
 
 // Initialize AI with environment variable (Vite)
+const requireGeminiApiKey = (featureName: string) => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey || String(apiKey).trim().length === 0 || apiKey === 'PLACEHOLDER_KEY') {
+    throw new Error(
+      `❌ ไม่พบ Gemini API Key (VITE_GEMINI_API_KEY) สำหรับ ${featureName}\n\n` +
+        `วิธีแก้:\n` +
+        `1) สร้าง API key ที่ https://aistudio.google.com/app/apikey\n` +
+        `2) ใส่ในไฟล์ .env.local (ที่โฟลเดอร์โปรเจกต์):\n` +
+        `   VITE_GEMINI_API_KEY=AIza...\n` +
+        `3) ปิด/เปิด dev server ใหม่ (restart npm run dev)\n`
+    );
+  }
+};
+
 const getAI = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn('API Key not found in environment. Using placeholder.');
+    console.warn('API Key not found in environment. Gemini features will be unavailable until VITE_GEMINI_API_KEY is set.');
   }
-  return new GoogleGenAI({ apiKey: apiKey || 'PLACEHOLDER_KEY' });
+  // Use empty string to avoid accidentally "working" with a fake key.
+  // All Gemini calls must pass through requireGeminiApiKey() first.
+  return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
 const ai = getAI();
@@ -38,19 +54,10 @@ const ai = getAI();
  * Count tokens for a given text using Gemini model
  */
 async function countTokens(text: string, modelId: string = 'gemini-1.5-flash'): Promise<number> {
-  try {
-    // Use a default model for counting if specific one not available
-    const model = modelId.includes('flash') ? 'gemini-1.5-flash' : 'gemini-1.5-pro';
-    const { totalTokens } = await ai.models.countTokens({
-      model: model,
-      contents: [{ parts: [{ text }] }],
-    });
-    return totalTokens || Math.ceil(text.length / 4); // Fallback to char est.
-  } catch (error) {
-    // Silent fallback - countTokens not critical for functionality
-    // Note: v1beta API may not support countTokens for all models
-    return Math.ceil(text.length / 4); // Estimate: ~4 chars per token
-  }
+  // NOTE: Some environments / API versions return 404 for :countTokens (as seen in browser logs).
+  // Token counting is not critical for functionality, so we use a local estimate to avoid noisy network errors.
+  void modelId; // keep signature stable
+  return Math.ceil(text.length / 4); // Estimate: ~4 chars per token
 }
 
 // --- IMAGE GENERATION PROVIDERS ---
@@ -158,6 +165,20 @@ export const VIDEO_MODELS_CONFIG = {
       tier: 'free',
       costPerGen: 0,
       isLocalGPU: true,
+    },
+    CLOUD_GPU: {
+      id: 'cloud-gpu',
+      name: 'Cloud GPU (RunPod)',
+      provider: 'RunPod RTX 4090',
+      cost: 'Pay Per Use ($0.60/hr)',
+      speed: '⚡⚡⚡ Very Fast',
+      quality: '⭐⭐⭐⭐ High',
+      duration: 'Unlimited',
+      limits: 'RunPod must be running',
+      description: 'Use Cloud GPU when available - Faster than local',
+      tier: 'free',
+      costPerGen: 0,
+      isCloudGPU: true,
     },
   },
   BASIC: {
@@ -533,11 +554,20 @@ async function generateVideoWithComfyUI(
     lora?: string;
     loraStrength?: number;
     negativePrompt?: string;
+    seed?: number;
     frameCount?: number;
     fps?: number;
     motionStrength?: number;
     useAnimateDiff?: boolean; // NEW: Enable AnimateDiff
+    useSVD?: boolean; // NEW: Route as SVD when base image is available
     motionModule?: string; // NEW: AnimateDiff module
+    // 🆕 WAN: Route via backend service video API
+    useWan?: boolean;
+    videoType?: 'wan';
+    modelPath?: string;
+    // 🆕 Resolution control
+    width?: number;
+    height?: number;
     character?: Character; // NEW: For psychology-driven motion
     shotData?: ShotData; // NEW: For camera/timing intelligence
     currentScene?: GeneratedScene; // NEW: For environmental context
@@ -598,6 +628,7 @@ async function generateVideoWithComfyUI(
       console.log('🎬 Building AnimateDiff workflow');
       workflow = buildAnimateDiffWorkflow(prompt, {
         negativePrompt: options.negativePrompt,
+        seed: options.seed,
         numFrames: finalFrameCount,
         fps: finalFPS,
         motionScale: finalMotionStrength,
@@ -609,6 +640,7 @@ async function generateVideoWithComfyUI(
       // eslint-disable-next-line no-console
       console.log('🎬 Building SVD workflow (image-to-video)');
       workflow = buildSVDWorkflow(options.baseImage, {
+        seed: options.seed,
         numFrames: finalFrameCount,
         fps: finalFPS,
         motionScale: Math.round(finalMotionStrength * 255), // SVD uses 0-255 for motion bucket
@@ -2701,6 +2733,7 @@ IMPORTANT: Use these psychological profiles to:
   `;
 
   try {
+    requireGeminiApiKey('generateScene');
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -2838,6 +2871,7 @@ DO NOT change the structure, just improve the quality of content within it.
 `;
 
   try {
+    requireGeminiApiKey('refineScene');
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -3075,6 +3109,7 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
 `;
 
   try {
+    requireGeminiApiKey('regenerateWithEdits');
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -3897,6 +3932,7 @@ export async function generateStoryboardVideo(
     motionStrength?: number;
     fps?: number;
     duration?: number;
+    seed?: number;
     motionEdit?: MotionEdit; // 🆕 NEW: Motion Editor support
     // 🆕 Resolution & Aspect Ratio Control
     aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | 'custom';
@@ -3981,12 +4017,14 @@ export async function generateStoryboardVideo(
     // 🔧 FIX: Map 'local-gpu' to ComfyUI
     let mappedModel = preferredModel;
     if (preferredModel === 'local-gpu') {
-      mappedModel = 'comfyui-animatediff'; // Default to AnimateDiff for local GPU
-      console.log('🔄 Mapping local-gpu → comfyui-animatediff');
+      // If we have a base image (e.g., extracted last frame for sequential continuity),
+      // prefer SVD for more stable/non-noisy outputs.
+      mappedModel = base64Image ? 'comfyui-svd' : 'comfyui-animatediff';
+      console.log(`🔄 Mapping local-gpu → ${mappedModel}`);
     }
 
     // 🔧 FIX: Check ComfyUI FIRST if user explicitly selected it
-    if (mappedModel === 'comfyui-svd' || mappedModel === 'comfyui-animatediff') {
+    if (mappedModel === 'comfyui-svd' || mappedModel === 'comfyui-animatediff' || mappedModel === 'comfyui-wan') {
       console.warn('🎬 USER SELECTED COMFYUI:', mappedModel);
 
       // Skip direct ComfyUI check if using backend service (has its own health checks)
@@ -4010,27 +4048,50 @@ export async function generateStoryboardVideo(
 
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
+          const isWan = mappedModel === 'comfyui-wan';
           const useAnimateDiff =
-            mappedModel === 'comfyui-animatediff' || options?.useAnimateDiff !== false;
-          console.warn(`🎬 ComfyUI Mode: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+            mappedModel === 'comfyui-animatediff' || (options?.useAnimateDiff !== false && mappedModel !== 'comfyui-svd');
+          const useSVD = mappedModel === 'comfyui-svd';
+          console.warn(`🎬 ComfyUI Mode: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+
+          // IMPORTANT: Do not force SDXL LoRA for video workflows.
+          // AnimateDiff video in this project uses an SD1.5 base checkpoint; applying an SDXL LoRA (e.g. add-detail-xl)
+          // will often produce noisy/garbled frames.
+          const selectedVideoLora = typeof (options as any)?.lora === 'string' ? ((options as any).lora as string) : undefined;
+          const selectedVideoLoraStrength =
+            typeof (options as any)?.loraStrength === 'number' ? ((options as any).loraStrength as number) : undefined;
 
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
-            lora: LORA_MODELS.DETAIL_ENHANCER,
-            loraStrength: 0.8,
+            lora: selectedVideoLora,
+            loraStrength: selectedVideoLoraStrength,
             negativePrompt:
-              'low quality, blurry, static, watermark, frozen frames, duplicate frames',
+              'low quality, blurry, static, watermark, frozen frames, duplicate frames, inconsistent character, different face, changing outfit',
+            seed: options?.seed,
             frameCount: finalFrameCount || 25,
             fps: finalFPS || 8,
             motionStrength: finalMotionStrength || 0.8,
-            useAnimateDiff: useAnimateDiff,
+            useAnimateDiff: isWan ? false : useAnimateDiff,
+            useSVD: useSVD,
+            // 🆕 WAN routing: handled by backend service client
+            ...(isWan ? { useWan: true, videoType: 'wan' } : {}),
+            // 🆕 Pass resolution through when provided
+            width: options?.width,
+            height: options?.height,
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,
             onProgress: onProgress,
           });
           // Free model, no credit deduction
-          console.warn(`✅ ComfyUI Success: ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          console.warn(`✅ ComfyUI Success: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          console.warn('🎬 Video Result:', result);
+          
+          // 🆕 CRITICAL FIX: Ensure we return valid video URL
+          if (!result || typeof result !== 'string' || result.trim() === '') {
+            throw new Error('Video generation returned empty URL');
+          }
+          
           return result;
         } catch (comfyError: unknown) {
           const err = comfyError as { message?: string };
@@ -4341,20 +4402,23 @@ export async function generateStoryboardVideo(
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
           const useAnimateDiff = options?.useAnimateDiff !== false;
+          const useSVD = !useAnimateDiff;
           console.log(
             `🎬 Tier 3 (Auto Fallback): Trying ComfyUI + ${useAnimateDiff ? 'AnimateDiff' : 'SVD'}...`
           );
 
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
-            lora: LORA_MODELS.DETAIL_ENHANCER,
-            loraStrength: 0.8,
+            lora: typeof (options as any)?.lora === 'string' ? ((options as any).lora as string) : undefined,
+            loraStrength:
+              typeof (options as any)?.loraStrength === 'number' ? ((options as any).loraStrength as number) : undefined,
             negativePrompt:
               'low quality, blurry, static, watermark, frozen frames, duplicate frames',
             frameCount: finalFrameCount || 25,
             fps: finalFPS || 8,
             motionStrength: finalMotionStrength || 0.8,
             useAnimateDiff: useAnimateDiff,
+            useSVD: useSVD,
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,

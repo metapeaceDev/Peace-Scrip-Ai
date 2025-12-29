@@ -43,6 +43,11 @@ cp .env.example .env
 # แก้ไข .env ตามค่าของคุณ
 ```
 
+**Storage URL แบบลิงก์ถาวร (ไม่หมดอายุ):**
+
+- ตั้ง `FIREBASE_STORAGE_URL_MODE=token` เพื่อให้ backend คืน Firebase download token URL (ไม่หมดอายุ)
+- ถ้าตั้งเป็น `public` จะพยายาม `makePublic()` (อาจล้มเหลวถ้า bucket เปิด UBLA)
+- ถ้าตั้งเป็น `signed` จะเป็น Signed URL (มีวันหมดอายุ)
 **ตัวอย่าง .env:**
 
 ```env
@@ -52,6 +57,8 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 COMFYUI_WORKERS=http://localhost:8188
 FIREBASE_SERVICE_ACCOUNT_PATH=./service-account.json
+FIREBASE_STORAGE_BUCKET=<your-bucket-name>
+FIREBASE_STORAGE_URL_MODE=token
 ```
 
 ### 3. เตรียม Firebase Service Account

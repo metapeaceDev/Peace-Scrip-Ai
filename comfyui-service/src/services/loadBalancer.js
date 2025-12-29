@@ -13,11 +13,16 @@
  */
 
 import { EventEmitter } from 'events';
+import axios from 'axios';
 
 class IntelligentLoadBalancer extends EventEmitter {
   constructor(workerManager) {
     super();
-    
+
+    if (!workerManager) {
+      throw new Error('workerManager is required');
+    }
+
     this.workerManager = workerManager;
     
     // Backend configurations
@@ -89,8 +94,14 @@ class IntelligentLoadBalancer extends EventEmitter {
     const {
       preferredBackend = this.userPreferences.preferredBackend,
       maxCost = this.userPreferences.maxCostPerJob,
-      requireFast = this.userPreferences.prioritizeSpeed
+      requireFast = this.userPreferences.prioritizeSpeed,
+      allowCloudFallback = this.userPreferences.allowCloudFallback
     } = options;
+
+    // Determine if this is a video job
+    const isVideoJob = job.data?.metadata?.videoType || 
+                      job.data?.workflow?.includes('video') ||
+                      job.name?.includes('video');
 
     // Update backend health status
     await this.updateBackendHealth();
@@ -99,7 +110,10 @@ class IntelligentLoadBalancer extends EventEmitter {
     if (preferredBackend !== 'auto') {
       const backend = this.backends[preferredBackend];
       
-      if (backend && backend.available && backend.healthy) {
+      // Block Gemini for video jobs
+      if (isVideoJob && preferredBackend === 'gemini') {
+        console.log(`❌ Gemini does not support video generation, falling back...`);
+      } else if (backend && backend.available && backend.healthy) {
         console.log(`🎯 Using user-preferred backend: ${backend.name}`);
         return {
           backend: preferredBackend,
@@ -113,10 +127,12 @@ class IntelligentLoadBalancer extends EventEmitter {
     }
 
     // Auto-selection logic
-    const candidates = this.getCandidateBackends(maxCost);
+    const candidates = this.getCandidateBackends(maxCost, isVideoJob, allowCloudFallback);
 
     if (candidates.length === 0) {
-      throw new Error('No available backends meet the cost requirements');
+      throw new Error(isVideoJob 
+        ? 'No available backends support video generation (ComfyUI required)' 
+        : 'No available backends meet the cost requirements');
     }
 
     // Score each candidate
@@ -135,7 +151,7 @@ class IntelligentLoadBalancer extends EventEmitter {
 
     const selected = scored[0];
 
-    console.log(`🧠 Auto-selected backend: ${selected.name} (score: ${selected.score.toFixed(2)})`);
+    console.log(`🧠 Auto-selected backend: ${selected.name} (score: ${selected.score.toFixed(2)})${isVideoJob ? ' [VIDEO]' : ''}`);
 
     return {
       backend: selected.id,
@@ -149,10 +165,21 @@ class IntelligentLoadBalancer extends EventEmitter {
   /**
    * Get candidate backends that meet requirements
    */
-  getCandidateBackends(maxCost) {
+  getCandidateBackends(maxCost, isVideoJob = false, allowCloudFallback = true) {
     const candidates = [];
 
     for (const [id, backend] of Object.entries(this.backends)) {
+      // Skip Gemini for video jobs
+      if (isVideoJob && id === 'gemini') {
+        console.log(`⏭️  Skipping ${backend.name} - does not support video generation`);
+        continue;
+      }
+
+      // Optional policy: disallow cloud fallback entirely
+      if (!allowCloudFallback && id === 'cloud') {
+        continue;
+      }
+
       if (backend.available && backend.healthy && backend.costPerJob <= maxCost) {
         candidates.push({ id, ...backend });
       }
@@ -165,7 +192,11 @@ class IntelligentLoadBalancer extends EventEmitter {
    * Calculate backend score (0-100)
    */
   calculateBackendScore(backend, options) {
-    const { requireFast, maxCost, queueLength } = options;
+    const {
+      requireFast = false,
+      maxCost = this.userPreferences.maxCostPerJob || 0.1,
+      queueLength = 0
+    } = options || {};
 
     let score = 0;
 
@@ -202,12 +233,16 @@ class IntelligentLoadBalancer extends EventEmitter {
   getQueueLength(backendId) {
     switch (backendId) {
       case 'local': {
-        const localWorkers = this.workerManager.workers;
+        const localWorkers = Array.isArray(this.workerManager.workers) ? this.workerManager.workers : [];
         return localWorkers.reduce((sum, w) => sum + (w.queueLength || 0), 0);
       }
       case 'cloud': {
-        const cloudStats = this.workerManager.getCloudManager().getStats();
-        return cloudStats.busyPods;
+        try {
+          const cloudStats = this.workerManager.getCloudManager().getStats();
+          return Number(cloudStats?.busyPods || 0);
+        } catch {
+          return 0;
+        }
       }
       case 'gemini':
         return 0; // Gemini has no queue
@@ -243,7 +278,15 @@ class IntelligentLoadBalancer extends EventEmitter {
   /**
    * Process job with auto-failover
    */
-  async processJobWithFailover(job, options = {}) {
+  async processJobWithFailover(job, processorOrOptions, options = {}) {
+    // Handle optional processor argument
+    let processor = null;
+    if (typeof processorOrOptions === 'function') {
+      processor = processorOrOptions;
+    } else {
+      options = processorOrOptions || {};
+    }
+
     const maxRetries = 3;
     const startTime = Date.now();
 
@@ -256,7 +299,12 @@ class IntelligentLoadBalancer extends EventEmitter {
         console.log(`📊 Processing job ${job.id} with ${this.backends[backendId].name} (attempt ${attempt}/${maxRetries})`);
 
         // Process with selected backend
-        const result = await this.processWithBackend(backendId, job);
+        let result;
+        if (processor) {
+          result = await processor(backendId);
+        } else {
+          result = await this.processWithBackend(backendId, job);
+        }
 
         // Record success
         const duration = Date.now() - startTime;
@@ -322,7 +370,7 @@ class IntelligentLoadBalancer extends EventEmitter {
    * Process with local worker
    */
   async processWithLocalWorker(worker, job) {
-    const axios = require('axios');
+    // Use imported axios
     
     const response = await axios.post(
       `${worker.url}/prompt`,
@@ -456,8 +504,15 @@ class IntelligentLoadBalancer extends EventEmitter {
    * Calculate cost estimate
    */
   estimateCost(jobCount, backendId = null) {
+    if (!Number.isFinite(jobCount) || jobCount <= 0) {
+      throw new Error('jobCount must be a positive number');
+    }
+
     if (backendId) {
       const backend = this.backends[backendId];
+      if (!backend) {
+        throw new Error(`Unknown backend: ${backendId}`);
+      }
       return {
         backend: backendId,
         jobCount,

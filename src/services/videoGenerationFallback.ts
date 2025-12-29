@@ -153,8 +153,9 @@ async function generateWithComfyUI(
     await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2s
     
     const jobStatus = await comfyuiBackendClient.getVideoJobStatus(job.jobId);
+    const status = jobStatus.status ?? jobStatus.state ?? 'processing';
     
-    if (jobStatus.status === 'completed' && jobStatus.result) {
+    if (status === 'completed' && jobStatus.result) {
       if (onProgress) onProgress(100, 'Completed');
       return {
         success: true,
@@ -165,19 +166,19 @@ async function generateWithComfyUI(
       };
     }
     
-    if (jobStatus.status === 'failed') {
+    if (status === 'failed') {
       throw new Error(jobStatus.error || 'ComfyUI job failed');
     }
     
     progress = jobStatus.progress || 0;
     
     // Update progress callback if status changed
-    if (jobStatus.status !== lastStatus || progress > 0) {
-      lastStatus = jobStatus.status;
+    if (status !== lastStatus || progress > 0) {
+      lastStatus = status;
       if (onProgress) {
         const statusText = 
-          jobStatus.status === 'queued' ? 'Queued' :
-          jobStatus.status === 'processing' ? `Processing (${Math.round(progress)}%)` :
+          status === 'queued' ? 'Queued' :
+          status === 'processing' ? `Processing (${Math.round(progress)}%)` :
           'Processing';
         onProgress(progress, statusText);
       }

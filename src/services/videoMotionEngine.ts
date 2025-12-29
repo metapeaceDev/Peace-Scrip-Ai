@@ -376,6 +376,14 @@ export function getMotionModuleStrength(shotData: ShotData, character: Character
   const energy = character.emotionalState?.energyLevel || 50;
   const duration = shotData.durationSec || 5;
 
+  const description = (shotData.description || '').toLowerCase();
+
+  // If the shot description contains interaction/action verbs, we should never go too low,
+  // even when the camera is static.
+  const hasActionCue =
+    /\b(smile|kiss|hug|hold|grab|touch|walk|run|turn|nod|talk|speak|whisper|laugh)\b/.test(description) ||
+    /(จับมือ|กอด|จูบ|แตะ|ลูบ|เดิน|วิ่ง|หัน|พยักหน้า|พูด|กระซิบ|หัวเราะ|ยิ้ม)/.test(description);
+
   // Base strength from energy
   let strength = energy / 100;
 
@@ -390,10 +398,17 @@ export function getMotionModuleStrength(shotData: ShotData, character: Character
   if (shotData.movement === 'Handheld') {
     strength = Math.min(1.0, strength + 0.3);
   } else if (shotData.movement === 'Static') {
-    strength = Math.max(0.1, strength - 0.4);
+    // Static refers to CAMERA movement; the subject can still move.
+    // Reduce only slightly to avoid jitter, but keep enough motion for realism.
+    strength = Math.max(0.2, strength - 0.15);
   }
 
-  return Math.max(0.1, Math.min(1.0, strength));
+  // Ensure subtle motion for human actions (prevents frozen-looking people).
+  if (hasActionCue) {
+    strength = Math.max(strength, 0.28);
+  }
+
+  return Math.max(0.15, Math.min(1.0, strength));
 }
 
 /**

@@ -1,4 +1,4 @@
-export {};
+﻿export {};
 
 declare global {
   interface AIStudio {
@@ -27,4 +27,7 @@ declare global {
     readonly env: ImportMetaEnv;
   }
 }
+
+
+
 

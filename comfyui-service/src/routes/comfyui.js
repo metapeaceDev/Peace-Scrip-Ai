@@ -10,22 +10,40 @@ import { authenticateOptional } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// TEST ROUTE in comfyui router
+router.post('/test', (req, res) => {
+  console.log('✅ COMFYUI TEST ROUTE HIT!');
+  res.json({ success: true, message: 'ComfyUI router works!' });
+});
+
 /**
  * POST /api/comfyui/generate
  * Generate image with ComfyUI + LoRA
  */
-router.post('/generate', authenticateOptional, async (req, res, next) => {
+router.post('/generate', (req, res, next) => {
+  console.log('🔵🔵🔵 GENERATE ROUTE MATCHED!');
+  next();
+}, async (req, res, next) => {  // TEMP: removed authenticateOptional
+  console.log('🔵 RECEIVED /generate request:', { 
+    hasAuth: !!req.headers.authorization, 
+    hasPrompt: !!req.body?.prompt,
+    hasWorkflow: !!req.body?.workflow 
+  });
+  req.user = null; // Simulate anonymous user
   try {
     const { prompt, workflow, referenceImage, priority, userId } = req.body;
+    console.log('DEBUG: Extracted request data');
 
     // Validation
     if (!prompt || !workflow) {
+      console.log('DEBUG: Validation failed');
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: prompt, workflow'
       });
     }
 
+    console.log('DEBUG: Calling addGenerationJob...');
     // Add to queue
     const job = await addGenerationJob({
       prompt,

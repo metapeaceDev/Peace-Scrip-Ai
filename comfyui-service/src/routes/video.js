@@ -17,6 +17,7 @@ import { authenticateOptional } from '../middleware/auth.js';
 import { 
   buildAnimateDiffWorkflow, 
   buildSVDWorkflow,
+  buildWanWorkflow,
   VIDEO_MODELS 
 } from '../utils/workflowBuilders.js';
 import { 
@@ -107,6 +108,9 @@ router.post('/generate/animatediff', authenticateOptional, async (req, res, next
       userId: userId || req.user?.uid || 'anonymous',
       createdBy: req.user?.email || 'anonymous',
       metadata: {
+        videoType: 'animatediff', // 🆕 Flag for Load Balancer to skip Gemini
+        videoNodeId: '8',
+        filenamePrefix: 'peace-script-animatediff',
         numFrames,
         fps,
         motionScale,
@@ -173,12 +177,32 @@ router.post('/generate/svd', authenticateOptional, async (req, res, next) => {
       });
     }
 
-    // Validate frame count (SVD has fixed limit of 25 frames)
-    if (numFrames > VIDEO_MODELS.svd.maxFrames) {
-      return res.status(400).json({
-        success: false,
-        message: `SVD supports maximum ${VIDEO_MODELS.svd.maxFrames} frames`
-      });
+    // SVD has a fixed max frame limit (typically 25 in ComfyUI SVD workflows).
+    // Instead of rejecting (>25) with 400, auto-clamp to keep the pipeline resilient.
+    const requestedNumFrames = Number(numFrames);
+    const requestedFps = Number(fps);
+    let effectiveNumFrames = Number.isFinite(requestedNumFrames) && requestedNumFrames > 0
+      ? requestedNumFrames
+      : VIDEO_MODELS.svd.defaultFrames;
+    let effectiveFps = Number.isFinite(requestedFps) && requestedFps > 0
+      ? requestedFps
+      : VIDEO_MODELS.svd.fps;
+
+    if (effectiveNumFrames > VIDEO_MODELS.svd.maxFrames) {
+      const maxFrames = VIDEO_MODELS.svd.maxFrames;
+      const durationSec = effectiveFps > 0 ? (effectiveNumFrames / effectiveFps) : 0;
+      effectiveNumFrames = maxFrames;
+
+      // Try to preserve the requested duration by lowering fps.
+      if (durationSec > 0) {
+        const targetFps = Math.max(1, Math.floor(effectiveNumFrames / durationSec));
+        effectiveFps = Math.max(1, Math.min(effectiveFps, targetFps));
+      }
+
+      console.warn(
+        `⚠️ SVD frame request clamped: requested=${requestedNumFrames} @ ${requestedFps}fps → ` +
+        `effective=${effectiveNumFrames} @ ${effectiveFps}fps (max=${maxFrames})`
+      );
     }
 
     // Validate motion scale (1-255 for SVD motion bucket)
@@ -191,8 +215,8 @@ router.post('/generate/svd', authenticateOptional, async (req, res, next) => {
 
     // Build workflow
     const workflow = buildSVDWorkflow(referenceImage, {
-      numFrames,
-      fps,
+      numFrames: effectiveNumFrames,
+      fps: effectiveFps,
       motionScale,
       videoModel,
       width,
@@ -211,8 +235,13 @@ router.post('/generate/svd', authenticateOptional, async (req, res, next) => {
       userId: userId || req.user?.uid || 'anonymous',
       createdBy: req.user?.email || 'anonymous',
       metadata: {
-        numFrames,
-        fps,
+        videoType: 'svd', // 🆕 Flag for Load Balancer to skip Gemini
+        videoNodeId: '6',
+        filenamePrefix: 'peace-script-svd',
+        numFrames: effectiveNumFrames,
+        fps: effectiveFps,
+        requestedNumFrames,
+        requestedFps,
         motionScale,
         width,
         height
@@ -225,11 +254,99 @@ router.post('/generate/svd', authenticateOptional, async (req, res, next) => {
       data: {
         jobId: job.jobId,
         type: 'svd',
-        estimatedTime: Math.ceil(numFrames * 3), // SVD is slower: ~3 seconds per frame
+        estimatedTime: Math.ceil(effectiveNumFrames * 3), // SVD is slower: ~3 seconds per frame
         queuePosition: job.queuePosition
       }
     });
 
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/video/generate/wan
+ * Generate video using WAN (WanVideoWrapper) text-to-video
+ *
+ * Body:
+ * - prompt: string (required)
+ * - negativePrompt: string (optional)
+ * - numFrames: number (default: 16, max: 128)
+ * - fps: number (default: 8)
+ * - width: number (default: 512)
+ * - height: number (default: 512)
+ * - modelPath: string (optional, default from VIDEO_MODELS.wan)
+ * - seed: number (optional)
+ * - priority: number (1-10, default: 5)
+ */
+router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
+  try {
+    const {
+      prompt,
+      negativePrompt = 'blurry, low quality, watermark, text',
+      numFrames = VIDEO_MODELS.wan.defaultFrames,
+      fps = VIDEO_MODELS.wan.fps,
+      width = VIDEO_MODELS.wan.width,
+      height = VIDEO_MODELS.wan.height,
+      modelPath = VIDEO_MODELS.wan.defaultModelPath,
+      seed,
+      priority = 5,
+      userId
+    } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: prompt'
+      });
+    }
+
+    if (numFrames > VIDEO_MODELS.wan.maxFrames) {
+      return res.status(400).json({
+        success: false,
+        message: `Frame count exceeds maximum of ${VIDEO_MODELS.wan.maxFrames}`
+      });
+    }
+
+    const workflow = buildWanWorkflow(prompt, {
+      negativePrompt,
+      numFrames,
+      fps,
+      width,
+      height,
+      modelPath,
+      seed
+    });
+
+    const job = await addVideoJob({
+      type: 'wan',
+      prompt,
+      workflow,
+      priority,
+      userId: userId || req.user?.uid || 'anonymous',
+      createdBy: req.user?.email || 'anonymous',
+      metadata: {
+        videoType: 'wan',
+        videoNodeId: '8',
+        filenamePrefix: 'peace-script-wan',
+        numFrames,
+        fps,
+        width,
+        height,
+        modelPath
+      }
+    });
+
+    res.status(202).json({
+      success: true,
+      message: 'WAN video job queued successfully',
+      data: {
+        jobId: job.jobId,
+        type: 'wan',
+        estimatedTime: Math.ceil(numFrames * 3),
+        queuePosition: job.queuePosition
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -259,21 +376,49 @@ router.get('/job/:jobId', authenticateOptional, async (req, res, next) => {
       });
     }
 
-    res.json({
+    // Get progress from multiple sources (fallback chain)
+    let progressValue = 0;
+
+    if (typeof status.progress === 'number') {
+      progressValue = status.progress;
+    } else if (status.data && typeof status.data.progress === 'number') {
+      progressValue = status.data.progress;
+    } else if (status.state === 'completed') {
+      progressValue = 100;
+    } else if (status.state === 'processing' || status.state === 'active') {
+      progressValue = status.data?.progress || 0;
+    }
+
+    // Normalize queue states to API contract (queued|processing|completed|failed)
+    const errorMessage = status.error || status.failedReason;
+    let normalizedState = status.state;
+    if (normalizedState === 'active') normalizedState = 'processing';
+    if (normalizedState === 'waiting' || normalizedState === 'delayed') normalizedState = 'queued';
+    if (errorMessage) normalizedState = 'failed';
+
+    // 🆕 Return both flat videoUrl (for backward compatibility) AND result object (for frontend)
+    const response = {
       success: true,
       data: {
         jobId,
-        state: status.state,
-        progress: status.progress || 0,
+        state: normalizedState,
+        progress: progressValue,
         currentFrame: status.currentFrame,
         totalFrames: status.totalFrames,
-        videoUrl: status.videoUrl,
-        error: status.error,
+        videoUrl: status.result?.result?.videoUrl || status.result?.videoUrl || status.videoUrl,
+        error: errorMessage,
         createdAt: status.createdAt,
-        startedAt: status.startedAt,
-        completedAt: status.completedAt
+        startedAt: status.startedAt || status.processedAt,
+        completedAt: status.completedAt || status.finishedAt
       }
-    });
+    };
+    
+    // 🆕 Add result object if it exists (frontend needs this!)
+    if (status.result && Object.keys(status.result).length > 0) {
+      response.data.result = status.result;
+    }
+    
+    res.json(response);
 
   } catch (error) {
     next(error);
@@ -377,10 +522,10 @@ router.get('/requirements/:videoType', async (req, res, next) => {
   try {
     const { videoType } = req.params;
 
-    if (!['animatediff', 'svd'].includes(videoType)) {
+    if (!['animatediff', 'svd', 'wan'].includes(videoType)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid video type. Must be: animatediff or svd'
+        message: 'Invalid video type. Must be: animatediff, svd, or wan'
       });
     }
 

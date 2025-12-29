@@ -36,11 +36,13 @@ const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhos
 export const REQUIRED_LORA_MODELS: LoRAModel[] = [
   {
     name: 'CHARACTER_CONSISTENCY',
-    filename: 'character_consistency_v1.safetensors',
+    // Keep in sync with src/services/geminiService.ts (SDXL_LORA_MODELS)
+    filename: 'add-detail-xl.safetensors',
     displayName: 'Character Consistency LoRA',
     description: 'Essential for Face ID matching and character consistency across scenes',
-    downloadUrl: 'https://civitai.com/api/download/models/123456', // Replace with actual URL
-    size: '150 MB',
+    // Optional: set to a real direct-download URL if you want auto-install.
+    downloadUrl: '',
+    size: '45 MB',
     required: true,
     category: 'character',
   },
@@ -228,7 +230,8 @@ export function getManualInstallInstructions(model: LoRAModel): {
   let loraFolder = 'ComfyUI/models/loras/';
 
   if (isWindows) {
-    loraFolder = 'C:\\ComfyUI\\models\\loras\\';
+    // This project uses a Docker-mounted ComfyUI models folder under the current Windows user profile.
+    loraFolder = 'C:\\Users\\USER\\ComfyUI\\models\\loras\\';
   } else if (isMac) {
     loraFolder = '~/ComfyUI/models/loras/';
   }

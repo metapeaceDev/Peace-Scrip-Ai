@@ -409,6 +409,7 @@ const SceneDisplay: React.FC<{
   // State for storyboard generation
   const [generatingShotId, setGeneratingShotId] = useState<number | null>(null);
   const [generatingVideoShotId, setGeneratingVideoShotId] = useState<number | null>(null);
+  const [currentVideoJobId, setCurrentVideoJobId] = useState<string | null>(null); // 🆕 Track video job ID for cancellation
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
   const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
@@ -980,272 +981,6 @@ const SceneDisplay: React.FC<{
     return context;
   };
 
-  // --- Video-Specific Context Builders ---
-  const buildMotionContext = (
-    shotData: any,
-    _currentScene: GeneratedScene,
-    character?: Character
-  ): string => {
-    if (!character) return '';
-
-    let context = '\nCHARACTER MOTION:';
-
-    // A. Extract action from description
-    const action = shotData.description || 'stands still';
-    context += `\n- Action: ${action}`;
-
-    // B. Infer motion speed from emotional state
-    const emotionState = character.emotionalState;
-    let motionSpeed = 'natural, realistic';
-
-    if (emotionState) {
-      if (emotionState.energyLevel > 70) {
-        motionSpeed = 'brisk, energetic, animated';
-      } else if (emotionState.energyLevel < 30) {
-        motionSpeed = 'slow, lethargic, tired';
-      }
-
-      // Mood affects speed
-      if (emotionState.currentMood === 'fearful') {
-        motionSpeed = 'quick, nervous, hesitant';
-      } else if (emotionState.currentMood === 'peaceful') {
-        motionSpeed = 'smooth, relaxed, unhurried';
-      } else if (emotionState.currentMood === 'angry') {
-        motionSpeed = 'sharp, aggressive, forceful';
-      } else if (emotionState.currentMood === 'joyful') {
-        motionSpeed = 'light, bouncy, cheerful';
-      }
-    }
-
-    context += `\n- Motion Speed: ${motionSpeed}`;
-    context += `\n- Motion Quality: natural, realistic`;
-
-    // C. Body language from psychology
-    if (emotionState?.currentMood) {
-      const bodyLanguageMap: Record<string, string> = {
-        peaceful: 'relaxed shoulders, open gestures, smooth movements',
-        joyful: 'light step, animated gestures, upright posture',
-        angry: 'tense muscles, sharp movements, aggressive stance',
-        confused: 'hesitant steps, looking around, uncertain gestures',
-        fearful: 'tense body, quick glances, defensive posture',
-        neutral: 'calm, balanced, natural movements',
-      };
-
-      const bodyLang = bodyLanguageMap[emotionState.currentMood];
-      if (bodyLang) {
-        context += `\n- Body Language: ${bodyLang}`;
-      }
-    }
-
-    // D. Defilement affects motion style
-    const defilements = character.internal?.defilement;
-    if (defilements) {
-      const entries = Object.entries(defilements);
-      if (entries.length > 0) {
-        const dominant = entries.reduce((max, curr) => (curr[1] > max[1] ? curr : max));
-
-        if (dominant[1] > 60) {
-          const motionStyleMap: Record<string, string> = {
-            'Lobha (Greed)': 'grasping gestures, reaching movements, acquisitive body language',
-            'Anger (Anger)': 'aggressive movements, clenched fists, confrontational stance',
-            'Moha (delusion)': 'confused movements, uncertain gestures, wandering attention',
-            'Mana (arrogance)': 'proud posture, dismissive gestures, superior bearing',
-          };
-
-          const motionStyle = motionStyleMap[dominant[0]];
-          if (motionStyle) {
-            context += `\n- Motion Style: ${motionStyle}`;
-          }
-        }
-      }
-    }
-
-    // E. Carita affects mannerisms
-    const carita = character.buddhist_psychology?.carita;
-    if (carita) {
-      const mannerismMap: Record<string, string> = {
-        ราคจริต: 'sensual movements, indulgent gestures',
-        โทสจริต: 'passionate movements, intense energy',
-        โมหจริต: 'confused movements, uncertain gestures',
-        สัทธาจริต: 'faithful movements, devotional gestures',
-        พุทธิจริต: 'calculated movements, thoughtful gestures',
-        วิตกจริต: 'contemplative movements, meditative stillness',
-      };
-
-      const mannerism = mannerismMap[carita];
-      if (mannerism) {
-        context += `\n- Mannerisms: ${mannerism}`;
-      }
-    }
-
-    return context;
-  };
-
-  const buildCameraMovementContext = (shotData: any): string => {
-    if (!shotData.movement || shotData.movement === 'Static') {
-      return '\nCAMERA: Static shot, locked position, no movement.';
-    }
-
-    let context = '\nCAMERA MOVEMENT:';
-
-    // Map movement types to detailed descriptions
-    const movementMap: Record<string, string> = {
-      'Pan Left': 'Smooth pan from right to left, horizontal axis only',
-      'Pan Right': 'Smooth pan from left to right, horizontal axis only',
-      'Tilt Up': 'Smooth tilt upward, vertical axis only',
-      'Tilt Down': 'Smooth tilt downward, vertical axis only',
-      'Dolly In': 'Smooth dolly-in movement, camera moving closer to subject',
-      'Dolly Out': 'Smooth dolly-out movement, camera moving away from subject',
-      'Track Left': 'Smooth tracking shot moving left, parallel to subject',
-      'Track Right': 'Smooth tracking shot moving right, parallel to subject',
-      'Crane Up': 'Smooth crane movement upward, elevated perspective',
-      'Crane Down': 'Smooth crane movement downward, descending perspective',
-      'Zoom In': 'Optical zoom-in, narrowing field of view',
-      'Zoom Out': 'Optical zoom-out, widening field of view',
-      Follow: 'Smooth following shot, tracking subject movement',
-      Arc: 'Smooth arc movement around subject, circular path',
-      Handheld: 'Handheld camera, natural shake, dynamic feel',
-    };
-
-    const movementDesc = movementMap[shotData.movement] || shotData.movement;
-    context += `\n- Type: ${movementDesc}`;
-
-    // Equipment affects smoothness
-    if (shotData.equipment) {
-      const smoothnessMap: Record<string, string> = {
-        Steadicam: 'very smooth, stabilized',
-        Dolly: 'smooth, controlled',
-        Crane: 'smooth, elevated',
-        Handheld: 'natural shake, organic',
-        Gimbal: 'stabilized, fluid',
-        Tripod: 'locked, static',
-      };
-
-      const smoothness = smoothnessMap[shotData.equipment] || 'smooth';
-      context += `\n- Smoothness: ${smoothness} (using ${shotData.equipment})`;
-    } else {
-      context += `\n- Smoothness: smooth, professional`;
-    }
-
-    // Speed varies by shot type
-    if (shotData.shotSize === 'ECU' || shotData.shotSize === 'CU') {
-      context += `\n- Speed: slow, deliberate (close-up requires subtle movement)`;
-    } else if (shotData.shotSize === 'EWS' || shotData.shotSize === 'WS') {
-      context += `\n- Speed: moderate, sweeping (wide shot allows broader movement)`;
-    } else {
-      context += `\n- Speed: normal, steady`;
-    }
-
-    return context;
-  };
-
-  const buildTimingContext = (shotData: any): string => {
-    const duration = shotData.durationSec || 3;
-
-    let context = `\nTIMING & PACING:`;
-    context += `\n- Duration: ${duration} seconds total`;
-
-    // Pacing varies by duration
-    if (duration <= 2) {
-      context += `\n- Pacing: fast, quick tempo, energetic`;
-      context += `\n- Action Speed: accelerated, dynamic`;
-    } else if (duration <= 5) {
-      context += `\n- Pacing: normal, standard tempo`;
-      context += `\n- Action Speed: natural, realistic`;
-    } else if (duration <= 10) {
-      context += `\n- Pacing: slow, contemplative`;
-      context += `\n- Action Speed: leisurely, detailed`;
-    } else {
-      context += `\n- Pacing: very slow, dramatic`;
-      context += `\n- Action Speed: slow-motion feel, cinematic`;
-    }
-
-    // Suggest keyframes
-    const midPoint = duration / 2;
-    context += `\n- Key Moments:`;
-    context += `\n  * Start (0s): Establish shot`;
-    context += `\n  * Mid (${midPoint.toFixed(1)}s): Main action/movement`;
-    context += `\n  * End (${duration}s): Complete action`;
-
-    return context;
-  };
-
-  const buildEnvironmentalMotionContext = (currentScene: GeneratedScene): string => {
-    const location = currentScene.sceneDesign.location || '';
-    const mood = currentScene.sceneDesign.moodTone || '';
-
-    let context = '\nENVIRONMENTAL MOTION:';
-
-    // Infer environmental motion from location
-    const locationMotions: Record<string, string[]> = {
-      market: ['background crowd walking naturally', 'vendors gesturing', 'fabric banners swaying'],
-      street: ['cars passing in background', 'pedestrians walking', 'leaves blowing'],
-      forest: ['trees swaying in wind', 'leaves falling occasionally', 'natural light filtering'],
-      beach: ['waves rolling gently', 'palm trees swaying', 'sand particles blowing'],
-      office: ['papers rustling slightly', 'computer screens glowing', 'subtle air movement'],
-      home: ['curtains moving gently', 'subtle shadows shifting', 'natural ambient movement'],
-    };
-
-    // Find matching location type
-    let motions: string[] = [];
-    for (const [key, value] of Object.entries(locationMotions)) {
-      if (location.toLowerCase().includes(key)) {
-        motions = value;
-        break;
-      }
-    }
-
-    if (motions.length === 0) {
-      motions = ['natural ambient movement', 'subtle background activity'];
-    }
-
-    context += `\n- Background: ${motions.join(', ')}`;
-
-    // Add atmosphere from mood
-    if (mood.toLowerCase().includes('tense') || mood.toLowerCase().includes('suspense')) {
-      context += `\n- Atmosphere: slight camera shake, ominous shadows moving`;
-    } else if (mood.toLowerCase().includes('peaceful') || mood.toLowerCase().includes('calm')) {
-      context += `\n- Atmosphere: gentle movements, soft swaying, tranquil`;
-    } else if (mood.toLowerCase().includes('chaotic') || mood.toLowerCase().includes('busy')) {
-      context += `\n- Atmosphere: fast movements, multiple elements in motion`;
-    }
-
-    return context;
-  };
-
-  // --- Video-Specific Enhanced Prompt Builder ---
-  const buildVideoPrompt = (shotData: any, currentScene: GeneratedScene): string => {
-    // 1. Get base prompt (includes psychology)
-    const basePrompt = buildPrompt(shotData, currentScene, true);
-
-    // 2. Find character for motion context
-    const character = shotData.cast
-      ? allCharacters.find(c => c.name === shotData.cast || c.name.includes(shotData.cast))
-      : undefined;
-
-    // 3. Add video-specific contexts
-    const motionContext = buildMotionContext(shotData, currentScene, character);
-    const cameraContext = buildCameraMovementContext(shotData);
-    const timingContext = buildTimingContext(shotData);
-    const environmentContext = buildEnvironmentalMotionContext(currentScene);
-
-    // 4. Combine all contexts
-    const duration = shotData.durationSec || 3;
-    return `${basePrompt}
-
-${motionContext}
-${cameraContext}
-${timingContext}
-${environmentContext}
-
-IMPORTANT FOR VIDEO:
-- Ensure smooth, natural motion throughout the ${duration} second duration
-- Maintain character consistency across all frames
-- Camera movement should be cinematic and purposeful
-- Background elements should move naturalistically
-- Timing and pacing must match the specified duration exactly`;
-  };
-
   // --- Enhanced Storyboard Prompt Builder ---
   const buildPrompt = (shotData: any, currentScene: GeneratedScene, isVideo: boolean = false) => {
     // 1. Context: Location
@@ -1398,7 +1133,22 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     const shotNumber = shotData.shot;
     if (!shotNumber) return;
 
+    // ✅ Validate required data before generation
+    if (!shotData.description || shotData.description.trim() === '') {
+      alert('❌ ข้อมูลไม่ครบถ้วน: Shot description is required for video generation');
+      return;
+    }
+    const sceneDialogueLines =
+      editedScene.sceneDesign?.situations?.flatMap(s => s.dialogue || []) || [];
+    if (sceneDialogueLines.length === 0) {
+      console.warn('⚠️ Warning: No dialogue found in scene');
+    }
+    if (!scriptData?.characters?.[0]) {
+      console.warn('⚠️ Warning: No character data found');
+    }
+
     setGeneratingVideoShotId(shotIndex);
+    setCurrentVideoJobId(null); // Reset job ID
     setProgress(0);
     try {
       // 🔍 DEBUG: Log video generation settings (use console.warn to prevent minification)
@@ -1406,35 +1156,60 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.warn('  Model:', preferredVideoModel);
       console.warn('  Aspect Ratio:', videoAspectRatio);
       console.warn('  Use Image:', useImage);
-
-      // ✨ NEW: Use enhanced video prompt builder with motion, camera movement, and timing
-      const prompt = buildVideoPrompt(shotData, editedScene);
-      console.warn('  Prompt:', prompt);
+      console.warn('  Shot Data:', {
+        shot: shotNumber,
+        description: shotData.description,
+        movement: shotData.movement,
+        durationSec: shotData.durationSec
+      });
 
       // Use existing image as base ONLY if useImage is true and image exists
       const existingImage = useImage
         ? editedScene.storyboard?.find(s => s.shot === shotNumber)?.image
         : undefined;
-      console.warn('  Has Base Image:', !!existingImage);
 
-      const videoUri = await generateStoryboardVideo(
-        prompt,
+      // 🆕 Continuity: automatically use previous shot video (if available)
+      const previousVideo =
+        shotNumber > 1
+          ? editedScene.storyboard?.find(s => s.shot === shotNumber - 1)?.video
+          : undefined;
+
+      // 🆕 Continuity: also pass previous shot metadata for prompt anchors
+      const previousShot =
+        shotNumber > 1
+          ? editedScene.shotList?.find(s => s.shot === shotNumber - 1)
+          : undefined;
+
+      console.warn('  Has Base Image:', !!existingImage);
+      console.warn('  Has Previous Video:', !!previousVideo);
+
+      const { generateShotVideo } = await import('../services/videoGenerationService');
+
+      const videoUri = await generateShotVideo(
+        shotData,
         existingImage,
-        p => setProgress(p),
-        preferredVideoModel,
         {
-          character: scriptData.characters[0], // Pass first character for psychology
+          preferredModel: preferredVideoModel,
+          previousVideo: typeof previousVideo === 'string' ? previousVideo : undefined,
+          previousShot: previousShot as any,
+          transitionType: 'smooth',
+          character: scriptData.characters[0],
           currentScene: editedScene,
-          shotData: shotData,
-          // 🆕 Pass aspect ratio and resolution
+          // Pass aspect ratio / resolution through to downstream ComfyUI calls
           aspectRatio: videoAspectRatio,
           width: videoAspectRatio === 'custom' ? customWidth : undefined,
           height: videoAspectRatio === 'custom' ? customHeight : undefined,
+        },
+        p => {
+          console.log(`🎬 UI Progress Update: ${Math.round(p)}%`);
+          setProgress(p);
         }
       );
 
       // 🔍 DEBUG: Check video URL before saving
-      console.warn('🎬 Video Result:', videoUri);
+      console.warn('🎬 Step5Output - Video Result:', videoUri);
+      console.warn('🎬 Step5Output - Type:', typeof videoUri);
+      console.warn('🎬 Step5Output - Length:', videoUri?.length);
 
       const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
         shot: shotNumber,
@@ -1461,6 +1236,35 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       alert(`Failed to generate video: ${errorMessage}`);
     } finally {
       setGeneratingVideoShotId(null);
+      setCurrentVideoJobId(null);
+      setProgress(0);
+    }
+  };
+
+  // 🆕 Cancel video generation
+  const handleCancelVideoGeneration = async () => {
+    if (!currentVideoJobId) {
+      console.warn('⚠️ No video job to cancel');
+      return;
+    }
+
+    try {
+      console.log(`🛑 Cancelling video job: ${currentVideoJobId}`);
+      const { cancelVideoJob } = await import('../services/comfyuiBackendClient');
+      const result = await cancelVideoJob(currentVideoJobId);
+      
+      if (result.success) {
+        alert('✅ Video generation cancelled successfully');
+        console.log('✅ Cancellation result:', result);
+      } else {
+        alert(`⚠️ Cancellation result: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to cancel video job:', error);
+      alert(`❌ Failed to cancel: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGeneratingVideoShotId(null);
+      setCurrentVideoJobId(null);
       setProgress(0);
     }
   };
@@ -3025,6 +2829,29 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                                 {Math.round(progress)}%
                               </span>
                             )}
+                            {/* 🆕 Minimal Cancel Button */}
+                            {isGeneratingVideo && currentVideoJobId && (
+                              <button
+                                type="button"
+                                onClick={handleCancelVideoGeneration}
+                                className="mt-2 px-2 py-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 hover:border-red-500 text-red-400 hover:text-red-300 text-[10px] font-medium rounded transition-all backdrop-blur-sm"
+                                title="Cancel video generation"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3 inline-block mr-1"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -4261,7 +4088,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return (
           <button
             type="button"
-            onClick={() => handleGenerateSingle(point, sceneIndex, 'fresh')}
+            onClick={() => {
+              void handleGenerateSingle(point, sceneIndex, 'fresh').catch(() => {
+                // Error already surfaced via globalError state.
+              });
+            }}
             className="text-xs bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md"
           >
             Retry
@@ -4271,7 +4102,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return (
           <button
             type="button"
-            onClick={() => handleGenerateSingle(point, sceneIndex, 'fresh')}
+            onClick={() => {
+              void handleGenerateSingle(point, sceneIndex, 'fresh').catch(() => {
+                // Error already surfaced via globalError state.
+              });
+            }}
             className="text-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded-md"
           >
             Generate
@@ -4344,7 +4179,9 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         onClose={() => setRegenerateModal({ isOpen: false, plotPoint: null, sceneIndex: -1 })}
         onConfirm={(mode: RegenerationMode) => {
           if (regenerateModal.plotPoint) {
-            handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode);
+            void handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode).catch(() => {
+              // Error already surfaced via globalError state.
+            });
           }
         }}
         sceneName={

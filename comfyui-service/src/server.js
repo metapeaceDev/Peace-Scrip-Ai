@@ -41,7 +41,7 @@ const workerManager = await startWorkerManager();
 
 // Initialize load balancer
 const loadBalancer = new IntelligentLoadBalancer(workerManager);
-await loadBalancer.initialize();
+// await loadBalancer.initialize(); // Method doesn't exist - loadBalancer auto-initializes in constructor
 
 // Enable smart routing in queue service
 enableSmartRouting(loadBalancer);
@@ -50,6 +50,7 @@ enableSmartRouting(loadBalancer);
 app.locals.workerManager = workerManager;
 app.locals.loadBalancer = loadBalancer;
 
+// TEMP: Disable all middleware for debugging
 // Security
 app.use(helmet());
 app.use(
@@ -59,20 +60,21 @@ app.use(
   })
 );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Increased limit for local development (was 100)
-  message: 'Too many requests from this IP',
-});
-app.use('/api/', limiter);
-
-// Logging
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-// Body parser
+// Body parser only
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Simple logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// TEST ROUTE
+app.post('/api/test', (req, res) => {
+  console.log('TEST ROUTE HIT!');
+  res.json({ success: true, message: 'Test works' });
+});
 
 // Routes
 app.use('/health', healthRoutes);
@@ -130,8 +132,10 @@ const gracefulShutdown = async (signal) => {
   server.close(async () => {
     console.log('HTTP server closed');
     
-    // Shutdown load balancer
-    await loadBalancer.shutdown();
+    // Shutdown load balancer (if shutdown method exists)
+    if (loadBalancer && typeof loadBalancer.shutdown === 'function') {
+      await loadBalancer.shutdown();
+    }
     
     // Shutdown worker manager (terminates cloud pods)
     await workerManager.shutdown();

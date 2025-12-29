@@ -48,6 +48,22 @@ HEALTH_CHECK_INTERVAL=30000
 # Firebase
 FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_SERVICE_ACCOUNT=./service-account.json
+
+# IMPORTANT: Bucket name must be the exact Storage bucket name.
+# Depending on your Firebase project, this is commonly either:
+# - <project-id>.appspot.com
+# - <project-id>.firebasestorage.app
+FIREBASE_STORAGE_BUCKET=<your-bucket-name>
+
+# URL mode for Storage results:
+# - token: permanent link (recommended) (no expiry)
+# - public: permanent public URL via object ACLs (may fail when UBLA is enabled)
+# - signed: signed URL (expires)
+FIREBASE_STORAGE_URL_MODE=token
+
+# Default behavior returns a Signed URL after upload (works with private buckets / UBLA).
+FIREBASE_STORAGE_MAKE_PUBLIC=false
+FIREBASE_SIGNED_URL_TTL_HOURS=168
 # OR use individual keys:
 # FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
 # FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"

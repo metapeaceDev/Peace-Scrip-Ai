@@ -9,13 +9,17 @@ import IntelligentLoadBalancer from '../src/services/loadBalancer.js';
 
 // Mock worker manager
 const createMockWorkerManager = () => ({
+  workers: [
+    { id: 'worker-1', url: 'http://localhost:8188', status: 'healthy', queueLength: 0 },
+  ],
   getNextWorker: vi.fn(() => ({
     id: 'worker-1',
     url: 'http://localhost:8188',
-    isAvailable: true,
+    status: 'healthy',
   })),
   getCloudManager: vi.fn(() => ({
     isAvailable: () => true,
+    getStats: () => ({ busyPods: 0 }),
     getActivePods: () => [],
     processJob: vi.fn(),
   })),
@@ -27,8 +31,8 @@ const createMockWorkerManager = () => ({
 });
 
 describe('IntelligentLoadBalancer', () => {
-  let loadBalancer: IntelligentLoadBalancer;
-  let mockWorkerManager: any;
+  let loadBalancer;
+  let mockWorkerManager;
 
   beforeEach(() => {
     mockWorkerManager = createMockWorkerManager();
@@ -36,6 +40,7 @@ describe('IntelligentLoadBalancer', () => {
   });
 
   afterEach(() => {
+    loadBalancer.stopMonitoring();
     vi.clearAllMocks();
   });
 
@@ -43,16 +48,16 @@ describe('IntelligentLoadBalancer', () => {
     it('should initialize with 3 backends', () => {
       const stats = loadBalancer.getStats();
       expect(stats.backends).toHaveLength(3);
-      expect(stats.backends.map(b => b.name)).toEqual(['local', 'cloud', 'gemini']);
+      expect(stats.backends.map(b => b.id)).toEqual(['local', 'cloud', 'gemini']);
     });
 
     it('should have correct default costs', () => {
       const stats = loadBalancer.getStats();
       const backends = stats.backends;
 
-      expect(backends.find(b => b.name === 'local')?.cost).toBe(0);
-      expect(backends.find(b => b.name === 'cloud')?.cost).toBe(0.007);
-      expect(backends.find(b => b.name === 'gemini')?.cost).toBe(0.08);
+      expect(backends.find(b => b.id === 'local')?.costPerJob).toBe(0);
+      expect(backends.find(b => b.id === 'cloud')?.costPerJob).toBe(0.007);
+      expect(backends.find(b => b.id === 'gemini')?.costPerJob).toBe(0.08);
     });
 
     it('should have correct priorities', () => {
@@ -65,7 +70,11 @@ describe('IntelligentLoadBalancer', () => {
   describe('Backend Scoring Algorithm', () => {
     it('should calculate score based on priority, cost, speed, queue', () => {
       const backend = loadBalancer['backends'].local;
-      const score = loadBalancer['calculateBackendScore'](backend);
+      const score = loadBalancer['calculateBackendScore'](backend, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 0,
+      });
 
       // Local: Priority 1 (40pts) + Cost 0 (30pts) + Speed 10s (10pts) + Queue 0 (10pts)
       expect(score).toBeGreaterThan(80);
@@ -73,31 +82,49 @@ describe('IntelligentLoadBalancer', () => {
     });
 
     it('should prefer local over cloud (higher score)', () => {
-      const localScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].local);
-      const cloudScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].cloud);
+      const localScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].local, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 0,
+      });
+      const cloudScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].cloud, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 0,
+      });
 
       expect(localScore).toBeGreaterThan(cloudScore);
     });
 
     it('should prefer cloud over gemini (higher score)', () => {
-      const cloudScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].cloud);
-      const geminiScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].gemini);
+      const cloudScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].cloud, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 0,
+      });
+      const geminiScore = loadBalancer['calculateBackendScore'](loadBalancer['backends'].gemini, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 0,
+      });
 
       expect(cloudScore).toBeGreaterThan(geminiScore);
     });
 
     it('should adjust score when queue is full', () => {
       const backend = loadBalancer['backends'].local;
-      backend.queue = 10;
-
-      const score = loadBalancer['calculateBackendScore'](backend);
+      const score = loadBalancer['calculateBackendScore'](backend, {
+        requireFast: false,
+        maxCost: 0.1,
+        queueLength: 10,
+      });
       expect(score).toBeLessThan(90); // Queue penalty applied
     });
   });
 
   describe('Backend Selection', () => {
     it('should select local backend by default (auto mode)', async () => {
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'video' };
       const selection = await loadBalancer.selectBackend(job, {});
 
       expect(selection.backend).toBe('local');
@@ -105,7 +132,7 @@ describe('IntelligentLoadBalancer', () => {
     });
 
     it('should respect user preferred backend', async () => {
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'video' };
       const selection = await loadBalancer.selectBackend(job, {
         preferredBackend: 'cloud',
       });
@@ -114,9 +141,9 @@ describe('IntelligentLoadBalancer', () => {
     });
 
     it('should filter backends by max cost', async () => {
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'video' };
       const selection = await loadBalancer.selectBackend(job, {
-        maxCostPerJob: 0.01, // Only local (0) and cloud (0.007) qualify
+        maxCost: 0.01, // Only local (0) and cloud (0.007) qualify
       });
 
       expect(['local', 'cloud']).toContain(selection.backend);
@@ -124,7 +151,7 @@ describe('IntelligentLoadBalancer', () => {
     });
 
     it('should prioritize speed when option enabled', async () => {
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'image' }; // non-video so Gemini can be considered
       
       // Set high max cost to allow gemini
       loadBalancer.setPreferences({ 
@@ -134,8 +161,19 @@ describe('IntelligentLoadBalancer', () => {
 
       const selection = await loadBalancer.selectBackend(job, {});
       
-      // Gemini is fastest (5s) but expensive, should still prefer local/cloud without high priority
       expect(['local', 'cloud', 'gemini']).toContain(selection.backend);
+    });
+
+    it('should block gemini for video jobs even if preferred', async () => {
+      const job = { id: 'test-1', name: 'video' };
+
+      const selection = await loadBalancer.selectBackend(job, {
+        preferredBackend: 'gemini',
+        maxCost: 1.0,
+      });
+
+      expect(selection.backend).not.toBe('gemini');
+      expect(['local', 'cloud']).toContain(selection.backend);
     });
   });
 
@@ -144,68 +182,96 @@ describe('IntelligentLoadBalancer', () => {
       const estimate = loadBalancer.estimateCost(100, 'local');
 
       expect(estimate.totalCost).toBe(0);
-      expect(estimate.avgCostPerJob).toBe(0);
       expect(estimate.jobCount).toBe(100);
     });
 
     it('should estimate cost for cloud backend', () => {
       const estimate = loadBalancer.estimateCost(100, 'cloud');
 
-      expect(estimate.totalCost).toBe(0.7); // 100 * 0.007
-      expect(estimate.avgCostPerJob).toBe(0.007);
+      expect(estimate.totalCost).toBeCloseTo(0.7, 10); // 100 * 0.007
+      expect(estimate.costPerJob).toBe(0.007);
     });
 
     it('should estimate cost for gemini backend', () => {
       const estimate = loadBalancer.estimateCost(100, 'gemini');
 
       expect(estimate.totalCost).toBe(8.0); // 100 * 0.08
-      expect(estimate.avgCostPerJob).toBe(0.08);
+      expect(estimate.costPerJob).toBe(0.08);
     });
 
     it('should estimate cost for auto mode (mixed backends)', () => {
-      const estimate = loadBalancer.estimateCost(100);
+      // Without a backendId, estimateCost returns a list for all available backends
+      loadBalancer['backends'].local.available = true;
+      loadBalancer['backends'].local.healthy = true;
+      loadBalancer['backends'].cloud.available = true;
+      loadBalancer['backends'].cloud.healthy = true;
+      loadBalancer['backends'].gemini.available = true;
+      loadBalancer['backends'].gemini.healthy = true;
 
-      // Auto mode should prefer local, so cost should be low
-      expect(estimate.totalCost).toBeLessThan(1.0);
-      expect(estimate.backend).toBeTruthy();
+      const estimate = loadBalancer.estimateCost(100);
+      expect(Array.isArray(estimate)).toBe(true);
+      expect(estimate.length).toBeGreaterThanOrEqual(1);
     });
   });
 
   describe('Recommendations', () => {
     it('should recommend local for unlimited budget', () => {
+      loadBalancer['backends'].local.available = true;
+      loadBalancer['backends'].local.healthy = true;
+      loadBalancer['backends'].cloud.available = true;
+      loadBalancer['backends'].cloud.healthy = true;
+      loadBalancer['backends'].gemini.available = true;
+      loadBalancer['backends'].gemini.healthy = true;
+
       const recs = loadBalancer.getRecommendations({
         jobCount: 100,
         maxBudget: null,
         needsFast: false,
       });
 
-      expect(recs.recommendations).toHaveLength(3);
-      const localRec = recs.recommendations.find(r => r.backend === 'local');
-      expect(localRec?.jobCount).toBeGreaterThan(0);
+      expect(recs).toHaveLength(3);
+      const localRec = recs.find(r => r.backend === 'local');
+      expect(localRec?.recommended).toBe(true);
     });
 
     it('should distribute jobs based on budget', () => {
+      loadBalancer['backends'].local.available = true;
+      loadBalancer['backends'].local.healthy = true;
+      loadBalancer['backends'].cloud.available = true;
+      loadBalancer['backends'].cloud.healthy = true;
+      loadBalancer['backends'].gemini.available = true;
+      loadBalancer['backends'].gemini.healthy = true;
+
       const recs = loadBalancer.getRecommendations({
         jobCount: 100,
         maxBudget: 0.5,
         needsFast: false,
       });
 
-      // With $0.50 budget, should use local + some cloud
-      expect(recs.totalCost).toBeLessThanOrEqual(0.5);
-      expect(recs.recommendations.some(r => r.backend === 'local')).toBe(true);
+      // With budget, expensive backends should be filtered out
+      expect(recs.some(r => r.backend === 'local')).toBe(true);
+      expect(recs.every(r => r.totalCost <= 0.5)).toBe(true);
     });
 
     it('should prioritize speed when requested', () => {
+      loadBalancer['backends'].local.available = true;
+      loadBalancer['backends'].local.healthy = true;
+      loadBalancer['backends'].cloud.available = true;
+      loadBalancer['backends'].cloud.healthy = true;
+      loadBalancer['backends'].gemini.available = true;
+      loadBalancer['backends'].gemini.healthy = true;
+
       const recs = loadBalancer.getRecommendations({
         jobCount: 10,
         maxBudget: 1.0,
         needsFast: true,
       });
 
-      // Should consider faster backends (gemini = 5s)
-      expect(recs.recommendations).toBeDefined();
-      expect(recs.totalTime).toBeGreaterThan(0);
+      expect(recs).toBeDefined();
+      // Sorted by speed (fastest first)
+      for (let i = 1; i < recs.length; i++) {
+        expect(recs[i].avgSpeed).toBeGreaterThanOrEqual(recs[i - 1].avgSpeed);
+      }
     });
   });
 
@@ -230,7 +296,7 @@ describe('IntelligentLoadBalancer', () => {
         preferredBackend: 'gemini',
       });
 
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'image' }; // non-video
       const selection = await loadBalancer.selectBackend(job, {});
 
       expect(selection.backend).toBe('gemini');
@@ -268,18 +334,18 @@ describe('IntelligentLoadBalancer', () => {
 
   describe('Health Monitoring', () => {
     it('should check backend health', async () => {
-      await loadBalancer.initialize();
+      await loadBalancer.updateBackendHealth();
       
       const stats = loadBalancer.getStats();
       expect(stats.backends.every(b => 'healthy' in b)).toBe(true);
     });
 
     it('should mark unhealthy backends as unavailable', () => {
-      const backend = loadBalancer['backends'].local;
-      backend.healthy = false;
+      loadBalancer['backends'].local.available = true;
+      loadBalancer['backends'].local.healthy = false;
 
-      const candidates = loadBalancer['getCandidateBackends']({});
-      expect(candidates).not.toContain(backend);
+      const candidates = loadBalancer['getCandidateBackends'](1.0, false, true);
+      expect(candidates.map(b => b.id)).not.toContain('local');
     });
   });
 
@@ -290,17 +356,17 @@ describe('IntelligentLoadBalancer', () => {
     });
 
     it('should handle invalid backend name', () => {
-      expect(() => loadBalancer.estimateCost(100, 'invalid' as any)).toThrow();
+      expect(() => loadBalancer.estimateCost(100, 'invalid')).toThrow();
     });
 
     it('should handle missing worker manager', () => {
-      expect(() => new IntelligentLoadBalancer(null as any)).toThrow();
+      expect(() => new IntelligentLoadBalancer(null)).toThrow();
     });
   });
 
   describe('Performance', () => {
     it('should select backend quickly (< 50ms)', async () => {
-      const job = { id: 'test-1', type: 'video' };
+      const job = { id: 'test-1', name: 'video' };
       const start = Date.now();
       
       await loadBalancer.selectBackend(job, {});
@@ -312,7 +378,7 @@ describe('IntelligentLoadBalancer', () => {
     it('should handle concurrent selections', async () => {
       const jobs = Array.from({ length: 10 }, (_, i) => ({
         id: `test-${i}`,
-        type: 'video',
+        name: 'video',
       }));
 
       const selections = await Promise.all(

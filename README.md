@@ -1,8 +1,296 @@
 # Peace Script AI
 
-**Production-Ready AI Screenwriting Platform with Buddhist Psychology Integration**
+**AI-Powered Screenwriting Platform with Buddhist Psychology Integration**
 
-Peace Script AI is a professional screenwriting and video production platform that combines AI technology with Buddhist psychological principles to create meaningful, educational content.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18.2-61dafb.svg)](https://reactjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-12.6-orange.svg)](https://firebase.google.com/)
+
+---
+
+## 🌟 Overview
+
+Peace Script AI is a professional screenwriting and video production platform that combines cutting-edge AI technology with Buddhist psychological principles to create meaningful, educational content. Built with React, TypeScript, and Firebase.
+
+**Key Features:**
+- 📝 AI-powered script generation and analysis
+- 🎬 Video generation with ComfyUI integration
+- 🎙️ Voice cloning and text-to-speech (Thai language support)
+- 🧘 Buddhist psychology integration
+- 📊 Admin analytics and user management
+- 💰 Credit-based pricing system
+- 🔒 Enterprise-grade security
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Firebase account
+- Git
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
+cd Peace-Scrip-Ai/peace-script-basic-v1
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Firebase credentials
+
+# Start development server
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+---
+
+## 📚 Documentation
+
+### Core Documentation
+- [Getting Started Guide](docs/getting-started/README.md)
+- [Development Guide](docs/development/DEVELOPMENT_GUIDE.md)
+- [API Documentation](docs/api/README.md)
+- [Architecture Overview](docs/architecture/README.md)
+
+### Feature Documentation
+- [ComfyUI Video Generation](docs/features/COMFYUI_USER_GUIDE.md)
+- [Voice Cloning Setup](docs/voice-cloning/README.md)
+- [Admin Dashboard](docs-archive/admin/ADMIN_README.md)
+
+### Deployment
+- [Firebase Deployment](docs/deployment/FIREBASE_SETUP_GUIDE.md)
+- [Security Best Practices](docs/SECURITY.md)
+- [Troubleshooting Guide](docs/TROUBLESHOOTING_GUIDE.md)
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend:**
+- React 18.2 with TypeScript
+- Vite 7.3 (fast build tool)
+- React Router 7.10
+- Recharts (analytics)
+
+**Backend:**
+- Firebase (Authentication, Firestore, Functions, Hosting, Storage)
+- ComfyUI (video generation)
+- Google Gemini AI
+- Microsoft Azure Speech SDK
+
+**Testing:**
+- Vitest with coverage
+- React Testing Library
+- ESLint + Prettier
+
+---
+
+## 📦 Project Structure
+
+```
+peace-script-basic-v1/
+├── src/                    # Application source code
+│   ├── components/         # Reusable React components
+│   ├── pages/             # Page components
+│   ├── services/          # API and Firebase services
+│   ├── hooks/             # Custom React hooks
+│   ├── contexts/          # React context providers
+│   └── utils/             # Utility functions
+├── docs/                   # Active documentation
+├── docs-archive/          # Historical documentation
+├── scripts/               # Build and utility scripts
+│   ├── powershell/        # PowerShell automation
+│   ├── python/            # Python utilities
+│   └── shell/             # Shell scripts
+├── public/                # Static assets
+├── functions/             # Firebase Cloud Functions
+├── tests/                 # Test files
+└── package.json           # Dependencies and scripts
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Generate coverage report
+npm run test:coverage
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+npm run lint:fix
+```
+
+---
+
+## 🔧 Available Scripts
+
+```bash
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run preview          # Preview production build
+npm run test             # Run tests
+npm run lint             # Check code quality
+npm run format           # Format code with Prettier
+npm run type-check       # TypeScript type checking
+npm run firebase:deploy  # Deploy to Firebase
+```
+
+---
+
+## 🔐 Security
+
+- All sensitive credentials must be in environment variables
+- Never commit `.env` files or `service-account-key.json`
+- Follow [Security Best Practices](docs/SECURITY.md)
+- Regular security audits with `npm run security:check`
+
+---
+
+## 📈 Performance
+
+- Vite for lightning-fast development
+- Code splitting and lazy loading
+- Optimized bundle size with tree shaking
+- Firebase CDN for global distribution
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 👥 Team
+
+- **Developer:** metapeaceDev
+- **Project:** Peace Script AI
+
+---
+
+## 🙏 Acknowledgments
+
+- Buddhist psychology experts for guidance
+- Open-source community for amazing tools
+- Firebase team for excellent documentation
+
+---
+
+## 📞 Support
+
+- **Documentation:** [docs/](docs/)
+- **Issues:** [GitHub Issues](https://github.com/metapeaceDev/Peace-Scrip-Ai/issues)
+- **Email:** [Contact via GitHub]
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Core AI script generation
+- [x] Video generation with ComfyUI
+- [x] Voice cloning integration
+- [x] Admin analytics dashboard
+- [x] Credit system and payment
+- [ ] Mobile app (iOS/Android)
+- [ ] Advanced animation features
+- [ ] Multi-language support (beyond Thai)
+- [ ] Collaboration features
+
+---
+
+**Made with ❤️ for meaningful storytelling**
+- [CLOUD_GPU_SETUP_GUIDE.md](./CLOUD_GPU_SETUP_GUIDE.md) - Alternative platforms
+
+#### **Option 2: Wait for PyTorch sm_120** (Free but slow)
+
+**Timeline:** 1-3 months expected  
+**Cost:** $0 (use local RTX 5090 when ready)  
+**Monitoring:** Automated weekly checks
+
+```powershell
+# Setup monitor (runs every Monday 9AM)
+.\setup-monitor-simple.ps1
+
+# Manual check anytime
+.\monitor-sm120.ps1
+```
+
+**Status Log:** [pytorch_sm120_log.txt](./pytorch_sm120_log.txt)
+
+### 📚 Documentation Suite (18 files, 5,800+ lines)
+
+| Document | Purpose | Lines |
+|----------|---------|-------|
+| **[RUNPOD_COMPLETE_SETUP.md](./RUNPOD_COMPLETE_SETUP.md)** ⭐ | Complete RunPod guide with troubleshooting | 850+ |
+| [RUNPOD_QUICK_START.md](./RUNPOD_QUICK_START.md) | Fast 5-step beginner guide | 545 |
+| [RUNPOD_COMMANDS.md](./RUNPOD_COMMANDS.md) | Copy-paste command reference | 85 |
+| [CLOUD_GPU_SETUP_GUIDE.md](./CLOUD_GPU_SETUP_GUIDE.md) | Multi-platform cloud setup | 614 |
+| [RTX5090_INCOMPATIBILITY_REPORT.md](./RTX5090_INCOMPATIBILITY_REPORT.md) | Technical analysis | 398 |
+| [PROJECT_COMPLETION_STATUS.md](./PROJECT_COMPLETION_STATUS.md) | Overall project status | 570+ |
+| `setup-runpod-comfyui.sh` | Automated RunPod setup script | 240+ |
+| `setup-monitor-simple.ps1` | PyTorch monitor installer | 65 |
+| `monitor-sm120.ps1` | Weekly check script | 12 |
+| `test_sm120.py` | CUDA capability tester | 28 |
+
+**Total:** 18 files, 5,800+ lines, 195+ KB
+
+### 💰 RunPod Cost Calculator
+
+| Scenario | Duration | Cost |
+|----------|----------|------|
+| Quick POC (5 videos) | 1 hour | $0.44 |
+| Complete Testing (10 videos) | 2 hours | $0.89 |
+| Development Session | 4 hours | $1.76 |
+| Full Day Testing | 8 hours | $3.52 |
+
+**GPU Rate:** $0.44/hour (RTX 4090)  
+**Storage:** $10/month for 100GB Volume  
+**Best Practice:** Stop pod when not generating ($0/hour while stopped)
+
+### 🎯 Recommended Workflow
+
+**For Immediate Testing:** Use RunPod Option 1
+- ✅ Working in 20 minutes
+- ✅ Only $2-4 for POC
+- ✅ Full automation included
+
+**For Long-term Production:** Wait for PyTorch + Use RTX 5090
+- ⏳ 1-3 months wait
+- ✅ Free (local GPU)
+- ✅ Faster than RTX 4090
+- ✅ More VRAM (32GB vs 24GB)
 
 ---
 

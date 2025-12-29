@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "dev:backend": "cd comfyui-service && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\" --names \"frontend,backend\" --prefix-colors \"cyan,green\"",
     "build": "tsc && vite build",

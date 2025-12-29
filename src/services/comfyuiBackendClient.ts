@@ -30,14 +30,21 @@ async function checkServiceHealth(): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${COMFYUI_SERVICE_URL}/health/detailed`, {
-      signal: AbortSignal.timeout(2000),
+    console.log(`🔍 Checking ComfyUI Backend Health at ${COMFYUI_SERVICE_URL}/health...`);
+    // Use simple /health endpoint (returns 200 OK when service is up)
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/health`, {
+      signal: AbortSignal.timeout(5000), // Increased timeout to 5s
     });
+
+    if (!response.ok) {
+      console.warn(`⚠️ ComfyUI Backend Health Check Failed: ${response.status} ${response.statusText}`);
+    }
 
     serviceAvailable = response.ok;
     lastCheck = now;
     return serviceAvailable;
-  } catch {
+  } catch (error) {
+    console.error(`❌ ComfyUI Backend Health Check Error:`, error);
     // Service not available - fail silently
     serviceAvailable = false;
     lastCheck = now;
@@ -404,12 +411,26 @@ export async function getQueueStats() {
  * Generate video using ComfyUI Backend Service
  */
 export async function generateVideo(params: {
-  type: 'animatediff' | 'svd';
+  type: 'animatediff' | 'svd' | 'wan';
   prompt: string;
   numFrames?: number;
   fps?: number;
   steps?: number;
   referenceImage?: string;
+  negativePrompt?: string;
+  seed?: number;
+  width?: number;
+  height?: number;
+  cfg?: number;
+  // AnimateDiff
+  motionScale?: number;
+  motionModel?: string;
+  lora?: string;
+  loraStrength?: number;
+  // SVD
+  videoModel?: string;
+  // WAN
+  modelPath?: string;
   userId?: string;
   onProgress?: (progress: number, details?: any) => void;
 }): Promise<{ jobId: string; queuePosition: number; status: string }> {
@@ -424,7 +445,9 @@ export async function generateVideo(params: {
     const endpoint =
       params.type === 'animatediff'
         ? `${COMFYUI_SERVICE_URL}/api/video/generate/animatediff`
-        : `${COMFYUI_SERVICE_URL}/api/video/generate/svd`;
+        : params.type === 'svd'
+          ? `${COMFYUI_SERVICE_URL}/api/video/generate/svd`
+          : `${COMFYUI_SERVICE_URL}/api/video/generate/wan`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -438,6 +461,17 @@ export async function generateVideo(params: {
         fps: params.fps,
         steps: params.steps,
         referenceImage: params.referenceImage,
+        negativePrompt: params.negativePrompt,
+        seed: params.seed,
+        width: params.width,
+        height: params.height,
+        cfg: params.cfg,
+        motionScale: params.motionScale,
+        motionModel: params.motionModel,
+        lora: params.lora,
+        loraStrength: params.loraStrength,
+        videoModel: params.videoModel,
+        modelPath: params.modelPath,
         userId: params.userId || auth.currentUser?.uid,
       }),
     });
@@ -450,6 +484,11 @@ export async function generateVideo(params: {
     const result = await response.json();
     console.log('🎬 Video job submitted:', result);
 
+    // Return the data object which contains jobId
+    if (result.data) {
+      return result.data;
+    }
+
     return result;
   } catch (error) {
     console.error('❌ Video generation failed:', error);
@@ -460,12 +499,22 @@ export async function generateVideo(params: {
 /**
  * Get video job status
  */
+/**
+ * Get video job status from backend service
+ * @param jobId - The unique job identifier
+ * @returns Promise with job status details including progress (0-100)
+ * @throws Error if request fails or job not found
+ */
 export async function getVideoJobStatus(jobId: string): Promise<{
   jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status?: 'queued' | 'processing' | 'completed' | 'failed';
+  // Some backend versions use `state` instead of `status`
+  state?: 'queued' | 'processing' | 'completed' | 'failed';
   progress: number;
   result?: any;
   error?: string;
+  // Some backend versions may return URL at the top-level
+  videoUrl?: string;
 }> {
   try {
     const idToken = await getIdToken();
@@ -481,7 +530,8 @@ export async function getVideoJobStatus(jobId: string): Promise<{
     }
 
     const result = await response.json();
-    return result;
+    // API returns {success: true, data: {...}}, unwrap the data
+    return result.data || result;
   } catch (error) {
     console.error('❌ Failed to get video job status:', error);
     throw error;
@@ -489,7 +539,10 @@ export async function getVideoJobStatus(jobId: string): Promise<{
 }
 
 /**
- * Cancel video job
+ * Cancel a video generation job
+ * @param jobId - The unique job identifier to cancel
+ * @returns Promise with cancellation result
+ * @throws Error if cancellation fails
  */
 export async function cancelVideoJob(jobId: string): Promise<{ success: boolean; message: string }> {
   try {
@@ -507,7 +560,8 @@ export async function cancelVideoJob(jobId: string): Promise<{ success: boolean;
     }
 
     const result = await response.json();
-    return result;
+    // API returns {success: true, data: {...}}, unwrap the data
+    return result.data || result;
   } catch (error) {
     console.error('❌ Failed to cancel video job:', error);
     throw error;
@@ -515,9 +569,12 @@ export async function cancelVideoJob(jobId: string): Promise<{ success: boolean;
 }
 
 /**
- * Get video requirements
+ * Get system requirements for video generation
+ * @param videoType - Type of video generation ('animatediff' | 'svd')
+ * @returns Promise with requirements check results
+ * @throws Error if requirements check fails
  */
-export async function getVideoRequirements(videoType: 'animatediff' | 'svd'): Promise<{
+export async function getVideoRequirements(videoType: 'animatediff' | 'svd' | 'wan'): Promise<{
   ready: boolean;
   vramOk: boolean;
   modelsFound: boolean;
@@ -533,7 +590,8 @@ export async function getVideoRequirements(videoType: 'animatediff' | 'svd'): Pr
     }
 
     const result = await response.json();
-    return result;
+    // API returns {success: true, data: {...}}, unwrap the data
+    return result.data || result;
   } catch (error) {
     console.error('❌ Failed to get video requirements:', error);
     throw error;
@@ -541,7 +599,9 @@ export async function getVideoRequirements(videoType: 'animatediff' | 'svd'): Pr
 }
 
 /**
- * Detect available video models
+ * Detect available video generation models on the system
+ * @returns Promise with model availability status for AnimateDiff and SVD
+ * @throws Error if model detection fails
  */
 export async function detectVideoModels(): Promise<{
   animatediff: { available: boolean; models: any };
@@ -555,11 +615,116 @@ export async function detectVideoModels(): Promise<{
     }
 
     const result = await response.json();
-    return result;
+    // API returns {success: true, data: {...}}, unwrap the data
+    return result.data || result;
   } catch (error) {
     console.error('❌ Failed to detect video models:', error);
     throw error;
   }
+}
+
+/**
+ * Poll video job status until complete
+ */
+async function pollVideoJob(
+  jobId: string,
+  onProgress?: (progress: number, details?: any, jobId?: string) => void
+): Promise<string> {
+  const startTime = Date.now();
+  const maxWait = 2400000; // 🆕 40 minutes for video (increased from 20)
+  const pollInterval = 3000; // 3 seconds
+
+  // Ensure UI starts from 0% and never goes backwards.
+  let lastProgress = 0;
+  if (onProgress) {
+    onProgress(0, { status: 'queued' }, jobId);
+  }
+
+  while (Date.now() - startTime < maxWait) {
+    try {
+      const status = await getVideoJobStatus(jobId);
+
+      // 🆕 Support both 'status' and 'state' properties for compatibility
+      const currentStatus = status.status || status.state;
+
+      if (currentStatus === 'completed') {
+        console.warn('🎉 Video Completed! Checking result...');
+        console.warn('📦 Full Status:', JSON.stringify(status, null, 2));
+        
+        // Check for debug error from backend (in dev mode)
+        if (status.result?._debug_error) {
+          console.error('❌ Backend Debug Error:', status.result._debug_error);
+          throw new Error(`Backend Error: ${status.result._debug_error}`);
+        }
+
+        if (onProgress) onProgress(100, status.result, jobId);
+
+        // Determine the best available URL first
+        const resolvedUrl =
+          status.result?.videoUrl ||
+          status.videoUrl ||
+          (typeof status.result?.output?.video === 'string' ? status.result.output.video : null);
+
+        // If Storage upload failed but we still have a usable local URL, treat it as a warning.
+        // This is common in local/dev when FIREBASE_STORAGE_BUCKET is not configured.
+        if (status.result?.storageError) {
+          if (resolvedUrl) {
+            console.warn('⚠️ Storage upload failed, using local video URL instead:', status.result.storageError);
+          } else {
+            console.error('❌ Storage Error:', status.result.storageError);
+            throw new Error(`Storage upload failed: ${status.result.storageError}`);
+          }
+        }
+
+        if (resolvedUrl) {
+          console.warn('✅ Resolved video URL:', resolvedUrl);
+          return resolvedUrl;
+        }
+        
+        console.error('❌ No URL found! Result:', status.result);
+        throw new Error('Video completed but no URL found in result');
+      }
+
+      if (currentStatus === 'failed') {
+        throw new Error(status.error || 'Video generation failed');
+      }
+
+      if (onProgress) {
+        const rawProgress = typeof status.progress === 'number' ? status.progress : 0;
+        const bounded = Math.max(0, Math.min(100, rawProgress));
+        const currentProgress = Math.max(lastProgress, bounded);
+        lastProgress = currentProgress;
+
+        console.log(`🔄 Video Progress: ${Math.round(currentProgress)}% | Status: ${currentStatus}`);
+
+        // 🔍 DEBUG: If progress is 100 but not completed, dump status
+        if (currentProgress >= 100) {
+          console.warn('⚠️ Progress 100% but not completed! Full Status:', JSON.stringify(status, null, 2));
+
+          // 🆕 Auto-fix: If progress is 100 and we have a videoUrl, treat as completed
+          if (status.videoUrl || status.result?.videoUrl) {
+            console.warn('💡 Auto-detecting completion based on videoUrl presence');
+            status.status = 'completed';
+            continue; // Restart loop iteration to hit the completion block
+          }
+        }
+
+        onProgress(currentProgress, status.result, jobId); // 🆕 Pass jobId
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    } catch (error) {
+      console.warn('Polling error:', error);
+      // Continue polling unless it's a fatal error?
+      // For now, rethrow if it's not a network glitch
+      if (error instanceof Error && error.message.includes('failed')) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+  }
+
+  throw new Error('Video generation timed out');
 }
 
 /**
@@ -570,6 +735,98 @@ export async function generateWithComfyUI(
   options: Record<string, unknown> = {},
   referenceImage: string | null = null
 ): Promise<string> {
+  // Extract typed values from options
+  const optionsRefImage =
+    typeof options.referenceImage === 'string' ? options.referenceImage : null;
+  const onProgressCallback =
+    typeof options.onProgress === 'function'
+      ? (options.onProgress as (progress: number, details?: any) => void)
+      : undefined;
+      
+  // 🎬 VIDEO GENERATION ROUTING
+  // If AnimateDiff / SVD / WAN is requested, route to dedicated Video API
+  const useAnimateDiff = !!options.useAnimateDiff;
+  const useSVD = !!options.useSVD;
+  const useWan = !!(options.useWan || options.useWAN);
+  const explicitVideoType = typeof options.videoType === 'string' ? options.videoType : null;
+
+  if (useAnimateDiff || useSVD || useWan || explicitVideoType === 'wan') {
+    console.log('🎬 Routing to Video Generation API...');
+
+    const videoType = ((): 'animatediff' | 'svd' | 'wan' => {
+      if (explicitVideoType === 'wan') return 'wan';
+      if (useWan) return 'wan';
+      if (useSVD) return 'svd';
+      return 'animatediff';
+    })();
+
+    const finalRefImage = (referenceImage || optionsRefImage) ?? undefined;
+    
+    // For SVD, we need a reference image
+    if (videoType === 'svd' && !finalRefImage) {
+      throw new Error('SVD video generation requires a reference image');
+    }
+
+    const rawFrameCount =
+      (typeof options.numFrames === 'number' ? (options.numFrames as number) : undefined) ??
+      (typeof (options as any).frameCount === 'number' ? ((options as any).frameCount as number) : undefined);
+
+    const rawMotionStrength =
+      typeof options.motionStrength === 'number' ? (options.motionStrength as number) : undefined;
+
+    const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+    const getSvdMotionBucket = (motionStrength: number) => {
+      // Map 0..1 motion strength into a safer SVD motion_bucket_id range.
+      // Lower values generally reduce warping/unrealistic motion.
+      const base = Math.round(20 + clamp01(motionStrength) * 120); // ~20..140
+
+      const shotData = (options as any)?.shotData;
+      const movement = typeof shotData?.movement === 'string' ? shotData.movement.toLowerCase() : '';
+      const transitionType = typeof (options as any)?.transitionType === 'string' ? ((options as any).transitionType as string).toLowerCase() : '';
+
+      const isStatic = movement.includes('static') || movement.includes('still');
+      const isSeamless = transitionType === 'seamless';
+
+      if (isStatic) return Math.min(base, 70);
+      if (isSeamless) return Math.min(base, 90);
+      return Math.max(1, Math.min(255, base));
+    };
+
+    const motionScale =
+      videoType === 'svd' && typeof rawMotionStrength === 'number'
+        ? getSvdMotionBucket(rawMotionStrength)
+        : rawMotionStrength;
+
+    // Ensure UI progress starts at 0 immediately on submit.
+    if (onProgressCallback) {
+      onProgressCallback(0, { status: 'submitting', videoType });
+    }
+
+    const videoJob = await generateVideo({
+      type: videoType,
+      prompt: prompt,
+      numFrames: rawFrameCount,
+      fps: (options.fps as number) || undefined,
+      steps: (options.steps as number) || undefined,
+      referenceImage: finalRefImage,
+      negativePrompt: typeof options.negativePrompt === 'string' ? (options.negativePrompt as string) : undefined,
+      seed: typeof options.seed === 'number' ? (options.seed as number) : undefined,
+      width: typeof options.width === 'number' ? (options.width as number) : undefined,
+      height: typeof options.height === 'number' ? (options.height as number) : undefined,
+      cfg: typeof options.cfg === 'number' ? (options.cfg as number) : undefined,
+      motionScale: typeof motionScale === 'number' ? motionScale : undefined,
+      motionModel: typeof (options as any).motionModel === 'string' ? ((options as any).motionModel as string) : undefined,
+      lora: typeof options.lora === 'string' ? (options.lora as string) : undefined,
+      loraStrength: typeof (options as any).loraStrength === 'number' ? ((options as any).loraStrength as number) : undefined,
+      videoModel: typeof (options as any).videoModel === 'string' ? ((options as any).videoModel as string) : undefined,
+      modelPath: typeof (options as any).modelPath === 'string' ? ((options as any).modelPath as string) : undefined,
+      onProgress: onProgressCallback
+    });
+
+    console.log(`⏳ Polling video job ${videoJob.jobId}...`);
+    return await pollVideoJob(videoJob.jobId, onProgressCallback);
+  }
+
   if (USE_BACKEND_SERVICE) {
     console.log('🌐 Using ComfyUI Backend Service');
     console.log('📋 Options:', options);
@@ -577,44 +834,172 @@ export async function generateWithComfyUI(
     // เลือกใช้ FLUX หรือ SDXL workflow
     const useFlux = options.useFlux || false;
 
-    // Extract typed values from options
-    const optionsRefImage =
-      typeof options.referenceImage === 'string' ? options.referenceImage : null;
-    const onProgressCallback =
-      typeof options.onProgress === 'function'
-        ? (options.onProgress as (progress: number) => void)
-        : undefined;
+    const getErrMsg = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-    let workflow;
-    if (useFlux) {
-      console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
-      workflow = buildFluxWorkflow(prompt, {
-        ...options,
-        referenceImage: (referenceImage || optionsRefImage) ?? undefined,
-      });
-    } else {
-      const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
-      console.log(`🎨 Using SDXL workflow (${checkpointName})`);
-      workflow = buildWorkflow(prompt, {
-        ...options,
-        ckpt_name: checkpointName, // Ensure checkpoint name is set
-        referenceImage: (referenceImage || optionsRefImage) ?? undefined,
-      });
+    const extractAllowedCkptNames = (msg: string): string[] => {
+      // Common ComfyUI error detail includes: ckpt_name: 'flux_dev.safetensors' not in ['a','b',...]
+      const listMatch = msg.match(/ckpt_name:[^\n\r\]]*not in \[([^\]]+)\]/i);
+      const rawList = listMatch?.[1];
+      if (!rawList) return [];
+      return Array.from(rawList.matchAll(/'([^']+)'/g))
+        .map((m) => m[1])
+        .filter(Boolean);
+    };
+
+    const pickBestFallbackCheckpoint = (allowed: string[]): string | undefined => {
+      if (!allowed.length) return undefined;
+      const preferred = ['sd_xl_base_1.0.safetensors', 'v1-5-pruned-emaonly.safetensors'];
+      for (const name of preferred) {
+        if (allowed.includes(name)) return name;
+      }
+      return allowed[0];
+    };
+
+    const shouldFallbackFromFlux = (err: unknown) => {
+      const msg = getErrMsg(err);
+      // ComfyUI returns a 400 with a node error like:
+      // value_not_in_list ... ckpt_name: 'flux_dev.safetensors' not in [...]
+      // Don't rely on exact phrasing like "status code 400".
+      const lower = msg.toLowerCase();
+      return lower.includes('value_not_in_list') && lower.includes('ckpt_name') && lower.includes('flux');
+    };
+
+    const runWithWorkflow = async (workflow: Record<string, unknown>) =>
+      await generateImageWithBackend(
+        prompt,
+        workflow,
+        referenceImage || optionsRefImage || undefined,
+        5, // Default priority
+        onProgressCallback // Pass progress callback
+      );
+
+    try {
+      let workflow;
+      if (useFlux) {
+        console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
+        workflow = buildFluxWorkflow(prompt, {
+          ...options,
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+      } else {
+        const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
+        console.log(`🎨 Using SDXL workflow (${checkpointName})`);
+        workflow = buildWorkflow(prompt, {
+          ...options,
+          ckpt_name: checkpointName, // Ensure checkpoint name is set
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+      }
+
+      console.log('🔧 Built workflow with nodes:', Object.keys(workflow).length);
+      return await runWithWorkflow(workflow);
+    } catch (err) {
+      if (useFlux && shouldFallbackFromFlux(err)) {
+        const msg = getErrMsg(err);
+        const allowed = extractAllowedCkptNames(msg);
+        const fallbackCheckpoint =
+          pickBestFallbackCheckpoint(allowed) || 'sd_xl_base_1.0.safetensors';
+        console.warn(
+          `⚠️ FLUX checkpoint not available on this ComfyUI install. Falling back to SDXL (${fallbackCheckpoint}).`
+        );
+
+        const workflow = buildWorkflow(prompt, {
+          ...options,
+          ckpt_name: fallbackCheckpoint,
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+
+        console.log('🔧 Built fallback workflow with nodes:', Object.keys(workflow).length);
+        return await runWithWorkflow(workflow);
+      }
+      throw err;
     }
-
-    console.log('🔧 Built workflow with nodes:', Object.keys(workflow).length);
-
-    return await generateImageWithBackend(
-      prompt,
-      workflow,
-      referenceImage || optionsRefImage || undefined,
-      5, // Default priority
-      onProgressCallback // Pass progress callback
-    );
   } else {
-    console.log('💻 Using local ComfyUI');
-    // Fallback to existing local ComfyUI logic
-    throw new Error('Local ComfyUI not implemented. Please enable backend service.');
+    // Use local ComfyUI through backend service on port 8000
+    console.log('💻 Using local ComfyUI through backend proxy (port 8000)');
+    console.log('📋 Options:', options);
+
+    // Build workflow same as backend mode
+    const useFlux = options.useFlux || false;
+    // Note: Video logic is now handled above, so we only handle Image workflows here
+
+    const getErrMsg = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+    const extractAllowedCkptNames = (msg: string): string[] => {
+      const listMatch = msg.match(/ckpt_name:[^\n\r\]]*not in \[([^\]]+)\]/i);
+      const rawList = listMatch?.[1];
+      if (!rawList) return [];
+      return Array.from(rawList.matchAll(/'([^']+)'/g))
+        .map((m) => m[1])
+        .filter(Boolean);
+    };
+
+    const pickBestFallbackCheckpoint = (allowed: string[]): string | undefined => {
+      if (!allowed.length) return undefined;
+      const preferred = ['sd_xl_base_1.0.safetensors', 'v1-5-pruned-emaonly.safetensors'];
+      for (const name of preferred) {
+        if (allowed.includes(name)) return name;
+      }
+      return allowed[0];
+    };
+
+    const shouldFallbackFromFlux = (err: unknown) => {
+      const msg = getErrMsg(err);
+      const lower = msg.toLowerCase();
+      return lower.includes('value_not_in_list') && lower.includes('ckpt_name') && lower.includes('flux');
+    };
+
+    const runWithWorkflow = async (workflow: Record<string, unknown>) =>
+      await generateImageWithBackend(
+        prompt,
+        workflow,
+        referenceImage || optionsRefImage || undefined,
+        5,
+        onProgressCallback
+      );
+
+    try {
+      let workflow;
+
+      if (useFlux) {
+        console.log(`🚀 Using FLUX.1 workflow (${options.ckpt_name || 'flux_dev.safetensors'})`);
+        workflow = buildFluxWorkflow(prompt, {
+          ...options,
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+      } else {
+        const checkpointName = (options.ckpt_name as string) || 'sd_xl_base_1.0.safetensors';
+        console.log(`🎨 Using SDXL workflow (${checkpointName})`);
+        workflow = buildWorkflow(prompt, {
+          ...options,
+          ckpt_name: checkpointName,
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+      }
+
+      console.log('🔧 Built workflow with nodes:', Object.keys(workflow).length);
+      return await runWithWorkflow(workflow);
+    } catch (err) {
+      if (useFlux && shouldFallbackFromFlux(err)) {
+        const msg = getErrMsg(err);
+        const allowed = extractAllowedCkptNames(msg);
+        const fallbackCheckpoint =
+          pickBestFallbackCheckpoint(allowed) || 'sd_xl_base_1.0.safetensors';
+        console.warn(
+          `⚠️ FLUX checkpoint not available on this ComfyUI install. Falling back to SDXL (${fallbackCheckpoint}).`
+        );
+
+        const workflow = buildWorkflow(prompt, {
+          ...options,
+          ckpt_name: fallbackCheckpoint,
+          referenceImage: (referenceImage || optionsRefImage) ?? undefined,
+        });
+
+        console.log('🔧 Built fallback workflow with nodes:', Object.keys(workflow).length);
+        return await runWithWorkflow(workflow);
+      }
+      throw err;
+    }
   }
 }
 

@@ -15,7 +15,7 @@ export const VIDEO_MODELS = {
     },
     baseModels: {
       sd15: 'v1-5-pruned-emaonly.safetensors',
-      sd15_realistic: 'realisticVisionV51_v51VAE.safetensors',
+      sd15_realistic: 'v1-5-pruned-emaonly.safetensors', // Use SD 1.5 that we have
       sdxl: 'sd_xl_base_1.0.safetensors',
     },
     defaultFrames: 16,
@@ -24,14 +24,165 @@ export const VIDEO_MODELS = {
   },
   svd: {
     checkpoints: {
-      xt: 'svd_xt_1_1.safetensors',
-      xt_1_1: 'svd_xt_1_1.safetensors',
+      xt: 'svd_xt.safetensors',
+      xt_1_1: 'svd_xt.safetensors',
     },
     defaultFrames: 25,
     maxFrames: 25,
     fps: 6,
   },
+  // WAN (WanVideoWrapper) - text-to-video
+  wan: {
+    // Default model file name (must exist in ComfyUI models path for WanVideoWrapper)
+    // Mounted into Docker ComfyUI at /app/models (read-only).
+    // These are the filenames produced by the included WAN model downloader.
+    defaultModelPath: 'wan-video-comfy/Wan2_1-T2V-1_3B_fp8_e4m3fn.safetensors',
+    defaultT5Encoder: 'umt5-xxl-enc-bf16.safetensors',
+    defaultVae: 'wanvideo/Wan2_1_VAE_bf16.safetensors',
+    defaultFrames: 81,
+    maxFrames: 201,
+    fps: 8,
+    width: 832,
+    height: 480,
+  },
 };
+
+/**
+ * Build WAN workflow for text-to-video generation using ComfyUI-WanVideoWrapper.
+ *
+ * Minimal (working) graph for WanVideoWrapper:
+ * - WanVideoModelLoader
+ * - LoadWanVideoT5TextEncoder
+ * - WanVideoTextEncode
+ * - WanVideoEmptyEmbeds
+ * - WanVideoSampler
+ * - WanVideoVAELoader
+ * - WanVideoDecode
+ * - VHS_VideoCombine
+ *
+ * @param {string} prompt - Text prompt for video generation
+ * @param {Object} options - Generation options
+ * @returns {Object} ComfyUI workflow JSON
+ */
+export function buildWanWorkflow(prompt, options = {}) {
+  const {
+    negativePrompt = 'blurry, low quality, watermark, text',
+    modelPath = VIDEO_MODELS.wan.defaultModelPath,
+    t5Encoder = VIDEO_MODELS.wan.defaultT5Encoder,
+    vae = VIDEO_MODELS.wan.defaultVae,
+    seed = Math.floor(Math.random() * 1000000000),
+    numFrames = VIDEO_MODELS.wan.defaultFrames,
+    fps = VIDEO_MODELS.wan.fps,
+    width = VIDEO_MODELS.wan.width,
+    height = VIDEO_MODELS.wan.height,
+    steps = 30,
+    cfg = 6.0,
+    shift = 5.0,
+    scheduler = 'unipc',
+  } = options;
+
+  return {
+    // Node 1: WanVideoWrapper model loader
+    '1': {
+      inputs: {
+        model: modelPath,
+        base_precision: 'bf16',
+        quantization: 'disabled',
+        load_device: 'offload_device',
+      },
+      class_type: 'WanVideoModelLoader',
+    },
+
+    // Node 2: WanVideoWrapper T5 text encoder
+    '2': {
+      inputs: {
+        model_name: t5Encoder,
+        precision: 'bf16',
+        load_device: 'offload_device',
+        quantization: 'disabled',
+      },
+      class_type: 'LoadWanVideoT5TextEncoder',
+    },
+
+    // Node 3: Text → embeddings
+    '3': {
+      inputs: {
+        positive_prompt: prompt,
+        negative_prompt: negativePrompt,
+        t5: ['2', 0],
+        model_to_offload: ['1', 0],
+        force_offload: true,
+        device: 'gpu',
+      },
+      class_type: 'WanVideoTextEncode',
+    },
+
+    // Node 4: Empty embeds (T2V requires this)
+    '4': {
+      inputs: {
+        width,
+        height,
+        num_frames: numFrames,
+      },
+      class_type: 'WanVideoEmptyEmbeds',
+    },
+
+    // Node 5: Sampling
+    '5': {
+      inputs: {
+        model: ['1', 0],
+        image_embeds: ['4', 0],
+        steps,
+        cfg,
+        shift,
+        seed,
+        force_offload: true,
+        scheduler,
+        riflex_freq_index: 0,
+        text_embeds: ['3', 0],
+      },
+      class_type: 'WanVideoSampler',
+    },
+
+    // Node 6: VAE loader (WanVideoWrapper expects this in models/vae)
+    '6': {
+      inputs: {
+        model_name: vae,
+        precision: 'bf16',
+        use_cpu_cache: false,
+      },
+      class_type: 'WanVideoVAELoader',
+    },
+
+    // Node 7: Decode latent video → frames
+    '7': {
+      inputs: {
+        vae: ['6', 0],
+        samples: ['5', 0],
+        enable_vae_tiling: false,
+        tile_x: 272,
+        tile_y: 272,
+        tile_stride_x: 144,
+        tile_stride_y: 128,
+      },
+      class_type: 'WanVideoDecode',
+    },
+
+    // Node 8: MP4 export
+    '8': {
+      inputs: {
+        frame_rate: fps,
+        loop_count: 0,
+        filename_prefix: 'peace-script-wan',
+        format: 'video/h264-mp4',
+        pingpong: false,
+        save_output: true,
+        images: ['7', 0],
+      },
+      class_type: 'VHS_VideoCombine',
+    },
+  };
+}
 
 /**
  * Build AnimateDiff workflow for text-to-video generation
@@ -60,6 +211,10 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
   // Note: motionScale can be used in future with KSampler advanced nodes
   // For now, motion is controlled by the motion module itself
   void motionScale; // Suppress unused warning
+
+  // AnimateDiff v2/v3 motion modules commonly error >32 frames without context windows.
+  // When requesting longer clips, enable ADE Context Options to allow sliding windows.
+  const needsContextWindows = Number.isFinite(numFrames) && numFrames > 32;
 
   const workflow = {
     // Node 1: Checkpoint Loader (SD 1.5)
@@ -98,15 +253,44 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
       class_type: 'CLIPTextEncode',
     },
 
-    // Node 5: AnimateDiff Loader V1 (loads motion module)
+    // Node 5: Load AnimateDiff Motion Model (ADE version)
     '5': {
       inputs: {
         model_name: motionModel,
-        beta_schedule: 'sqrt_linear', // AnimateDiff beta schedule
-        model: ['1', 0],
       },
-      class_type: 'AnimateDiffLoaderV1',
+      class_type: 'ADE_LoadAnimateDiffModel',
     },
+
+    // Node 5b: Apply AnimateDiff to Model
+    '5b': {
+      inputs: {
+        motion_model: ['5', 0],
+      },
+      class_type: 'ADE_ApplyAnimateDiffModelSimple',
+    },
+
+    // Node 5c: Use Evolved Sampling (converts M_MODELS to MODEL)
+    '5c': {
+      inputs: {
+        model: ['1', 0], // Base model
+        beta_schedule: 'sqrt_linear (AnimateDiff)',
+        m_models: ['5b', 0], // AnimateDiff M_MODELS
+      },
+      class_type: 'ADE_UseEvolvedSampling',
+    },
+
+    // Node 5d: Context Options (only used for long clips)
+    ...(needsContextWindows
+      ? {
+          '5d': {
+            inputs: {
+              context_length: 16,
+              context_overlap: 4,
+            },
+            class_type: 'ADE_StandardStaticContextOptions',
+          },
+        }
+      : {}),
 
     // Node 6: KSampler (with AnimateDiff model)
     '6': {
@@ -117,7 +301,7 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
         sampler_name: 'euler',
         scheduler: 'normal',
         denoise: 1.0,
-        model: ['5', 0], // AnimateDiff model
+        model: ['5c', 0], // Use evolved sampling model
         positive: ['3', 0],
         negative: ['4', 0],
         latent_image: ['2', 0],
@@ -149,6 +333,20 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
     },
   };
 
+  // AnimateDiff v2/v3 motion models commonly have a hard limit (~32 frames) unless Context Options are used.
+  // When requesting longer videos, attach a default Context Options node to enable sliding context windows.
+  if (numFrames > 32) {
+    workflow['5d'] = {
+      inputs: {
+        context_length: 16,
+        context_overlap: 4,
+      },
+      class_type: 'ADE_StandardStaticContextOptions',
+    };
+
+    workflow['5c'].inputs.context_options = ['5d', 0];
+  }
+
   // Add LoRA if specified
   if (lora) {
     workflow['9'] = {
@@ -163,9 +361,14 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
     };
 
     // Update references to use LoRA
-    workflow['5'].inputs.model = ['9', 0];
+    workflow['5c'].inputs.model = ['9', 0]; // Use LoRA for evolved sampling
     workflow['3'].inputs.clip = ['9', 1];
     workflow['4'].inputs.clip = ['9', 1];
+  }
+
+  // Wire context options only when enabled.
+  if (needsContextWindows) {
+    workflow['5c'].inputs.context_options = ['5d', 0];
   }
 
   return workflow;
@@ -187,6 +390,7 @@ export function buildSVDWorkflow(referenceImage, options = {}) {
     steps = 20,
     cfg = 2.5, // SVD typically uses lower CFG
     videoModel = VIDEO_MODELS.svd.checkpoints.xt,
+    clipVisionModel = 'clip_vision_g.safetensors',
     width = 1024,
     height = 576,
   } = options;
@@ -204,13 +408,15 @@ export function buildSVDWorkflow(referenceImage, options = {}) {
     // Node 2: SVD Image Encoder (encode image to latent)
     '2': {
       inputs: {
+        clip_vision: ['7', 0],
+        init_image: ['1', 0],
+        vae: ['3', 2],
         width: width,
         height: height,
         video_frames: numFrames,
-        motion_bucket_id: motionScale, // Motion strength (1-255)
+        motion_bucket_id: motionScale,
         fps: fps,
         augmentation_level: 0.0, // No augmentation
-        image: ['1', 0],
       },
       class_type: 'SVD_img2vid_Conditioning',
     },
@@ -261,6 +467,14 @@ export function buildSVDWorkflow(referenceImage, options = {}) {
         images: ['5', 0],
       },
       class_type: 'VHS_VideoCombine',
+    },
+
+    // Node 7: CLIP Vision Loader (required by SVD_img2vid_Conditioning)
+    '7': {
+      inputs: {
+        clip_name: clipVisionModel,
+      },
+      class_type: 'CLIPVisionLoader',
     },
   };
 

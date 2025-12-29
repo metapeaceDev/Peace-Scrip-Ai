@@ -1,4 +1,4 @@
-# 🔥 Firebase Setup Guide - Peace Script AI
+﻿# 🔥 Firebase Setup Guide - Peace Script AI
 
 ## ขั้นตอนที่ 1: สร้าง Firebase Project (5 นาที)
 
@@ -136,7 +136,7 @@ https://console.firebase.google.com/
 
 ```javascript
 const firebaseConfig = {
-  apiKey: 'AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+  apiKey: 'REDACTED_API_KEY',
   authDomain: 'peace-script-ai.firebaseapp.com',
   projectId: 'peace-script-ai',
   storageBucket: 'peace-script-ai.appspot.com',
@@ -162,7 +162,7 @@ touch .env.local
 
 ```env
 # Firebase Configuration
-VITE_FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+VITE_FIREBASE_API_KEY=REDACTED_API_KEY
 VITE_FIREBASE_AUTH_DOMAIN=peace-script-ai.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=peace-script-ai
 VITE_FIREBASE_STORAGE_BUCKET=peace-script-ai.appspot.com
@@ -296,3 +296,4 @@ npm run dev
 ---
 
 **หากทุกขั้นตอนทำสำเร็จ พร้อม Deploy แล้ว! 🎉**
+

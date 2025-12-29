@@ -75,7 +75,20 @@ router.get('/detailed', async (req, res) => {
     const workerStats = workerManager.getStats();
     const queueStats = await getQueueStats();
 
-    const isHealthy = workerStats.healthyWorkers > 0;
+    // workerStats structure can be either flat or grouped (local/cloud/combined)
+    const healthyWorkers =
+      (typeof workerStats?.healthyWorkers === 'number' && workerStats.healthyWorkers) ||
+      (typeof workerStats?.combined?.healthyWorkers === 'number' && workerStats.combined.healthyWorkers) ||
+      (typeof workerStats?.local?.healthyWorkers === 'number' ? workerStats.local.healthyWorkers : 0) +
+        (typeof workerStats?.cloud?.healthyWorkers === 'number' ? workerStats.cloud.healthyWorkers : 0);
+
+    const totalWorkers =
+      (typeof workerStats?.totalWorkers === 'number' && workerStats.totalWorkers) ||
+      (typeof workerStats?.combined?.totalWorkers === 'number' && workerStats.combined.totalWorkers) ||
+      (typeof workerStats?.local?.totalWorkers === 'number' ? workerStats.local.totalWorkers : 0) +
+        (typeof workerStats?.cloud?.totalWorkers === 'number' ? workerStats.cloud.totalWorkers : 0);
+
+    const isHealthy = healthyWorkers > 0;
 
     res.status(isHealthy ? 200 : 503).json({
       success: isHealthy,
@@ -83,7 +96,11 @@ router.get('/detailed', async (req, res) => {
       status: isHealthy ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      workers: workerStats,
+      workers: {
+        ...workerStats,
+        totalWorkers,
+        healthyWorkers
+      },
       queue: queueStats
     });
 

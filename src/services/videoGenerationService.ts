@@ -38,8 +38,16 @@ export interface VideoShot {
 
 export interface VideoGenerationOptions {
   quality?: '480p' | '720p' | '1080p' | '4K';
-  aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
-  preferredModel?: 'gemini-veo' | 'comfyui-svd' | 'comfyui-animatediff' | 'auto';
+  aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | 'custom';
+  width?: number;
+  height?: number;
+  preferredModel?:
+    | 'gemini-veo'
+    | 'comfyui-svd'
+    | 'comfyui-animatediff'
+    | 'auto'
+    | 'local-gpu'
+    | string;
   fps?: number;
   duration?: number;
   frameCount?: number;
@@ -47,8 +55,13 @@ export interface VideoGenerationOptions {
 
   // 🆕 VIDEO EXTENSION: Sequential Generation Support
   previousVideo?: string; // URL of previous video for seamless continuation
+  previousShot?: VideoShot; // Previous shot metadata for prompt continuity
   endFrameInfluence?: number; // 0-1, strength of last frame influence (default: 0.7)
   transitionType?: 'seamless' | 'smooth' | 'creative'; // Transition style
+
+  // 🆕 CONSISTENCY: Stable seeding
+  seed?: number;
+  stableSeed?: boolean; // default: true when shot/scene context exists
 
   // 🆕 CHARACTER CONSISTENCY: Face ID & LoRA Support
   characterReference?: {
@@ -81,8 +94,44 @@ export interface VideoGenerationProgress {
 export async function extractLastFrame(videoUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.src = videoUrl;
+    let objectUrl: string | null = null;
+
+    const cleanup = () => {
+      try {
+        video.remove();
+      } catch {
+        // ignore
+      }
+      if (objectUrl) {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {
+          // ignore
+        }
+        objectUrl = null;
+      }
+    };
+
+    // Best-effort: fetch video bytes first and use a blob URL.
+    // This often avoids canvas CORS tainting issues when the remote origin blocks video element CORS.
+    (async () => {
+      try {
+        const response = await fetch(videoUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        video.src = objectUrl;
+      } catch {
+        // Fallback: direct URL. This may still work if Storage CORS is configured.
+        video.crossOrigin = 'anonymous';
+        video.src = videoUrl;
+      }
+    })().catch(() => {
+      // ignore
+    });
+
     video.muted = true;
 
     video.onloadedmetadata = () => {
@@ -113,20 +162,30 @@ export async function extractLastFrame(videoUrl: string): Promise<string> {
       } catch (error) {
         reject(error);
       } finally {
-        // Cleanup
-        video.remove();
+        cleanup();
       }
     };
 
     video.onerror = error => {
+      cleanup();
       reject(new Error(`Failed to load video: ${error}`));
     };
 
     // Timeout after 10 seconds
     setTimeout(() => {
+      cleanup();
       reject(new Error('Video frame extraction timed out'));
     }, 10000);
   });
+}
+
+function stableHashToSeed(input: string): number {
+  // Simple deterministic 32-bit hash (djb2), returned as a positive integer.
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+  }
+  return Math.abs(hash) % 1000000000;
 }
 
 export interface BatchVideoResult {
@@ -166,18 +225,56 @@ export async function generateShotVideo(
       }
     }
 
-    // Build comprehensive prompt from shot details
-    const prompt = buildVideoPrompt(shot);
+    // Resolve duration/fps/frameCount coherently.
+    // - If frameCount is provided, duration is derived unless explicitly overridden.
+    // - If fps is not provided, let downstream logic pick a recommended fps.
+    let resolvedFPS: number | undefined = options.fps;
+    let resolvedDurationSec = options.duration || shot.duration || shot.durationSec || 3;
+    const resolvedFrameCount = options.frameCount;
 
-    // Get duration (support both duration and durationSec fields)
-    const duration = options.duration || shot.duration || shot.durationSec || 3;
+    if (typeof resolvedFrameCount === 'number' && Number.isFinite(resolvedFrameCount)) {
+      if (typeof resolvedFPS !== 'number' || !Number.isFinite(resolvedFPS)) {
+        // Default to 8fps (ComfyUI default in generateStoryboardVideo) when fps is unspecified.
+        resolvedFPS = 8;
+      }
+      if (options.duration == null) {
+        resolvedDurationSec = resolvedFrameCount / resolvedFPS;
+      }
+    }
+
+    // Build comprehensive prompt from shot details (with continuity anchors)
+    const prompt = buildVideoPrompt(shot, {
+      character: options.character,
+      currentScene: options.currentScene,
+      previousShot: options.previousShot,
+      maxChars: 900,
+    });
 
     // 🆕 Adjust generation parameters for sequential continuity
     const generationOptions: Record<string, unknown> = {
-      fps: options.fps || 24,
-      duration: duration,
-      motionStrength: options.motionStrength || 0.7,
+      duration: resolvedDurationSec,
+      motionStrength: options.motionStrength,
     };
+
+    // Only set fps when explicitly provided (or needed for frameCount-derivation).
+    if (typeof resolvedFPS === 'number' && Number.isFinite(resolvedFPS)) {
+      generationOptions.fps = resolvedFPS;
+    }
+
+    // 🆕 Stable seed (improves identity/style consistency per shot)
+    const shouldUseStableSeed = options.stableSeed !== false;
+    if (shouldUseStableSeed) {
+      const keyParts = [
+        options.character ? `character:${options.character.name || ''}` : '',
+        options.currentScene ? `scene:${options.currentScene.sceneNumber || ''}` : '',
+        shot.scene ? `shotScene:${shot.scene}` : '',
+        typeof shot.shot === 'number' ? `shot:${shot.shot}` : '',
+        shot.description ? `desc:${shot.description}` : '',
+      ].filter(Boolean);
+
+      const derivedSeed = options.seed ?? stableHashToSeed(keyParts.join('|'));
+      generationOptions.seed = derivedSeed;
+    }
 
     // 🆕 If using previous video, adjust for better continuity
     if (options.previousVideo && initImage) {
@@ -188,6 +285,30 @@ export async function generateShotVideo(
         generationOptions.motionStrength = 0.6; // Moderate motion
       }
       // 'creative' uses default 0.7
+
+      // 🆕 Realism guardrails: when the shot is intended to be static/subtle,
+      // keep motion low to avoid uncanny/warping movement in SVD continuity.
+      const movement = (shot as any)?.movement;
+      const movementStr = typeof movement === 'string' ? movement.toLowerCase() : '';
+      const desc = typeof shot.description === 'string' ? shot.description : '';
+
+      const currentMotion =
+        typeof generationOptions.motionStrength === 'number'
+          ? (generationOptions.motionStrength as number)
+          : typeof options.motionStrength === 'number'
+            ? (options.motionStrength as number)
+            : 0.6;
+
+      const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+      let tunedMotion = clamp01(currentMotion);
+
+      const isStatic = movementStr.includes('static') || movementStr.includes('still');
+      const isSubtleAction = /ยิ้ม|จับมือ|สบตา|พยักหน้า|หายใจ|ยืนนิ่ง|ยืดหยุ่น|ผ่อนคลาย/.test(desc);
+      if (isStatic || isSubtleAction) {
+        tunedMotion = Math.min(tunedMotion, 0.3);
+      }
+
+      generationOptions.motionStrength = tunedMotion;
 
       console.log(
         `🎨 Continuity mode: ${options.transitionType || 'smooth'}, motion: ${generationOptions.motionStrength}`
@@ -209,6 +330,17 @@ export async function generateShotVideo(
       console.log(
         `🧠 Psychology-driven motion: ${options.character.emotionalState?.currentMood || 'neutral'} mood, energy ${options.character.emotionalState?.energyLevel || 50}`
       );
+    }
+
+    // Pass aspect ratio / resolution through when provided (used by ComfyUI backend).
+    if (options.aspectRatio) {
+      generationOptions.aspectRatio = options.aspectRatio;
+    }
+    if (typeof options.width === 'number') {
+      generationOptions.width = options.width;
+    }
+    if (typeof options.height === 'number') {
+      generationOptions.height = options.height;
     }
 
     // Generate video using existing generateStoryboardVideo function
@@ -249,6 +381,9 @@ export async function generateSceneVideos(
   // 🆕 Track last video URL for sequential generation
   let lastVideoUrl: string | undefined;
 
+  // 🆕 Track previous shot metadata for prompt continuity
+  let previousShot: VideoShot | undefined;
+
   // 🆕 Track character emotional state across shots
   let currentCharacter = options.character;
 
@@ -284,6 +419,7 @@ export async function generateSceneVideos(
       const shotOptions: VideoGenerationOptions = {
         ...options,
         previousVideo: i > 0 ? lastVideoUrl : undefined, // Use previous shot's video
+        previousShot: i > 0 ? previousShot : undefined,
         transitionType: options.transitionType || 'smooth', // Default to smooth transitions
         character: currentCharacter, // ✅ Pass updated character
         currentScene: options.currentScene, // ✅ Pass scene context
@@ -308,6 +444,7 @@ export async function generateSceneVideos(
 
       // 🆕 Store video URL for next shot
       lastVideoUrl = videoUrl;
+      previousShot = shot;
 
       // Store result
       results.videos.push({
@@ -371,11 +508,115 @@ export async function generateSceneVideos(
   return results;
 }
 
+type PromptContext = {
+  character?: Character;
+  currentScene?: GeneratedScene;
+  previousShot?: VideoShot;
+  maxChars?: number;
+};
+
+function safeTrim(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+}
+
+function truncateTo(text: string, maxChars: number): string {
+  if (!text) return '';
+  if (text.length <= maxChars) return text;
+  return text.slice(0, Math.max(0, maxChars - 1)).trimEnd() + '…';
+}
+
+function summarizeRecord(record: Record<string, string> | undefined, maxPairs: number): string {
+  if (!record) return '';
+  const entries = Object.entries(record)
+    .map(([k, v]) => [safeTrim(k), safeTrim(v)] as const)
+    .filter(([k, v]) => k && v);
+  if (entries.length === 0) return '';
+
+  // Prefer common keys when present.
+  const preferredKeys = [
+    'gender',
+    'age',
+    'ethnicity',
+    'skin',
+    'skin tone',
+    'hair',
+    'eyes',
+    'height',
+    'build',
+    'outfit',
+    'style',
+    'clothing',
+  ];
+  const preferred: Array<[string, string]> = [];
+  for (const key of preferredKeys) {
+    const found = entries.find(([k]) => k.toLowerCase() === key);
+    if (found && !preferred.some(([k]) => k === found[0])) {
+      preferred.push(found as [string, string]);
+    }
+  }
+
+  const merged = [...preferred, ...entries.filter(e => !preferred.some(p => p[0] === e[0]))];
+  return merged
+    .slice(0, maxPairs)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(', ');
+}
+
 /**
- * Build comprehensive video generation prompt from shot details
+ * Build comprehensive video generation prompt from shot details.
+ * Adds lightweight continuity anchors (character + scene + previous shot) and caps length.
  */
-function buildVideoPrompt(shot: VideoShot): string {
+function buildVideoPrompt(shot: VideoShot, context: PromptContext = {}): string {
   const parts: string[] = [];
+
+  // Continuity anchors (highest priority, but kept short)
+  if (context.character) {
+    const name = safeTrim(context.character.name);
+    const role = safeTrim(context.character.role);
+    const desc = truncateTo(safeTrim(context.character.description), 180);
+    const physical = summarizeRecord(context.character.physical, 3);
+    const fashion = summarizeRecord(context.character.fashion, 2);
+
+    const characterBits = [
+      name ? `Character: ${name}` : '',
+      role ? `Role: ${role}` : '',
+      desc ? `Description: ${desc}` : '',
+      physical ? `Appearance: ${physical}` : '',
+      fashion ? `Wardrobe: ${fashion}` : '',
+    ].filter(Boolean);
+
+    if (characterBits.length) {
+      parts.push(characterBits.join('. '));
+      parts.push('Maintain the exact same identity, face, hair, and outfit continuity.');
+    }
+  }
+
+  if (context.currentScene) {
+    const sceneName = safeTrim(context.currentScene.sceneDesign?.sceneName);
+    const location = safeTrim(context.currentScene.sceneDesign?.location);
+    const mood = safeTrim(context.currentScene.sceneDesign?.moodTone);
+
+    const sceneBits = [
+      sceneName ? `Scene: ${sceneName}` : '',
+      location ? `Location: ${location}` : '',
+      mood ? `Tone: ${mood}` : '',
+    ].filter(Boolean);
+    if (sceneBits.length) {
+      parts.push(sceneBits.join('. '));
+    }
+  }
+
+  if (context.previousShot?.description) {
+    const prevType = context.previousShot.shotType || context.previousShot.shotSize;
+    const prevDesc = truncateTo(safeTrim(context.previousShot.description), 140);
+    parts.push(
+      truncateTo(
+        `Continue smoothly from the previous shot${prevType ? ` (${prevType})` : ''}: ${prevDesc}`,
+        220
+      )
+    );
+  }
 
   // Shot type and framing (support both shotType and shotSize)
   const shotType = shot.shotType || shot.shotSize;
@@ -426,7 +667,8 @@ function buildVideoPrompt(shot: VideoShot): string {
   parts.push('smooth motion');
   parts.push('4K resolution');
 
-  return parts.join(', ');
+  const joined = parts.join(', ');
+  return truncateTo(joined, context.maxChars ?? 900);
 }
 
 /**

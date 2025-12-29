@@ -293,6 +293,7 @@ export function buildFluxWorkflow(prompt: string, options: WorkflowOptions = {})
     negativePrompt = 'low quality, blurry',
     steps = 20,
     cfg = 3.5, // Flux ใช้ CFG ต่ำกว่า SDXL
+    ckpt_name = 'flux_dev.safetensors',
     seed,
   } = options;
 
@@ -316,7 +317,7 @@ export function buildFluxWorkflow(prompt: string, options: WorkflowOptions = {})
     },
     '4': {
       inputs: {
-        ckpt_name: 'flux_dev.safetensors',
+        ckpt_name: ckpt_name,
       },
       class_type: 'CheckpointLoaderSimple',
     },
@@ -484,6 +485,8 @@ export function buildWorkflow(prompt: string, options: WorkflowOptions = {}): an
  */
 export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOptions = {}): any {
   const {
+    lora,
+    loraStrength = 0.8,
     negativePrompt = 'low quality, blurry, distorted, watermark, text',
     steps = 20,
     cfg = 8.0,
@@ -508,6 +511,22 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
       class_type: 'CheckpointLoaderSimple',
     },
 
+    // Node 9 (optional): LoRA Loader (applies to model + clip)
+    ...(lora
+      ? {
+          '9': {
+            inputs: {
+              model: ['1', 0],
+              clip: ['1', 1],
+              lora_name: lora,
+              strength_model: loraStrength,
+              strength_clip: loraStrength,
+            },
+            class_type: 'LoraLoader',
+          },
+        }
+      : {}),
+
     // Node 2: Empty Latent Image (for video batch)
     '2': {
       inputs: {
@@ -522,7 +541,7 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
     '3': {
       inputs: {
         text: prompt,
-        clip: ['1', 1],
+        clip: lora ? ['9', 1] : ['1', 1],
       },
       class_type: 'CLIPTextEncode',
     },
@@ -531,7 +550,7 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
     '4': {
       inputs: {
         text: negativePrompt,
-        clip: ['1', 1],
+        clip: lora ? ['9', 1] : ['1', 1],
       },
       class_type: 'CLIPTextEncode',
     },
@@ -541,7 +560,7 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
       inputs: {
         model_name: motionModel,
         beta_schedule: 'sqrt_linear', // AnimateDiff beta schedule
-        model: ['1', 0],
+        model: lora ? ['9', 0] : ['1', 0],
       },
       class_type: 'AnimateDiffLoaderV1',
     },
