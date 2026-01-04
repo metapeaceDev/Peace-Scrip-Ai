@@ -631,4 +631,3 @@ function analyzAction(action: string): SensoryInput {
     senseDoor: 'mind',
   };
 }
-

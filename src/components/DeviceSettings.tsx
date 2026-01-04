@@ -358,4 +358,3 @@ export const DeviceSettings: React.FC = () => {
 };
 
 export default DeviceSettings;
-

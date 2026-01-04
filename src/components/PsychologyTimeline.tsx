@@ -375,4 +375,3 @@ export const PsychologyTimeline: React.FC<PsychologyTimelineProps> = ({ timeline
 };
 
 export default PsychologyTimeline;
-

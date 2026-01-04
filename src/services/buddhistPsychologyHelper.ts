@@ -251,4 +251,3 @@ export function getIntensityDisplay(intensity: 'mild' | 'moderate' | 'severe' | 
 
   return display[intensity];
 }
-

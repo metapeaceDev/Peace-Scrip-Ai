@@ -773,4 +773,3 @@ describe('QuotaWidget', () => {
     });
   });
 });
-

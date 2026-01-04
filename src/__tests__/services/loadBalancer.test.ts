@@ -25,7 +25,10 @@ describe('Load Balancer Integration', () => {
     vi.clearAllMocks();
 
     // Default mocks
-    vi.spyOn(runpodModule.runPodService, 'deployPod').mockResolvedValue({ id: 'pod-123', status: 'RUNNING' } as any);
+    vi.spyOn(runpodModule.runPodService, 'deployPod').mockResolvedValue({
+      id: 'pod-123',
+      status: 'RUNNING',
+    } as any);
     vi.spyOn(runpodModule.runPodService, 'waitForPodReady').mockResolvedValue(true);
     vi.spyOn(runpodModule.runPodService, 'getPodStatus').mockResolvedValue({
       id: 'pod-123',
@@ -353,4 +356,3 @@ describe('Load Balancer Integration', () => {
     });
   });
 });
-

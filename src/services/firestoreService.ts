@@ -17,7 +17,15 @@ import {
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL, deleteObject, getBytes } from 'firebase/storage';
+import {
+  ref,
+  uploadString,
+  getDownloadURL,
+  deleteObject,
+  getBytes,
+  uploadBytesResumable,
+  StorageReference,
+} from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 
 // Helper function to upload poster image to Storage and return URL
@@ -358,15 +366,24 @@ class FirestoreService {
         const storageRef = ref(storage, metadata.storagePath);
         const jsonString = JSON.stringify(updates);
         const fileSize = new Blob([jsonString]).size;
+        const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
 
         console.log('💾 Uploading to Storage...', {
           teamCount: updates.team?.length || 0,
           fileSize: (fileSize / 1024).toFixed(2) + ' KB',
+          fileSizeMB: fileSizeMB + ' MB',
         });
 
-        await uploadString(storageRef, jsonString, 'raw', {
-          contentType: 'application/json',
-        });
+        // Use chunked upload for files larger than 10MB
+        if (fileSize > 10 * 1024 * 1024) {
+          console.log('📦 Using chunked upload for large file...');
+          await this.uploadLargeFile(storageRef, jsonString);
+        } else {
+          // Use standard upload for smaller files
+          await uploadString(storageRef, jsonString, 'raw', {
+            contentType: 'application/json',
+          });
+        }
 
         console.log('✅ Storage upload complete');
 
@@ -593,6 +610,51 @@ class FirestoreService {
       return [];
     }
   }
+
+  /**
+   * Upload large file using resumable upload
+   * This method converts string to Blob and uses Firebase's resumable upload
+   * which handles large files better than uploadString
+   */
+  async uploadLargeFile(storageRef: StorageReference, jsonString: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log('📦 Converting JSON string to Blob...');
+
+        // Convert string to Blob
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const blobSizeMB = (blob.size / 1024 / 1024).toFixed(2);
+
+        console.log(`📊 Blob created: ${blobSizeMB} MB`);
+        console.log('🚀 Starting resumable upload...');
+
+        // Use uploadBytesResumable for better handling of large files
+        const uploadTask = uploadBytesResumable(storageRef, blob, {
+          contentType: 'application/json',
+        });
+
+        // Monitor upload progress
+        uploadTask.on(
+          'state_changed',
+          snapshot => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log(`📤 Upload progress: ${progress.toFixed(1)}%`);
+          },
+          error => {
+            console.error('❌ Upload error:', error);
+            reject(error);
+          },
+          () => {
+            console.log('✅ Upload completed successfully');
+            resolve();
+          }
+        );
+      } catch (error) {
+        console.error('❌ Error in uploadLargeFile:', error);
+        reject(error);
+      }
+    });
+  }
 }
 
 export const firestoreService = new FirestoreService();
@@ -653,4 +715,3 @@ export async function updateUserSubscription(
     throw error;
   }
 }
-

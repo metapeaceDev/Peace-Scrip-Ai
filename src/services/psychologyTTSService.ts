@@ -232,4 +232,3 @@ export class PsychologyTTSService {
 
 // Export singleton instance
 export const psychologyTTS = new PsychologyTTSService();
-

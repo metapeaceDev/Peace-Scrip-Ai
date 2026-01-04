@@ -767,4 +767,3 @@ describe('AuthPage - Integration', () => {
     });
   });
 });
-

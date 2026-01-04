@@ -1124,4 +1124,3 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
 };
 
 export default Step2StoryScope;
-

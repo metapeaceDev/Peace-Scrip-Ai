@@ -391,4 +391,3 @@ export const PaymentTracker: React.FC<PaymentTrackerProps> = ({ members, project
     </div>
   );
 };
-

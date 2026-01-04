@@ -1,11 +1,13 @@
 /**
  * ComfyUI Local Installer Component
- * 
+ *
  * One-click installer UI with progress tracking
  * Runs PowerShell/Bash installer scripts
  */
 
 import React, { useState, useEffect } from 'react';
+
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 
 interface InstallProgress {
   step: string;
@@ -51,7 +53,7 @@ export const ComfyUIInstallerUI: React.FC = () => {
       // Detect OS
       const platform = navigator.platform.toLowerCase();
       let os: SystemInfo['os'] = 'Unknown';
-      
+
       if (platform.includes('win')) os = 'Windows';
       else if (platform.includes('mac')) os = 'macOS';
       else if (platform.includes('linux')) os = 'Linux';
@@ -59,7 +61,7 @@ export const ComfyUIInstallerUI: React.FC = () => {
       // Check if ComfyUI is already running
       let hasComfyUI = false;
       try {
-        const response = await fetch('http://localhost:8188/system_stats', {
+        const response = await fetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, {
           signal: AbortSignal.timeout(2000),
         });
         hasComfyUI = response.ok;
@@ -147,7 +149,7 @@ export const ComfyUIInstallerUI: React.FC = () => {
         hasError: false,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, step.delay));
+      await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 
     setProgress({
@@ -212,7 +214,9 @@ export const ComfyUIInstallerUI: React.FC = () => {
           </div>
           <div className="bg-gray-900/50 rounded-lg p-4">
             <div className="text-sm text-gray-400 mb-1">ComfyUI Status</div>
-            <div className={`text-lg font-semibold ${systemInfo.hasComfyUI ? 'text-green-400' : 'text-gray-400'}`}>
+            <div
+              className={`text-lg font-semibold ${systemInfo.hasComfyUI ? 'text-green-400' : 'text-gray-400'}`}
+            >
               {systemInfo.hasComfyUI ? '✅ Installed' : '❌ Not Installed'}
             </div>
           </div>
@@ -241,16 +245,14 @@ export const ComfyUIInstallerUI: React.FC = () => {
               <input
                 type="text"
                 value={installOptions.installPath}
-                onChange={(e) =>
+                onChange={e =>
                   setInstallOptions({ ...installOptions, installPath: e.target.value })
                 }
                 placeholder={systemInfo.os === 'Windows' ? 'C:\\ComfyUI' : '/opt/ComfyUI'}
                 className="w-full bg-gray-900 border border-gray-600 rounded-lg py-2 px-3 text-white"
                 disabled={isInstalling}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for default location
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Leave empty for default location</p>
             </div>
 
             {/* Skip Models */}
@@ -264,7 +266,7 @@ export const ComfyUIInstallerUI: React.FC = () => {
               <input
                 type="checkbox"
                 checked={installOptions.skipModels}
-                onChange={(e) =>
+                onChange={e =>
                   setInstallOptions({ ...installOptions, skipModels: e.target.checked })
                 }
                 className="rounded"
@@ -284,7 +286,7 @@ export const ComfyUIInstallerUI: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={installOptions.minimalModels}
-                  onChange={(e) =>
+                  onChange={e =>
                     setInstallOptions({ ...installOptions, minimalModels: e.target.checked })
                   }
                   className="rounded"
@@ -297,14 +299,12 @@ export const ComfyUIInstallerUI: React.FC = () => {
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <span className="text-sm text-gray-300">Register as Service</span>
-                <p className="text-xs text-gray-500">
-                  Auto-start ComfyUI when system boots
-                </p>
+                <p className="text-xs text-gray-500">Auto-start ComfyUI when system boots</p>
               </div>
               <input
                 type="checkbox"
                 checked={installOptions.registerService}
-                onChange={(e) =>
+                onChange={e =>
                   setInstallOptions({ ...installOptions, registerService: e.target.checked })
                 }
                 className="rounded"
@@ -374,7 +374,14 @@ export const ComfyUIInstallerUI: React.FC = () => {
       <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
         <h4 className="font-semibold text-yellow-300 mb-2">⚠️ Requirements</h4>
         <ul className="text-sm text-gray-300 space-y-1">
-          <li>✅ {systemInfo.os === 'Windows' ? 'Windows 10/11' : systemInfo.os === 'macOS' ? 'macOS 12+' : 'Linux (Ubuntu/Debian)'}</li>
+          <li>
+            ✅{' '}
+            {systemInfo.os === 'Windows'
+              ? 'Windows 10/11'
+              : systemInfo.os === 'macOS'
+                ? 'macOS 12+'
+                : 'Linux (Ubuntu/Debian)'}
+          </li>
           <li>✅ GPU: NVIDIA (RTX 2000+), AMD, or Apple Silicon recommended</li>
           <li>✅ RAM: 16GB minimum, 32GB+ recommended</li>
           <li>✅ Storage: 30GB free space (10GB without models)</li>

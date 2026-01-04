@@ -177,7 +177,10 @@ export const ProjectCostDashboard: React.FC = () => {
             </div>
             <div className="category-details scrollable-details">
               {summary.breakdown.apis.services.length === 0 ? (
-                <div className="service-item" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                <div
+                  className="service-item"
+                  style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}
+                >
                   <p>ยังไม่มีข้อมูลการใช้งาน API</p>
                   <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
                     เริ่มสร้างโปรเจกต์หรือใช้งาน AI เพื่อดูข้อมูลที่นี่
@@ -193,12 +196,16 @@ export const ProjectCostDashboard: React.FC = () => {
                     <div className="api-metrics">
                       <div className="api-metric">
                         <div className="metric-label">จำนวนครั้ง</div>
-                        <div className="metric-value">{api.currentMonthUsage.calls.toLocaleString()}</div>
+                        <div className="metric-value">
+                          {api.currentMonthUsage.calls.toLocaleString()}
+                        </div>
                       </div>
                       <div className="api-metric-divider"></div>
                       <div className="api-metric">
                         <div className="metric-label">ค่าใช้จ่าย</div>
-                        <div className="metric-value cost">฿{api.currentMonthUsage.cost.toFixed(2)}</div>
+                        <div className="metric-value cost">
+                          ฿{api.currentMonthUsage.cost.toFixed(2)}
+                        </div>
                       </div>
                     </div>
                     {api.pricing.freeQuota && api.pricing.freeQuota !== 'None' && (
@@ -390,4 +397,3 @@ export const ProjectCostDashboard: React.FC = () => {
     </div>
   );
 };
-

@@ -451,4 +451,3 @@ describe('Step2StoryScope - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
-

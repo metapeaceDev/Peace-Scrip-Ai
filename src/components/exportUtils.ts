@@ -87,6 +87,36 @@ export const generateScreenplayText = (data: ScriptData): string => {
  * Generate shot list CSV for production planning
  */
 export const generateShotListCSV = (data: ScriptData): string => {
+  const formatCostume = (shot: any): string => {
+    if (shot?.costume && typeof shot.costume === 'string') return shot.costume;
+    const cf = shot?.costumeFashion;
+    if (cf && typeof cf === 'object') {
+      const fashion = cf as Record<string, string>;
+      const orderedKeys = [
+        'Style Concept',
+        'Main Outfit',
+        'Shoe',
+        'Accessories',
+        'Color Palette',
+        'Condition/Texture',
+      ];
+      const parts: string[] = [];
+      for (const key of orderedKeys) {
+        const value = typeof fashion[key] === 'string' ? fashion[key].trim() : '';
+        if (value) parts.push(`${key}: ${value}`);
+      }
+      if (parts.length > 0) return parts.join(' | ');
+
+      // Fallback for unexpected schemas
+      return Object.entries(fashion)
+        .filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim())
+        .slice(0, 6)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(' | ');
+    }
+    return '';
+  };
+
   const headers = [
     'Scene #',
     'Shot #',
@@ -114,7 +144,7 @@ export const generateShotListCSV = (data: ScriptData): string => {
           scene.sceneNumber,
           shot.shot,
           `"${(shot.cast || '').replace(/"/g, '""')}"`,
-          `"${(shot.costume || '').replace(/"/g, '""')}"`,
+          `"${formatCostume(shot).replace(/"/g, '""')}"`,
           `"${(shot.set || '').replace(/"/g, '""')}"`,
           `"${shot.description.replace(/"/g, '""')}"`,
           shot.shotSize,
@@ -198,4 +228,3 @@ export const generateStoryboardHTML = (data: ScriptData): string => {
   html += `</body></html>`;
   return html;
 };
-

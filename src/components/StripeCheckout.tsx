@@ -286,4 +286,3 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({ onClose, currentTier = 
 };
 
 export default StripeCheckout;
-

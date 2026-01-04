@@ -340,4 +340,3 @@ export const MOOD_LIGHTING_MAP: Record<string, Partial<LightingDesign>> = {
     mood: 'Bright',
   },
 };
-

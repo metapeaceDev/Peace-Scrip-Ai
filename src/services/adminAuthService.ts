@@ -278,4 +278,3 @@ export async function canPerformAction(
       return false;
   }
 }
-

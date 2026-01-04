@@ -83,7 +83,9 @@ const VideoGenerationProgress: React.FC<VideoGenerationProgressProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`h-3 w-3 rounded-full ${statusColors[status]} ${status === 'processing' ? 'animate-pulse' : ''}`}></div>
+          <div
+            className={`h-3 w-3 rounded-full ${statusColors[status]} ${status === 'processing' ? 'animate-pulse' : ''}`}
+          ></div>
           <span className="font-semibold text-white">{statusText[status]}</span>
           {details?.videoType && (
             <span className="text-xs px-2 py-1 bg-purple-700 text-purple-100 rounded-full">
@@ -132,14 +134,14 @@ const VideoGenerationProgress: React.FC<VideoGenerationProgressProps> = ({
           )}
 
           {/* Current Node */}
-          {details.currentNode && details.currentNode !== 'polling' && details.currentNode !== 'complete' && (
-            <div className="bg-gray-900 rounded p-2 col-span-2">
-              <div className="text-gray-400 text-xs mb-1">Current Node</div>
-              <div className="text-white font-mono text-xs truncate">
-                {details.currentNode}
+          {details.currentNode &&
+            details.currentNode !== 'polling' &&
+            details.currentNode !== 'complete' && (
+              <div className="bg-gray-900 rounded p-2 col-span-2">
+                <div className="text-gray-400 text-xs mb-1">Current Node</div>
+                <div className="text-white font-mono text-xs truncate">{details.currentNode}</div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Time Info */}
           <div className="bg-gray-900 rounded p-2">

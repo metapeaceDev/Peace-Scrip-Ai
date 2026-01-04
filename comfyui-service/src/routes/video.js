@@ -284,12 +284,19 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
     const {
       prompt,
       negativePrompt = 'blurry, low quality, watermark, text',
+      // Optional: reference image(s) for character consistency.
+      // Note: WAN T2V can still run without these; they are used when the worker supports I2V conditioning.
+      referenceImage,
+      characterImages,
       numFrames = VIDEO_MODELS.wan.defaultFrames,
       fps = VIDEO_MODELS.wan.fps,
       width = VIDEO_MODELS.wan.width,
       height = VIDEO_MODELS.wan.height,
       modelPath = VIDEO_MODELS.wan.defaultModelPath,
       seed,
+      steps = 30,
+      cfg = 6.0,
+      motionScale = 5.0, // Maps to 'shift' in Wan
       priority = 5,
       userId
     } = req.body;
@@ -315,13 +322,25 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
       width,
       height,
       modelPath,
-      seed
+      seed,
+      steps,
+      cfg,
+      shift: motionScale // Map motionScale to shift
     });
+
+    // Prefer explicit referenceImage; fallback to the first character image if provided.
+    const resolvedReferenceImage =
+      typeof referenceImage === 'string'
+        ? referenceImage
+        : Array.isArray(characterImages) && typeof characterImages[0] === 'string'
+          ? characterImages[0]
+          : null;
 
     const job = await addVideoJob({
       type: 'wan',
       prompt,
       workflow,
+      ...(resolvedReferenceImage ? { referenceImage: resolvedReferenceImage } : {}),
       priority,
       userId: userId || req.user?.uid || 'anonymous',
       createdBy: req.user?.email || 'anonymous',
@@ -440,6 +459,15 @@ router.get('/models', async (req, res, next) => {
     const workerManager = getWorkerManager();
     const installedModels = await workerManager.getInstalledVideoModels();
 
+    // Also detect what ComfyUI is actually advertising (especially for WAN choices)
+    let detected = null;
+    try {
+      const worker = workerManager.getNextWorker();
+      detected = await detectVideoModels(worker.url);
+    } catch (error) {
+      console.warn('⚠️ Could not detect models from ComfyUI /object_info:', error.message);
+    }
+
     res.json({
       success: true,
       data: {
@@ -459,6 +487,17 @@ router.get('/models', async (req, res, next) => {
           fps: VIDEO_MODELS.svd.fps,
           vramRequired: '12GB+',
           installed: installedModels.svd || []
+        },
+        wan: {
+          defaultFrames: VIDEO_MODELS.wan.defaultFrames,
+          maxFrames: VIDEO_MODELS.wan.maxFrames,
+          fps: VIDEO_MODELS.wan.fps,
+          width: VIDEO_MODELS.wan.width,
+          height: VIDEO_MODELS.wan.height,
+          defaultModelPath: VIDEO_MODELS.wan.defaultModelPath,
+          vramRequired: '16GB+ (recommended)',
+          supported: detected?.wan?.supported ?? false,
+          installed: detected?.wan?.models ?? []
         }
       }
     });

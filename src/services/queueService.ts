@@ -382,4 +382,3 @@ export function setupQueueListeners(): void {
 
   console.log('✅ Queue event listeners setup');
 }
-

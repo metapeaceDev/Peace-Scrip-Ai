@@ -434,4 +434,3 @@ const UserStatus: React.FC<UserStatusProps> = ({ embedded = false, compact = fal
 };
 
 export default UserStatus;
-

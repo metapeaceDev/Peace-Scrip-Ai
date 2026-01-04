@@ -1,13 +1,9 @@
-import type {
-  ImageProvider,
-  VideoProvider,
-  AutoSelectionCriteria,
-  ProviderStatus,
-} from '../types';
+import type { ImageProvider, VideoProvider, AutoSelectionCriteria, ProviderStatus } from '../types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhost:8188';
+// const COMFYUI_API_URL = import.meta.env.VITE_COMFYUI_API_URL || 'http://localhost:8188'; // For future use
 const COMFYUI_ENABLED = import.meta.env.VITE_COMFYUI_ENABLED === 'true';
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 
 interface ProviderConfig {
   displayName: string;
@@ -30,7 +26,8 @@ const IMAGE_PROVIDERS: Record<Exclude<ImageProvider, 'auto'>, ProviderConfig> = 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
+        // Use comfyui-service proxy (ComfyUI blocks browser Origin headers)
+        const response = await fetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, {
           signal: controller.signal,
           mode: 'cors',
           cache: 'no-cache',
@@ -125,7 +122,8 @@ const VIDEO_PROVIDERS: Record<Exclude<VideoProvider, 'auto'>, ProviderConfig> = 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`${COMFYUI_API_URL}/system_stats`, {
+        // Use comfyui-service proxy (ComfyUI blocks browser Origin headers)
+        const response = await fetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, {
           signal: controller.signal,
           mode: 'cors',
           cache: 'no-cache',
@@ -299,4 +297,3 @@ export async function selectProvider(
     displayName: statuses[0]?.displayName || providers[0],
   };
 }
-

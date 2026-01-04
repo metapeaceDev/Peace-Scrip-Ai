@@ -204,4 +204,3 @@ function getProgressColor(ratio: number): string {
   if (ratio < 0.8) return '#ff9800'; // Orange
   return '#f44336'; // Red
 }
-

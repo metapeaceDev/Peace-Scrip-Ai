@@ -1,6 +1,6 @@
 /**
  * Load Testing Script
- * 
+ *
  * Test system with 100+ concurrent jobs
  * Measure throughput, latency, and cost
  */
@@ -63,7 +63,7 @@ function createTestJob(index: number) {
  */
 async function submitJob(jobData: any): Promise<JobResult> {
   const startTime = performance.now();
-  
+
   try {
     // Submit job
     const submitResponse = await axios.post(
@@ -81,20 +81,19 @@ async function submitJob(jobData: any): Promise<JobResult> {
 
     while (!completed && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const statusResponse = await axios.get(
-        `${COMFYUI_SERVICE_URL}/api/queue/job/${jobId}`,
-        { timeout: 5000 }
-      );
+
+      const statusResponse = await axios.get(`${COMFYUI_SERVICE_URL}/api/queue/job/${jobId}`, {
+        timeout: 5000,
+      });
 
       const status = statusResponse.data.status;
-      
+
       if (status === 'completed') {
         completed = true;
       } else if (status === 'failed') {
         throw new Error('Job failed');
       }
-      
+
       attempts++;
     }
 
@@ -106,10 +105,9 @@ async function submitJob(jobData: any): Promise<JobResult> {
     const duration = endTime - startTime;
 
     // Get job details to extract backend and cost
-    const detailsResponse = await axios.get(
-      `${COMFYUI_SERVICE_URL}/api/queue/job/${jobId}`,
-      { timeout: 5000 }
-    );
+    const detailsResponse = await axios.get(`${COMFYUI_SERVICE_URL}/api/queue/job/${jobId}`, {
+      timeout: 5000,
+    });
 
     const result = detailsResponse.data.result || {};
 
@@ -144,7 +142,7 @@ async function submitJob(jobData: any): Promise<JobResult> {
  */
 function percentile(arr: number[], p: number): number {
   if (arr.length === 0) return 0;
-  
+
   const sorted = arr.slice().sort((a, b) => a - b);
   const index = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[index];
@@ -156,9 +154,10 @@ function percentile(arr: number[], p: number): number {
 function analyzeResults(results: JobResult[]): LoadTestResults {
   const successful = results.filter(r => r.success);
   const failed = results.filter(r => !r.success);
-  
+
   const durations = successful.map(r => r.duration);
-  const totalDuration = Math.max(...results.map(r => r.endTime)) - Math.min(...results.map(r => r.startTime));
+  const totalDuration =
+    Math.max(...results.map(r => r.endTime)) - Math.min(...results.map(r => r.startTime));
 
   // Backend distribution
   const backendDistribution: Record<string, number> = {};
@@ -198,8 +197,12 @@ function printResults(results: LoadTestResults) {
 
   console.log('📊 Job Statistics:');
   console.log(`   Total Jobs:      ${results.totalJobs}`);
-  console.log(`   Successful:      ${results.successfulJobs} (${((results.successfulJobs / results.totalJobs) * 100).toFixed(1)}%)`);
-  console.log(`   Failed:          ${results.failedJobs} (${((results.failedJobs / results.totalJobs) * 100).toFixed(1)}%)`);
+  console.log(
+    `   Successful:      ${results.successfulJobs} (${((results.successfulJobs / results.totalJobs) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `   Failed:          ${results.failedJobs} (${((results.failedJobs / results.totalJobs) * 100).toFixed(1)}%)`
+  );
   console.log('');
 
   console.log('⚡ Performance:');
@@ -220,7 +223,9 @@ function printResults(results: LoadTestResults) {
   console.log('🎯 Backend Distribution:');
   Object.entries(results.backendDistribution).forEach(([backend, count]) => {
     const percentage = (count / results.successfulJobs) * 100;
-    console.log(`   ${backend.padEnd(10)} ${count.toString().padStart(4)} jobs (${percentage.toFixed(1)}%)`);
+    console.log(
+      `   ${backend.padEnd(10)} ${count.toString().padStart(4)} jobs (${percentage.toFixed(1)}%)`
+    );
   });
   console.log('');
 
@@ -275,14 +280,14 @@ async function runLoadTest() {
 
   for (let i = 0; i < CONCURRENT_JOBS; i += batchSize) {
     const batch = [];
-    
+
     for (let j = 0; j < batchSize && i + j < CONCURRENT_JOBS; j++) {
       const jobData = createTestJob(i + j);
       batch.push(submitJob(jobData));
     }
 
     const batchResults = await Promise.allSettled(batch);
-    
+
     batchResults.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         results.push(result.value);
@@ -318,7 +323,9 @@ async function runLoadTest() {
     const lbStatus = await axios.get(`${COMFYUI_SERVICE_URL}/api/loadbalancer/status`);
     console.log('📊 Final Backend Status:');
     lbStatus.data.backends.forEach((backend: any) => {
-      console.log(`   ${backend.name}: Jobs=${backend.jobs}, Cost=$${backend.totalCost.toFixed(4)}, Avg Time=${backend.avgProcessingTime.toFixed(1)}s`);
+      console.log(
+        `   ${backend.name}: Jobs=${backend.jobs}, Cost=$${backend.totalCost.toFixed(4)}, Avg Time=${backend.avgProcessingTime.toFixed(1)}s`
+      );
     });
     console.log('');
   } catch (error) {

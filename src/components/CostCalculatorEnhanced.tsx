@@ -1,6 +1,6 @@
 /**
  * Cost Calculator Component (Enhanced)
- * 
+ *
  * Interactive cost estimation with Load Balancer API
  * Helps users understand costs and optimize backend usage
  */
@@ -84,16 +84,14 @@ export const CostCalculatorEnhanced: React.FC = () => {
         <div className="space-y-4">
           {/* Job Count */}
           <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              Number of Videos to Generate
-            </label>
+            <label className="block text-sm text-gray-300 mb-2">Number of Videos to Generate</label>
             <div className="flex items-center space-x-4">
               <input
                 type="range"
                 min="1"
                 max="1000"
                 value={jobCount}
-                onChange={(e) => setJobCount(parseInt(e.target.value))}
+                onChange={e => setJobCount(parseInt(e.target.value))}
                 className="flex-1"
               />
               <input
@@ -101,7 +99,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
                 min="1"
                 max="10000"
                 value={jobCount}
-                onChange={(e) => setJobCount(parseInt(e.target.value) || 1)}
+                onChange={e => setJobCount(parseInt(e.target.value) || 1)}
                 className="w-24 bg-gray-900 border border-gray-600 rounded-lg py-2 px-3 text-white text-center"
               />
             </div>
@@ -112,7 +110,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
             <label className="block text-sm text-gray-300 mb-2">Backend</label>
             <select
               value={selectedBackend}
-              onChange={(e) => setSelectedBackend(e.target.value as BackendType | 'auto')}
+              onChange={e => setSelectedBackend(e.target.value as BackendType | 'auto')}
               className="w-full bg-gray-900 border border-gray-600 rounded-lg py-2 px-3 text-white"
             >
               <option value="auto">Auto (Recommended)</option>
@@ -129,7 +127,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
               <input
                 type="checkbox"
                 checked={maxBudget !== null}
-                onChange={(e) => setMaxBudget(e.target.checked ? 10 : null)}
+                onChange={e => setMaxBudget(e.target.checked ? 10 : null)}
                 className="rounded"
               />
             </label>
@@ -139,7 +137,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
                 step="1"
                 min="0"
                 value={maxBudget}
-                onChange={(e) => setMaxBudget(parseFloat(e.target.value) || 0)}
+                onChange={e => setMaxBudget(parseFloat(e.target.value) || 0)}
                 className="w-full bg-gray-900 border border-gray-600 rounded-lg py-2 px-3 text-white"
                 placeholder="Maximum budget in USD"
               />
@@ -155,7 +153,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
             <input
               type="checkbox"
               checked={needsFast}
-              onChange={(e) => setNeedsFast(e.target.checked)}
+              onChange={e => setNeedsFast(e.target.checked)}
               className="rounded"
             />
           </label>
@@ -232,7 +230,7 @@ export const CostCalculatorEnhanced: React.FC = () => {
           <h3 className="text-lg font-bold text-white mb-4">💡 Recommendations</h3>
 
           <div className="space-y-3">
-            {recommendations.recommendations.map((rec) => {
+            {recommendations.recommendations.map(rec => {
               if (rec.jobCount === 0) return null;
 
               const percentage = (rec.jobCount / jobCount) * 100;
@@ -307,15 +305,13 @@ export const CostCalculatorEnhanced: React.FC = () => {
           </div>
           <div className="flex justify-between">
             <span>100% Gemini:</span>
-            <span className="font-semibold text-red-400">
-              ${(jobCount * 0.08).toFixed(2)}
-            </span>
+            <span className="font-semibold text-red-400">${(jobCount * 0.08).toFixed(2)}</span>
           </div>
         </div>
         {estimate && estimate.totalCost > 0 && (
           <div className="mt-3 pt-3 border-t border-green-800">
             <p className="text-xs text-green-300">
-              💡 You could save ${((jobCount * 0.08) - estimate.totalCost).toFixed(2)} compared to
+              💡 You could save ${(jobCount * 0.08 - estimate.totalCost).toFixed(2)} compared to
               using only Gemini!
             </p>
           </div>

@@ -300,4 +300,3 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ members,
     </div>
   );
 };
-

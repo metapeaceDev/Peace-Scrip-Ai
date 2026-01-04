@@ -934,4 +934,3 @@ export function validateCharacterArc(timeline: CharacterPsychologyTimeline): {
     recommendations,
   };
 }
-

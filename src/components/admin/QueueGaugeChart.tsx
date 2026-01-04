@@ -1,6 +1,6 @@
 /**
  * Queue Gauge Chart Component
- * 
+ *
  * แสดงแผนภาพครึ่งวงกลมคิวงาน (Gauge Chart) พร้อมรายละเอียดคิวแยกตามสถานะ
  */
 
@@ -13,7 +13,15 @@ interface QueueGaugeChartProps {
 }
 
 export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => {
-  const { completed, processing, queued, total, completedPercentage, processingPercentage, queuedPercentage } = metrics;
+  const {
+    completed,
+    processing,
+    queued,
+    total,
+    completedPercentage,
+    processingPercentage,
+    queuedPercentage,
+  } = metrics;
 
   // คำนวณมุมสำหรับ gauge (180 degrees = 100%)
   const completedAngle = (completedPercentage / 100) * 180;
@@ -26,7 +34,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
   return (
     <div className="queue-gauge-container">
       <h3 className="gauge-title">📊 คิวงานรวม (Real-time)</h3>
-      
+
       {/* Gauge Chart */}
       <div className="gauge-chart">
         <svg className="gauge-svg" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
@@ -38,7 +46,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
             strokeWidth="20"
             strokeLinecap="round"
           />
-          
+
           {/* Completed arc (green) */}
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
@@ -49,7 +57,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
             strokeDasharray={`${completedAngle} 180`}
             className="gauge-arc-completed"
           />
-          
+
           {/* Processing arc (red) */}
           {processing > 0 && (
             <path
@@ -63,7 +71,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
               className="gauge-arc-processing"
             />
           )}
-          
+
           {/* Queued arc (yellow) */}
           {queued > 0 && (
             <path
@@ -77,7 +85,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
               className="gauge-arc-queued"
             />
           )}
-          
+
           {/* Center text - improved layout with proper positioning */}
           <text x="100" y="60" textAnchor="middle" className="gauge-total-value">
             {total}
@@ -88,7 +96,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
           <text x="100" y="98" textAnchor="middle" className="gauge-total-label">
             งานทั้งหมด
           </text>
-          
+
           {/* Pointer (needle) */}
           <line
             x1="100"
@@ -103,11 +111,9 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
           />
           <circle cx="100" cy="100" r="5" fill="#374151" />
         </svg>
-        
+
         {/* Percentage display */}
-        <div className="gauge-percentage">
-          {completedPercentage.toFixed(1)}%
-        </div>
+        <div className="gauge-percentage">{completedPercentage.toFixed(1)}%</div>
       </div>
 
       {/* Queue Details (3 columns) */}
@@ -118,8 +124,8 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
           <div className="column-label">เสร็จแล้ว</div>
           <div className="column-value">{completed}</div>
           <div className="column-bar">
-            <div 
-              className="column-bar-fill completed-bar" 
+            <div
+              className="column-bar-fill completed-bar"
               style={{ width: `${completedPercentage}%` }}
             />
           </div>
@@ -132,8 +138,8 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
           <div className="column-label">กำลังทำ</div>
           <div className="column-value">{processing}</div>
           <div className="column-bar">
-            <div 
-              className="column-bar-fill processing-bar" 
+            <div
+              className="column-bar-fill processing-bar"
               style={{ width: `${processingPercentage}%` }}
             />
           </div>
@@ -146,10 +152,7 @@ export const QueueGaugeChart: React.FC<QueueGaugeChartProps> = ({ metrics }) => 
           <div className="column-label">รอคิว</div>
           <div className="column-value">{queued}</div>
           <div className="column-bar">
-            <div 
-              className="column-bar-fill queued-bar" 
-              style={{ width: `${queuedPercentage}%` }}
-            />
+            <div className="column-bar-fill queued-bar" style={{ width: `${queuedPercentage}%` }} />
           </div>
           <div className="column-percentage">{queuedPercentage.toFixed(1)}%</div>
         </div>

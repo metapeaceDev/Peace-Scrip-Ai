@@ -385,4 +385,3 @@ ${permissionsList.map(p => `• ${p}`).join('\n')}
 
   return { subject, html, text };
 }
-

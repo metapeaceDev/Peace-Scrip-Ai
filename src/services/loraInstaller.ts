@@ -341,4 +341,3 @@ export function setAutoInstallLoRA(enabled: boolean): void {
 export function getAutoInstallLoRA(): boolean {
   return localStorage.getItem('peace_auto_install_lora') !== 'false'; // Default: true
 }
-

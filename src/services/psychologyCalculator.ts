@@ -373,4 +373,3 @@ export function updateAllEmotionalStates(
 ): Character[] {
   return characters.map(c => updateEmotionalState(c, sceneContext));
 }
-

@@ -84,4 +84,3 @@ export const PsychologyTestComponent: React.FC = () => {
 };
 
 export default PsychologyTestComponent;
-

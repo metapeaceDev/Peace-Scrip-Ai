@@ -256,7 +256,11 @@ const Studio: React.FC<StudioProps> = ({
                             ? 'bg-red-600/90 hover:bg-red-700 text-white px-2.5 py-1.5 animate-pulse border border-red-300/50 opacity-100'
                             : 'bg-gray-800/75 hover:bg-red-600/90 text-white p-1.5 opacity-75 hover:opacity-100 border border-red-500/30 hover:border-red-400/50'
                         }`}
-                        title={deleteConfirmationId === project.id ? 'Click Again to Confirm Delete' : 'Delete Project'}
+                        title={
+                          deleteConfirmationId === project.id
+                            ? 'Click Again to Confirm Delete'
+                            : 'Delete Project'
+                        }
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -271,7 +275,9 @@ const Studio: React.FC<StudioProps> = ({
                           />
                         </svg>
                         {deleteConfirmationId === project.id && (
-                          <span className="text-[11px] font-extrabold whitespace-nowrap tracking-wide">CONFIRM?</span>
+                          <span className="text-[11px] font-extrabold whitespace-nowrap tracking-wide">
+                            CONFIRM?
+                          </span>
                         )}
                       </button>
                     </PermissionGuard>
@@ -373,4 +379,3 @@ const Studio: React.FC<StudioProps> = ({
 };
 
 export default Studio;
-

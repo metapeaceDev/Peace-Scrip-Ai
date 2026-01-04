@@ -322,4 +322,3 @@ export const QuotaWidget: React.FC<QuotaWidgetProps> = ({ onUpgradeClick }) => {
 };
 
 export default QuotaWidget;
-

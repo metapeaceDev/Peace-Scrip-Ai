@@ -268,4 +268,3 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ userId, onCl
     </div>
   );
 };
-

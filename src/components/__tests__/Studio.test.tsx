@@ -386,4 +386,3 @@ describe('Studio - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
-

@@ -370,4 +370,3 @@ export const useBatchVideoGeneration = (): UseBatchVideoGenerationResult => {
     reset,
   };
 };
-

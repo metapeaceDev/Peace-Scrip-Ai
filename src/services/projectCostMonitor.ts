@@ -88,7 +88,7 @@ async function calculateApiCosts(
     // Group by provider AND model
     const usageStats: Record<string, { calls: number; cost: number }> = {};
 
-    snapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
       const provider = data.provider?.toLowerCase() || 'unknown';
       // Normalize model name for matching
@@ -118,7 +118,10 @@ async function calculateApiCosts(
     };
 
     // Group Gemini models
-    const geminiModels: Record<string, { calls: number; cost: number; displayName: string; pricingKey: string }> = {};
+    const geminiModels: Record<
+      string,
+      { calls: number; cost: number; displayName: string; pricingKey: string }
+    > = {};
 
     Object.entries(usageStats).forEach(([key, stats]) => {
       const [p, m] = key.split(':');
@@ -159,9 +162,9 @@ async function calculateApiCosts(
     });
 
     // Create service entries for each unique Gemini usage
-    Object.values(geminiModels).forEach((model) => {
+    Object.values(geminiModels).forEach(model => {
       const details = API_PRICING.GEMINI[model.pricingKey as keyof typeof API_PRICING.GEMINI];
-      
+
       if (!details) {
         console.warn(`⚠️ No pricing found for ${model.pricingKey}`);
         return;
@@ -198,9 +201,9 @@ async function calculateApiCosts(
     // 2. Replicate Models
     const replicateModelMap: Record<string, string> = {
       'stable-video-diffusion': 'stable-video-diffusion',
-      'svd': 'stable-video-diffusion',
-      'animatediff': 'animatediff',
-      'ltx': 'ltx-video',
+      svd: 'stable-video-diffusion',
+      animatediff: 'animatediff',
+      ltx: 'ltx-video',
       'ltx-video': 'ltx-video',
     };
 
@@ -231,9 +234,9 @@ async function calculateApiCosts(
       delete usageStats[key];
     });
 
-    Object.values(replicateModels).forEach((model) => {
+    Object.values(replicateModels).forEach(model => {
       const details = API_PRICING.REPLICATE[model.pricingKey as keyof typeof API_PRICING.REPLICATE];
-      
+
       if (!details) return;
 
       services.push({
@@ -326,13 +329,13 @@ async function calculateApiCosts(
     // 5. Handle remaining usage (Other/Unknown)
     Object.entries(usageStats).forEach(([key, stats]) => {
       const [provider, model] = key.split(':');
-      
+
       // Skip if no usage
       if (stats.calls === 0) return;
 
       // Capitalize provider name
       const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-      
+
       // Clean up model name (remove provider prefix if duplicated)
       let cleanModel = model.replace(provider, '').trim();
       if (!cleanModel) cleanModel = 'Unknown Model';
@@ -654,4 +657,3 @@ export function exportCostDataToCSV(summary: ProjectCostSummary): string {
 
   return lines.join('\n');
 }
-

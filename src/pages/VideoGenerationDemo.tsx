@@ -10,7 +10,10 @@
 import React, { useState } from 'react';
 import VideoGenerationProgress from '../components/VideoGenerationProgress';
 import VideoGenerationError, { type VideoError } from '../components/VideoGenerationError';
-import { generateVideoWithFallback, type VideoGenerationRequest } from '../services/videoGenerationFallback';
+import {
+  generateVideoWithFallback,
+  type VideoGenerationRequest,
+} from '../services/videoGenerationFallback';
 import { parseVideoError, isRetryableError, hasFallbackOption } from '../utils/videoErrorUtils';
 
 interface JobState {
@@ -34,7 +37,7 @@ const VideoGenerationDemo: React.FC = () => {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    
+
     // Reset job state
     const jobId = `demo-${Date.now()}`;
     setJobState({
@@ -99,7 +102,7 @@ const VideoGenerationDemo: React.FC = () => {
 
     setIsGenerating(true);
     const jobId = `fallback-${Date.now()}`;
-    
+
     setJobState({
       jobId,
       progress: 0,
@@ -158,16 +161,14 @@ const VideoGenerationDemo: React.FC = () => {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
         <h2 className="text-2xl font-bold text-white mb-4">Video Generation Demo</h2>
-        
+
         {/* Form */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Prompt
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Prompt</label>
             <textarea
               value={formData.prompt}
-              onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+              onChange={e => setFormData({ ...formData, prompt: e.target.value })}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               rows={3}
               disabled={isGenerating}
@@ -176,12 +177,10 @@ const VideoGenerationDemo: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Video Type
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Video Type</label>
               <select
                 value={formData.videoType}
-                onChange={(e) => setFormData({ ...formData, videoType: e.target.value as any })}
+                onChange={e => setFormData({ ...formData, videoType: e.target.value as any })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 disabled={isGenerating}
               >
@@ -191,13 +190,11 @@ const VideoGenerationDemo: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Frames
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Frames</label>
               <input
                 type="number"
                 value={formData.numFrames}
-                onChange={(e) => setFormData({ ...formData, numFrames: parseInt(e.target.value) })}
+                onChange={e => setFormData({ ...formData, numFrames: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 min={16}
                 max={128}
@@ -206,13 +203,11 @@ const VideoGenerationDemo: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                FPS
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">FPS</label>
               <input
                 type="number"
                 value={formData.fps}
-                onChange={(e) => setFormData({ ...formData, fps: parseInt(e.target.value) })}
+                onChange={e => setFormData({ ...formData, fps: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 min={6}
                 max={24}
@@ -255,13 +250,7 @@ const VideoGenerationDemo: React.FC = () => {
       {jobState?.status === 'completed' && jobState.videoUrl && (
         <div className="bg-green-900/20 border border-green-700 rounded-lg p-6">
           <h3 className="text-xl font-semibold text-white mb-4">✅ Video Generated Successfully</h3>
-          <video
-            src={jobState.videoUrl}
-            controls
-            className="w-full rounded-lg"
-            autoPlay
-            loop
-          />
+          <video src={jobState.videoUrl} controls className="w-full rounded-lg" autoPlay loop />
           <div className="mt-4 flex gap-3">
             <a
               href={jobState.videoUrl}

@@ -24,7 +24,8 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
   totalCost = 0,
 }) => {
   const creditsUsed = usage.credits.total;
-  const totalApiCalls = usage.apiCalls.scripts + usage.apiCalls.images + usage.apiCalls.videos + usage.apiCalls.audio;
+  const totalApiCalls =
+    usage.apiCalls.scripts + usage.apiCalls.images + usage.apiCalls.videos + usage.apiCalls.audio;
   const totalProfit = revenue.mrr - totalCost;
 
   return (
@@ -40,8 +41,10 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
               <h3>ผู้ใช้ทั้งหมด</h3>
               <p className="card-value">{stats.total.toLocaleString()}</p>
               <p className="card-subtitle">
-                Active: {stats.active}<br />
-                New: {stats.new}<br />
+                Active: {stats.active}
+                <br />
+                New: {stats.new}
+                <br />
                 <span className="online-badge">🟢 Online: {stats.online}</span>
               </p>
             </div>
@@ -54,7 +57,8 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
               <h3>เครดิตที่ใช้</h3>
               <p className="card-value">{creditsUsed.toLocaleString()}</p>
               <p className="card-subtitle">
-                Avg: {usage.credits.average.toFixed(0)} per user<br />
+                Avg: {usage.credits.average.toFixed(0)} per user
+                <br />
                 Total: {usage.credits.total.toLocaleString()} Monthly Credits
               </p>
             </div>
@@ -79,7 +83,11 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
             <div className="card-content">
               <h3>Profit/Loss</h3>
               <p className="card-value" style={{ color: totalProfit >= 0 ? '#10b981' : '#ef4444' }}>
-                ฿{totalProfit.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                ฿
+                {totalProfit.toLocaleString(undefined, {
+                  minimumFractionDigits: 3,
+                  maximumFractionDigits: 3,
+                })}
               </p>
               <p className="card-subtitle">Total</p>
             </div>
@@ -90,10 +98,14 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
             <div className="card-icon">💰</div>
             <div className="card-content">
               <h3>เอ็มอาร์อาร์</h3>
-              <p className="card-value">฿{revenue.mrr.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
-              <p className="card-subtitle">
-                ARPU: ฿{revenue.arpu.toFixed(2)}
+              <p className="card-value">
+                ฿
+                {revenue.mrr.toLocaleString(undefined, {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}
               </p>
+              <p className="card-subtitle">ARPU: ฿{revenue.arpu.toFixed(2)}</p>
             </div>
           </div>
 
@@ -103,11 +115,13 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
             <div className="card-content">
               <h3>ต้นทุนรวม</h3>
               <p className="card-value">
-                ฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ฿
+                {totalCost.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
-              <p className="card-subtitle">
-                Total Cost
-              </p>
+              <p className="card-subtitle">Total Cost</p>
             </div>
           </div>
         </div>
@@ -176,4 +190,3 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({
     </div>
   );
 };
-

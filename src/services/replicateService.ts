@@ -793,4 +793,3 @@ export function getReplicateModels() {
 export function estimateReplicateCost(model: keyof typeof REPLICATE_MODELS): string {
   return REPLICATE_MODELS[model].cost;
 }
-

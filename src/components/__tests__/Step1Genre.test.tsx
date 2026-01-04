@@ -443,4 +443,3 @@ describe('Step1Genre - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
-

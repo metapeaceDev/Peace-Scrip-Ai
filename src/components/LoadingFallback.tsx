@@ -18,4 +18,3 @@ const LoadingFallback: React.FC<{ message?: string }> = ({ message = 'Loading...
 };
 
 export default LoadingFallback;
-

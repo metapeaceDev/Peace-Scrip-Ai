@@ -1,6 +1,6 @@
 /**
  * ComfyUI Settings Page
- * 
+ *
  * Centralized settings for backend management, preferences, and monitoring
  */
 
@@ -34,7 +34,7 @@ export const ComfyUISettingsPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="bg-gray-800 rounded-lg p-2 mb-6 flex space-x-2 overflow-x-auto">
-          {tabs.map((tab) => (
+          {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -74,7 +74,7 @@ const MonitoringPanel: React.FC = () => {
       {/* Real-time Status */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
         <h2 className="text-xl font-bold text-white mb-4">📊 Real-time Monitoring</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-900/50 rounded-lg p-4">
             <div className="text-sm text-gray-400 mb-1">Active Jobs</div>
@@ -103,7 +103,7 @@ const MonitoringPanel: React.FC = () => {
       {/* Health Status */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
         <h3 className="text-lg font-bold text-white mb-4">🏥 Backend Health</h3>
-        
+
         <div className="space-y-3">
           <HealthStatusCard
             name="Local ComfyUI"
@@ -111,25 +111,15 @@ const MonitoringPanel: React.FC = () => {
             status="checking"
             url="http://localhost:8188"
           />
-          <HealthStatusCard
-            name="Cloud RunPod"
-            icon="☁️"
-            status="offline"
-            url="Not configured"
-          />
-          <HealthStatusCard
-            name="Gemini API"
-            icon="🤖"
-            status="online"
-            url="Google AI"
-          />
+          <HealthStatusCard name="Cloud RunPod" icon="☁️" status="offline" url="Not configured" />
+          <HealthStatusCard name="Gemini API" icon="🤖" status="online" url="Google AI" />
         </div>
       </div>
 
       {/* Cost Tracking */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
         <h3 className="text-lg font-bold text-white mb-4">💸 Cost Tracking</h3>
-        
+
         <div className="space-y-4">
           <div>
             <div className="flex justify-between text-sm mb-2">
@@ -171,7 +161,7 @@ const MonitoringPanel: React.FC = () => {
       {/* Performance Metrics */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
         <h3 className="text-lg font-bold text-white mb-4">⚡ Performance</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gray-900/50 rounded-lg p-4">
             <div className="text-sm text-gray-400 mb-2">Avg Processing Time</div>

@@ -23,6 +23,7 @@ const COMFYUI_DEFAULT_URL =
   import.meta.env.VITE_COMFYUI_API_URL ||
   'http://localhost:8188';
 const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL; // Optional cloud fallback
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 
 /**
  * Check if ComfyUI is installed and running
@@ -49,8 +50,8 @@ export async function checkComfyUIStatus(): Promise<ComfyUIStatus> {
   };
 
   try {
-    // Try local installation (silent error to avoid console spam)
-    const localResponse = await silentFetch(`${COMFYUI_DEFAULT_URL}/system_stats`, 2000);
+    // Try local installation via comfyui-service proxy (browser-safe)
+    const localResponse = await silentFetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, 2000);
 
     if (localResponse?.ok) {
       const stats = await localResponse.json();
@@ -236,4 +237,3 @@ export function getSavedComfyUIUrl(): string {
   // ✅ ALWAYS return .env value (single source of truth)
   return COMFYUI_DEFAULT_URL;
 }
-

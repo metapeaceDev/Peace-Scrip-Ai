@@ -368,4 +368,3 @@ export function classifyCitta(citta: CittaType): {
   }
   return { category: 'กิริยา', subcategory: 'functional citta', quality: 'functional' };
 }
-

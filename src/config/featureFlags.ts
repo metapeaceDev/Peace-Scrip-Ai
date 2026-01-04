@@ -130,4 +130,3 @@ export function enableFeatureForDev(feature: FeatureFlag): void {
     logger.warn(`Cannot enable ${feature} in production`);
   }
 }
-

@@ -1168,4 +1168,3 @@ const SoundDesignPanel: React.FC<SoundDesignPanelProps> = ({
 };
 
 export default MotionEditor;
-

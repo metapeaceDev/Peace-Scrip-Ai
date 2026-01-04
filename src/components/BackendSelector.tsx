@@ -5,10 +5,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  loadBalancerClient, 
-  type BackendType, 
-  type BackendInfo
+import {
+  loadBalancerClient,
+  type BackendType,
+  type BackendInfo,
 } from '../services/loadBalancerClient';
 
 interface BackendStatus {
@@ -43,7 +43,7 @@ export const BackendSelector: React.FC = () => {
         healthy: backend.healthy,
         queue: backend.queue,
         cost: backend.cost,
-        avgSpeed: backend.avgSpeed
+        avgSpeed: backend.avgSpeed,
       }));
       setStatuses(newStatuses);
     } catch (error) {
@@ -56,9 +56,9 @@ export const BackendSelector: React.FC = () => {
     try {
       // Update user preference via load balancer
       await loadBalancerClient.updatePreferences({
-        preferredBackend: backend
+        preferredBackend: backend,
       });
-      
+
       setSelectedBackend(backend);
       await loadBackendStatuses();
     } catch (error) {
@@ -188,9 +188,7 @@ export const BackendSelector: React.FC = () => {
         <p className="text-sm text-gray-300">
           If your selected backend fails, the system will automatically try other backends in
           priority order:
-          <span className="block mt-1 text-blue-400 font-mono">
-            Local → Cloud → Gemini
-          </span>
+          <span className="block mt-1 text-blue-400 font-mono">Local → Cloud → Gemini</span>
         </p>
       </div>
 
@@ -216,4 +214,3 @@ export const BackendSelector: React.FC = () => {
 };
 
 export default BackendSelector;
-

@@ -488,4 +488,3 @@ export function exportProfitLossReport(pnl: ProfitLossStatement): string {
 
   return csv.join('\n');
 }
-

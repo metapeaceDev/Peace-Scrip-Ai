@@ -50,6 +50,8 @@ export const BACKEND_CONFIG: Record<BackendType, BackendConfig> = {
   },
 };
 
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
+
 export class BackendManager {
   private statusCache: Map<BackendType, BackendStatus> = new Map();
   private preferredBackend: BackendType | null = null;
@@ -71,14 +73,14 @@ export class BackendManager {
    */
   async checkBackendHealth(type: BackendType): Promise<BackendStatus> {
     const startTime = Date.now();
-    const config = BACKEND_CONFIG[type];
+    // const config = BACKEND_CONFIG[type]; // For future use
 
     try {
       let healthy = false;
 
       if (type === 'local') {
-        // Check local ComfyUI
-        const response = await fetch(`${config.url}/system_stats`, {
+        // Check local ComfyUI via comfyui-service proxy (browser-safe)
+        const response = await fetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000),
         });
@@ -334,4 +336,3 @@ export class BackendManager {
 
 // Singleton instance
 export const backendManager = new BackendManager();
-

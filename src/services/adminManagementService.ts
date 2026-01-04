@@ -357,4 +357,3 @@ export async function cancelInvitation(
     throw new Error(errorMessage);
   }
 }
-

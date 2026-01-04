@@ -321,9 +321,7 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {/* Usage Charts Section - Visual Analytics */}
-          {usage && (
-            <UsageChartsSection usage={usage} />
-          )}
+          {usage && <UsageChartsSection usage={usage} />}
 
           {/* Analytics Charts */}
           <div className="charts-section">
@@ -335,8 +333,8 @@ export const AdminDashboard: React.FC = () => {
 
             {usage && revenue && stats && stats.tierMetrics && (
               <div className="chart-card full-width">
-                <EnhancedUsageBarChart 
-                  usage={usage} 
+                <EnhancedUsageBarChart
+                  usage={usage}
                   revenue={revenue}
                   totalCost={
                     (stats.tierMetrics.free?.cost || 0) +
@@ -389,9 +387,7 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="chart-card">
               {queueMetrics && <QueueGaugeChart metrics={queueMetrics} />}
-              {!queueMetrics && (
-                <div className="loading-placeholder">กำลังโหลดข้อมูลคิวงาน...</div>
-              )}
+              {!queueMetrics && <div className="loading-placeholder">กำลังโหลดข้อมูลคิวงาน...</div>}
             </div>
           </div>
 
@@ -457,4 +453,3 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 };
-

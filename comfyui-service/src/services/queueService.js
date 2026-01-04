@@ -31,31 +31,42 @@ const localJobs = new Map(); // jobId -> { status, result, error, progress }
  * Helper: Update job status in both localJobs and Firestore
  */
 async function updateJobProgress(jobId, status, additionalData = {}) {
+  // Keep progress monotonic even when multiple sources update it.
+  const mergedAdditionalData = { ...additionalData };
+  const incomingProgress = Number(additionalData.progress);
+  if (Number.isFinite(incomingProgress)) {
+    const existingProgress = localJobs.has(jobId)
+      ? Number(localJobs.get(jobId)?.progress)
+      : NaN;
+    const safeExisting = Number.isFinite(existingProgress) ? existingProgress : 0;
+    mergedAdditionalData.progress = Math.max(safeExisting, incomingProgress);
+  }
+
   // Update in-memory first for immediate access
   if (localJobs.has(jobId)) {
     const existing = localJobs.get(jobId);
     localJobs.set(jobId, {
       ...existing,
       status,
-      ...additionalData,
+      ...mergedAdditionalData,
       updatedAt: Date.now()
     });
   } else {
     // Create new entry if doesn't exist
     localJobs.set(jobId, {
       status,
-      ...additionalData,
+      ...mergedAdditionalData,
       createdAt: Date.now(),
       updatedAt: Date.now()
     });
   }
   
   // Update Firestore asynchronously
-  await updateJobStatus(jobId, status, additionalData).catch(err => {
+  await updateJobStatus(jobId, status, mergedAdditionalData).catch(err => {
     console.error(`⚠️ Failed to update Firestore for ${jobId}:`, err.message);
   });
   
-  console.log(`📊 Job ${jobId} progress updated: ${status} (${additionalData.progress || 0}%)`);
+  console.log(`📊 Job ${jobId} progress updated: ${status} (${mergedAdditionalData.progress || 0}%)`);
 }
 
 /**
@@ -74,6 +85,7 @@ class MockQueue {
   async getActiveCount() { return 0; }
   async getCompletedCount() { return 0; }
   async getFailedCount() { return 0; }
+  async getDelayedCount() { return 0; }
   async getJob(jobId) { return this.jobs.get(jobId); }
 
   async add(data, options = {}) {
@@ -880,7 +892,7 @@ async function processVideoGeneration(job) {
       isVideo: true,
       metadata,
       onProgress: async (progress, details) => {
-        const overallProgress = 5 + (progress * 0.90); // 5% to 95%
+        const overallProgress = 5 + (progress * 0.93); // 5% to 98%
         console.log(`📊 Video Generation Progress: ${Math.round(overallProgress)}%`, details ? `(${details.currentNode || 'processing'})` : '');
         await job.progress(overallProgress);
         
@@ -898,7 +910,7 @@ async function processVideoGeneration(job) {
       }
     });
     
-    await job.progress(95);
+    await job.progress(98); // Video generation complete, starting upload
     
     // 🆕 UPLOAD TO FIREBASE STORAGE IMMEDIATELY IN PROCESSOR
     console.log('🔍 DEBUG processVideoGeneration result:', {

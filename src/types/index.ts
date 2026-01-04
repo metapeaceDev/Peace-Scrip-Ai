@@ -196,7 +196,10 @@ export interface GeneratedScene {
     // New fields for production tracking
     cast?: string;
     costume?: string;
+    // Per-shot Costume & Fashion override (schema matches Step 3 `character.fashion`)
+    costumeFashion?: Record<string, string>;
     set?: string;
+    visualEffects?: string;
   }[];
   // New field for Storyboard
   storyboard: {
@@ -726,4 +729,3 @@ export interface UserDetails {
     };
   }>;
 }
-

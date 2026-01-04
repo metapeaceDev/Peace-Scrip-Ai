@@ -118,11 +118,7 @@ export function parseVideoError(error: any, videoType?: 'animatediff' | 'svd'): 
  * Check if error is retryable
  */
 export function isRetryableError(errorType: VideoErrorType): boolean {
-  const retryableErrors: VideoErrorType[] = [
-    'timeout',
-    'network_error',
-    'worker_unavailable',
-  ];
+  const retryableErrors: VideoErrorType[] = ['timeout', 'network_error', 'worker_unavailable'];
   return retryableErrors.includes(errorType);
 }
 
@@ -147,16 +143,16 @@ export function getSuggestedFallback(errorType: VideoErrorType, videoType?: stri
     case 'model_not_found':
     case 'worker_unavailable':
       return 'gemini-veo'; // Fallback to Gemini Veo 2
-    
+
     case 'insufficient_vram':
       if (videoType === 'svd') {
         return 'animatediff'; // SVD → AnimateDiff (lower VRAM)
       }
       return 'gemini-veo'; // AnimateDiff → Gemini Veo
-    
+
     case 'timeout':
       return 'reduce-frames'; // Suggest reducing frame count
-    
+
     default:
       return 'gemini-veo';
   }

@@ -372,7 +372,9 @@ describe('Step1Genre', () => {
         onloadend: null as any,
         result: 'data:image/png;base64,uploaded',
       };
-      vi.spyOn(window, 'FileReader').mockImplementation(function() { return mockReader; } as any);
+      vi.spyOn(window, 'FileReader').mockImplementation(function () {
+        return mockReader;
+      } as any);
 
       fireEvent.change(fileInput, { target: { files: [file] } });
 
@@ -692,4 +694,3 @@ describe('Step1Genre', () => {
     });
   });
 });
-

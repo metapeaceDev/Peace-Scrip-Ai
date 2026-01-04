@@ -32,6 +32,8 @@
     "docker:stop": "cd comfyui-service && docker-compose down"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@google/genai": "^1.29.1",
     "@huggingface/inference": "^4.13.4",
     "@stripe/stripe-js": "^8.5.3",

@@ -422,4 +422,3 @@ export const loadBalancer = new LoadBalancer({
   podIdleTimeout: 600000, // 10 minutes
   healthCheckInterval: 30000, // 30 seconds
 });
-

@@ -1079,4 +1079,3 @@ describe('TeamManager - Access Control', () => {
     expect(legacyTexts.length).toBeGreaterThan(0);
   });
 });
-

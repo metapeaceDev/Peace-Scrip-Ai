@@ -232,4 +232,3 @@ export const RevenueManagementPanel: React.FC<RevenueManagementPanelProps> = ({
     </div>
   );
 };
-

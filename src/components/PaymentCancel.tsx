@@ -123,4 +123,3 @@ const PaymentCancel: React.FC<PaymentCancelProps> = ({ onRetry, onBack }) => {
 };
 
 export default PaymentCancel;
-

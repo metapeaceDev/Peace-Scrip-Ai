@@ -408,4 +408,3 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 };
 
 export default Step4Structure;
-

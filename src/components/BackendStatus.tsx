@@ -8,6 +8,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDeviceDetection } from '../hooks/useDeviceDetection';
 
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
+
 export type BackendStatus = 'online' | 'offline' | 'checking' | 'error';
 
 interface BackendInfo {
@@ -28,7 +30,7 @@ export const BackendStatusIndicator: React.FC = () => {
     // Check backend status periodically
     const checkStatuses = async () => {
       const backends = [
-        { name: 'Local ComfyUI', url: 'http://localhost:8188/system_stats' },
+        { name: 'Local ComfyUI', url: `${COMFYUI_SERVICE_URL}/health/system_stats` },
         // Add more backends here when implemented
       ];
 
@@ -241,4 +243,3 @@ export const BackendHealthPanel: React.FC = () => {
     </div>
   );
 };
-

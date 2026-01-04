@@ -327,4 +327,3 @@ export const PsychologyTestPanel: React.FC<PsychologyTestPanelProps> = ({ charac
 };
 
 export default PsychologyTestPanel;
-

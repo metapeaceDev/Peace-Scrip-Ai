@@ -290,4 +290,3 @@ export function GPUStatusBadge() {
     </div>
   );
 }
-

@@ -10,10 +10,10 @@ import { authenticateOptional } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// TEST ROUTE in comfyui router
+// TEST ROUTE in comfyui router - UPDATED AT 06:11
 router.post('/test', (req, res) => {
-  console.log('✅ COMFYUI TEST ROUTE HIT!');
-  res.json({ success: true, message: 'ComfyUI router works!' });
+  console.log('[OK] COMFYUI TEST ROUTE HIT! (Updated 06:11)');
+  res.json({ success: true, message: 'ComfyUI router works! Updated 06:11', timestamp: new Date().toISOString() });
 });
 
 /**
@@ -21,18 +21,47 @@ router.post('/test', (req, res) => {
  * Generate image with ComfyUI + LoRA
  */
 router.post('/generate', (req, res, next) => {
-  console.log('🔵🔵🔵 GENERATE ROUTE MATCHED!');
+  console.log('[MATCH] GENERATE ROUTE MATCHED!');
   next();
 }, async (req, res, next) => {  // TEMP: removed authenticateOptional
-  console.log('🔵 RECEIVED /generate request:', { 
+  console.log('[REQUEST] RECEIVED /generate request:', { 
     hasAuth: !!req.headers.authorization, 
     hasPrompt: !!req.body?.prompt,
-    hasWorkflow: !!req.body?.workflow 
+    hasWorkflow: !!req.body?.workflow,
+    hasReferenceImage: !!req.body?.referenceImage
+  });
+  console.log('[IMAGE] Reference Image info:', {
+    exists: !!req.body?.referenceImage,
+    type: typeof req.body?.referenceImage,
+    length: req.body?.referenceImage?.length || 0,
+    preview: req.body?.referenceImage?.substring(0, 50) || 'none'
   });
   req.user = null; // Simulate anonymous user
   try {
     const { prompt, workflow, referenceImage, priority, userId } = req.body;
     console.log('DEBUG: Extracted request data');
+
+    // Log checkpoint name (ckpt_name) if present in workflow.
+    // This helps verify FaceID-only checkpoint selection without dumping the full workflow.
+    try {
+      let ckptName = null;
+      if (workflow && typeof workflow === 'object') {
+        for (const [, node] of Object.entries(workflow)) {
+          if (!node || typeof node !== 'object') continue;
+          const classType = node.class_type;
+          if (classType !== 'CheckpointLoaderSimple') continue;
+          const inputs = node.inputs;
+          const candidate = inputs?.ckpt_name;
+          if (candidate) {
+            ckptName = String(candidate);
+            break;
+          }
+        }
+      }
+      console.log('[MODEL] Workflow checkpoint:', ckptName || '(not found)');
+    } catch (e) {
+      console.log('[MODEL] Workflow checkpoint: (error parsing)');
+    }
 
     // Validation
     if (!prompt || !workflow) {

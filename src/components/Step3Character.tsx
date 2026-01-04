@@ -139,6 +139,14 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     'instantid' | 'ipadapter' | 'gemini' | 'lora' | 'faceswap'
   >('instantid'); // Default: InstantID (best quality)
 
+  // Prevent scroll jump when faceIdMode changes
+  useEffect(() => {
+    if (scrollPositionRef.current > 0) {
+      window.scrollTo(0, scrollPositionRef.current);
+      scrollPositionRef.current = 0; // Reset after restore
+    }
+  }, [faceIdMode]); // Run after faceIdMode changes and component re-renders
+
   const loadComfyPlatformStatus = async () => {
     try {
       const status = await checkBackendStatus(true);
@@ -226,7 +234,12 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 type="checkbox"
                 id="faceIdMode"
                 checked={faceIdMode === 'auto'}
-                onChange={e => setFaceIdMode(e.target.checked ? 'auto' : 'manual')}
+                onChange={e => {
+                  // Save current scroll position BEFORE state change
+                  scrollPositionRef.current = window.scrollY;
+                  // Change state (will trigger useEffect to restore scroll)
+                  setFaceIdMode(e.target.checked ? 'auto' : 'manual');
+                }}
                 className="mt-0.5 h-4 w-4 text-cyan-500 border-gray-600 rounded focus:ring-cyan-500 focus:ring-offset-gray-900"
               />
               <label htmlFor="faceIdMode" className="flex-1 cursor-pointer">
@@ -290,6 +303,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const scrollPositionRef = useRef<number>(0); // Track scroll position
   const [showCharactersPreview, setShowCharactersPreview] = useState(false);
 
   // Main Tabs
@@ -368,14 +382,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       const index = characters.findIndex(c => c.id === targetCharId);
       if (index !== -1) {
         setActiveCharIndex(index);
-        // Also ensure we are on a relevant tab to see details
-        if (activeTab === 'external' && externalSubTab === 'costume') {
-          // Keep costume tab if already there
-        } else {
-          // Default to external info
-          setActiveTab('external');
-          setExternalSubTab('info');
-        }
+        // Default to external info when navigating from Step 5
+        setActiveTab('external');
+        setExternalSubTab('info');
         // Scroll to top of the page smoothly
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -383,7 +392,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         if (onResetTargetCharId) onResetTargetCharId();
       }
     }
-  }, [targetCharId, characters, onResetTargetCharId, activeTab, externalSubTab]);
+    // 🔥 FIXED: Remove activeTab and externalSubTab from dependencies to prevent unwanted tab switching
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetCharId, characters, onResetTargetCharId]);
 
   // Fallback effect: If data changes externally (e.g. import) and index is out of bounds, reset it.
   // Also AUTO-SELECT the first outfit (Latest) when switching characters.

@@ -34,6 +34,7 @@ export interface VideoShot {
   cast?: string;
   set?: string;
   costume?: string;
+  costumeFashion?: Record<string, string>;
 }
 
 export interface VideoGenerationOptions {
@@ -73,6 +74,10 @@ export interface VideoGenerationOptions {
   // 🆕 BUDDHIST PSYCHOLOGY INTEGRATION: Character & Scene Context
   character?: Character; // Character with emotional state and psychology
   currentScene?: GeneratedScene; // Scene context for emotion tracking
+
+  // 🆕 MULTI-CAST CONSISTENCY: Provide full character objects for everyone in the shot.
+  // Used to inject per-character identity anchors into the prompt.
+  castCharacters?: Character[];
 }
 
 export interface VideoGenerationProgress {
@@ -212,9 +217,12 @@ export async function generateShotVideo(
   try {
     console.log(`🎬 Generating video for shot: ${shot.shotType || shot.shotSize || 'Unknown'}`);
 
+    const preferredModel = typeof options.preferredModel === 'string' ? options.preferredModel : '';
+    const isWanT2V = /comfyui-wan.*t2v/i.test(preferredModel);
+
     // 🆕 SEQUENTIAL GENERATION: Extract last frame from previous video
     let initImage = baseImage;
-    if (options.previousVideo && !baseImage) {
+    if (!isWanT2V && options.previousVideo && !baseImage) {
       console.log('🔗 Sequential generation: Extracting last frame from previous video...');
       try {
         initImage = await extractLastFrame(options.previousVideo);
@@ -223,6 +231,14 @@ export async function generateShotVideo(
         console.warn('⚠️ Failed to extract last frame, generating without init image:', error);
         // Continue without init image
       }
+    }
+
+    // For WAN T2V (prompt-driven), avoid using init images by default.
+    if (isWanT2V && initImage) {
+      console.warn(
+        '🧾 WAN T2V selected: ignoring init image to prioritize Physical Characteristics from text.'
+      );
+      initImage = undefined;
     }
 
     // Resolve duration/fps/frameCount coherently.
@@ -245,6 +261,7 @@ export async function generateShotVideo(
     // Build comprehensive prompt from shot details (with continuity anchors)
     const prompt = buildVideoPrompt(shot, {
       character: options.character,
+      castCharacters: options.castCharacters,
       currentScene: options.currentScene,
       previousShot: options.previousShot,
       maxChars: 900,
@@ -264,16 +281,47 @@ export async function generateShotVideo(
     // 🆕 Stable seed (improves identity/style consistency per shot)
     const shouldUseStableSeed = options.stableSeed !== false;
     if (shouldUseStableSeed) {
-      const keyParts = [
-        options.character ? `character:${options.character.name || ''}` : '',
-        options.currentScene ? `scene:${options.currentScene.sceneNumber || ''}` : '',
-        shot.scene ? `shotScene:${shot.scene}` : '',
-        typeof shot.shot === 'number' ? `shot:${shot.shot}` : '',
-        shot.description ? `desc:${shot.description}` : '',
-      ].filter(Boolean);
+      if (typeof options.seed === 'number' && Number.isFinite(options.seed)) {
+        generationOptions.seed = options.seed;
+      } else {
+        // WAN T2V: lock identity per character.id and lock wardrobe per scene outfit key (when available).
+        if (isWanT2V && options.character?.id) {
+          const outfitKey =
+            options.currentScene &&
+            (options.currentScene as any).characterOutfits &&
+            options.character?.name
+              ? String((options.currentScene as any).characterOutfits[options.character.name] || '')
+              : '';
+          const seedKey = `wan|characterId:${options.character.id}|outfit:${outfitKey}`;
+          generationOptions.seed = stableHashToSeed(seedKey);
+        } else {
+          const keyParts = [
+            options.character ? `character:${options.character.name || ''}` : '',
+            options.currentScene ? `scene:${options.currentScene.sceneNumber || ''}` : '',
+            shot.scene ? `shotScene:${shot.scene}` : '',
+            typeof shot.shot === 'number' ? `shot:${shot.shot}` : '',
+            shot.description ? `desc:${shot.description}` : '',
+          ].filter(Boolean);
+          generationOptions.seed = stableHashToSeed(keyParts.join('|'));
+        }
+      }
+    }
 
-      const derivedSeed = options.seed ?? stableHashToSeed(keyParts.join('|'));
-      generationOptions.seed = derivedSeed;
+    // Hair-specific negatives to reduce drift (short hair / wrong color)
+    if (options.character?.physical) {
+      const hair = extractHairSpecFromPhysical(options.character.physical);
+      const hairNeg = buildHairNegativePrompt(hair);
+      if (hairNeg) {
+        const existingNeg =
+          typeof (generationOptions as any).negativePrompt === 'string'
+            ? String((generationOptions as any).negativePrompt)
+            : typeof (options as any).negativePrompt === 'string'
+              ? String((options as any).negativePrompt)
+              : '';
+        (generationOptions as any).negativePrompt = existingNeg
+          ? `${existingNeg}, ${hairNeg}`
+          : hairNeg;
+      }
     }
 
     // 🆕 If using previous video, adjust for better continuity
@@ -510,6 +558,7 @@ export async function generateSceneVideos(
 
 type PromptContext = {
   character?: Character;
+  castCharacters?: Character[];
   currentScene?: GeneratedScene;
   previousShot?: VideoShot;
   maxChars?: number;
@@ -524,6 +573,75 @@ function truncateTo(text: string, maxChars: number): string {
   if (!text) return '';
   if (text.length <= maxChars) return text;
   return text.slice(0, Math.max(0, maxChars - 1)).trimEnd() + '…';
+}
+
+function extractHairSpecFromPhysical(physical: Record<string, string> | undefined): {
+  raw: string;
+  hintEn: string;
+  isLong: boolean;
+  isDarkBrown: boolean;
+} {
+  const rawCandidates: string[] = [];
+  const get = (key: string) => {
+    if (!physical) return '';
+    const found = Object.entries(physical).find(([k]) => k.trim().toLowerCase() === key);
+    return safeTrim(found?.[1]);
+  };
+
+  const hair = get('hair');
+  const hairStyle = get('hair style');
+  const physicalCharacteristics = get('physical characteristics');
+
+  if (hair) rawCandidates.push(hair);
+  if (hairStyle && hairStyle !== hair) rawCandidates.push(hairStyle);
+  if (physicalCharacteristics) {
+    if (/\b(hair)\b/i.test(physicalCharacteristics) || /ผม/.test(physicalCharacteristics)) {
+      rawCandidates.push(physicalCharacteristics);
+    }
+  }
+
+  const raw = truncateTo(rawCandidates.filter(Boolean).join(' | '), 220);
+  const hasThai = /[\u0E00-\u0E7F]/.test(raw);
+
+  const hints: string[] = [];
+  const isLong = /ยาวประบ่า|ยาวถึงไหล่|ผมยาว/.test(raw) || /shoulder-?length|long hair/i.test(raw);
+  const isDarkBrown = /น้ำตาลเข้ม|dark\s*brown/i.test(raw);
+  const isWavy = /ดัดลอน|ลอนอ่อน|wavy|soft\s*waves/i.test(raw);
+
+  if (hasThai) {
+    if (/ยาวประบ่า|ยาวถึงไหล่/.test(raw)) hints.push('shoulder-length');
+    else if (/ผมยาว/.test(raw)) hints.push('long hair');
+    if (/ดัดลอน|ลอนอ่อน/.test(raw)) hints.push('soft wavy');
+    if (/น้ำตาลเข้ม/.test(raw)) hints.push('dark brown');
+  } else {
+    if (isLong) hints.push('shoulder-length');
+    if (isWavy) hints.push('soft wavy');
+    if (isDarkBrown) hints.push('dark brown');
+  }
+
+  return {
+    raw,
+    hintEn: hints.length ? hints.join(', ') : '',
+    isLong,
+    isDarkBrown,
+  };
+}
+
+function buildHairNegativePrompt(hair: {
+  raw: string;
+  isLong: boolean;
+  isDarkBrown: boolean;
+}): string {
+  if (!hair.raw) return '';
+
+  const negatives: string[] = [];
+  if (hair.isLong) {
+    negatives.push('short hair', 'bob cut', 'pixie cut');
+  }
+  if (hair.isDarkBrown) {
+    negatives.push('blonde hair', 'light hair', 'unnatural hair color', 'vivid dyed hair');
+  }
+  return negatives.join(', ');
 }
 
 function summarizeRecord(record: Record<string, string> | undefined, maxPairs: number): string {
@@ -576,19 +694,70 @@ function buildVideoPrompt(shot: VideoShot, context: PromptContext = {}): string 
     const role = safeTrim(context.character.role);
     const desc = truncateTo(safeTrim(context.character.description), 180);
     const physical = summarizeRecord(context.character.physical, 3);
-    const fashion = summarizeRecord(context.character.fashion, 2);
+    // Shot List can override Costume & Fashion per shot (keeps other character fields intact)
+    const effectiveFashion =
+      shot && typeof (shot as any).costumeFashion === 'object' && (shot as any).costumeFashion
+        ? ((shot as any).costumeFashion as Record<string, string>)
+        : context.character.fashion;
+    const fashion = summarizeRecord(effectiveFashion, 2);
+    const hair = extractHairSpecFromPhysical(context.character.physical);
 
     const characterBits = [
       name ? `Character: ${name}` : '',
       role ? `Role: ${role}` : '',
       desc ? `Description: ${desc}` : '',
       physical ? `Appearance: ${physical}` : '',
+      hair.raw ? `Hair (AUTHORITATIVE): ${hair.raw}${hair.hintEn ? ` (${hair.hintEn})` : ''}` : '',
       fashion ? `Wardrobe: ${fashion}` : '',
     ].filter(Boolean);
 
     if (characterBits.length) {
       parts.push(characterBits.join('. '));
       parts.push('Maintain the exact same identity, face, hair, and outfit continuity.');
+    }
+  }
+
+  // Multi-cast identity anchors (short, high-signal, and capped)
+  if (Array.isArray(context.castCharacters) && context.castCharacters.length > 0) {
+    const leadName = safeTrim(context.character?.name);
+    const seen = new Set<string>();
+
+    const supporting = context.castCharacters
+      .filter(c => {
+        const name = safeTrim(c?.name);
+        if (!name) return false;
+        if (leadName && name === leadName) return false;
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      })
+      .slice(0, 3);
+
+    if (supporting.length > 0) {
+      const otherSummaries = supporting
+        .map(c => {
+          const name = safeTrim(c.name);
+          const physical = summarizeRecord(c.physical, 2);
+          const fashion = summarizeRecord(c.fashion, 1);
+          const hair = extractHairSpecFromPhysical(c.physical);
+
+          const bits = [
+            name ? `Character: ${name}` : '',
+            physical ? `Appearance: ${physical}` : '',
+            hair.raw
+              ? `Hair (AUTHORITATIVE): ${hair.raw}${hair.hintEn ? ` (${hair.hintEn})` : ''}`
+              : '',
+            fashion ? `Wardrobe: ${fashion}` : '',
+          ].filter(Boolean);
+
+          return bits.join('. ');
+        })
+        .filter(Boolean);
+
+      if (otherSummaries.length > 0) {
+        parts.push(`Other characters (IDENTITY LOCK): ${otherSummaries.join(' | ')}`);
+        parts.push('Do not swap faces, hairstyles, or body types between characters.');
+      }
     }
   }
 
@@ -657,8 +826,13 @@ function buildVideoPrompt(shot: VideoShot, context: PromptContext = {}): string 
   }
 
   // Costume details
-  if (shot.costume) {
+  if (shot.costume && typeof shot.costume === 'string') {
     parts.push(`wearing ${shot.costume}`);
+  } else if (shot.costumeFashion && typeof shot.costumeFashion === 'object') {
+    const fashionSummary = summarizeRecord(shot.costumeFashion as Record<string, string>, 3);
+    if (fashionSummary) {
+      parts.push(`Costume & Fashion: ${fashionSummary}`);
+    }
   }
 
   // Quality modifiers
@@ -843,4 +1017,3 @@ export function exportMovieData(movieData: {
 
   console.log('✅ Movie data exported successfully');
 }
-

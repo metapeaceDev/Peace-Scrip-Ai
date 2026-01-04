@@ -414,4 +414,3 @@ export function getReferralLeaderboard(limit: number = 10): Array<{
     creditsEarned: code.creditsEarned,
   }));
 }
-

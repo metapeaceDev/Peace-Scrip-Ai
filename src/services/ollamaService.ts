@@ -380,4 +380,3 @@ export async function* streamText(
     reader.releaseLock();
   }
 }
-

@@ -238,4 +238,3 @@ class ImageStorageService {
 
 export const imageStorageService = new ImageStorageService();
 export default imageStorageService;
-

@@ -260,4 +260,3 @@ class FirebaseAuthService {
 }
 
 export const firebaseAuth = new FirebaseAuthService();
-

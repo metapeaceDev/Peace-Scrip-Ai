@@ -249,4 +249,3 @@ export const AdminAlerts: React.FC = () => {
     </div>
   );
 };
-

@@ -846,4 +846,3 @@ describe('Step4Structure', () => {
     });
   });
 });
-

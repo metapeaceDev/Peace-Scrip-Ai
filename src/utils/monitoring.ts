@@ -122,4 +122,3 @@ export const reportBundleLoad = (bundleName: string, size: number) => {
     size_kb: Math.round(size / 1024),
   });
 };
-

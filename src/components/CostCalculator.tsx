@@ -221,4 +221,3 @@ export function estimateProjectCost(
     breakdown: `${shotCount} shots × $${backend.costPerVideo.toFixed(3)}/video = $${total.toFixed(2)}`,
   };
 }
-

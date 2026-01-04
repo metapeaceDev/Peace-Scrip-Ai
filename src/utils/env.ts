@@ -251,4 +251,3 @@ export function isDevelopment(): boolean {
 export function getEnvironment(): string {
   return import.meta.env.MODE;
 }
-

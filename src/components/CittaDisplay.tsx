@@ -145,4 +145,3 @@ export const CittaDisplay: React.FC<CittaDisplayProps> = ({
 };
 
 export default CittaDisplay;
-

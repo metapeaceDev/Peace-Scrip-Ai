@@ -652,4 +652,3 @@ describe('CharacterComparison - Visual Elements', () => {
     expect(progressBars.length).toBeGreaterThan(0);
   });
 });
-

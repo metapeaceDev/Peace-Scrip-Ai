@@ -135,4 +135,3 @@ export const UsageChart: React.FC<UsageChartProps> = ({ usage }) => {
     </div>
   );
 };
-

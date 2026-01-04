@@ -122,9 +122,7 @@ export const UsageChartsSection: React.FC<UsageChartsSectionProps> = ({ usage })
                     background: 'linear-gradient(90deg, #f59e0b, #d97706)',
                   }}
                 >
-                  <span className="bar-value">
-                    {usage.apiCalls.videos + usage.veoVideos.total}
-                  </span>
+                  <span className="bar-value">{usage.apiCalls.videos + usage.veoVideos.total}</span>
                 </div>
               </div>
               <div className="bar-percent">{videoPercent.toFixed(1)}%</div>

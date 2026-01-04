@@ -153,4 +153,3 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onContinue }) => {
 };
 
 export default PaymentSuccess;
-

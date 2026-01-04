@@ -965,4 +965,3 @@ const TeamManager: React.FC<TeamManagerProps> = ({
 };
 
 export default TeamManager;
-

@@ -558,4 +558,3 @@ export function getMaggaDescription(stage: MaggaStage): string {
 
   return descriptions[stage];
 }
-

@@ -354,4 +354,3 @@ export function measured(name: string) {
     return descriptor;
   };
 }
-

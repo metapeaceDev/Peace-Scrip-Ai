@@ -316,4 +316,3 @@ const PricingPage: React.FC<PricingPageProps> = ({ onSelectTier, currentTier = '
 };
 
 export default PricingPage;
-

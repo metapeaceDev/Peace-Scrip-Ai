@@ -12,7 +12,7 @@
 
 import React from 'react';
 
-export type VideoErrorType = 
+export type VideoErrorType =
   | 'model_not_found'
   | 'insufficient_vram'
   | 'timeout'
@@ -70,7 +70,8 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
         return (
           <>
             <p className="text-gray-300 mb-2">
-              The required models for {error.videoType === 'animatediff' ? 'AnimateDiff' : 'SVD'} video generation are not installed.
+              The required models for {error.videoType === 'animatediff' ? 'AnimateDiff' : 'SVD'}{' '}
+              video generation are not installed.
             </p>
             {error.videoType === 'animatediff' && (
               <div className="bg-gray-900 rounded p-3 text-sm space-y-1">
@@ -128,9 +129,7 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
       case 'network_error':
         return (
           <>
-            <p className="text-gray-300 mb-2">
-              Unable to communicate with the ComfyUI service.
-            </p>
+            <p className="text-gray-300 mb-2">Unable to communicate with the ComfyUI service.</p>
             <div className="bg-gray-900 rounded p-3 text-sm space-y-1">
               <div className="font-semibold text-white mb-1">Troubleshooting:</div>
               <div className="text-gray-400">• Check if ComfyUI service is running</div>
@@ -148,7 +147,10 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
             </p>
             <div className="bg-gray-900 rounded p-3 text-sm space-y-1">
               <div className="font-semibold text-white mb-1">Quick Fixes:</div>
-              <div className="text-gray-400">1. Start ComfyUI service: <code className="bg-gray-800 px-2 py-1 rounded">./start-comfyui.sh</code></div>
+              <div className="text-gray-400">
+                1. Start ComfyUI service:{' '}
+                <code className="bg-gray-800 px-2 py-1 rounded">./start-comfyui.sh</code>
+              </div>
               <div className="text-gray-400">2. Check worker health in ComfyUI Status</div>
               <div className="text-gray-400">3. Restart ComfyUI if needed</div>
             </div>
@@ -185,9 +187,7 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
       <div className="flex items-start gap-3">
         <span className="text-3xl">{errorIcons[error.type]}</span>
         <div className="flex-1">
-          <h3 className="font-semibold text-white text-lg mb-1">
-            {errorTitles[error.type]}
-          </h3>
+          <h3 className="font-semibold text-white text-lg mb-1">{errorTitles[error.type]}</h3>
           {getErrorExplanation()}
         </div>
       </div>
@@ -226,22 +226,23 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
           </button>
         )}
 
-        {showSetupGuide && (error.type === 'model_not_found' || error.type === 'worker_unavailable') && (
-          <a
-            href="/docs/COMFYUI_VIDEO_SETUP.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
-          >
-            <span>📖</span>
-            <span>Setup Guide</span>
-          </a>
-        )}
+        {showSetupGuide &&
+          (error.type === 'model_not_found' || error.type === 'worker_unavailable') && (
+            <a
+              href="/docs/COMFYUI_VIDEO_SETUP.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <span>📖</span>
+              <span>Setup Guide</span>
+            </a>
+          )}
 
         {error.type === 'insufficient_vram' && (
           <a
             href="#"
-            onClick={(e) => {
+            onClick={e => {
               e.preventDefault();
               // TODO: Navigate to model management page
               alert('Model management page coming soon');
@@ -256,7 +257,15 @@ const VideoGenerationError: React.FC<VideoGenerationErrorProps> = ({
 
       {/* Help Text */}
       <div className="pt-2 border-t border-red-800 text-sm text-gray-400">
-        💬 Need help? Check the <a href="/docs/COMFYUI_VIDEO_TESTING.md" className="text-blue-400 hover:underline">testing guide</a> or <a href="/docs/README.md" className="text-blue-400 hover:underline">documentation</a>.
+        💬 Need help? Check the{' '}
+        <a href="/docs/COMFYUI_VIDEO_TESTING.md" className="text-blue-400 hover:underline">
+          testing guide
+        </a>{' '}
+        or{' '}
+        <a href="/docs/README.md" className="text-blue-400 hover:underline">
+          documentation
+        </a>
+        .
       </div>
     </div>
   );

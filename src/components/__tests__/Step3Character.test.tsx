@@ -46,6 +46,7 @@ vi.mock('../services/geminiService', () => ({
   fillMissingCharacterDetails: vi.fn(),
   generateCharacterImage: vi.fn(),
   generateCostumeImage: vi.fn(),
+  generateCostumeFashionDesign: vi.fn(),
   generateAllCharactersFromStory: vi.fn(),
 }));
 
@@ -589,4 +590,3 @@ describe('Step3Character - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
-

@@ -352,4 +352,3 @@ export function getBackendEmoji(type: BackendRecommendation['type']): string {
       return '🎬';
   }
 }
-

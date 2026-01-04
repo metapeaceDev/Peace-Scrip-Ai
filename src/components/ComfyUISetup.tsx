@@ -290,4 +290,3 @@ const ComfyUISetup: React.FC<ComfyUISetupProps> = ({ onComplete, onSkip }) => {
 };
 
 export default ComfyUISetup;
-

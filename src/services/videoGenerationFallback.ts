@@ -39,14 +39,14 @@ export async function generateVideoWithFallback(
   onProgress?: (progress: number, status: string) => void
 ): Promise<VideoGenerationResult> {
   const startTime = Date.now();
-  
+
   // Define fallback chain
-  const fallbackChain: Array<'comfyui' | 'gemini-veo' | 'replicate'> = 
-    preferredMethod === 'comfyui' 
+  const fallbackChain: Array<'comfyui' | 'gemini-veo' | 'replicate'> =
+    preferredMethod === 'comfyui'
       ? ['comfyui', 'gemini-veo', 'replicate']
       : preferredMethod === 'gemini-veo'
-      ? ['gemini-veo', 'replicate']
-      : ['replicate'];
+        ? ['gemini-veo', 'replicate']
+        : ['replicate'];
 
   let lastError: VideoError | undefined;
   let fallbackUsed = false;
@@ -64,15 +64,15 @@ export async function generateVideoWithFallback(
         case 'comfyui':
           result = await generateWithComfyUI(request, onProgress);
           break;
-        
+
         case 'gemini-veo':
           result = await generateWithGeminiVeo(request, onProgress);
           break;
-        
+
         case 'replicate':
           result = await generateWithReplicate(request, onProgress);
           break;
-        
+
         default:
           throw new Error(`Unknown method: ${method}`);
       }
@@ -83,13 +83,12 @@ export async function generateVideoWithFallback(
         fallbackUsed: fallbackUsed || method !== preferredMethod,
         processingTime: Date.now() - startTime,
       };
-
     } catch (error) {
       console.error(`❌ ${method} failed:`, error);
-      
+
       // Store error for potential return
       lastError = parseVideoError(error, request.videoType);
-      
+
       // If this was not the preferred method, mark fallback as used
       if (method !== preferredMethod) {
         fallbackUsed = true;
@@ -127,7 +126,7 @@ async function generateWithComfyUI(
   onProgress?: (progress: number, status: string) => void
 ): Promise<VideoGenerationResult> {
   const comfyuiBackendClient = await import('./comfyuiBackendClient');
-  
+
   // Check if backend is available
   const status = await comfyuiBackendClient.checkBackendStatus(true);
   if (!status.running) {
@@ -148,13 +147,13 @@ async function generateWithComfyUI(
   // Poll for completion
   let progress = 0;
   let lastStatus = 'queued';
-  
+
   while (progress < 100) {
     await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2s
-    
+
     const jobStatus = await comfyuiBackendClient.getVideoJobStatus(job.jobId);
     const status = jobStatus.status ?? jobStatus.state ?? 'processing';
-    
+
     if (status === 'completed' && jobStatus.result) {
       if (onProgress) onProgress(100, 'Completed');
       return {
@@ -165,21 +164,23 @@ async function generateWithComfyUI(
         processingTime: jobStatus.result.processingTime || 0,
       };
     }
-    
+
     if (status === 'failed') {
       throw new Error(jobStatus.error || 'ComfyUI job failed');
     }
-    
+
     progress = jobStatus.progress || 0;
-    
+
     // Update progress callback if status changed
     if (status !== lastStatus || progress > 0) {
       lastStatus = status;
       if (onProgress) {
-        const statusText = 
-          status === 'queued' ? 'Queued' :
-          status === 'processing' ? `Processing (${Math.round(progress)}%)` :
-          'Processing';
+        const statusText =
+          status === 'queued'
+            ? 'Queued'
+            : status === 'processing'
+              ? `Processing (${Math.round(progress)}%)`
+              : 'Processing';
         onProgress(progress, statusText);
       }
     }
@@ -226,7 +227,7 @@ async function generateWithReplicate(
   // TODO: Implement Replicate integration
   // This would use Replicate's API for AnimateDiff or SVD
   // For now, throw error to indicate not implemented
-  
+
   throw new Error('Replicate fallback not yet implemented');
 }
 
@@ -236,7 +237,7 @@ async function generateWithReplicate(
 function parseVideoError(error: any, videoType?: 'animatediff' | 'svd'): VideoError {
   // Simple implementation - use full version from videoErrorUtils
   const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error';
-  
+
   return {
     type: 'unknown',
     message: errorMessage,

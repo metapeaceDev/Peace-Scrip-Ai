@@ -242,4 +242,3 @@ describe('Phase 4: Step3Character Integration', () => {
     });
   });
 });
-

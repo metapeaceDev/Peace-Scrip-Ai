@@ -175,3 +175,170 @@ comfyui-docker-cuda12/
 
 # Archived documentation with API keys (security)
 docs/archive/
+
+# ===== ADDITIONAL PATTERNS BELOW =====
+
+# Development helper scripts (PowerShell/CMD)
+diagnose-*.ps1
+diagnose-*.cmd
+check-wan-*.ps1
+install-faceswap*.ps1
+place-wan-models.cmd
+manage-comfyui-queue.ps1
+start-comfyui-service.ps1
+check-wan-*.cmd
+download-*.py
+*.pyc
+
+# Environment backups
+.env.backup
+.env.*.backup
+
+# Vite dev logs
+vite-dev.log
+
+# Additional temp/test files
+check-status.html
+test-comfyui-direct.json
+test-video-request.json
+test-upload.html
+firebase-test.html
+verify-setup.bat
+
+# Planning/temporary markdown files
+COMMIT_INSTRUCTIONS.md
+planning_documents/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code workspace settings (optional - keep if team uses same settings)
+# .vscode/settings.json
+
+# Windows thumbnail cache
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Additional macOS files
+.AppleDouble
+.LSOverride
+._*
+
+# Editor backup files
+*~
+*.swp
+*.swo
+*.swn
+
+# npm/yarn errors
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Package manager lock files (keep only one)
+# yarn.lock
+# pnpm-lock.yaml
+
+# Database dumps
+*.sql
+*.sqlite
+*.db
+
+# Certificates and keys
+*.crt
+*.cer
+*.der
+
+# Coverage directory used by test tools
+.nyc_output/
+htmlcov/
+.coverage
+.coverage.*
+
+# IDEs
+.vscode/launch.json
+.vscode/tasks.json
+*.code-workspace
+
+# Sentry CLI config (may contain sensitive data)
+.sentryclirc
+
+# Additional build outputs
+*.map
+.cache/
+
+# Temporary backup folders
+.backup/
+.old/
+
+# ===== SESSION DOCUMENTATION FILES (TEMPORARY) =====
+# These are AI-generated session reports that should not be committed
+# Keep only essential docs in root: README.md, CHANGELOG.md, CONTRIBUTING.md
+
+# Analysis and planning documents (temporary)
+PROJECT_ORGANIZATION_ANALYSIS.md
+PROJECT_ORGANIZATION_SUMMARY.md
+DOCS_ORGANIZATION_PLAN.md
+QUICK_ACTION_GUIDE.md
+SESSION_STATE.md
+SYSTEM_AUDIT_COMPLETE.md
+
+# Status reports (temporary)
+*_STATUS.md
+*_COMPLETE*.md
+*_SUMMARY*.md
+*_REPORT.md
+*_FINAL*.md
+*_ANALYSIS.md
+
+# Feature-specific documentation (move to docs/)
+ANIMATEDIFF_*.md
+WAN_*.md
+FACE_ID_*.md
+VIDEO_*.md
+VOICE_*.md
+VFX_*.md
+STORYBOARD_*.md
+IMAGE_TO_VIDEO_*.md
+EXPORT_FIX_*.md
+CHARACTER_PROFILE_*.md
+SPEECH_PATTERN_*.md
+FACEID_*.md
+
+# Implementation/Fix documentation (move to docs/)
+*_IMPLEMENTATION*.md
+*_FIX*.md
+*_OPTIMIZATION*.md
+*_TUNING*.md
+*_UPGRADE*.md
+
+# Guide documents (should be in docs/getting-started or docs/guides)
+*_GUIDE.md
+*_SETUP*.md
+HOW_TO_*.md
+LORA_*.md
+INSTANTID_*.md
+CHECKPOINT_*.md
+
+# Commit/deployment helpers (temporary)
+COMMIT_*.md
+DEPLOYMENT_*.md
+PRODUCTION_*.md
+READY_TO_*.md
+QUICK_START_*.md
+NEXT-STEP.cmd
+
+# Security summaries (keep only docs/SECURITY.md)
+SECURITY_SUMMARY.md
+FIND_FIREBASE_*.md
+
+# Model-specific temporary docs
+MODEL_*.md
+COMFYUI_*.md
+
+# Completion reports
+COMPLETION_*.md
+FINAL_*.md

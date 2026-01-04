@@ -1,17 +1,17 @@
 /**
  * Backend Selector Component (Enhanced)
- * 
+ *
  * Intelligent backend selection with real-time status
  * Connected to Load Balancer API
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  loadBalancerClient, 
-  type BackendType, 
+import {
+  loadBalancerClient,
+  type BackendType,
   type BackendInfo,
   type UserPreferences,
-  type LoadBalancerStatus
+  type LoadBalancerStatus,
 } from '../services/loadBalancerClient';
 
 export const BackendSelectorEnhanced: React.FC = () => {
@@ -158,9 +158,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
               </div>
             </div>
             {selectedBackend === 'auto' && (
-              <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">
-                Active
-              </span>
+              <span className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full">Active</span>
             )}
           </div>
         </div>
@@ -261,7 +259,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
       {/* Preferences Panel */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
         <h3 className="text-lg font-bold text-white mb-4">⚙️ Preferences</h3>
-        
+
         <div className="space-y-4">
           {/* Max Cost */}
           <div>
@@ -270,7 +268,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
               <input
                 type="checkbox"
                 checked={preferences.maxCostPerJob !== null}
-                onChange={(e) => {
+                onChange={e => {
                   handlePreferencesChange({
                     maxCostPerJob: e.target.checked ? 0.01 : null,
                   });
@@ -285,7 +283,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
                 min="0"
                 max="1"
                 value={preferences.maxCostPerJob}
-                onChange={(e) => {
+                onChange={e => {
                   handlePreferencesChange({
                     maxCostPerJob: parseFloat(e.target.value),
                   });
@@ -305,7 +303,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
             <input
               type="checkbox"
               checked={preferences.prioritizeSpeed}
-              onChange={(e) => {
+              onChange={e => {
                 handlePreferencesChange({ prioritizeSpeed: e.target.checked });
               }}
               className="rounded"
@@ -321,7 +319,7 @@ export const BackendSelectorEnhanced: React.FC = () => {
             <input
               type="checkbox"
               checked={preferences.allowCloudFallback}
-              onChange={(e) => {
+              onChange={e => {
                 handlePreferencesChange({ allowCloudFallback: e.target.checked });
               }}
               className="rounded"
@@ -334,10 +332,19 @@ export const BackendSelectorEnhanced: React.FC = () => {
       <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
         <h3 className="font-semibold text-blue-300 mb-2">💡 How It Works</h3>
         <ul className="text-sm text-gray-300 space-y-1">
-          <li>✅ <strong>Auto mode</strong> intelligently routes jobs based on cost, speed, and availability</li>
-          <li>✅ <strong>Automatic failover</strong> to next best backend if selected one fails</li>
-          <li>✅ <strong>Real-time monitoring</strong> updates status every 30 seconds</li>
-          <li>✅ <strong>Cost optimization</strong> prefers free local GPU when available</li>
+          <li>
+            ✅ <strong>Auto mode</strong> intelligently routes jobs based on cost, speed, and
+            availability
+          </li>
+          <li>
+            ✅ <strong>Automatic failover</strong> to next best backend if selected one fails
+          </li>
+          <li>
+            ✅ <strong>Real-time monitoring</strong> updates status every 30 seconds
+          </li>
+          <li>
+            ✅ <strong>Cost optimization</strong> prefers free local GPU when available
+          </li>
         </ul>
       </div>
     </div>

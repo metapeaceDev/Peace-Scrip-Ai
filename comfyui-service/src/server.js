@@ -23,6 +23,8 @@ import queueRoutes from './routes/queue.js';
 import videoRoutes from './routes/video.js';
 import cloudRoutes from './routes/cloud.js';
 import loadbalancerRoutes from './routes/loadbalancer.js';
+import debugRoutes from './routes/debug.js';
+import imageRoutes from './routes/image.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initializeFirebase } from './config/firebase.js';
 import { initializeQueue, enableSmartRouting } from './services/queueService.js';
@@ -50,13 +52,41 @@ enableSmartRouting(loadBalancer);
 app.locals.workerManager = workerManager;
 app.locals.loadBalancer = loadBalancer;
 
-// TEMP: Disable all middleware for debugging
 // Security
 app.use(helmet());
+
+// CORS Configuration - Allow both local development and production
+const allowedOrigins = [
+  'http://localhost:5173',           // Local development (Vite default)
+  'http://localhost:5176',           // Local development (Vite alternate)
+  'http://localhost:3000',           // Alternative local port
+  'https://peace-script-ai.web.app', // Firebase Hosting
+  'https://peace-script-ai.firebaseapp.com', // Firebase alternative domain
+  process.env.CORS_ORIGIN            // Custom origin from env
+].filter(Boolean); // Remove undefined values
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      // Allow local file:// pages during development (Origin: "null")
+      if (origin === 'null' && process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      
+      // Check if origin is in allowed list or if wildcard is enabled
+      if (allowedOrigins.includes(origin) || process.env.CORS_ORIGIN === '*') {
+        callback(null, true);
+      } else {
+        console.warn(`[WARN] CORS blocked origin: ${origin}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
@@ -83,6 +113,8 @@ app.use('/api/queue', queueRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/cloud', cloudRoutes);
 app.use('/api/loadbalancer', loadbalancerRoutes);
+app.use('/debug', debugRoutes);
+app.use('/', imageRoutes); // Image proxy at root level
 
 // Error handling
 app.use((req, res) => {
@@ -100,17 +132,17 @@ const server = app.listen(PORT, () => {
   
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║          🎨 ComfyUI Service - Peace Script AI                ║
-╚═══════════════════════════════════════════════════════════════╝
+║          ComfyUI Service - Peace Script AI                ║
+╚═══════════════════════════════════════════════════════════╝
 
-✅ Server running on port ${PORT}
-✅ Environment: ${process.env.NODE_ENV}
-✅ Queue: ${process.env.REDIS_URL ? 'Redis' : 'In-memory'}
-✅ Local Workers: ${process.env.COMFYUI_WORKERS?.split(',').length || 1} instances
-☁️  Cloud Workers: ${cloudAvailable ? 'Available (RunPod)' : 'Not configured'}
-🧠 Load Balancer: Active (${lbStats.backends.length} backends)
+[OK] Server running on port ${PORT}
+[OK] Environment: ${process.env.NODE_ENV}
+[OK] Queue: ${process.env.REDIS_URL ? 'Redis' : 'In-memory'}
+[OK] Local Workers: ${process.env.COMFYUI_WORKERS?.split(',').length || 1} instances
+[CLOUD] Cloud Workers: ${cloudAvailable ? 'Available (RunPod)' : 'Not configured'}
+[LB] Load Balancer: Active (${lbStats.backends.length} backends)
 
-📡 API Endpoints:
+[API] API Endpoints:
    → http://localhost:${PORT}/health
    → http://localhost:${PORT}/api/comfyui/generate
    → http://localhost:${PORT}/api/video/generate/animatediff
@@ -121,7 +153,7 @@ const server = app.listen(PORT, () => {
    → http://localhost:${PORT}/api/loadbalancer/status
    → http://localhost:${PORT}/api/loadbalancer/recommendations
 
-🎬 ComfyUI Service is ready! ${cloudAvailable ? '☁️  Hybrid cloud/local mode' : '🖥️  Local mode'}
+[READY] ComfyUI Service is ready! ${cloudAvailable ? '[CLOUD] Hybrid cloud/local mode' : '[LOCAL] Local mode'}
   `);
 });
 
@@ -140,13 +172,13 @@ const gracefulShutdown = async (signal) => {
     // Shutdown worker manager (terminates cloud pods)
     await workerManager.shutdown();
     
-    console.log('✅ Shutdown complete');
+    console.log('[OK] Shutdown complete');
     process.exit(0);
   });
   
   // Force shutdown after 30 seconds
   setTimeout(() => {
-    console.error('❌ Forced shutdown after timeout');
+    console.error('[ERROR] Forced shutdown after timeout');
     process.exit(1);
   }, 30000);
 };
@@ -155,3 +187,4 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export default app;
+

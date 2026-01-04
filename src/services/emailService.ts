@@ -725,4 +725,3 @@ Peace Script AI - ยินดีต้อนรับ! 🎬
 
   return { subject, html, text };
 }
-

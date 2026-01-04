@@ -267,6 +267,7 @@ export const EMPTY_CHARACTER: Character = {
   fashion: {
     'Style Concept': '',
     'Main Outfit': '',
+    Shoe: '',
     Accessories: '',
     'Color Palette': '',
     'Condition/Texture': '',
@@ -504,4 +505,3 @@ export const VOICE_CLONING_CONFIG = {
   // Generation
   ESTIMATED_GENERATION_TIME: 12, // seconds average
 };
-

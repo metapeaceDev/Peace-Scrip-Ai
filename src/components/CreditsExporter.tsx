@@ -389,4 +389,3 @@ export const CreditsExporter: React.FC<CreditsExporterProps> = ({ members, proje
     </div>
   );
 };
-

@@ -383,4 +383,3 @@ describe('Step5Output - Integration', () => {
     expect(container).toBeTruthy();
   });
 });
-

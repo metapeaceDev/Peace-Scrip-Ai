@@ -213,4 +213,3 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
   return <>{hasPermission ? children : fallback}</>;
 };
-

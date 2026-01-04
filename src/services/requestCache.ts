@@ -156,4 +156,3 @@ export const CacheTTL = {
   hour: 60 * 60 * 1000, // 1 hour
   day: 24 * 60 * 60 * 1000, // 24 hours
 };
-

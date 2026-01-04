@@ -1,6 +1,6 @@
 /**
  * Collapsible Tier Card Component
- * 
+ *
  * การ์ด Tier ที่สามารถพับซ่อนได้ พร้อมไอคอนและรายละเอียดกำไร/ขาดทุน
  */
 
@@ -52,12 +52,16 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const config = TIER_CONFIG[tier];
-  const totalProfit = breakdown.text.profit + breakdown.images.profit + breakdown.videos.profit + breakdown.audio.profit;
+  const totalProfit =
+    breakdown.text.profit +
+    breakdown.images.profit +
+    breakdown.videos.profit +
+    breakdown.audio.profit;
 
   return (
     <div className="collapsible-tier-card">
       {/* Header (Clickable) */}
-      <div 
+      <div
         className="tier-card-header"
         style={{ background: config.gradient }}
         onClick={() => setIsExpanded(!isExpanded)}
@@ -69,7 +73,7 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
             <span className="tier-user-count">{count} users</span>
           </div>
         </div>
-        
+
         <div className="tier-header-right">
           <div className="tier-summary">
             <div className="tier-summary-item">
@@ -82,15 +86,15 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
             </div>
             <div className="tier-summary-item">
               <span className="summary-label">Profit:</span>
-              <span className={`summary-value profit ${totalProfit >= 0 ? 'positive' : 'negative'}`}>
+              <span
+                className={`summary-value profit ${totalProfit >= 0 ? 'positive' : 'negative'}`}
+              >
                 ฿{totalProfit.toFixed(2)}
               </span>
             </div>
           </div>
-          
-          <button className="tier-collapse-btn">
-            {isExpanded ? '▲' : '▼'}
-          </button>
+
+          <button className="tier-collapse-btn">{isExpanded ? '▲' : '▼'}</button>
         </div>
       </div>
 
@@ -118,7 +122,9 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
               </div>
               <div className="stat-item">
                 <span className="stat-label">Profit:</span>
-                <span className={`stat-value profit ${breakdown.text.profit >= 0 ? 'positive' : 'negative'}`}>
+                <span
+                  className={`stat-value profit ${breakdown.text.profit >= 0 ? 'positive' : 'negative'}`}
+                >
                   {breakdown.text.profit >= 0 ? '+' : ''}฿{breakdown.text.profit.toFixed(2)}
                 </span>
               </div>
@@ -146,7 +152,9 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
               </div>
               <div className="stat-item">
                 <span className="stat-label">Profit:</span>
-                <span className={`stat-value profit ${breakdown.images.profit >= 0 ? 'positive' : 'negative'}`}>
+                <span
+                  className={`stat-value profit ${breakdown.images.profit >= 0 ? 'positive' : 'negative'}`}
+                >
                   {breakdown.images.profit >= 0 ? '+' : ''}฿{breakdown.images.profit.toFixed(2)}
                 </span>
               </div>
@@ -174,7 +182,9 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
               </div>
               <div className="stat-item">
                 <span className="stat-label">Profit:</span>
-                <span className={`stat-value profit ${breakdown.videos.profit >= 0 ? 'positive' : 'negative'}`}>
+                <span
+                  className={`stat-value profit ${breakdown.videos.profit >= 0 ? 'positive' : 'negative'}`}
+                >
                   {breakdown.videos.profit >= 0 ? '+' : ''}฿{breakdown.videos.profit.toFixed(2)}
                 </span>
               </div>
@@ -202,7 +212,9 @@ export const CollapsibleTierCard: React.FC<CollapsibleTierCardProps> = ({
               </div>
               <div className="stat-item">
                 <span className="stat-label">Profit:</span>
-                <span className={`stat-value profit ${breakdown.audio.profit >= 0 ? 'positive' : 'negative'}`}>
+                <span
+                  className={`stat-value profit ${breakdown.audio.profit >= 0 ? 'positive' : 'negative'}`}
+                >
                   {breakdown.audio.profit >= 0 ? '+' : ''}฿{breakdown.audio.profit.toFixed(2)}
                 </span>
               </div>

@@ -417,4 +417,3 @@ export const AddAdminModal: React.FC<AddAdminModalProps> = ({ isOpen, onClose, o
     </>
   );
 };
-

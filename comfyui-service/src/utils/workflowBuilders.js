@@ -10,12 +10,17 @@ export const VIDEO_MODELS = {
   animateDiff: {
     motionModels: {
       v2: 'mm_sd_v15_v2.ckpt',
-      v3: 'mm_sd_v15_v3.ckpt',
+      v3: 'v3_sd15_mm.ckpt', // AnimateDiff v3 - Better motion quality
       xl: 'mm-Stabilized_high.pth',
     },
+    adapters: {
+      v3: 'v3_sd15_adapter.ckpt', // v3 camera control adapter
+    },
+    // Default to v3 for better animation quality
+    defaultMotionModel: 'v3_sd15_mm.ckpt',
     baseModels: {
       sd15: 'v1-5-pruned-emaonly.safetensors',
-      sd15_realistic: 'v1-5-pruned-emaonly.safetensors', // Use SD 1.5 that we have
+      sd15_realistic: 'v1-5-pruned-emaonly.safetensors',
       sdxl: 'sd_xl_base_1.0.safetensors',
     },
     defaultFrames: 16,
@@ -33,10 +38,20 @@ export const VIDEO_MODELS = {
   },
   // WAN (WanVideoWrapper) - text-to-video
   wan: {
-    // Default model file name (must exist in ComfyUI models path for WanVideoWrapper)
-    // Mounted into Docker ComfyUI at /app/models (read-only).
-    // These are the filenames produced by the included WAN model downloader.
-    defaultModelPath: 'wan-video-comfy/Wan2_1-T2V-1_3B_fp8_e4m3fn.safetensors',
+    // Available WAN models (Kijai's converted models - downloaded and ready to use)
+    models: {
+      // Wan 2.1 I2V 14B FP8 - Image-to-Video (best for character animation with face ID)
+      i2v14B_fp8: 'Wan2_1-I2V-14B-480P_fp8_e4m3fn',
+      // Wan 2.1 T2V 14B FP8 - Text-to-Video (general purpose)
+      t2v14B_fp8: 'Wan2_1-T2V-14B_fp8_e4m3fn',
+      // Alternative models (not downloaded yet):
+      // phantom14B: 'Phantom-Wan-14B_fp16',  // 29GB
+    },
+    // Default model for this builder: T2V.
+    // buildWanWorkflow() creates a text-to-video graph (WanVideoEmptyEmbeds -> WanVideoSampler).
+    // I2V models require an image-embed conditioning node; those are injected later in prepareWorkflow
+    // when a reference image is provided and the worker supports it.
+    defaultModelPath: 'Wan2_1-T2V-14B_fp8_e4m3fn',
     defaultT5Encoder: 'umt5-xxl-enc-bf16.safetensors',
     defaultVae: 'wanvideo/Wan2_1_VAE_bf16.safetensors',
     defaultFrames: 81,
@@ -66,7 +81,7 @@ export const VIDEO_MODELS = {
  */
 export function buildWanWorkflow(prompt, options = {}) {
   const {
-    negativePrompt = 'blurry, low quality, watermark, text',
+    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, static, frozen, blurry, low resolution, watermark',
     modelPath = VIDEO_MODELS.wan.defaultModelPath,
     t5Encoder = VIDEO_MODELS.wan.defaultT5Encoder,
     vae = VIDEO_MODELS.wan.defaultVae,
@@ -78,7 +93,9 @@ export function buildWanWorkflow(prompt, options = {}) {
     steps = 30,
     cfg = 6.0,
     shift = 5.0,
-    scheduler = 'unipc',
+    // NOTE: WanVideoWrapper's default 'unipc' has been observed to throw an IndexError
+    // (step index out of bounds) in some environments. Use a safer default.
+    scheduler = 'euler',
   } = options;
 
   return {
@@ -193,20 +210,27 @@ export function buildWanWorkflow(prompt, options = {}) {
  */
 export function buildAnimateDiffWorkflow(prompt, options = {}) {
   const {
-    negativePrompt = 'low quality, blurry, distorted, watermark, text',
-    steps = 20,
-    cfg = 8.0,
+    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, static, frozen, blurry, low resolution, watermark, scene changes, jump cuts, multiple shots, multiple angles, camera switches, angle changes, noisy, grainy, pixelated, poor quality',
+    steps = 25,
+    cfg = 6.5,
     seed = Math.floor(Math.random() * 1000000000),
     numFrames = VIDEO_MODELS.animateDiff.defaultFrames,
     fps = VIDEO_MODELS.animateDiff.fps,
     motionScale = 1.0, // Reserved for future use with motion_scale parameter
     motionModel = VIDEO_MODELS.animateDiff.motionModels.v2,
     ckpt_name = VIDEO_MODELS.animateDiff.baseModels.sd15_realistic,
-    width = 512,
+    width = 768,  // Increased from 512 for HD quality
     height = 512,
     lora,
     loraStrength = 0.8,
+    // 🆕 Character detection for negative prompt adjustment
+    hasCharacters = true, // Default: assume characters present
   } = options;
+
+  // 🆕 Add "no people" to negative prompt if scene has no characters
+  const finalNegativePrompt = hasCharacters 
+    ? negativePrompt 
+    : `${negativePrompt}, people, humans, man, woman, person, character, face, body, human figure, crowd`;
 
   // Note: motionScale can be used in future with KSampler advanced nodes
   // For now, motion is controlled by the motion module itself
@@ -247,7 +271,7 @@ export function buildAnimateDiffWorkflow(prompt, options = {}) {
     // Node 4: CLIP Text Encode (Negative)
     '4': {
       inputs: {
-        text: negativePrompt,
+        text: finalNegativePrompt, // 🆕 Use adjusted negative prompt
         clip: ['1', 1],
       },
       class_type: 'CLIPTextEncode',
@@ -386,13 +410,14 @@ export function buildSVDWorkflow(referenceImage, options = {}) {
     seed = Math.floor(Math.random() * 1000000000),
     numFrames = VIDEO_MODELS.svd.defaultFrames,
     fps = VIDEO_MODELS.svd.fps,
-    motionScale = 127, // SVD motion bucket ID (default: 127)
-    steps = 20,
-    cfg = 2.5, // SVD typically uses lower CFG
+    motionScale = 127, // Default motion bucket (will be overridden by frontend calculation)
+    steps = 25,
+    cfg = 2.0,
     videoModel = VIDEO_MODELS.svd.checkpoints.xt,
     clipVisionModel = 'clip_vision_g.safetensors',
     width = 1024,
     height = 576,
+    augmentationLevel = 0.05, // REDUCED: More conservative for stability (was 0.15)
   } = options;
 
   const workflow = {
@@ -416,7 +441,7 @@ export function buildSVDWorkflow(referenceImage, options = {}) {
         video_frames: numFrames,
         motion_bucket_id: motionScale,
         fps: fps,
-        augmentation_level: 0.0, // No augmentation
+        augmentation_level: augmentationLevel, // Allow deviation for character movement (not just camera motion)
       },
       class_type: 'SVD_img2vid_Conditioning',
     },

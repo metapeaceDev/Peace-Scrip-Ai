@@ -4,7 +4,6 @@
  * จัดการการตรวจจับและเลือกใช้ทรัพยากร CPU/GPU สำหรับการ render
  */
 
-import { getSavedComfyUIUrl } from './comfyuiInstaller';
 import { parseError, retryWithBackoff, logError } from './errorHandler';
 import { requestCache, CacheKeys, CacheTTL } from './requestCache';
 
@@ -49,27 +48,53 @@ const COMFYUI_CLOUD_URL = import.meta.env.VITE_COMFYUI_CLOUD_URL;
 const COLAB_TUNNEL_URL = import.meta.env.VITE_COLAB_TUNNEL_URL; // ngrok/cloudflare tunnel from Colab
 const RUNPOD_URL = import.meta.env.VITE_RUNPOD_URL; // RunPod endpoint
 const REPLICATE_URL = import.meta.env.VITE_REPLICATE_URL; // Replicate API
+const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 
 /**
  * Parse ComfyUI stats response into SystemResources
  */
 function parseComfyUIStats(stats: any): SystemResources {
+  const toMB = (value: unknown): number | undefined => {
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num) || num <= 0) return undefined;
+    // Heuristic: treat very large numbers as bytes
+    if (num > 1024 * 1024 * 8) return Math.round(num / 1024 / 1024);
+    // Otherwise assume already MB
+    return Math.round(num);
+  };
+
   // แปลงข้อมูลจาก ComfyUI
   const devices: DeviceInfo[] = [];
   const system = stats.system || {};
-  const deviceInfo = stats.devices || {};
+  const rawDevices = stats.devices;
+  const deviceInfo = rawDevices && !Array.isArray(rawDevices) ? rawDevices : {};
+
+  const deviceArray: any[] = Array.isArray(rawDevices) ? rawDevices : [];
+  const cudaFromArray = deviceArray.find(d => {
+    const type = String(d?.type || '').toLowerCase();
+    const name = String(d?.name || '').toLowerCase();
+    return (
+      type === 'cuda' || name.includes('nvidia') || name.includes('geforce') || name.includes('rtx')
+    );
+  });
+  const directmlFromArray = deviceArray.find(
+    d => String(d?.type || '').toLowerCase() === 'directml'
+  );
 
   // ตรวจสอบ CUDA (NVIDIA)
-  if (deviceInfo.cuda || system.cuda_version) {
+  if (cudaFromArray || deviceInfo.cuda || system.cuda_version) {
     devices.push({
       type: 'cuda',
-      name: deviceInfo.cuda?.name || 'NVIDIA GPU',
+      name: cudaFromArray?.name || deviceInfo.cuda?.name || 'NVIDIA GPU',
       available: true,
-      vram: deviceInfo.cuda?.vram_total
-        ? Math.round(deviceInfo.cuda.vram_total / 1024 / 1024)
-        : undefined,
-      utilization: deviceInfo.cuda?.gpu_utilization,
-      temperature: deviceInfo.cuda?.temperature,
+      vram: toMB(
+        cudaFromArray?.vram_total ?? cudaFromArray?.vramTotal ?? deviceInfo.cuda?.vram_total
+      ),
+      utilization:
+        cudaFromArray?.gpu_utilization ??
+        cudaFromArray?.utilization ??
+        deviceInfo.cuda?.gpu_utilization,
+      temperature: cudaFromArray?.temperature ?? deviceInfo.cuda?.temperature,
       isRecommended: true, // CUDA เป็นตัวเลือกแรกสำหรับ NVIDIA
     });
   }
@@ -86,12 +111,21 @@ function parseComfyUIStats(stats: any): SystemResources {
   }
 
   // ตรวจสอบ DirectML (Windows AMD/Intel)
-  if (deviceInfo.directml || (system.os?.includes('Windows') && !deviceInfo.cuda)) {
+  const osString = String(system.os || '');
+  const osLower = osString.toLowerCase();
+  const isWindows =
+    osLower.includes('windows') || osLower.includes('win32') || osLower.startsWith('win');
+
+  if (
+    directmlFromArray ||
+    deviceInfo.directml ||
+    (isWindows && !deviceInfo.cuda && !cudaFromArray)
+  ) {
     devices.push({
       type: 'directml',
       name: 'DirectML GPU',
       available: true,
-      isRecommended: !deviceInfo.cuda, // ใช้ DirectML ถ้าไม่มี CUDA
+      isRecommended: !deviceInfo.cuda && !cudaFromArray, // ใช้ DirectML ถ้าไม่มี CUDA
     });
   }
 
@@ -111,16 +145,16 @@ function parseComfyUIStats(stats: any): SystemResources {
 
   // ข้อมูล Memory
   const memoryInfo = {
-    total: system.ram?.total ? Math.round(system.ram.total / 1024 / 1024) : 8192,
-    available: system.ram?.free ? Math.round(system.ram.free / 1024 / 1024) : 4096,
-    used: system.ram?.used ? Math.round(system.ram.used / 1024 / 1024) : 4096,
+    total: toMB(system.ram?.total) ?? 8192,
+    available: toMB(system.ram?.free) ?? 4096,
+    used: toMB(system.ram?.used) ?? 4096,
   };
 
   // ตรวจสอบ Platform
   let platform: 'windows' | 'macos' | 'linux' | 'unknown' = 'unknown';
-  if (system.os?.includes('Windows')) platform = 'windows';
-  else if (system.os?.includes('Darwin')) platform = 'macos';
-  else if (system.os?.includes('Linux')) platform = 'linux';
+  if (isWindows) platform = 'windows';
+  else if (osLower.includes('darwin') || osLower.includes('mac')) platform = 'macos';
+  else if (osLower.includes('linux')) platform = 'linux';
 
   return {
     devices,
@@ -149,24 +183,12 @@ export async function detectSystemResources(): Promise<SystemResources> {
           localStorage.removeItem('comfyui_url');
         }
 
-        // ตรวจสอบ ComfyUI local (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
-        let COMFYUI_URL = getSavedComfyUIUrl();
-
-        // 🛡️ NUCLEAR OPTION: If STILL Cloudflare after all cleanups, FORCE localhost
-        if (COMFYUI_URL.includes('trycloudflare.com')) {
-          console.error(
-            '❌ CRITICAL: getSavedComfyUIUrl() returned Cloudflare URL! FORCING localhost.'
-          );
-          COMFYUI_URL = 'http://localhost:8188';
-          // Also clear localStorage again as final measure
-          localStorage.removeItem('comfyui_url');
-        }
-
-        // 🔄 Retry with exponential backoff
+        // Prefer proxy via comfyui-service to avoid ComfyUI CORS/403 (Origin header blocked)
+        // This still gives us the same /system_stats payload shape.
         const response = await retryWithBackoff(
           () =>
-            fetch(`${COMFYUI_URL}/system_stats`, {
-              signal: AbortSignal.timeout(3000),
+            fetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, {
+              signal: AbortSignal.timeout(5000),
             }),
           {
             maxRetries: 2,
@@ -176,7 +198,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
         );
 
         if (!response.ok) {
-          throw new Error(`ComfyUI returned status ${response.status}`);
+          throw new Error(`ComfyUI backend proxy returned status ${response.status}`);
         }
 
         const stats = await response.json();
@@ -190,7 +212,7 @@ export async function detectSystemResources(): Promise<SystemResources> {
         // Log for debugging
         logError(comfyError, {
           operation: 'detectSystemResources',
-          url: getSavedComfyUIUrl(),
+          url: `${COMFYUI_SERVICE_URL}/health/system_stats`,
         });
 
         // Show suggestion if available
@@ -305,8 +327,8 @@ export async function checkComfyUIHealth(): Promise<{
 
   // ตรวจสอบ Local ComfyUI (ใช้ getSavedComfyUIUrl() เพื่อ auto-cleanup URL เก่า)
   try {
-    const COMFYUI_URL = getSavedComfyUIUrl();
-    const localResponse = await silentFetch(`${COMFYUI_URL}/system_stats`, 3000);
+    // Browser clients should NOT call ComfyUI directly (CORS/Origin 403). Use the backend proxy.
+    const localResponse = await silentFetch(`${COMFYUI_SERVICE_URL}/health/system_stats`, 3000);
 
     if (localResponse?.ok) {
       localAvailable = true;
@@ -581,4 +603,3 @@ export async function getRecommendedCloudProvider(): Promise<CloudProvider> {
 
   return 'auto';
 }
-

@@ -396,4 +396,3 @@ describe('PricingPage - AI Models Features', () => {
     expect(screen.getByText(/Runway Gen-3/i)).toBeInTheDocument();
   });
 });
-

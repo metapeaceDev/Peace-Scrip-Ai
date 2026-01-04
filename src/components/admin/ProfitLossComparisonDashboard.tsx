@@ -764,4 +764,3 @@ export const ProfitLossComparisonDashboard: React.FC = () => {
     </div>
   );
 };
-

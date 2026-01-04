@@ -453,4 +453,3 @@ export interface HistoricalProfitLoss {
     costRatios: number[]; // COGS as % of revenue per period
   };
 }
-

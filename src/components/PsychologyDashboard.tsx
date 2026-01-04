@@ -422,4 +422,3 @@ function generateSampleKarmaActions(character: Character): KarmaAction[] {
 
   return actions;
 }
-

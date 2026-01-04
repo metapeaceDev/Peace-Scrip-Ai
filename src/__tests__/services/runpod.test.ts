@@ -240,11 +240,10 @@ describe('RunPod Service Integration', () => {
         },
       };
 
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockUtilResponse,
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockUtilResponse,
+      });
 
       const result = await service.getGpuUtilization(mockPodId);
 
@@ -372,4 +371,3 @@ describe('RunPod Service Integration', () => {
     });
   });
 });
-

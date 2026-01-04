@@ -1618,7 +1618,11 @@ function App() {
             <h1 className="text-lg font-bold text-white tracking-wider truncate max-w-[200px] sm:max-w-md">
               {scriptData.title}
               <span className="ml-2 text-xs text-cyan-500 bg-cyan-900/30 px-2 py-0.5 rounded border border-cyan-900/50 hidden sm:inline-block">
-                {PROJECT_TYPES.find((t: any) => t.value === scriptData.projectType)?.label.split('(')[0]}
+                {
+                  PROJECT_TYPES.find((t: any) => t.value === scriptData.projectType)?.label.split(
+                    '('
+                  )[0]
+                }
               </span>
             </h1>
           </div>

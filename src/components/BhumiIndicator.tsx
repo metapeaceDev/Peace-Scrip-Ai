@@ -232,4 +232,3 @@ function getVedanaDisplay(vedana: string): string {
 }
 
 export default BhumiIndicator;
-

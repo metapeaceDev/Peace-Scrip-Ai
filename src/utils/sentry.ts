@@ -215,4 +215,3 @@ export function captureMessage(message: string, level: string = 'info'): void {
 }
 
 // Type guard removed - not needed
-

@@ -379,4 +379,3 @@ const AdvancedTab: React.FC = () => {
 };
 
 export default ComfyUISettings;
-

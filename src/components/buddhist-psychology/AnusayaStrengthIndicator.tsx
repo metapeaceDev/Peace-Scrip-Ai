@@ -370,4 +370,3 @@ export const AnusayaStrengthIndicator: React.FC<AnusayaStrengthIndicatorProps> =
 };
 
 export default AnusayaStrengthIndicator;
-

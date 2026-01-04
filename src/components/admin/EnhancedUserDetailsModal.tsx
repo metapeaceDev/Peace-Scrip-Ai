@@ -503,4 +503,3 @@ export const EnhancedUserDetailsModal: React.FC<EnhancedUserDetailsModalProps> =
     </div>
   );
 };
-

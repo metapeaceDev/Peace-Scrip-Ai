@@ -143,4 +143,3 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   // Admin access granted
   return <>{children}</>;
 };
-

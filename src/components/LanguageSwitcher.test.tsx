@@ -321,4 +321,3 @@ describe('useTranslation Hook', () => {
     });
   });
 });
-

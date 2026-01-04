@@ -261,4 +261,3 @@ function getSynergyParamis(key: keyof ParamiPortfolio): Array<keyof ParamiPortfo
 }
 
 export default ParamiProgress;
-

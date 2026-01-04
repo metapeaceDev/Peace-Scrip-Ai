@@ -53,4 +53,3 @@ export const RevenueManagementPage: React.FC<RevenueManagementPageProps> = ({
     </div>
   );
 };
-

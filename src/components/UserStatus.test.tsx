@@ -471,4 +471,3 @@ describe('UserStatus Component', () => {
     });
   });
 });
-

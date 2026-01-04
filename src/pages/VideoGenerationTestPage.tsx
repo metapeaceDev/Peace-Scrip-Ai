@@ -597,4 +597,3 @@ export default function VideoGenerationTestPage() {
     </div>
   );
 }
-

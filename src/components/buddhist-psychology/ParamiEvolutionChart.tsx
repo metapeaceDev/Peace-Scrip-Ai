@@ -341,4 +341,3 @@ export const ParamiEvolutionChart: React.FC<ParamiEvolutionChartProps> = ({
 };
 
 export default ParamiEvolutionChart;
-

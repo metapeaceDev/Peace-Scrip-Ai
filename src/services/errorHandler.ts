@@ -256,4 +256,3 @@ export function logError(error: ComfyUIError, context?: Record<string, unknown>)
     console.info('📊 Error logged to monitoring service');
   }
 }
-

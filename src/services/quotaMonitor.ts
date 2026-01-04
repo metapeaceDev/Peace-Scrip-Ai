@@ -120,4 +120,3 @@ export function resetQuotas(): void {
   quotaTrackers['gemini-2.0'].requests = [];
   console.log('✅ Quota trackers reset');
 }
-

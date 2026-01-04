@@ -1,6 +1,6 @@
 /**
  * Load Balancer API Client
- * 
+ *
  * Client for intelligent backend routing with cost optimization
  * Connects to ComfyUI Service Load Balancer API
  */
@@ -76,7 +76,7 @@ export class LoadBalancerClient {
    */
   async getStatus(): Promise<LoadBalancerStatus> {
     const response = await fetch(`${this.baseUrl}/api/loadbalancer/status`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get load balancer status: ${response.statusText}`);
     }
@@ -111,11 +111,13 @@ export class LoadBalancerClient {
   /**
    * Get recommendations based on workload
    */
-  async getRecommendations(params: {
-    jobCount?: number;
-    maxBudget?: number | null;
-    needsFast?: boolean;
-  } = {}): Promise<{
+  async getRecommendations(
+    params: {
+      jobCount?: number;
+      maxBudget?: number | null;
+      needsFast?: boolean;
+    } = {}
+  ): Promise<{
     recommendations: BackendRecommendation[];
     totalCost: number;
     totalTime: number;

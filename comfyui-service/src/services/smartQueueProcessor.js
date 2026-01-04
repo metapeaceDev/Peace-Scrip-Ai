@@ -22,7 +22,7 @@ export function setLoadBalancer(lb) {
  * Process image generation with intelligent routing
  */
 export async function processImageGenerationSmart(job) {
-  const { prompt, workflow, referenceImage, userId, userPreferences } = job.data;
+  const { prompt, workflow, referenceImage, userId: _userId, userPreferences } = job.data;
   
   try {
     // Use load balancer to select backend
@@ -78,6 +78,24 @@ export async function processVideoGenerationSmart(job) {
   const { prompt, workflow, referenceImage, metadata, userId, userPreferences } = job.data;
   
   try {
+    const getCurrentProgress = () => {
+      try {
+        if (typeof job.progress === 'function') {
+          const current = job.progress();
+          return typeof current === 'number' && Number.isFinite(current) ? current : 0;
+        }
+      } catch {
+        // ignore
+      }
+      return 0;
+    };
+
+    const bumpProgressToAtLeast = async (minValue) => {
+      const current = getCurrentProgress();
+      if (Number.isFinite(current) && current >= minValue) return;
+      await job.progress(minValue);
+    };
+
     // Use load balancer to select backend
     const selection = await loadBalancer.selectBackend(
       job, 
@@ -108,8 +126,6 @@ export async function processVideoGenerationSmart(job) {
       },
       userPreferences || {}
     );
-    
-    await job.progress(95);
     
     // 🆕 Extract actual result from loadBalancer wrapper
     // loadBalancer.processJobWithFailover returns { success, result, backend, cost }
@@ -173,23 +189,80 @@ export async function processVideoGenerationSmart(job) {
       return Buffer.from(response.data);
     };
 
+    // Smoothly tick progress from current (min 95) -> 99 while we are finalizing (download/upload).
+    // This avoids the UI appearing frozen when the last step is slow.
+    let stopFinalizing = null;
+    const startFinalizingProgress = async () => {
+      if (stopFinalizing) return;
+
+      const start = Date.now();
+      const startValue = Math.max(95, Math.round(getCurrentProgress()) || 95);
+      const endValue = 99;
+      const durationMs = 180000; // 3 minutes to reach 99 (then clamp)
+      let stopped = false;
+      let inFlight = false;
+
+      const tick = async () => {
+        if (stopped || inFlight) return;
+        inFlight = true;
+        try {
+          const elapsed = Date.now() - start;
+          const t = Math.max(0, Math.min(1, elapsed / durationMs));
+          const value = startValue + (endValue - startValue) * t;
+          await job.progress(Math.round(value));
+        } finally {
+          inFlight = false;
+        }
+      };
+
+      // Kick once immediately, then keep ticking.
+      await tick();
+      const intervalId = setInterval(() => {
+        void tick();
+      }, 5000);
+
+      stopFinalizing = () => {
+        stopped = true;
+        clearInterval(intervalId);
+      };
+    };
+
     try {
       const { saveVideoToStorage } = await import('./firebaseService.js');
       const userIdForStorage = userId || 'anonymous';
 
+      // Enter finalizing stage (download bytes + upload)
+      await bumpProgressToAtLeast(95);
+      await startFinalizingProgress();
+
       const bytes = await fetchVideoBytes();
       if (bytes) {
         console.log(`⬆️ Uploading video to Firebase Storage for user: ${userIdForStorage}`);
-        videoUrl = await saveVideoToStorage(bytes, userIdForStorage, job.id);
+        const uploadTimeoutMs = Number(process.env.VIDEO_UPLOAD_TIMEOUT_MS) || 300000; // 5 minutes
+        videoUrl = await Promise.race([
+          saveVideoToStorage(bytes, userIdForStorage, job.id),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`Firebase upload timeout after ${uploadTimeoutMs}ms`)),
+              uploadTimeoutMs
+            )
+          )
+        ]);
         console.log(`✅ Video uploaded successfully: ${videoUrl}`);
       } else {
         console.log('ℹ️  No video bytes available for Firebase upload; returning local videoUrl only');
       }
 
+      if (stopFinalizing) stopFinalizing();
       await job.progress(100);
     } catch (storageError) {
       console.error(`❌ Failed to upload video to Firebase Storage:`, storageError);
       uploadError = storageError.message;
+      if (stopFinalizing) stopFinalizing();
+      // Ensure job completes even if upload fails; fall back to ComfyUI URL when available.
+      if (!videoUrl) {
+        videoUrl = resolveComfyUiDownloadUrl() || actualResult.videoUrl || null;
+      }
       await job.progress(100);
     }
     
@@ -221,7 +294,7 @@ async function processWithLocal(job, prompt, workflow, referenceImage) {
     referenceImage,
     isVideo: false,
     metadata: {},
-    onProgress: async (progress, details) => {
+    onProgress: async (progress, _details) => {
       await job.progress(10 + (progress * 0.9));
     }
   });
@@ -249,7 +322,7 @@ async function processWithCloud(job, prompt, workflow, referenceImage) {
     referenceImage,
     isVideo: false,
     metadata: {},
-    onProgress: async (progress, details) => {
+    onProgress: async (progress, _details) => {
       await job.progress(10 + (progress * 0.9));
     }
   });
@@ -286,7 +359,7 @@ async function processWithGemini(job, prompt) {
 /**
  * Process video with local ComfyUI worker
  */
-async function processVideoWithLocal(job, prompt, workflow, referenceImage, metadata, userId) {
+async function processVideoWithLocal(job, prompt, workflow, referenceImage, metadata, _userId) {
   const workerManager = getWorkerManager();
   const worker = workerManager.getNextWorker();
   
@@ -299,7 +372,7 @@ async function processVideoWithLocal(job, prompt, workflow, referenceImage, meta
     referenceImage,
     isVideo: true,
     metadata: metadata || {},
-    onProgress: async (progress, details) => {
+    onProgress: async (progress, _details) => {
       const overallProgress = 5 + (progress * 0.90);
       await job.progress(overallProgress);
       console.log(`📊 Video progress: ${Math.round(overallProgress)}%`);
@@ -327,7 +400,7 @@ async function processVideoWithLocal(job, prompt, workflow, referenceImage, meta
 /**
  * Process video with cloud worker
  */
-async function processVideoWithCloud(job, prompt, workflow, referenceImage, metadata, userId) {
+async function processVideoWithCloud(job, prompt, workflow, referenceImage, metadata, _userId) {
   const workerManager = getWorkerManager();
   const cloudManager = workerManager.getCloudManager();
   
@@ -340,7 +413,7 @@ async function processVideoWithCloud(job, prompt, workflow, referenceImage, meta
     referenceImage,
     isVideo: true,
     metadata: metadata || {},
-    onProgress: async (progress, details) => {
+    onProgress: async (progress, _details) => {
       const overallProgress = 5 + (progress * 0.90);
       await job.progress(overallProgress);
       console.log(`📊 Video progress: ${Math.round(overallProgress)}%`);

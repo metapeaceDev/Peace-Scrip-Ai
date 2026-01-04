@@ -826,4 +826,3 @@ describe('CheckoutPage - Props Handling', () => {
     expect(yearlyTexts.length).toBeGreaterThan(0);
   });
 });
-

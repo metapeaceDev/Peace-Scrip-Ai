@@ -198,10 +198,7 @@ export async function getUserModelUsage(userId: string): Promise<{
 }> {
   try {
     // Query all generations for this user to get real-time data
-    const q = query(
-      collection(db, 'generations'),
-      where('userId', '==', userId)
-    );
+    const q = query(collection(db, 'generations'), where('userId', '==', userId));
     const snapshot = await getDocs(q);
 
     // Aggregate by model
@@ -218,7 +215,7 @@ export async function getUserModelUsage(userId: string): Promise<{
     snapshot.forEach(doc => {
       const data = doc.data();
       const modelKey = `${data.modelId}-${data.type}`;
-      
+
       if (!modelMap.has(modelKey)) {
         modelMap.set(modelKey, {
           modelId: data.modelId || 'unknown',
@@ -234,7 +231,7 @@ export async function getUserModelUsage(userId: string): Promise<{
       const usage = modelMap.get(modelKey)!;
       usage.count += 1;
       usage.totalCost += data.costInTHB || 0;
-      
+
       // Update last used if this is newer
       const timestamp = data.timestamp?.toDate() || new Date();
       if (timestamp > usage.lastUsed) {
@@ -263,7 +260,7 @@ export async function getUserModelUsage(userId: string): Promise<{
     console.log('✅ Real-time model usage fetched:', {
       totalGenerations,
       totalCostTHB,
-      modelCount: byModel.length
+      modelCount: byModel.length,
     });
 
     return {
@@ -525,4 +522,3 @@ export async function trackGeneration<T>(
     }).catch(err => console.error('Failed to track generation:', err));
   }
 }
-

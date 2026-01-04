@@ -427,4 +427,3 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
     </>
   );
 };
-

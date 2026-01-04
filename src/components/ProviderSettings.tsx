@@ -920,4 +920,3 @@ export function getAIProviderSettings(): AIProviderSettings {
   }
   return DEFAULT_SETTINGS;
 }
-

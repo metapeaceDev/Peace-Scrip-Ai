@@ -39,7 +39,10 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
       // Simulate growth trend (ในการใช้จริงควรดึงจาก Firestore)
       const growthFactor = 1 + (11 - i) * 0.15; // 15% growth per month
       const baseRevenue = revenue.mrr / growthFactor;
-      const activeCount = Object.values(revenue.byTier).reduce((sum: number, val: number) => sum + val, 0);
+      const activeCount = Object.values(revenue.byTier).reduce(
+        (sum: number, val: number) => sum + val,
+        0
+      );
 
       months.push({
         month: monthName,
@@ -144,4 +147,3 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ revenue }) => {
     </div>
   );
 };
-

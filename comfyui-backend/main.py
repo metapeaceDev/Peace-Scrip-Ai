@@ -26,6 +26,10 @@ from typing import Optional, Dict, List
 from pathlib import Path
 import asyncio
 from enum import Enum
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Firebase Admin SDK (optional - comment out if not using Firebase)
 try:
@@ -41,6 +45,11 @@ app = FastAPI(
     description="Video generation backend for Peace Script AI",
     version="1.0.0"
 )
+
+# Simple health check endpoint (compatibility with frontend expecting /health)
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 # CORS Configuration
 app.add_middleware(

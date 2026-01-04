@@ -307,4 +307,3 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({
 };
 
 export default InvitationsModal;
-

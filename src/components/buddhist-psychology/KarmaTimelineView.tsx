@@ -471,4 +471,3 @@ export const KarmaTimelineView: React.FC<KarmaTimelineViewProps> = ({
 };
 
 export default KarmaTimelineView;
-

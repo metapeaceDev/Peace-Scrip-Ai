@@ -64,14 +64,27 @@ export const EnhancedUsageBarChart: React.FC<EnhancedUsageBarChartProps> = ({
 
       case 'monthly':
         // รายเดือน - สมมติข้อมูล 12 เดือนย้อนหลัง
-        const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const months = [
+          'ม.ค.',
+          'ก.พ.',
+          'มี.ค.',
+          'เม.ย.',
+          'พ.ค.',
+          'มิ.ย.',
+          'ก.ค.',
+          'ส.ค.',
+          'ก.ย.',
+          'ต.ค.',
+          'พ.ย.',
+          'ธ.ค.',
+        ];
         const currentMonth = new Date().getMonth();
         return months.slice(0, currentMonth + 1).map((month, index) => {
           const factor = (index + 1) / (currentMonth + 1); // Growth simulation
           const monthlyCost = (totalCost / (currentMonth + 1)) * factor;
           const monthlyRevenue = (totalRevenue / (currentMonth + 1)) * factor;
           const monthlyProfit = monthlyRevenue - monthlyCost;
-          
+
           return {
             name: month,
             cost: monthlyCost,
@@ -87,7 +100,7 @@ export const EnhancedUsageBarChart: React.FC<EnhancedUsageBarChartProps> = ({
           const yearlyCost = totalCost * 12 * factor;
           const yearlyRevenue = totalRevenue * 12 * factor;
           const yearlyProfit = yearlyRevenue - yearlyCost;
-          
+
           return {
             name: year.toString(),
             cost: yearlyCost,
@@ -238,13 +251,12 @@ export const EnhancedUsageBarChart: React.FC<EnhancedUsageBarChartProps> = ({
 
       <div className="chart-footer">
         <p className="chart-note">
-          💡 <strong>หมายเหตุ:</strong> {
-            viewMode === 'current'
-              ? 'ข้อมูลแสดงผลการดำเนินงานรวมตั้งแต่เริ่มต้นจนถึงปัจจุบัน'
-              : viewMode === 'monthly'
+          💡 <strong>หมายเหตุ:</strong>{' '}
+          {viewMode === 'current'
+            ? 'ข้อมูลแสดงผลการดำเนินงานรวมตั้งแต่เริ่มต้นจนถึงปัจจุบัน'
+            : viewMode === 'monthly'
               ? 'ข้อมูลแสดงผลการดำเนินงานรายเดือนของปีปัจจุบัน'
-              : 'ข้อมูลแสดงผลการดำเนินงานรายปี'
-          }
+              : 'ข้อมูลแสดงผลการดำเนินงานรายปี'}
         </p>
       </div>
     </div>

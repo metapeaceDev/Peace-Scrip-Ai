@@ -123,6 +123,21 @@ async function prepareWorkflow(workflowTemplate, params) {
   
   // Clone workflow
   const workflow = JSON.parse(JSON.stringify(workflowTemplate));
+
+  // ✅ Validate and auto-fix SVD prerequisites (CLIP vision models + required inputs)
+  await ensureSvdPrereqs(workflow, workerId);
+
+  // ✅ Validate IP-Adapter prerequisites (requires CLIP Vision model for Face presets)
+  await ensureIPAdapterPrereqs(workflow, workerId);
+
+  // ✅ Validate and auto-fix WAN model selection (map basename -> actual ComfyUI choice)
+  // If a reference image is provided, prefer switching to an I2V WAN model when available.
+  await ensureWanPrereqs(workflow, workerId, { preferI2V: !!referenceImage });
+
+  // ✅ Best-effort: if a reference image is provided, try to convert WAN T2V workflow
+  // into an I2V-conditioned workflow by injecting a LoadImage + WanVideo image-embed node.
+  // If the worker doesn't expose a compatible node, keep the original T2V workflow.
+  await ensureWanI2VConditioning(workflow, workerId, referenceImage);
   
   // ❌ REMOVED BUG: Don't replace prompts!
   // Frontend workflow builder already set Node 6 (positive prompt) and Node 7 (negative prompt) correctly
@@ -140,20 +155,381 @@ async function prepareWorkflow(workflowTemplate, params) {
   for (const node of Object.values(workflow)) {
     // If LoadImage node and we have reference image
     if (node.class_type === 'LoadImage' && referenceImage) {
+      console.log('📸 Found LoadImage node, uploading reference image...');
       // Upload reference image first
       const uploadedImageName = await uploadImageToComfyUI(referenceImage, workerId);
+      console.log(`✅ Reference image uploaded as: ${uploadedImageName}`);
       node.inputs.image = uploadedImageName;
+      console.log(`✅ Updated LoadImage node to use: ${uploadedImageName}`);
     }
   }
-
-  // ✅ NEW: Validate and auto-fix SVD prerequisites (CLIP vision models + required inputs)
-  await ensureSvdPrereqs(workflow, workerId);
 
   // ✅ NEW: If workflow requests LoRAs that are not installed on this worker,
   // strip the LoraLoader node(s) and rewire downstream connections back to the base model/clip.
   await stripInvalidLoraLoaders(workflow, workerId);
   
   return workflow;
+}
+
+async function ensureIPAdapterPrereqs(workflow, workerId) {
+  const hasIpAdapter = Object.values(workflow).some((node) => {
+    const type = String(node?.class_type || '');
+    return type === 'IPAdapterUnifiedLoader' || type === 'IPAdapter' || type.toLowerCase().includes('ipadapter');
+  });
+  if (!hasIpAdapter) return;
+
+  const worker = getWorkerManager().getWorker(workerId);
+  if (!worker?.url) return;
+
+  let clipVisionChoices = [];
+  try {
+    const response = await axios.get(`${worker.url}/object_info/CLIPVisionLoader`, { timeout: 10000 });
+    const choices = response.data?.CLIPVisionLoader?.input?.required?.clip_name?.[0];
+    clipVisionChoices = Array.isArray(choices) ? choices : [];
+  } catch (error) {
+    throw new Error(`IP-Adapter prerequisites check failed: ${error.message}`);
+  }
+
+  // IP-Adapter Face workflows need a CLIP vision model (not just SVD encoders).
+  const usableChoices = clipVisionChoices.filter((name) => !String(name || '').toLowerCase().includes('svd'));
+
+  if (usableChoices.length === 0) {
+    const detected = clipVisionChoices.length > 0 ? ` Detected: ${clipVisionChoices.join(', ')}` : '';
+    throw new Error(
+      'IP-Adapter Face ID requires a CLIP Vision model, but none were found in ComfyUI/models/clip_vision ' +
+        '(only SVD encoders or empty).' +
+        detected +
+        ' Install a CLIP vision model suitable for IP-Adapter (commonly: clip_vision_g.safetensors) into ComfyUI/models/clip_vision and restart ComfyUI.'
+    );
+  }
+
+  // Best-effort: Fix CLIPVisionLoader nodes (choose first usable if missing/invalid)
+  const clipVisionLoaderNodes = Object.entries(workflow).filter(([, node]) => node?.class_type === 'CLIPVisionLoader');
+  for (const [, node] of clipVisionLoaderNodes) {
+    const requested = node?.inputs?.clip_name;
+    const reqLower = String(requested || '').toLowerCase();
+    const isSvd = reqLower.includes('svd');
+
+    if (!requested || !clipVisionChoices.includes(requested) || isSvd) {
+      node.inputs = node.inputs || {};
+      node.inputs.clip_name = usableChoices[0];
+    }
+  }
+}
+
+async function ensureWanPrereqs(workflow, workerId, opts = {}) {
+  const wanLoaderNodes = Object.entries(workflow).filter(([, node]) => node?.class_type === 'WanVideoModelLoader');
+  if (wanLoaderNodes.length === 0) return;
+
+  // NOTE: We no longer auto-switch T2V -> I2V here.
+  // Switching to an I2V checkpoint is only safe if we successfully inject a compatible
+  // image-conditioning embed node (handled in ensureWanI2VConditioning).
+  void opts;
+
+  const worker = getWorkerManager().getWorker(workerId);
+  if (!worker?.url) return;
+
+  const fetchChoices = async () => {
+    try {
+      const response = await axios.get(`${worker.url}/object_info/WanVideoModelLoader`, { timeout: 10000 });
+      const choices = response.data?.WanVideoModelLoader?.input?.required?.model?.[0];
+      return Array.isArray(choices) ? choices : [];
+    } catch {
+      // Fallback for older ComfyUI servers that may not support per-node object_info
+      const response = await axios.get(`${worker.url}/object_info`, { timeout: 10000 });
+      const choices = response.data?.WanVideoModelLoader?.input?.required?.model?.[0];
+      return Array.isArray(choices) ? choices : [];
+    }
+  };
+
+  const modelChoices = await fetchChoices();
+  if (modelChoices.length === 0) {
+    throw new Error(
+      'WAN workflow requested, but ComfyUI reports zero WAN models for WanVideoModelLoader. ' +
+        'Install WAN .safetensors in the folder scanned by the WanVideoWrapper node and restart ComfyUI.'
+    );
+  }
+
+  const normalize = (s) => String(s || '').replace(/\\/g, '/').trim().toLowerCase();
+  const baseName = (s) => normalize(s).split('/').pop() || normalize(s);
+  const stripExt = (s) => s.replace(/\.(safetensors|ckpt|pt)$/i, '');
+
+  const tryResolveChoice = (requested) => {
+    const req = String(requested || '').trim();
+    if (!req) return null;
+
+    // 1) Exact match (case-insensitive, path-normalized)
+    const reqNorm = normalize(req);
+    const exact = modelChoices.find((c) => normalize(c) === reqNorm);
+    if (exact) return exact;
+
+    // 2) Append .safetensors if caller passed basename
+    if (!/\.(safetensors|ckpt|pt)$/i.test(req)) {
+      const withExt = modelChoices.find((c) => normalize(c) === normalize(`${req}.safetensors`));
+      if (withExt) return withExt;
+    }
+
+    // 3) Match by basename without extension (handles subfolders)
+    const reqBase = stripExt(baseName(req));
+    const candidates = modelChoices.filter((c) => stripExt(baseName(c)) === reqBase);
+    if (candidates.length === 1) return candidates[0];
+    if (candidates.length > 1) {
+      const reqLower = reqNorm;
+      // Prefer the candidate that contains the requested substring
+      const contains = candidates.find((c) => normalize(c).includes(reqLower));
+      if (contains) return contains;
+
+      // Heuristic: prefer fp8/fp16 alignment if present
+      const wantsFp8 = reqLower.includes('fp8');
+      const wantsFp16 = reqLower.includes('fp16');
+      if (wantsFp8) {
+        const fp8 = candidates.find((c) => normalize(c).includes('fp8'));
+        if (fp8) return fp8;
+      }
+      if (wantsFp16) {
+        const fp16 = candidates.find((c) => normalize(c).includes('fp16'));
+        if (fp16) return fp16;
+      }
+      return candidates[0];
+    }
+
+    // 4) Heuristic fallback by task type (handles differing naming conventions)
+    const reqLower = reqNorm;
+    const wantsI2v = reqLower.includes('i2v') || reqLower.includes('img2vid') || reqLower.includes('image-to-video');
+    const wantsT2v = reqLower.includes('t2v') || reqLower.includes('txt2vid') || reqLower.includes('text-to-video');
+    if (wantsI2v || wantsT2v) {
+      const typeToken = wantsI2v ? 'i2v' : 't2v';
+      const typeMatches = modelChoices.filter((c) => normalize(c).includes(typeToken));
+      if (typeMatches.length > 0) {
+        const wantsFp8 = reqLower.includes('fp8');
+        const wantsFp16 = reqLower.includes('fp16');
+        if (wantsFp8) {
+          const fp8 = typeMatches.find((c) => normalize(c).includes('fp8'));
+          if (fp8) return fp8;
+        }
+        if (wantsFp16) {
+          const fp16 = typeMatches.find((c) => normalize(c).includes('fp16'));
+          if (fp16) return fp16;
+        }
+        return typeMatches[0];
+      }
+    }
+
+    return null;
+  };
+
+  for (const [nodeId, node] of wanLoaderNodes) {
+    node.inputs = node.inputs || {};
+    const requested = node.inputs.model;
+    const resolved = requested ? tryResolveChoice(requested) : modelChoices[0];
+
+    if (!resolved) {
+      const requestedLabel = requested ? String(requested) : '(missing)';
+      const sample = modelChoices.slice(0, 12).join(', ');
+      throw new Error(
+        `WAN model not available in ComfyUI. Requested: ${requestedLabel}. ` +
+          `WanVideoModelLoader choices: ${modelChoices.length}. ` +
+          `Sample: ${sample}`
+      );
+    }
+
+    if (requested !== resolved) {
+      console.log(`🔧 WAN model auto-resolve: node ${nodeId}: ${requested || '(unset)'} -> ${resolved}`);
+    }
+    node.inputs.model = resolved;
+  }
+}
+
+async function ensureWanI2VConditioning(workflow, workerId, referenceImage) {
+  if (!referenceImage) return;
+
+  const hasWanSampler = Object.values(workflow).some((n) => n?.class_type === 'WanVideoSampler');
+  const hasWanLoader = Object.values(workflow).some((n) => n?.class_type === 'WanVideoModelLoader');
+  if (!hasWanSampler || !hasWanLoader) return;
+
+  // If the workflow already has a LoadImage node, assume the builder knows what it's doing.
+  const alreadyHasLoadImage = Object.values(workflow).some((n) => n?.class_type === 'LoadImage');
+  if (alreadyHasLoadImage) return;
+
+  const worker = getWorkerManager().getWorker(workerId);
+  if (!worker?.url) return;
+
+  let objectInfo;
+  try {
+    const response = await axios.get(`${worker.url}/object_info`, { timeout: 10000 });
+    objectInfo = response.data || {};
+  } catch (error) {
+    console.warn('⚠️ Could not fetch ComfyUI object_info for WAN I2V conditioning:', error.message);
+    return;
+  }
+
+  const candidates = Object.keys(objectInfo)
+    .filter((name) => {
+      if (!/^WanVideo/i.test(name)) return false;
+      if (/EmptyEmbeds/i.test(name)) return false;
+      return /(Image|Img).*(Embed|Embeds|Encode)/i.test(name);
+    })
+    .map((name) => {
+      const required = objectInfo?.[name]?.input?.required;
+      const keys = required && typeof required === 'object' ? Object.keys(required) : [];
+      const hasImageKey = keys.includes('image') || keys.includes('images');
+      const hasModelKey = keys.includes('model') || keys.includes('model_to_offload');
+      return { name, keys, hasImageKey, hasModelKey };
+    })
+    .sort((a, b) => {
+      // Prefer nodes that accept an image input, then prefer nodes that also accept the WAN model.
+      const byImage = Number(b.hasImageKey) - Number(a.hasImageKey);
+      if (byImage) return byImage;
+      return Number(b.hasModelKey) - Number(a.hasModelKey);
+    });
+
+  const selected = candidates.find((c) => c.hasImageKey);
+  if (!selected) {
+    // If the workflow is currently configured with an I2V checkpoint but we can't inject conditioning,
+    // auto-fallback to a T2V checkpoint to avoid runtime channel-mismatch errors.
+    try {
+      const loaderEntry = Object.entries(workflow).find(([, n]) => n?.class_type === 'WanVideoModelLoader');
+      const loaderNode = loaderEntry ? workflow[loaderEntry[0]] : null;
+      const currentModel = String(loaderNode?.inputs?.model || '');
+      if (/i2v/i.test(currentModel)) {
+        const choices = (() => {
+          const raw = objectInfo?.WanVideoModelLoader?.input?.required?.model?.[0];
+          return Array.isArray(raw) ? raw : [];
+        })();
+
+        const normalizeModel = (s) => String(s || '').replace(/\\/g, '/').trim().toLowerCase();
+        const t2vCandidate = choices.find((c) => normalizeModel(c).includes('t2v'));
+        if (t2vCandidate && loaderNode?.inputs) {
+          console.warn(
+            `⚠️ WAN I2V conditioning unavailable on this worker; falling back to T2V model: ${currentModel} -> ${t2vCandidate}`
+          );
+          loaderNode.inputs.model = t2vCandidate;
+        }
+      }
+    } catch {
+      // ignore; proceed without conditioning
+    }
+
+    console.warn(
+      '⚠️ WAN reference images were provided, but no compatible WanVideoWrapper image-embed node was found in ComfyUI. ' +
+        'WAN will run in text-to-video mode (character identity may drift).'
+    );
+    return;
+  }
+
+  // Identify key nodes/inputs from the existing WAN workflow.
+  const samplerEntry = Object.entries(workflow).find(([, n]) => n?.class_type === 'WanVideoSampler');
+  const loaderEntry = Object.entries(workflow).find(([, n]) => n?.class_type === 'WanVideoModelLoader');
+  if (!samplerEntry || !loaderEntry) return;
+
+  const [samplerId, samplerNode] = samplerEntry;
+  const [loaderId] = loaderEntry;
+  const loaderNode = workflow[loaderId];
+
+  const embedsLink = samplerNode?.inputs?.image_embeds;
+  const embedsNodeId = Array.isArray(embedsLink) ? String(embedsLink[0]) : null;
+  const embedsNode = embedsNodeId ? workflow[embedsNodeId] : null;
+
+  const width = embedsNode?.inputs?.width;
+  const height = embedsNode?.inputs?.height;
+  const numFrames = embedsNode?.inputs?.num_frames;
+
+  const requiredKeys = new Set(selected.keys);
+  const allowedKeys = new Set([
+    'image',
+    'images',
+    'width',
+    'height',
+    'num_frames',
+    'batch_size',
+    'frames',
+    'model',
+    'model_to_offload',
+    'force_offload',
+    'device',
+  ]);
+
+  for (const key of requiredKeys) {
+    if (!allowedKeys.has(key)) {
+      console.warn(
+        `⚠️ WAN I2V conditioning skipped: node ${selected.name} requires unsupported input key '${key}'. ` +
+          'WAN will run in text-to-video mode.'
+      );
+      return;
+    }
+  }
+
+  const numericIds = Object.keys(workflow)
+    .map((k) => Number(k))
+    .filter((n) => Number.isFinite(n));
+  const nextBase = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 100;
+  const loadImageId = String(nextBase);
+  const embedId = String(nextBase + 1);
+
+  workflow[loadImageId] = {
+    inputs: {
+      // This value will be replaced by the upload step in prepareWorkflow.
+      image: '__REFERENCE_IMAGE__',
+    },
+    class_type: 'LoadImage',
+  };
+
+  const embedInputs = {};
+  if (requiredKeys.has('image')) embedInputs.image = [loadImageId, 0];
+  if (requiredKeys.has('images')) embedInputs.images = [loadImageId, 0];
+  if (requiredKeys.has('width') && typeof width === 'number') embedInputs.width = width;
+  if (requiredKeys.has('height') && typeof height === 'number') embedInputs.height = height;
+  if (requiredKeys.has('num_frames') && typeof numFrames === 'number') embedInputs.num_frames = numFrames;
+  if (requiredKeys.has('batch_size') && typeof numFrames === 'number') embedInputs.batch_size = numFrames;
+  if (requiredKeys.has('frames') && typeof numFrames === 'number') embedInputs.frames = numFrames;
+  if (requiredKeys.has('model')) embedInputs.model = [loaderId, 0];
+  if (requiredKeys.has('model_to_offload')) embedInputs.model_to_offload = [loaderId, 0];
+  if (requiredKeys.has('force_offload')) embedInputs.force_offload = true;
+  if (requiredKeys.has('device')) embedInputs.device = 'gpu';
+
+  workflow[embedId] = {
+    inputs: embedInputs,
+    class_type: selected.name,
+  };
+
+  // Rewire sampler to use the image-conditioned embeds.
+  samplerNode.inputs = samplerNode.inputs || {};
+  samplerNode.inputs.image_embeds = [embedId, 0];
+
+  // If we successfully injected conditioning, prefer an I2V checkpoint when available.
+  // This prevents users from selecting I2V models that would otherwise fail without conditioning,
+  // and improves identity consistency when the worker supports I2V.
+  try {
+    if (loaderNode?.inputs) {
+      const choices = (() => {
+        const raw = objectInfo?.WanVideoModelLoader?.input?.required?.model?.[0];
+        return Array.isArray(raw) ? raw : [];
+      })();
+      const normalizeModel = (s) => String(s || '').replace(/\\/g, '/').trim().toLowerCase();
+      const currentModel = String(loaderNode.inputs.model || '');
+      const currentNorm = normalizeModel(currentModel);
+
+      // Only switch if we're not already on an I2V checkpoint and the user/model isn't explicitly T2V.
+      // This keeps WAN 2.1 T2V truly prompt-driven when selected.
+      if (!currentNorm.includes('i2v') && !currentNorm.includes('t2v')) {
+        const i2vCandidates = choices.filter((c) => normalizeModel(c).includes('i2v'));
+        if (i2vCandidates.length > 0) {
+          // Heuristic: prefer same precision token if present (fp8/fp16)
+          const wantsFp8 = currentNorm.includes('fp8');
+          const wantsFp16 = currentNorm.includes('fp16');
+          let picked = i2vCandidates[0];
+          if (wantsFp8) picked = i2vCandidates.find((c) => normalizeModel(c).includes('fp8')) || picked;
+          if (wantsFp16) picked = i2vCandidates.find((c) => normalizeModel(c).includes('fp16')) || picked;
+          console.log(`🔁 WAN model switch (I2V conditioning enabled): ${currentModel} -> ${picked}`);
+          loaderNode.inputs.model = picked;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  console.log(`🎭 WAN I2V conditioning enabled: ${selected.name} (sampler ${samplerId}) using reference image`);
 }
 
 async function ensureSvdPrereqs(workflow, workerId) {
@@ -264,6 +640,9 @@ async function uploadImageToComfyUI(base64Image, workerId) {
   // ComfyUI expects images in its input folder
   // We'll use the upload/image endpoint
   
+  console.log(`📤 Uploading image to ComfyUI (worker: ${workerId})...`);
+  console.log(`📏 Image size: ${Math.round(base64Image.length / 1024)} KB`);
+  
   const worker = getWorkerManager().getWorker(workerId);
   if (!worker) {
     throw new Error(`Worker ${workerId} not found`);
@@ -274,21 +653,30 @@ async function uploadImageToComfyUI(base64Image, workerId) {
     const imageData = base64Image.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(imageData, 'base64');
     
+    console.log(`📦 Image buffer size: ${Math.round(buffer.length / 1024)} KB`);
+    
     // Use form-data package for creating multipart/form-data
     const FormData = (await import('form-data')).default;
     const form = new FormData();
+    const filename = `ref-${Date.now()}.png`;
     form.append('image', buffer, {
-      filename: `ref-${Date.now()}.png`,
+      filename: filename,
       contentType: 'image/png'
     });
 
+    console.log(`🌐 Uploading to: ${worker.url}/upload/image`);
     const response = await axios.post(`${worker.url}/upload/image`, form, {
       headers: form.getHeaders()
     });
 
+    console.log(`✅ Upload successful! Response:`, response.data);
     return response.data.name;
   } catch (error) {
     console.error('❌ Failed to upload image to ComfyUI:', error.message);
+    if (error.response) {
+      console.error('📋 Response data:', error.response.data);
+      console.error('📋 Response status:', error.response.status);
+    }
     throw error;
   }
 }
@@ -324,6 +712,19 @@ function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadat
     let settled = false;
     let pollInterval = null;
 
+    // Ensure progress is monotonic and doesn't bounce between polling and WebSocket.
+    let lastReportedProgress = 0;
+    let lastWsProgressAt = 0;
+
+    const reportProgress = async (progress, details) => {
+      if (!progressCb) return;
+      const bounded = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
+      const next = Math.max(lastReportedProgress, bounded);
+      if (next === lastReportedProgress) return;
+      lastReportedProgress = next;
+      await progressCb(next, details);
+    };
+
     const cleanup = () => {
       if (pollInterval) {
         clearInterval(pollInterval);
@@ -358,6 +759,7 @@ function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadat
 
     ws.on('message', async (data) => {
       try {
+        if (settled) return;
         const message = JSON.parse(data.toString());
         
         // Handle executing node
@@ -371,31 +773,30 @@ function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadat
           totalSteps = message.data.max;
           const progress = Math.round((currentStep / totalSteps) * 100);
           currentProgress = progress;
+          lastWsProgressAt = Date.now();
           console.log(`📊 WebSocket Progress: ${progress}% (${currentStep}/${totalSteps})`);
           
-          if (progressCb) {
-            await progressCb(progress, {
-              currentStep,
-              totalSteps,
-              currentNode,
-              isVideo: videoFlag,
-              numFrames: meta.numFrames
-            });
-          }
+          await reportProgress(progress, {
+            currentStep,
+            totalSteps,
+            currentNode,
+            isVideo: videoFlag,
+            numFrames: meta.numFrames,
+            source: 'ws'
+          });
         }
         
         if (message.type === 'executing' && message.data.node === null) {
           // Execution complete
           console.log(`✅ Job completed (detected via WebSocket)`);
-          if (progressCb) {
-            await progressCb(100, {
-              currentStep: totalSteps,
-              totalSteps,
-              currentNode: 'complete',
-              isVideo: videoFlag,
-              numFrames: meta.numFrames
-            });
-          }
+          await reportProgress(100, {
+            currentStep: totalSteps,
+            totalSteps,
+            currentNode: 'complete',
+            isVideo: videoFlag,
+            numFrames: meta.numFrames,
+            source: 'ws'
+          });
           
           // Retrieve image or video based on type
           try {
@@ -441,19 +842,27 @@ function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadat
     const maxPolls = videoFlag ? 1800 : 300; // 60 min for video, 10 min for images
     pollInterval = setInterval(async () => {
       pollCount++;
+
+      // If WebSocket is delivering progress, do not overwrite with estimated polling.
+      // This prevents UI jumps like 0% -> 92% and progress going backwards.
+      const wsRecentlyActive = lastWsProgressAt && (Date.now() - lastWsProgressAt) < 15000;
+      if (wsRecentlyActive) {
+        return;
+      }
       
       // Estimate progress based on time elapsed (simple linear estimation)
       // This gives user feedback even if WebSocket doesn't work
       const estimatedProgress = Math.min(90, 10 + (pollCount / maxPolls) * 80);
       
-      if (progressCb && pollCount % 3 === 0) { // Update every 6 seconds
+      if (pollCount % 3 === 0) { // Update every 6 seconds
         console.log(`⏳ ComfyUI Polling Progress: ${Math.floor(estimatedProgress)}% (poll ${pollCount}/${maxPolls})`);
-        await progressCb(Math.floor(estimatedProgress), {
+        await reportProgress(Math.floor(estimatedProgress), {
           currentStep: pollCount,
           totalSteps: maxPolls,
           currentNode: 'polling',
           isVideo: videoFlag,
-          numFrames: meta.numFrames
+          numFrames: meta.numFrames,
+          source: 'poll'
         });
         console.log(`📊 Polling Progress (estimated): ${Math.floor(estimatedProgress)}% ${videoFlag ? '(video)' : ''}`);
       }
@@ -745,9 +1154,24 @@ export async function detectVideoModels(workerUrl) {
     if (objectInfo.WanVideoModelLoader && objectInfo.WanVideoSampler && objectInfo.WanVideoTextEncode) {
       result.wan.supported = true;
 
-      // Try to get available model paths (if exposed by object_info)
-      const modelChoices = objectInfo.WanVideoModelLoader?.input?.required?.model?.[0] || [];
+      // Try to get available model paths.
+      // Some ComfyUI builds don't include the full choices list in the top-level /object_info response.
+      let modelChoices = objectInfo.WanVideoModelLoader?.input?.required?.model?.[0] || [];
       result.wan.models = Array.isArray(modelChoices) ? modelChoices : [];
+
+      if (result.wan.models.length === 0) {
+        try {
+          const nodeInfo = await axios.get(`${workerUrl}/object_info/WanVideoModelLoader`, { timeout: 10000 });
+          modelChoices = nodeInfo.data?.WanVideoModelLoader?.input?.required?.model?.[0] || [];
+          const extra = Array.isArray(modelChoices) ? modelChoices : [];
+          if (extra.length > 0) {
+            result.wan.models = extra;
+          }
+        } catch (error) {
+          // keep empty; verifyVideoRequirements will provide guidance
+          void error;
+        }
+      }
     }
 
     // Get available checkpoints

@@ -8,3 +8,9 @@ backend/dist/
 backend/coverage/
 comfyui-service/node_modules/
 thai-tts-development/
+comfyui-docker-cuda12/
+*.ckpt
+*.safetensors
+*.pth
+*.bin
+*.onnx

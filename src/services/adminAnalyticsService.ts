@@ -164,14 +164,14 @@ export async function getUserStats(filters?: {
         generationsRef,
         where('timestamp', '>=', Timestamp.fromDate(startOfMonth))
       );
-      
+
       const genSnapshot = await getDocs(genQuery);
-      
-      genSnapshot.forEach((doc) => {
+
+      genSnapshot.forEach(doc => {
         const data = doc.data();
         const userId = data.userId;
         const cost = data.costInTHB || 0;
-        
+
         if (userId && userTierMap[userId] && stats.tierMetrics) {
           const tier = userTierMap[userId];
           stats.tierMetrics[tier].cost += cost;
@@ -263,15 +263,17 @@ function calculateGenerationCost(gen: any): number {
   if (type === 'text') {
     const inputTokens = gen.inputTokens || 0;
     const outputTokens = gen.outputTokens || 0;
-    
+
     if (modelName.includes('2.0-flash')) {
       return 0; // Free tier
     } else if (modelName.includes('2.5-flash') || modelName.includes('1.5-flash')) {
-      return inputTokens * API_PRICING.GEMINI['2.5-flash'].input + 
-             outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      return (
+        inputTokens * API_PRICING.GEMINI['2.5-flash'].input +
+        outputTokens * API_PRICING.GEMINI['2.5-flash'].output
+      );
     }
   }
-  
+
   // Images
   if (type === 'image') {
     if (provider.includes('gemini')) {
@@ -280,12 +282,14 @@ function calculateGenerationCost(gen: any): number {
       return API_PRICING.COMFYUI.image || 0.5;
     }
   }
-  
+
   // Videos
   if (type === 'video') {
     if (modelName.includes('veo')) {
       const duration = gen.duration || 10;
-      return duration <= 5 ? API_PRICING.GEMINI['veo-3'].video5s : API_PRICING.GEMINI['veo-3'].video10s;
+      return duration <= 5
+        ? API_PRICING.GEMINI['veo-3'].video5s
+        : API_PRICING.GEMINI['veo-3'].video10s;
     } else if (provider.includes('replicate')) {
       if (modelName.includes('ltx')) return API_PRICING.REPLICATE['ltx-video'].perRun;
       if (modelName.includes('animatediff')) return API_PRICING.REPLICATE.animatediff.perRun;
@@ -294,12 +298,12 @@ function calculateGenerationCost(gen: any): number {
       return API_PRICING.COMFYUI.video || 2.0;
     }
   }
-  
+
   // Audio (assume minimal cost)
   if (type === 'audio') {
     return 0.5; // ฿0.50 per audio generation
   }
-  
+
   return 0;
 }
 
@@ -385,16 +389,16 @@ export async function getUsageAnalytics(_dateRange?: {
 
     // Count API calls from generations collection AND calculate tier breakdown
     const veoVideoCounts: Record<string, number> = {};
-    
+
     generations.forEach((gen: any) => {
       const type = gen.type;
       const modelName = (gen.modelName || '').toLowerCase();
       const userId = gen.userId;
-      
+
       // Find user's tier
       const user = users.find(u => u.id === userId);
       const tier = (user?.subscription?.tier || 'free') as SubscriptionTier;
-      
+
       // Calculate cost for this generation
       const cost = calculateGenerationCost(gen);
 
@@ -411,7 +415,7 @@ export async function getUsageAnalytics(_dateRange?: {
         analytics.apiCalls.videos++;
         tierBreakdown[tier].videos.count++;
         tierBreakdown[tier].videos.cost += cost;
-        
+
         // Check if it's Veo video
         if (modelName.includes('veo')) {
           veoVideoCounts[userId] = (veoVideoCounts[userId] || 0) + 1;
@@ -441,7 +445,7 @@ export async function getUsageAnalytics(_dateRange?: {
       pro: 0,
       enterprise: 0,
     };
-    
+
     users.forEach(user => {
       const tier = (user.subscription?.tier || 'free') as SubscriptionTier;
       const creditsUsed = user.monthlyUsage?.creditsUsed || 0;
@@ -455,10 +459,9 @@ export async function getUsageAnalytics(_dateRange?: {
       // Calculate revenue contribution
       const billingType = user.subscription?.billingCycle || 'monthly';
       const tierPricing = SUBSCRIPTION_PRICING[tier];
-      const monthlyRevenue = billingType === 'yearly' 
-        ? tierPricing.yearly / 12 
-        : tierPricing.monthly;
-      
+      const monthlyRevenue =
+        billingType === 'yearly' ? tierPricing.yearly / 12 : tierPricing.monthly;
+
       // Distribute revenue across all types proportionally
       // (เฉลี่ยไปที่ text, images, videos, audio ตามสัดส่วนการใช้งาน)
       const userGenerations = generations.filter((g: any) => g.userId === user.id);
@@ -467,7 +470,7 @@ export async function getUsageAnalytics(_dateRange?: {
       const userVideoCount = userGenerations.filter((g: any) => g.type === 'video').length;
       const userAudioCount = userGenerations.filter((g: any) => g.type === 'audio').length;
       const totalUserGens = userTextCount + userImageCount + userVideoCount + userAudioCount;
-      
+
       if (totalUserGens > 0) {
         tierBreakdown[tier].text.revenue += (userTextCount / totalUserGens) * monthlyRevenue;
         tierBreakdown[tier].images.revenue += (userImageCount / totalUserGens) * monthlyRevenue;
@@ -516,10 +519,14 @@ export async function getUsageAnalytics(_dateRange?: {
 
     // Calculate profit for each tier and type
     (['free', 'basic', 'pro', 'enterprise'] as SubscriptionTier[]).forEach(tier => {
-      tierBreakdown[tier].text.profit = tierBreakdown[tier].text.revenue - tierBreakdown[tier].text.cost;
-      tierBreakdown[tier].images.profit = tierBreakdown[tier].images.revenue - tierBreakdown[tier].images.cost;
-      tierBreakdown[tier].videos.profit = tierBreakdown[tier].videos.revenue - tierBreakdown[tier].videos.cost;
-      tierBreakdown[tier].audio.profit = tierBreakdown[tier].audio.revenue - tierBreakdown[tier].audio.cost;
+      tierBreakdown[tier].text.profit =
+        tierBreakdown[tier].text.revenue - tierBreakdown[tier].text.cost;
+      tierBreakdown[tier].images.profit =
+        tierBreakdown[tier].images.revenue - tierBreakdown[tier].images.cost;
+      tierBreakdown[tier].videos.profit =
+        tierBreakdown[tier].videos.revenue - tierBreakdown[tier].videos.cost;
+      tierBreakdown[tier].audio.profit =
+        tierBreakdown[tier].audio.revenue - tierBreakdown[tier].audio.cost;
     });
 
     console.log('✅ Usage analytics fetched:', analytics);
@@ -547,7 +554,7 @@ export async function getQueueMetrics(): Promise<QueueMetrics> {
 
     generations.forEach((gen: any) => {
       const status = (gen.status || 'completed').toLowerCase();
-      
+
       if (status === 'completed' || status === 'success') {
         completed++;
       } else if (status === 'processing' || status === 'running' || status === 'in_progress') {
@@ -752,13 +759,10 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
     const userData = userDocSnap.exists() ? userDocSnap.data() : null;
 
     // Get user projects from projects collection (real count)
-    const projectsQuery = query(
-      collection(db, 'projects'),
-      where('userId', '==', userId)
-    );
+    const projectsQuery = query(collection(db, 'projects'), where('userId', '==', userId));
     const projectsSnapshot = await getDocs(projectsQuery);
     const projectsCount = projectsSnapshot.size;
-    
+
     const projects = projectsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -830,7 +834,7 @@ export async function getUserDetails(userId: string): Promise<UserDetails | null
     console.log('✅ User details fetched with real-time data:', {
       projects: projectsCount,
       characters: charactersCount,
-      scenes: scenesCount
+      scenes: scenesCount,
     });
     return details;
   } catch (error) {
@@ -932,4 +936,3 @@ export async function getAnalyticsSummary(): Promise<{
     throw error;
   }
 }
-

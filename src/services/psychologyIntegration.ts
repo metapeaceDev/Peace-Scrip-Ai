@@ -143,4 +143,3 @@ export function getPsychologySummary(scriptData: ScriptData): string {
 
   return summaries.join('\n\n');
 }
-

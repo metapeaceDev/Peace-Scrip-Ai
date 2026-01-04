@@ -285,4 +285,3 @@ export const CharacterComparison: React.FC<CharacterComparisonProps> = ({
 };
 
 export default CharacterComparison;
-

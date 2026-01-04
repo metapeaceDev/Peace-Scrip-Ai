@@ -228,4 +228,3 @@ export const PsychologyDisplay: React.FC<PsychologyDisplayProps> = ({
 };
 
 export default PsychologyDisplay;
-

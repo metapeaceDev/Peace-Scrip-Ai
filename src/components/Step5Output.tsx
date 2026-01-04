@@ -14,6 +14,12 @@ import {
   generateStoryboardVideo,
   VIDEO_MODELS_CONFIG,
 } from '../services/geminiService';
+import { checkBackendStatus } from '../services/comfyuiBackendClient';
+import {
+  generateSceneAudio,
+  mergeVideoWithAudio,
+  type AudioTimeline,
+} from '../services/audioGenerationService';
 import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../constants';
 import { hasAccessToModel } from '../services/userStore';
@@ -40,6 +46,31 @@ interface Step5OutputProps {
   returnToScene?: { pointTitle: string; sceneIndex: number } | null;
   onResetReturnToScene?: () => void;
   userRole?: CollaboratorRole; // User's role for permission checking
+}
+
+type ComfyBackendStatus = {
+  running: boolean;
+  platform?: {
+    hasNvidiaGPU?: boolean;
+  };
+  error?: string;
+};
+
+function isSameShotNumber(a: unknown, b: unknown): boolean {
+  const normalize = (v: unknown): number | null => {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const trimmed = v.trim();
+      if (!trimmed) return null;
+      const asNumber = Number(trimmed);
+      if (Number.isFinite(asNumber)) return asNumber;
+    }
+    return null;
+  };
+
+  const na = normalize(a);
+  const nb = normalize(b);
+  return na != null && nb != null && na === nb;
 }
 
 // --- Constants for Shot List Dropdowns ---
@@ -131,6 +162,44 @@ const SHOT_OPTIONS: Record<string, string[]> = {
     '2000K (Candlelight)',
     '10000K (Blue Sky)',
   ],
+  visualEffects: [
+    'Select...',
+    'None',
+    'Slow Motion',
+    'Fast Motion / Time-lapse',
+    'Reverse',
+    'Split Screen',
+    'Picture-in-Picture',
+    'Green Screen / Chroma Key',
+    'Color Grading / LUT',
+    'Black & White',
+    'Sepia Tone',
+    'Vignette',
+    'Lens Flare',
+    'Light Leaks',
+    'Film Grain',
+    'Bokeh Effect',
+    'Depth of Field',
+    'Motion Blur',
+    'Zoom Blur',
+    'Glitch / Distortion',
+    'VHS / Retro Effect',
+    'Chromatic Aberration',
+    'Particles / Dust',
+    'Smoke / Fog',
+    'Rain / Snow',
+    'Fire / Explosions',
+    'Magic / Energy Effects',
+    'Hologram / Sci-Fi',
+    'CGI Integration',
+    'Matte Painting',
+    'Compositing',
+    'Rotoscoping',
+    'Tracking / Stabilization',
+    'Speed Ramping',
+    'Freeze Frame',
+    'Morphing / Transition',
+  ],
 };
 
 // Fixed headers to ensure all columns are shown even if data is missing
@@ -140,6 +209,7 @@ const SHOT_LIST_HEADERS = [
   'costume',
   'set',
   'description',
+  'visualEffects',
   'durationSec',
   'shotSize',
   'perspective',
@@ -225,6 +295,36 @@ const generateScreenplayText = (data: ScriptData): string => {
 };
 
 const generateShotListCSV = (data: ScriptData): string => {
+  const formatCostume = (shot: any): string => {
+    if (shot?.costume && typeof shot.costume === 'string') return shot.costume;
+    const cf = shot?.costumeFashion;
+    if (cf && typeof cf === 'object') {
+      const fashion = cf as Record<string, string>;
+      const orderedKeys = [
+        'Style Concept',
+        'Main Outfit',
+        'Shoe',
+        'Accessories',
+        'Color Palette',
+        'Condition/Texture',
+      ];
+      const parts: string[] = [];
+      for (const key of orderedKeys) {
+        const value = typeof fashion[key] === 'string' ? fashion[key].trim() : '';
+        if (value) parts.push(`${key}: ${value}`);
+      }
+      if (parts.length > 0) return parts.join(' | ');
+
+      // Fallback for unexpected schemas
+      return Object.entries(fashion)
+        .filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim())
+        .slice(0, 6)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(' | ');
+    }
+    return '';
+  };
+
   const headers = [
     'Scene #',
     'Shot #',
@@ -240,6 +340,7 @@ const generateShotListCSV = (data: ScriptData): string => {
     'Aspect Ratio',
     'Lighting',
     'Color Temp',
+    'Visual Effects',
     'Duration',
   ];
   let csvContent = headers.join(',') + '\n';
@@ -252,7 +353,7 @@ const generateShotListCSV = (data: ScriptData): string => {
           scene.sceneNumber,
           shot.shot,
           `"${(shot.cast || '').replace(/"/g, '""')}"`,
-          `"${(shot.costume || '').replace(/"/g, '""')}"`,
+          `"${formatCostume(shot).replace(/"/g, '""')}"`,
           `"${(shot.set || '').replace(/"/g, '""')}"`,
           `"${shot.description.replace(/"/g, '""')}"`,
           shot.shotSize,
@@ -263,6 +364,7 @@ const generateShotListCSV = (data: ScriptData): string => {
           shot.aspectRatio,
           shot.lightingDesign,
           shot.colorTemperature,
+          shot.visualEffects || 'None',
           shot.durationSec,
         ];
         csvContent += row.join(',') + '\n';
@@ -309,7 +411,7 @@ const generateStoryboardHTML = (data: ScriptData): string => {
       html += `<div class="grid">`;
 
       scene.storyboard.forEach(sb => {
-        const shotInfo = scene.shotList.find(s => s.shot === sb.shot);
+        const shotInfo = scene.shotList.find(s => isSameShotNumber(s.shot, sb.shot));
         html += `
                     <div class="card">
                         <div class="image-container">
@@ -412,8 +514,137 @@ const SceneDisplay: React.FC<{
   const [currentVideoJobId, setCurrentVideoJobId] = useState<string | null>(null); // 🆕 Track video job ID for cancellation
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
+  const [storyboardModel, setStoryboardModel] = useState<string>('auto'); // 🆕 Model selection for storyboard
   const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
+  const [comfyBackendStatus, setComfyBackendStatus] = useState<ComfyBackendStatus | null>(null);
   const [progress, setProgress] = useState(0);
+  const progressDisplayedRef = useRef(0);
+  const progressTimeoutsRef = useRef<number[]>([]);
+
+  // Keep the ref in sync even if other handlers call setProgress directly.
+  useEffect(() => {
+    progressDisplayedRef.current = progress;
+  }, [progress]);
+
+  const loadComfyBackendStatus = useCallback(async () => {
+    try {
+      const status = await checkBackendStatus(true);
+      setComfyBackendStatus(status as ComfyBackendStatus);
+    } catch {
+      setComfyBackendStatus({ running: false, error: 'Backend check failed' });
+    }
+  }, []);
+
+  const clearProgressAnimation = useCallback(() => {
+    for (const timeoutId of progressTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    progressTimeoutsRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearProgressAnimation();
+    };
+  }, [clearProgressAnimation]);
+
+  const setProgressImmediate = useCallback((value: number) => {
+    const safe = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+    progressDisplayedRef.current = safe;
+    setProgress(safe);
+  }, []);
+
+  const animateProgressTo = useCallback(
+    (targetValue: number) => {
+      const target = Math.max(0, Math.min(100, Number.isFinite(targetValue) ? targetValue : 0));
+      const from = progressDisplayedRef.current;
+
+      // Always stop previous animations when a newer progress arrives.
+      clearProgressAnimation();
+
+      // Reset or no-op cases.
+      if (target <= 0) {
+        setProgressImmediate(0);
+        return;
+      }
+      if (target <= from) {
+        return;
+      }
+
+      // If job is basically done, do not delay showing it.
+      if (target >= 99) {
+        setProgressImmediate(target);
+        return;
+      }
+
+      // Special early-stage smoothing: make 0 -> 14 feel like 0 -> 5 -> 8 -> 12 -> 14.
+      // Works for any target between 6..20.
+      if (from === 0 && target > 5 && target <= 20) {
+        const candidateSteps = [5, Math.round(target * 0.6), Math.round(target * 0.85), target];
+
+        const steps: number[] = [];
+        let last = from;
+        for (const v of candidateSteps) {
+          const clamped = Math.max(0, Math.min(target, v));
+          if (clamped > last) {
+            steps.push(clamped);
+            last = clamped;
+          }
+        }
+
+        const delays = [0, 160, 320, 480];
+        steps.forEach((value, index) => {
+          const timeoutId = window.setTimeout(
+            () => {
+              setProgressImmediate(value);
+            },
+            delays[Math.min(index, delays.length - 1)]
+          );
+          progressTimeoutsRef.current.push(timeoutId);
+        });
+        return;
+      }
+
+      // Generic smoothing: small ramp over ~520ms.
+      const delta = target - from;
+      const stepsCount = Math.max(3, Math.min(8, Math.ceil(delta / 4)));
+      const durationMs = 520;
+      const stepMs = Math.floor(durationMs / stepsCount);
+      for (let i = 1; i <= stepsCount; i++) {
+        const value = Math.round(from + (delta * i) / stepsCount);
+        const timeoutId = window.setTimeout(() => {
+          setProgressImmediate(value);
+        }, i * stepMs);
+        progressTimeoutsRef.current.push(timeoutId);
+      }
+    },
+    [clearProgressAnimation, setProgressImmediate]
+  );
+
+  // 🎙️ Voice Generation States
+  const [includeVoice, setIncludeVoice] = useState(false);
+  // @ts-ignore - audioTimeline reserved for future audio preview feature
+  const [audioTimeline, setAudioTimeline] = useState<AudioTimeline | null>(null);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [generatingAudioForShot, setGeneratingAudioForShot] = useState<number | null>(null);
+
+  // 🆕 Video Generation Settings
+  // WAN defaults (reset when WAN is selected)
+  // Baseline proven in this project: lower FPS + calmer motion tends to reduce noise/blur/drift.
+  const [videoCfg, setVideoCfg] = useState<number>(5.5);
+  const [videoSteps, setVideoSteps] = useState<number>(30);
+  const [videoFps, setVideoFps] = useState<number>(12);
+  const [videoMotionStrength, setVideoMotionStrength] = useState<number>(92);
+
+  // If user selects Wan, re-apply Wan defaults (helps when they previously tuned values for other models).
+  useEffect(() => {
+    if (preferredVideoModel === 'comfyui-wan') {
+      setVideoCfg(5.5);
+      setVideoSteps(30);
+      setVideoFps(12);
+      setVideoMotionStrength(92);
+    }
+  }, [preferredVideoModel]);
 
   // 🆕 Video Resolution & Aspect Ratio
   const [videoAspectRatio, setVideoAspectRatio] = useState<
@@ -434,6 +665,17 @@ const SceneDisplay: React.FC<{
 
   // Ref for stopping auto-generation
   const abortGenerationRef = useRef(false);
+
+  // Robust shot number comparison (storyboard/shotList may contain number or string)
+  const isSameShotNumber = (a: unknown, b: unknown) => {
+    const aNum = typeof a === 'number' ? a : typeof a === 'string' ? Number(a) : NaN;
+    const bNum = typeof b === 'number' ? b : typeof b === 'string' ? Number(b) : NaN;
+
+    if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
+      return aNum === bNum;
+    }
+    return String(a ?? '').trim() === String(b ?? '').trim();
+  };
 
   // Drag and Drop State for Dialogue
   const [draggedDialogueIndex, setDraggedDialogueIndex] = useState<number | null>(null);
@@ -911,6 +1153,11 @@ const SceneDisplay: React.FC<{
       details += `, accessories: ${fashion['Accessories']}`;
     }
 
+    // Shoe
+    if (fashion['Shoe'] || (fashion as any)['Footwear']) {
+      details += `, shoes: ${(fashion['Shoe'] || (fashion as any)['Footwear']) as string}`;
+    }
+
     // Condition/Texture
     if (fashion['Condition/Texture']) {
       details += `, condition: ${fashion['Condition/Texture']}`;
@@ -1051,12 +1298,16 @@ const SceneDisplay: React.FC<{
         .join('. ');
     }
 
-    // 4. Override style for Video Generation (Realism) vs Image Generation (Selected Style)
+    // 4. Use user's selected style for both Image AND Video generation
+    // Add motion-specific keywords for video while preserving user's aesthetic choice
     const styleInstruction = isVideo
-      ? 'Cinematic, Photorealistic, 4K, High Quality, Motion'
+      ? `${storyboardStyle}, High Quality Motion, Smooth Animation, 4K`
       : storyboardStyle;
 
     // 5. Construct Rich Prompt with Psychology Enhancement
+    // 🆕 EST Shot Detection - emphasize physical objects/structures
+    const isEstablishingShot = shotData.shotSize?.toUpperCase().includes('EST');
+
     let prompt = `STYLE: ${styleInstruction}.
 SCENE SETTING: ${setDetails}.
 CHARACTERS: ${characterContext || 'Generic characters'}.`;
@@ -1074,10 +1325,26 @@ CHARACTERS: ${characterContext || 'Generic characters'}.`;
 
     prompt += `
 SHOT Action: ${shotData.description}.
-CAMERA SPECS: ${shotData.shotSize} Shot, ${shotData.perspective} Angle.
+CAMERA SPECS: ${shotData.shotSize} Shot, ${shotData.perspective} Angle.`;
+
+    // Add Visual Effects if specified (BEFORE rules for better AI comprehension)
+    if (
+      shotData.visualEffects &&
+      shotData.visualEffects !== 'Select...' &&
+      shotData.visualEffects !== 'None'
+    ) {
+      prompt += `
+VISUAL EFFECTS: **${shotData.visualEffects.toUpperCase()}**. Apply ${shotData.visualEffects} effect throughout entire shot. Maintain effect consistency from first to last frame.`;
+    }
+
+    prompt += `
 LIGHTING/MOOD: ${shotData.lightingDesign || 'Neutral'}, ${currentScene.sceneDesign.moodTone}.
 
-IMPORTANT: Show the character's emotional and psychological state through facial expressions, body language, and overall presence. Ensure character consistency with physical and psychological descriptions.`;
+${
+  isEstablishingShot
+    ? 'IMPORTANT FOR EST SHOT: Clearly show all physical structures, buildings, and architectural elements mentioned. Focus on establishing the location and environment. Maintain wide framing to capture the full scene.'
+    : "IMPORTANT: Show the character's emotional and psychological state through facial expressions, body language, and overall presence. Ensure character consistency with physical and psychological descriptions."
+}`;
 
     return prompt.trim();
   };
@@ -1092,21 +1359,53 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     try {
       const prompt = buildPrompt(shotData, editedScene, false);
 
-      // Get characters involved in this scene
-      const sceneCharacterNames = editedScene.sceneDesign?.characters || [];
+      // Get characters involved in this scene (with improved matching)
+      const sceneCharacterNames = (editedScene.sceneDesign?.characters || []).map((name: string) =>
+        name.trim().toLowerCase()
+      );
       const sceneCharacters: Character[] = allCharacters.filter((c: Character) =>
-        sceneCharacterNames.includes(c.name)
+        sceneCharacterNames.includes(c.name.trim().toLowerCase())
       );
 
-      const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p =>
-        setProgress(p)
+      console.log('🎭 [Storyboard] Scene characters:', {
+        sceneNames: sceneCharacterNames,
+        foundCharacters: sceneCharacters.map(c => c.name),
+        allCharacters: allCharacters.map(c => c.name),
+      });
+
+      // 🆕 CONSISTENCY: Generate stable seed from scene + shot number
+      const sceneKey = `${editedScene.sceneNumber || 'scene'}-${shotNumber}`;
+      const sceneSeed =
+        Math.abs(sceneKey.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 1000000;
+
+      // 🆕 CONTINUITY: Get previous shot's image for reference
+      const previousShot = editedScene.shotList?.[shotIndex - 1];
+      const previousShotNumber = previousShot?.shot;
+      const previousShotImage = previousShotNumber
+        ? editedScene.storyboard?.find(s => isSameShotNumber(s.shot, previousShotNumber))?.image
+        : undefined;
+
+      console.log(
+        `🎨 Generating shot ${shotNumber} with seed: ${sceneSeed}, previous shot: ${previousShotNumber || 'none'}`
       );
 
-      const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {};
+      const base64Image = await generateStoryboardImage(
+        prompt,
+        sceneCharacters,
+        p => setProgress(p),
+        {
+          seed: sceneSeed, // 🔧 STABLE SEED per scene
+          previousShotImage: previousShotImage, // 🔧 CONTINUITY reference
+          preferredModel: storyboardModel, // 🆕 USER SELECTED MODEL
+        }
+      );
+
+      const oldStoryboardItem =
+        editedScene.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber)) || {};
       const newItem = { ...oldStoryboardItem, shot: shotNumber, image: base64Image };
 
       const updatedStoryboard = [
-        ...(editedScene.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
         newItem,
       ];
 
@@ -1147,9 +1446,29 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.warn('⚠️ Warning: No character data found');
     }
 
+    // 🎙️ Check voice generation requirements
+    const shouldIncludeVoice = includeVoice && sceneDialogueLines.length > 0;
+    if (shouldIncludeVoice) {
+      // Validate that characters have voice samples
+      const charactersInDialogue = [...new Set(sceneDialogueLines.map(d => d.character))];
+      const charactersWithoutVoice = charactersInDialogue.filter(charName => {
+        const char = scriptData.characters.find(c => c.name === charName);
+        return !char?.voiceCloning?.hasVoiceSample;
+      });
+
+      if (charactersWithoutVoice.length > 0) {
+        const shouldContinue = confirm(
+          `⚠️ Warning: Some characters don't have voice samples:\n${charactersWithoutVoice.join(', ')}\n\nContinue without voice for these characters?`
+        );
+        if (!shouldContinue) return;
+      }
+    }
+
     setGeneratingVideoShotId(shotIndex);
     setCurrentVideoJobId(null); // Reset job ID
     setProgress(0);
+    setAudioProgress(0);
+
     try {
       // 🔍 DEBUG: Log video generation settings (use console.warn to prevent minification)
       console.warn('🎬 VIDEO GENERATION DEBUG:');
@@ -1160,49 +1479,145 @@ IMPORTANT: Show the character's emotional and psychological state through facial
         shot: shotNumber,
         description: shotData.description,
         movement: shotData.movement,
-        durationSec: shotData.durationSec
+        durationSec: shotData.durationSec,
       });
 
       // Use existing image as base ONLY if useImage is true and image exists
       const existingImage = useImage
-        ? editedScene.storyboard?.find(s => s.shot === shotNumber)?.image
+        ? editedScene.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber))?.image
         : undefined;
 
-      // 🆕 Continuity: automatically use previous shot video (if available)
+      // 🆕 Continuity: only use previous shot video when user explicitly opts-in (useImage=true)
+      // Otherwise, regenerations can look like "it reused the old video" because the last frame strongly conditions the output.
       const previousVideo =
-        shotNumber > 1
-          ? editedScene.storyboard?.find(s => s.shot === shotNumber - 1)?.video
+        useImage && Number(shotNumber) > 1
+          ? editedScene.storyboard?.find(s => isSameShotNumber(s.shot, Number(shotNumber) - 1))
+              ?.video
           : undefined;
 
-      // 🆕 Continuity: also pass previous shot metadata for prompt anchors
+      // 🆕 Continuity: only pass previous shot metadata when continuity is enabled.
+      // Otherwise, prompt-only continuity can conflict with the actual video conditioning (and cause drift).
       const previousShot =
-        shotNumber > 1
-          ? editedScene.shotList?.find(s => s.shot === shotNumber - 1)
+        useImage &&
+        typeof previousVideo === 'string' &&
+        previousVideo.length > 0 &&
+        Number(shotNumber) > 1
+          ? editedScene.shotList?.find(s => isSameShotNumber(s.shot, Number(shotNumber) - 1))
           : undefined;
 
       console.warn('  Has Base Image:', !!existingImage);
       console.warn('  Has Previous Video:', !!previousVideo);
 
+      // 🆕 Avoid "same clip" on regenerate:
+      // Video generation uses stable/deterministic seeding by default for consistency.
+      // When NOT doing continuity (no previousVideo), we want each click to produce a new result.
+      const requestSeed =
+        typeof previousVideo === 'string' && previousVideo.length > 0
+          ? undefined
+          : Math.floor(Math.random() * 1000000000);
+
+      console.warn('  Seed:', requestSeed ?? '(stable/derived)');
+
       const { generateShotVideo } = await import('../services/videoGenerationService');
+
+      const normalizeCastToString = (castValue: unknown): string => {
+        if (typeof castValue === 'string') return castValue;
+        if (Array.isArray(castValue)) return castValue.filter(Boolean).join(', ');
+        return '';
+      };
+
+      // 🎭 CHARACTER FACE ID: Extract characters from scene
+      const sceneCharacters = editedScene.sceneDesign?.characters || [];
+      const fullCharacters = sceneCharacters
+        .map(charName => {
+          // If charName is a string, find full character data
+          if (typeof charName === 'string') {
+            return scriptData.characters.find(c => c.name === charName);
+          }
+          // If already a character object, use it
+          return charName;
+        })
+        .filter((c): c is Character => c !== undefined);
+
+      // Resolve cast + lead character
+      const castFromShot = normalizeCastToString((shotData as any)?.cast);
+      const sceneCharacterNames = fullCharacters.map(c => c.name).filter(Boolean);
+      const castString =
+        castFromShot.trim().length > 0 ? castFromShot : sceneCharacterNames.join(', ');
+      const castNames = castString
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const leadCharacter =
+        scriptData.characters.find(c => castNames.includes(c.name)) ||
+        fullCharacters[0] ||
+        scriptData.characters[0];
+
+      // 🆕 Per-shot Costume & Fashion should come from Shot List (not Step 3 character fashion)
+      // Keep all other character fields (External/Physical/Speech/Psychology) from Step 3.
+      const leadCharacterForShot: Character =
+        shotData &&
+        typeof (shotData as any).costumeFashion === 'object' &&
+        (shotData as any).costumeFashion
+          ? ({ ...leadCharacter, fashion: (shotData as any).costumeFashion } as Character)
+          : leadCharacter;
+
+      // Resolve cast character objects (used to inject per-character identity anchors into the video prompt).
+      const castCharacters = castNames
+        .map(name => scriptData.characters.find(c => c.name === name))
+        .filter((c): c is Character => !!c);
+
+      // Pass multiple references for better identity stability in multi-character shots
+      // const getCharacterFaceRef = (c?: Character) => c?.faceReferenceImage || c?.image; // For future use
+      // IMPORTANT: Some shots specify cast in shot.cast but omit them from sceneDesign.characters.
+      // Use the union so we don't drop a character (e.g., Peace) or accidentally swap identities.
+      const allShotCharacters: Character[] = Array.from(
+        new Map(
+          [leadCharacterForShot, ...castCharacters, ...fullCharacters]
+            .filter(Boolean)
+            .map(c => [c.id || c.name, c] as const)
+        ).values()
+      );
+
+      console.info(
+        `🎭 Shot cast resolved: ${allShotCharacters.length} character(s) with images:`,
+        allShotCharacters.map(c => ({
+          name: c.name,
+          hasFaceRef: !!(c.faceReferenceImage || c.image),
+        }))
+      );
+
+      // 🔍 DIAGNOSTIC: Log actual video parameters being sent
+      console.log('📊 Video Generation Parameters:', {
+        model: preferredVideoModel,
+        cfg: videoCfg,
+        steps: videoSteps,
+        fps: videoFps,
+        motionStrength: videoMotionStrength,
+        timestamp: new Date().toISOString(),
+      });
 
       const videoUri = await generateShotVideo(
         shotData,
         existingImage,
         {
           preferredModel: preferredVideoModel,
+          seed: requestSeed,
           previousVideo: typeof previousVideo === 'string' ? previousVideo : undefined,
           previousShot: previousShot as any,
           transitionType: 'smooth',
-          character: scriptData.characters[0],
+          character: leadCharacterForShot, // 🆕 Lead character + per-shot Costume & Fashion override
+          castCharacters: castCharacters.length > 0 ? castCharacters : undefined,
           currentScene: editedScene,
           // Pass aspect ratio / resolution through to downstream ComfyUI calls
           aspectRatio: videoAspectRatio,
           width: videoAspectRatio === 'custom' ? customWidth : undefined,
           height: videoAspectRatio === 'custom' ? customHeight : undefined,
+          // Note: cfg, steps, fps, motionStrength are handled internally by video generation service
         },
-        p => {
-          console.log(`🎬 UI Progress Update: ${Math.round(p)}%`);
-          setProgress(p);
+        (p: number) => {
+          console.info(`🎬 UI Progress Update: ${Math.round(p)}%`);
+          animateProgressTo(p);
         }
       );
 
@@ -1211,14 +1626,80 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.warn('🎬 Step5Output - Type:', typeof videoUri);
       console.warn('🎬 Step5Output - Length:', videoUri?.length);
 
-      const oldStoryboardItem = editedScene.storyboard?.find(s => s.shot === shotNumber) || {
+      // 🎙️ VOICE GENERATION: Generate audio and merge with video
+      let finalVideoUri = videoUri;
+      if (shouldIncludeVoice) {
+        try {
+          console.warn('🎙️ Starting audio generation for shot...');
+          setGeneratingAudioForShot(shotIndex);
+          setAudioProgress(0);
+
+          // Find dialogues for this shot (approximate - use scene dialogues)
+          const dialoguesForShot = sceneDialogueLines.filter(d => {
+            const char = scriptData.characters.find(c => c.name === d.character);
+            return char?.voiceCloning?.hasVoiceSample;
+          });
+
+          if (dialoguesForShot.length > 0) {
+            setAudioProgress(20);
+            console.warn(`🎙️ Generating audio for ${dialoguesForShot.length} dialogue lines...`);
+
+            // Generate audio timeline
+            const { audioBlob, timeline } = await generateSceneAudio(
+              dialoguesForShot,
+              scriptData.characters,
+              {
+                gapBetweenLines: 0.5,
+                startDelay: 0.5,
+              }
+            );
+
+            setAudioTimeline(timeline);
+            setAudioProgress(60);
+            console.warn('🎙️ Audio generated, merging with video...');
+
+            // Fetch video blob
+            const videoResponse = await fetch(videoUri);
+            const videoBlob = await videoResponse.blob();
+
+            setAudioProgress(80);
+
+            // Merge video + audio
+            const finalVideoBlob = await mergeVideoWithAudio(videoBlob, audioBlob, {
+              fadeIn: 0.5,
+              fadeOut: 0.5,
+            });
+
+            setAudioProgress(100);
+
+            // Convert to data URL (for now - later can upload to storage)
+            finalVideoUri = URL.createObjectURL(finalVideoBlob);
+            console.warn('🎙️ Video+Audio merge complete!');
+          } else {
+            console.warn('🎙️ No characters with voice samples in this shot');
+          }
+        } catch (audioError) {
+          console.error('❌ Audio generation failed:', audioError);
+          alert(
+            `Video generated successfully, but audio generation failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`
+          );
+          // Continue with video-only
+        } finally {
+          setGeneratingAudioForShot(null);
+          setAudioProgress(0);
+        }
+      }
+
+      const oldStoryboardItem = editedScene.storyboard?.find(s =>
+        isSameShotNumber(s.shot, shotNumber)
+      ) || {
         shot: shotNumber,
         image: '',
       };
-      const newItem = { ...oldStoryboardItem, video: videoUri };
+      const newItem = { ...oldStoryboardItem, video: finalVideoUri };
 
       const updatedStoryboard = [
-        ...(editedScene.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
         newItem,
       ];
 
@@ -1237,7 +1718,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     } finally {
       setGeneratingVideoShotId(null);
       setCurrentVideoJobId(null);
-      setProgress(0);
+      clearProgressAnimation();
+      setProgressImmediate(0);
+      setAudioProgress(0);
+      setGeneratingAudioForShot(null);
     }
   };
 
@@ -1252,7 +1736,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       console.log(`🛑 Cancelling video job: ${currentVideoJobId}`);
       const { cancelVideoJob } = await import('../services/comfyuiBackendClient');
       const result = await cancelVideoJob(currentVideoJobId);
-      
+
       if (result.success) {
         alert('✅ Video generation cancelled successfully');
         console.log('✅ Cancellation result:', result);
@@ -1304,7 +1788,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
       const shotNumber = shot.shot;
 
       // Skip if image exists
-      if (currentSceneState.storyboard?.some(s => s.shot === shotNumber)) continue;
+      if (currentSceneState.storyboard?.some(s => isSameShotNumber(s.shot, shotNumber))) continue;
 
       setGeneratingShotId(i); // Update UI to show which shot is generating
       setProgress(0);
@@ -1317,12 +1801,37 @@ IMPORTANT: Show the character's emotional and psychological state through facial
           sceneCharacterNames.includes(c.name)
         );
 
-        const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p =>
-          setProgress(p)
+        // 🆕 CONSISTENCY: Generate stable seed from scene + shot number
+        const sceneKey = `${currentSceneState.sceneNumber || 'scene'}-${shotNumber}`;
+        const sceneSeed =
+          Math.abs(sceneKey.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 1000000;
+
+        // 🆕 CONTINUITY: Get previous shot's image for reference
+        const previousShot = currentSceneState.shotList[i - 1];
+        const previousShotNumber = previousShot?.shot;
+        const previousShotImage = previousShotNumber
+          ? currentSceneState.storyboard?.find(s => isSameShotNumber(s.shot, previousShotNumber))
+              ?.image
+          : undefined;
+
+        console.log(
+          `🎨 [Batch] Generating shot ${shotNumber} with seed: ${sceneSeed}, previous: ${previousShotNumber || 'none'}`
+        );
+
+        const base64Image = await generateStoryboardImage(
+          prompt,
+          sceneCharacters,
+          p => setProgress(p),
+          {
+            seed: sceneSeed, // 🔧 STABLE SEED per scene
+            previousShotImage: previousShotImage, // 🔧 CONTINUITY reference
+            preferredModel: storyboardStyle.includes('ComfyUI') ? 'comfyui-sdxl' : undefined,
+          }
         );
 
         // Update local accumulation object
-        const oldItem = currentSceneState.storyboard?.find(s => s.shot === shotNumber) || {};
+        const oldItem =
+          currentSceneState.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber)) || {};
         const newItem = { ...oldItem, shot: shotNumber, image: base64Image };
 
         const newStoryboard = [...(currentSceneState.storyboard || []), newItem];
@@ -1353,7 +1862,9 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     if (confirmDeleteShotId === shotNumber) {
       if (onRegisterUndo) onRegisterUndo();
       setEditedScene(prev => {
-        const newStoryboard = (prev.storyboard || []).filter(s => s.shot !== shotNumber);
+        const newStoryboard = (prev.storyboard || []).filter(
+          s => !isSameShotNumber(s.shot, shotNumber)
+        );
         if (!isEditing) onSave({ ...prev, storyboard: newStoryboard });
         return { ...prev, storyboard: newStoryboard };
       });
@@ -1403,6 +1914,10 @@ IMPORTANT: Show the character's emotional and psychological state through facial
   // Clear All functions
   const [confirmClearSection, setConfirmClearSection] = useState<string | null>(null);
 
+  // Shot List AI actions
+  const [isGeneratingShotList, setIsGeneratingShotList] = useState(false);
+  const [regeneratingShotListIndex, setRegeneratingShotListIndex] = useState<number | null>(null);
+
   const handleClearAllShotList = () => {
     if (confirmClearSection === 'shotlist') {
       if (onRegisterUndo) onRegisterUndo();
@@ -1415,6 +1930,120 @@ IMPORTANT: Show the character's emotional and psychological state through facial
     } else {
       setConfirmClearSection('shotlist');
       setTimeout(() => setConfirmClearSection(null), 3000);
+    }
+  };
+
+  const handleGenerateShotListAll = async () => {
+    if (!isEditing) return;
+    if (onRegisterUndo) onRegisterUndo();
+
+    const hasExisting = (editedScene.shotList?.length || 0) > 0;
+    if (hasExisting && !window.confirm('This will replace the current Shot List. Continue?')) {
+      return;
+    }
+
+    setIsGeneratingShotList(true);
+    try {
+      const { generateShotListForScene } = await import('../services/geminiService');
+
+      const previousScenes = (() => {
+        const buckets =
+          (scriptData as any)?.generatedScenes &&
+          typeof (scriptData as any).generatedScenes === 'object'
+            ? Object.values((scriptData as any).generatedScenes)
+            : [];
+        const all = buckets.flatMap((v: any) => (Array.isArray(v) ? v : []));
+        return all
+          .filter(
+            (s: any) =>
+              typeof s?.sceneNumber === 'number' && s.sceneNumber < editedScene.sceneNumber
+          )
+          .sort((a: any, b: any) => Number(b.sceneNumber) - Number(a.sceneNumber))
+          .slice(0, 2);
+      })();
+
+      const newShotList = await generateShotListForScene(
+        { sceneNumber: editedScene.sceneNumber, sceneDesign: editedScene.sceneDesign },
+        {
+          language: scriptData?.language,
+          title: scriptData?.title,
+          logline: (scriptData as any)?.logline,
+        },
+        editedScene.shotList,
+        { previousScenes }
+      );
+
+      setEditedScene(prev => {
+        const updated = { ...prev, shotList: newShotList as any };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      if (!isEditing) onSave({ ...editedScene, shotList: newShotList as any });
+    } catch (e) {
+      console.error('Failed to generate shot list:', e);
+      alert(`Failed to generate Shot List: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    } finally {
+      setIsGeneratingShotList(false);
+    }
+  };
+
+  const handleRegenerateShotListItem = async (index: number) => {
+    if (!isEditing) return;
+    if (onRegisterUndo) onRegisterUndo();
+
+    const current = (editedScene.shotList || [])[index];
+    const shotNumber =
+      typeof (current as any)?.shot === 'number' ? (current as any).shot : index + 1;
+    setRegeneratingShotListIndex(index);
+    try {
+      const { regenerateShotListItem } = await import('../services/geminiService');
+      const prev = index > 0 ? (editedScene.shotList || [])[index - 1] : undefined;
+      const next =
+        index < (editedScene.shotList || []).length - 1
+          ? (editedScene.shotList || [])[index + 1]
+          : undefined;
+
+      const previousScenes = (() => {
+        const buckets =
+          (scriptData as any)?.generatedScenes &&
+          typeof (scriptData as any).generatedScenes === 'object'
+            ? Object.values((scriptData as any).generatedScenes)
+            : [];
+        const all = buckets.flatMap((v: any) => (Array.isArray(v) ? v : []));
+        return all
+          .filter(
+            (s: any) =>
+              typeof s?.sceneNumber === 'number' && s.sceneNumber < editedScene.sceneNumber
+          )
+          .sort((a: any, b: any) => Number(b.sceneNumber) - Number(a.sceneNumber))
+          .slice(0, 2);
+      })();
+
+      const regenerated = await regenerateShotListItem(
+        { sceneNumber: editedScene.sceneNumber, sceneDesign: editedScene.sceneDesign },
+        shotNumber,
+        { language: scriptData?.language },
+        { previousShot: prev, currentShot: current, nextShot: next },
+        { previousScenes }
+      );
+
+      setEditedScene(prevState => {
+        const list = [...(prevState.shotList || [])];
+        list[index] = { ...(list[index] || {}), ...(regenerated as any), shot: shotNumber };
+        const updated = { ...prevState, shotList: list };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+      if (!isEditing) {
+        const list = [...(editedScene.shotList || [])];
+        list[index] = { ...(list[index] || {}), ...(regenerated as any), shot: shotNumber };
+        onSave({ ...editedScene, shotList: list });
+      }
+    } catch (e) {
+      console.error('Failed to regenerate shot list row:', e);
+      alert(`Failed to regenerate shot: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    } finally {
+      setRegeneratingShotListIndex(null);
     }
   };
 
@@ -1623,57 +2252,74 @@ IMPORTANT: Show the character's emotional and psychological state through facial
               {(section === 'shotList' || section === 'propList' || section === 'breakdown') &&
                 isEditing && (
                   <td className="px-2 py-2 text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (section === 'shotList') {
-                          handleDeleteShotListItem(i);
-                        } else if (section === 'propList') {
-                          handleDeletePropListItem(i);
-                        } else if (section === 'breakdown' && subSection) {
-                          handleDeleteBreakdownItem(subSection, i);
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                        (section === 'shotList' && confirmDeleteShotListId === i) ||
-                        (section === 'propList' && confirmDeletePropId === i) ||
-                        (section === 'breakdown' &&
-                          confirmDeleteBreakdownId?.part === subSection &&
-                          confirmDeleteBreakdownId?.index === i)
-                          ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                          : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
-                      }`}
-                      title={
-                        (section === 'shotList' && confirmDeleteShotListId === i) ||
-                        (section === 'propList' && confirmDeletePropId === i) ||
-                        (section === 'breakdown' &&
-                          confirmDeleteBreakdownId?.part === subSection &&
-                          confirmDeleteBreakdownId?.index === i)
-                          ? 'Click again to confirm'
-                          : 'Delete item'
-                      }
-                    >
-                      {(section === 'shotList' && confirmDeleteShotListId === i) ||
-                      (section === 'propList' && confirmDeletePropId === i) ||
-                      (section === 'breakdown' &&
-                        confirmDeleteBreakdownId?.part === subSection &&
-                        confirmDeleteBreakdownId?.index === i) ? (
-                        '✓ Confirm?'
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                    <div className="flex items-center justify-center gap-2">
+                      {section === 'shotList' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerateShotListItem(i)}
+                          disabled={regeneratingShotListIndex === i}
+                          className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                            regeneratingShotListIndex === i
+                              ? 'bg-gray-700 text-gray-300 opacity-70'
+                              : 'bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white'
+                          }`}
+                          title="Regenerate this shot row"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                          {regeneratingShotListIndex === i ? 'Regenerating…' : 'Regen'}
+                        </button>
                       )}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (section === 'shotList') {
+                            handleDeleteShotListItem(i);
+                          } else if (section === 'propList') {
+                            handleDeletePropListItem(i);
+                          } else if (section === 'breakdown' && subSection) {
+                            handleDeleteBreakdownItem(subSection, i);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                          (section === 'shotList' && confirmDeleteShotListId === i) ||
+                          (section === 'propList' && confirmDeletePropId === i) ||
+                          (section === 'breakdown' &&
+                            confirmDeleteBreakdownId?.part === subSection &&
+                            confirmDeleteBreakdownId?.index === i)
+                            ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                            : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                        }`}
+                        title={
+                          (section === 'shotList' && confirmDeleteShotListId === i) ||
+                          (section === 'propList' && confirmDeletePropId === i) ||
+                          (section === 'breakdown' &&
+                            confirmDeleteBreakdownId?.part === subSection &&
+                            confirmDeleteBreakdownId?.index === i)
+                            ? 'Click again to confirm'
+                            : 'Delete item'
+                        }
+                      >
+                        {(section === 'shotList' && confirmDeleteShotListId === i) ||
+                        (section === 'propList' && confirmDeletePropId === i) ||
+                        (section === 'breakdown' &&
+                          confirmDeleteBreakdownId?.part === subSection &&
+                          confirmDeleteBreakdownId?.index === i) ? (
+                          '✓ Confirm?'
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </td>
                 )}
             </tr>
@@ -1742,7 +2388,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
               <button
                 type="button"
                 onClick={handleCancel}
-                className="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors"
+                className="bg-gray-600/70 hover:bg-gray-600/80 text-white text-[9px] font-semibold py-0.5 px-1.5 rounded transition-colors"
               >
                 Cancel
               </button>
@@ -2303,7 +2949,20 @@ IMPORTANT: Show the character's emotional and psychological state through facial
         {activeTab === 'shotlist' && (
           <div className="space-y-4">
             {isEditing && (editedScene.shotList?.length || 0) > 0 && (
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateShotListAll}
+                  disabled={isGeneratingShotList}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                    isGeneratingShotList
+                      ? 'bg-gray-700 text-gray-300 opacity-70'
+                      : 'bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white'
+                  }`}
+                  title="Generate a complete Shot List for this scene"
+                >
+                  {isGeneratingShotList ? 'Generating…' : 'Generate Shot List'}
+                </button>
                 <button
                   type="button"
                   onClick={handleClearAllShotList}
@@ -2331,6 +2990,23 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                     />
                   </svg>
                   {confirmClearSection === 'shotlist' ? 'Confirm Clear All?' : 'Clear All Shots'}
+                </button>
+              </div>
+            )}
+            {isEditing && (editedScene.shotList?.length || 0) === 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleGenerateShotListAll}
+                  disabled={isGeneratingShotList}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                    isGeneratingShotList
+                      ? 'bg-gray-700 text-gray-300 opacity-70'
+                      : 'bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white'
+                  }`}
+                  title="Generate a complete Shot List for this scene"
+                >
+                  {isGeneratingShotList ? 'Generating…' : 'Generate Shot List'}
                 </button>
               </div>
             )}
@@ -2363,6 +3039,29 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                         {style}
                       </option>
                     ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-400 mb-1">IMAGE MODEL</label>
+                  <select
+                    value={storyboardModel}
+                    onChange={e => setStoryboardModel(e.target.value)}
+                    onFocus={() => void loadComfyBackendStatus()}
+                    className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                  >
+                    <option value="auto">🤖 AUTO - Smart selection (with fallback)</option>
+                    <optgroup label="🎁 FREE MODELS">
+                      <option value="gemini-flash">⚡ Gemini 2.0 Flash (Fast, free quota)</option>
+                      <option
+                        value="comfyui-sdxl"
+                        disabled={comfyBackendStatus ? !comfyBackendStatus.running : false}
+                      >
+                        🎨 ComfyUI + SDXL (Local)
+                      </option>
+                    </optgroup>
+                    <optgroup label="💵 PAID MODELS">
+                      <option value="gemini-pro">🌟 Gemini 2.5 Flash Image (Paid)</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div className="flex-1">
@@ -2433,7 +3132,243 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                 </div>
               </div>
 
-              {/* 🆕 Custom Resolution Controls */}
+              {/* 🆕 Advanced Video Settings */}
+              <div className="mt-4 p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+                <h4 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Advanced Generation Settings
+                  <span className="ml-auto text-[10px] font-mono text-green-400 bg-green-900/30 px-2 py-0.5 rounded">
+                    v2.1-optimized
+                  </span>
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* CFG Scale */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1 flex justify-between">
+                      <span>CFG Scale</span>
+                      <span className="text-cyan-400">{videoCfg}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="0.5"
+                      value={videoCfg}
+                      onChange={e => setVideoCfg(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Wan 2.1 optimal: 5-8. Higher = noisier.
+                    </p>
+                  </div>
+
+                  {/* Steps */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1 flex justify-between">
+                      <span>Steps</span>
+                      <span className="text-cyan-400">{videoSteps}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="10"
+                      max="30"
+                      step="1"
+                      value={videoSteps}
+                      onChange={e => setVideoSteps(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Wan 2.1 max: 30 steps. Recommended: 25-30.
+                    </p>
+                  </div>
+
+                  {/* FPS */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1 flex justify-between">
+                      <span>FPS</span>
+                      <span className="text-cyan-400">{videoFps}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="8"
+                      max="60"
+                      step="1"
+                      value={videoFps}
+                      onChange={e => setVideoFps(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Frames per second. Standard is 24.
+                    </p>
+                  </div>
+
+                  {/* Motion Strength */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1 flex justify-between">
+                      <span>Motion Strength</span>
+                      <span className="text-cyan-400">{videoMotionStrength}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="255"
+                      step="1"
+                      value={videoMotionStrength}
+                      onChange={e => setVideoMotionStrength(parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">Intensity of movement (1-255).</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* �️ Voice Generation Toggle */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg">
+                <label className="flex items-center cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={includeVoice}
+                    onChange={e => setIncludeVoice(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
+                  />
+                  <div className="ml-3 flex-1">
+                    <span className="text-sm font-bold text-purple-300 group-hover:text-purple-200 transition-colors">
+                      🎙️ Include Character Voices (Voice Cloning)
+                    </span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Generate audio from dialogue using character voice samples. Characters without
+                      voice samples will be skipped.
+                    </p>
+                  </div>
+                  {includeVoice && (
+                    <span className="ml-2 px-2 py-1 bg-purple-600 text-white text-xs rounded-full font-bold animate-pulse">
+                      ACTIVE
+                    </span>
+                  )}
+                </label>
+
+                {/* Voice Status Indicator */}
+                {includeVoice && (
+                  <div className="mt-3 pt-3 border-t border-purple-500/20">
+                    <div className="flex items-center gap-2 text-xs">
+                      {(() => {
+                        const dialogueLines =
+                          editedScene.sceneDesign?.situations?.flatMap(s => s.dialogue || []) || [];
+                        const charactersInDialogue = [
+                          ...new Set(dialogueLines.map(d => d.character)),
+                        ];
+                        const charactersWithVoice = charactersInDialogue.filter(charName => {
+                          const char = scriptData.characters.find(c => c.name === charName);
+                          return char?.voiceCloning?.hasVoiceSample;
+                        });
+                        const charactersWithoutVoice = charactersInDialogue.filter(charName => {
+                          const char = scriptData.characters.find(c => c.name === charName);
+                          return !char?.voiceCloning?.hasVoiceSample;
+                        });
+
+                        if (dialogueLines.length === 0) {
+                          return (
+                            <div className="flex items-center gap-2 text-yellow-400">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>No dialogue found in this scene</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <>
+                            {charactersWithVoice.length > 0 && (
+                              <div className="flex items-center gap-2 text-green-400">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                <span>
+                                  ✅ {charactersWithVoice.length} character(s) ready:{' '}
+                                  {charactersWithVoice.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                            {charactersWithoutVoice.length > 0 && (
+                              <>
+                                <div className="flex items-center gap-2 text-orange-400 mt-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 9.293 8.707 8.707z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <span>
+                                    ⚠️ {charactersWithoutVoice.length} missing voice:{' '}
+                                    {charactersWithoutVoice.join(', ')}
+                                  </span>
+                                </div>
+                                {/* Speech Pattern Fallback Info */}
+                                {(() => {
+                                  const charsWithSpeechPattern = charactersWithoutVoice.filter(
+                                    charName => {
+                                      const char = scriptData.characters.find(
+                                        c => c.name === charName
+                                      );
+                                      return char?.speechPattern;
+                                    }
+                                  );
+
+                                  if (charsWithSpeechPattern.length > 0) {
+                                    return (
+                                      <div className="flex items-center gap-2 text-blue-400 mt-1 ml-6">
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                        <span className="text-[11px]">
+                                          ℹ️ Using speech pattern data for:{' '}
+                                          {charsWithSpeechPattern.join(', ')}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* �🆕 Custom Resolution Controls */}
               {videoAspectRatio === 'custom' && (
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
@@ -2591,8 +3526,12 @@ IMPORTANT: Show the character's emotional and psychological state through facial
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {(editedScene.shotList?.length || 0) > 0 ? (
                 (editedScene.shotList || []).map((shot, idx) => {
-                  const shotImg = editedScene.storyboard?.find(s => s.shot === shot.shot)?.image;
-                  const shotVideo = editedScene.storyboard?.find(s => s.shot === shot.shot)?.video;
+                  const shotImg = editedScene.storyboard?.find(s =>
+                    isSameShotNumber(s.shot, shot.shot)
+                  )?.image;
+                  const shotVideo = editedScene.storyboard?.find(s =>
+                    isSameShotNumber(s.shot, shot.shot)
+                  )?.video;
                   const isGenerating = generatingShotId === idx;
                   const isGeneratingVideo = generatingVideoShotId === idx;
 
@@ -2814,32 +3753,62 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20">
                             <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mb-2"></div>
                             <span className="text-cyan-400 text-xs font-bold animate-pulse">
-                              {isGeneratingVideo ? 'Rendering Video...' : 'Painting...'}
+                              {generatingAudioForShot === idx
+                                ? '🎙️ Generating Audio...'
+                                : isGeneratingVideo
+                                  ? 'Rendering Video...'
+                                  : 'Painting...'}
                             </span>
-                            {progress > 0 && (
-                              <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
-                                <div
-                                  className="h-full bg-cyan-400 transition-all duration-300 ease-out"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
+
+                            {/* Video Progress */}
+                            {progress > 0 && generatingAudioForShot !== idx && (
+                              <>
+                                <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
+                                  <div
+                                    className="h-full bg-cyan-400 transition-all duration-300 ease-out"
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-cyan-400 text-[10px] mt-1">
+                                  Video: {Math.round(progress)}%
+                                </span>
+                              </>
                             )}
-                            {progress > 0 && (
-                              <span className="text-cyan-400 text-[10px] mt-1">
-                                {Math.round(progress)}%
-                              </span>
+
+                            {/* Audio Progress */}
+                            {audioProgress > 0 && generatingAudioForShot === idx && (
+                              <>
+                                <div className="w-3/4 h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
+                                  <div
+                                    className="h-full bg-purple-400 transition-all duration-300 ease-out"
+                                    style={{ width: `${audioProgress}%` }}
+                                  />
+                                </div>
+                                <span className="text-purple-400 text-[10px] mt-1">
+                                  Audio: {Math.round(audioProgress)}%
+                                </span>
+                                <p className="text-purple-300 text-[9px] mt-1 text-center max-w-[80%]">
+                                  {audioProgress < 30 && 'Analyzing dialogue...'}
+                                  {audioProgress >= 30 && audioProgress < 70 && 'Cloning voices...'}
+                                  {audioProgress >= 70 &&
+                                    audioProgress < 90 &&
+                                    'Merging with video...'}
+                                  {audioProgress >= 90 && 'Finalizing...'}
+                                </p>
+                              </>
                             )}
-                            {/* 🆕 Minimal Cancel Button */}
+
+                            {/* 🛑 Cancel Button - Enhanced Visibility */}
                             {isGeneratingVideo && currentVideoJobId && (
                               <button
                                 type="button"
                                 onClick={handleCancelVideoGeneration}
-                                className="mt-2 px-2 py-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 hover:border-red-500 text-red-400 hover:text-red-300 text-[10px] font-medium rounded transition-all backdrop-blur-sm"
+                                className="mt-2 px-1.5 py-0.5 bg-red-600/70 hover:bg-red-600/80 border border-red-500/60 hover:border-red-400/70 text-white text-[9px] font-semibold rounded transition-colors flex items-center justify-center gap-1 w-auto"
                                 title="Cancel video generation"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3 w-3 inline-block mr-1"
+                                  className="h-3 w-3"
                                   viewBox="0 0 20 20"
                                   fill="currentColor"
                                 >
@@ -2849,7 +3818,7 @@ IMPORTANT: Show the character's emotional and psychological state through facial
                                     clipRule="evenodd"
                                   />
                                 </svg>
-                                Cancel
+                                <span>Cancel</span>
                               </button>
                             )}
                           </div>
@@ -3287,14 +4256,35 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         sceneCharacterNames.includes(c.name)
       );
 
-      const base64Image = await generateStoryboardImage(prompt, sceneCharacters, p =>
-        setMotionEditorProgress(p)
+      // 🆕 CONSISTENCY: Generate stable seed
+      const shotIndex =
+        sceneData.shotList?.findIndex(s => isSameShotNumber(s.shot, shotNumber)) ?? 0;
+      const sceneKey = `${sceneData.sceneNumber || 'scene'}-${shotNumber}`;
+      const sceneSeed =
+        Math.abs(sceneKey.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 1000000;
+
+      // 🆕 CONTINUITY: Get previous shot's image
+      const previousShot = sceneData.shotList?.[shotIndex - 1];
+      const previousShotNumber = previousShot?.shot;
+      const previousShotImage = previousShotNumber
+        ? sceneData.storyboard?.find(s => isSameShotNumber(s.shot, previousShotNumber))?.image
+        : undefined;
+
+      const base64Image = await generateStoryboardImage(
+        prompt,
+        sceneCharacters,
+        p => setMotionEditorProgress(p),
+        {
+          seed: sceneSeed,
+          previousShotImage: previousShotImage,
+        }
       );
 
-      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || {};
+      const oldStoryboardItem =
+        sceneData.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber)) || {};
       const newItem = { ...oldStoryboardItem, shot: shotNumber, image: base64Image };
       const updatedStoryboard = [
-        ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        ...(sceneData.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
         newItem,
       ];
 
@@ -3336,27 +4326,103 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       const shotDesc = currentShot.shot.description || '';
       const movement = currentShot.shot.movement || 'Static';
       const duration = currentShot.shot.durationSec || 3;
-      const prompt = `Cinematic video: ${shotDesc}. Camera: ${movement}. Duration: ${duration}s. ${currentShot.shot.shotSize}.`;
+      const location = sceneData.sceneDesign?.location || '';
+      const inferTimeOfDay = (loc: string): string => {
+        const t = (loc || '').toLowerCase();
+        if (t.includes('กลางวัน') || t.includes('day')) return 'กลางวัน';
+        if (t.includes('กลางคืน') || t.includes('night')) return 'กลางคืน';
+        if (t.includes('dawn') || t.includes('morning') || t.includes('เช้า')) return 'เช้า';
+        if (t.includes('evening') || t.includes('เย็น')) return 'เย็น';
+        return '';
+      };
+      const timeOfDay = inferTimeOfDay(location);
+      const prompt = `Cinematic video: ${shotDesc}. Location: ${location}.${timeOfDay ? ` Time: ${timeOfDay}.` : ''} Camera: ${movement}. Duration: ${duration}s. ${currentShot.shot.shotSize}.`;
+
+      // Resolve characters for this scene/shot (continuity + Face ID)
+      const sceneCharacterNames = (sceneData.sceneDesign?.characters || []).filter(Boolean);
+      const sceneCharacters: Character[] = scriptData.characters.filter((c: Character) =>
+        sceneCharacterNames.includes(c.name)
+      );
+
+      const normalizeCastToString = (castValue: unknown): string => {
+        if (typeof castValue === 'string') return castValue;
+        if (Array.isArray(castValue)) return castValue.filter(Boolean).join(', ');
+        return '';
+      };
+
+      const castFromShot = normalizeCastToString((currentShot.shot as any)?.cast);
+      const castString =
+        castFromShot.trim().length > 0 ? castFromShot : sceneCharacterNames.join(', ');
+
+      // Pick a lead character from cast if possible (buildVideoPrompt needs a Character)
+      const castNames = castString
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const leadCharacter =
+        scriptData.characters.find((c: Character) => castNames.includes(c.name)) ||
+        sceneCharacters[0] ||
+        scriptData.characters[0];
+
+      const castCharacters = castNames
+        .map(name => scriptData.characters.find((c: Character) => c.name === name))
+        .filter((c): c is Character => !!c);
+
+      const getCharacterFaceRef = (c?: Character) => c?.faceReferenceImage || c?.image;
+      const allShotCharacters: Character[] = Array.from(
+        new Map(
+          [leadCharacter, ...castCharacters, ...sceneCharacters]
+            .filter(Boolean)
+            .map(c => [c.id || c.name, c] as const)
+        ).values()
+      );
+
+      const rawCharacterImages = allShotCharacters
+        .map(c => getCharacterFaceRef(c))
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      const characterImages = Array.from(new Set(rawCharacterImages));
 
       // Use existing image if available
-      const existingImage = sceneData.storyboard?.find(s => s.shot === shotNumber)?.image;
+      const existingImage = sceneData.storyboard?.find(s =>
+        isSameShotNumber(s.shot, shotNumber)
+      )?.image;
+
+      // Continuity fallback: if no current shot image, use previous shot image as init
+      const shotIndex =
+        sceneData.shotList?.findIndex(s => isSameShotNumber(s.shot, shotNumber)) ?? 0;
+      const previousShot = sceneData.shotList?.[shotIndex - 1];
+      const previousShotNumber = previousShot?.shot;
+      const previousShotImage = previousShotNumber
+        ? sceneData.storyboard?.find(s => isSameShotNumber(s.shot, previousShotNumber))?.image
+        : undefined;
+
+      const initImage = existingImage || previousShotImage;
+
+      const shotDataForVideo = {
+        ...currentShot.shot,
+        // Ensure cast is a non-empty string so motion engine doesn't treat it as "NO people"
+        cast: castString,
+      };
 
       const videoUri = await generateStoryboardVideo(
         prompt,
-        existingImage,
+        initImage,
         p => setMotionEditorProgress(p),
         'auto', // Use auto model selection
         {
-          character: scriptData.characters[0],
+          character: leadCharacter,
           currentScene: sceneData,
-          shotData: currentShot.shot,
+          shotData: shotDataForVideo,
           aspectRatio: '16:9',
           width: undefined,
           height: undefined,
+          characterImages: characterImages.length > 0 ? characterImages : undefined,
         }
       );
 
-      const oldStoryboardItem = sceneData.storyboard?.find(s => s.shot === shotNumber) || {
+      const oldStoryboardItem = sceneData.storyboard?.find(s =>
+        isSameShotNumber(s.shot, shotNumber)
+      ) || {
         shot: shotNumber,
         image: '',
       };
@@ -3367,7 +4433,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         video: videoUri,
       };
       const updatedStoryboard = [
-        ...(sceneData.storyboard?.filter(s => s.shot !== shotNumber) || []),
+        ...(sceneData.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
         newItem,
       ];
 
@@ -4179,7 +5245,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         onClose={() => setRegenerateModal({ isOpen: false, plotPoint: null, sceneIndex: -1 })}
         onConfirm={(mode: RegenerationMode) => {
           if (regenerateModal.plotPoint) {
-            void handleGenerateSingle(regenerateModal.plotPoint, regenerateModal.sceneIndex, mode).catch(() => {
+            void handleGenerateSingle(
+              regenerateModal.plotPoint,
+              regenerateModal.sceneIndex,
+              mode
+            ).catch(() => {
               // Error already surfaced via globalError state.
             });
           }
@@ -5041,8 +6111,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                             scriptData.generatedScenes[currentShot.sceneTitle]?.[
                               currentShot.sceneIndex
                             ];
-                          const storyboardItem = sceneData?.storyboard?.find(
-                            s => s.shot === currentShot.shot.shot
+                          const storyboardItem = sceneData?.storyboard?.find(s =>
+                            isSameShotNumber(s.shot, currentShot.shot.shot)
                           );
 
                           return (
@@ -5131,8 +6201,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                             scriptData.generatedScenes[currentShot.sceneTitle]?.[
                               currentShot.sceneIndex
                             ];
-                          const storyboardItem = sceneData?.storyboard?.find(
-                            s => s.shot === currentShot.shot.shot
+                          const storyboardItem = sceneData?.storyboard?.find(s =>
+                            isSameShotNumber(s.shot, currentShot.shot.shot)
                           );
 
                           return (
@@ -5432,3 +6502,4 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
 export default Step5Output;
 
+// Force refresh 2

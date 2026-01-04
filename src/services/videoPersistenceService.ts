@@ -269,4 +269,3 @@ export async function getVideoMetadata(
     return { size: 0 };
   }
 }
-

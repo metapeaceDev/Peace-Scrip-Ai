@@ -9,7 +9,7 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
     features: {
       maxResolution: '1024x1024',
       allowedImageModels: ['pollinations', 'comfyui-sdxl', 'gemini-flash'],
-      allowedVideoModels: ['comfyui-svd', 'pollinations-video'],
+      allowedVideoModels: ['comfyui-svd', 'pollinations-video', 'comfyui-wan'],
       videoDurationLimit: 3,
       storageLimit: 0.5, // 500 MB
       maxProjects: 1,
@@ -28,7 +28,7 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
     features: {
       maxResolution: '2048x2048',
       allowedImageModels: ['pollinations', 'comfyui-sdxl', 'gemini-flash', 'gemini-pro'],
-      allowedVideoModels: ['comfyui-svd', 'pollinations-video', 'gemini-veo'],
+      allowedVideoModels: ['comfyui-svd', 'pollinations-video', 'gemini-veo', 'comfyui-wan'],
       videoDurationLimit: 4,
       storageLimit: 1, // 1 GB
       maxProjects: 5,
@@ -60,6 +60,7 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
         'gemini-veo',
         'luma-dream-machine',
         'runway-gen3',
+        'comfyui-wan',
       ],
       videoDurationLimit: 10,
       storageLimit: 10, // 10 GB
@@ -92,6 +93,7 @@ const MOCK_USERS: Record<SubscriptionTier, UserSubscription> = {
         'gemini-veo',
         'luma-dream-machine',
         'runway-gen3',
+        'comfyui-wan',
       ],
       videoDurationLimit: 60,
       storageLimit: 100, // 100 GB
@@ -137,4 +139,3 @@ export const hasAccessToModel = (modelId: string, type: 'image' | 'video'): bool
     return currentUser.features.allowedVideoModels.includes(modelId) || modelId === 'auto';
   }
 };
-

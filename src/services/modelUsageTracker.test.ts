@@ -37,7 +37,7 @@ describe('modelUsageTracker', () => {
       { data: () => ({ costInTHB: 100 }) },
       { data: () => ({ costInTHB: 450 }) }, // Total 550 > 500
     ];
-    
+
     const mockAlerts: any[] = []; // No alerts yet
 
     (getDocs as any)
@@ -59,8 +59,8 @@ describe('modelUsageTracker', () => {
       costInTHB: 10, // This triggers the check
       success: true,
       metadata: {
-        tokens: { input: 100, output: 50 }
-      }
+        tokens: { input: 100, output: 50 },
+      },
     });
 
     // Verify generation was recorded
@@ -70,36 +70,36 @@ describe('modelUsageTracker', () => {
         userId: 'test-user',
         costInTHB: 10,
         metadata: expect.objectContaining({
-          tokens: { input: 100, output: 50 }
-        })
+          tokens: { input: 100, output: 50 },
+        }),
       })
     );
 
     // Verify budget alert was created (since 550 > 500)
-    // Note: recordGeneration calls checkGlobalDailyBudget without awaiting, 
+    // Note: recordGeneration calls checkGlobalDailyBudget without awaiting,
     // so we might need to wait a bit or ensure the promise resolves.
-    // However, in the implementation it's .catch(), so it runs. 
+    // However, in the implementation it's .catch(), so it runs.
     // Since we mocked getDocs, it should run synchronously enough for the test or we wait.
-    
+
     // We need to wait for the async operation in recordGeneration to complete.
     // Since checkGlobalDailyBudget is not awaited in recordGeneration, this is tricky.
     // But for this test, we can assume the mocks are fast enough or we can spy on console.warn
-    
+
     // Actually, let's verify that addDoc was called TWICE.
     // 1. For 'generations'
     // 2. For 'system_alerts'
-    
+
     // We might need a small delay to allow the un-awaited promise to settle
     await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(addDoc).toHaveBeenCalledTimes(2);
-    
+
     // Check the second call (alert)
     expect(addDoc).toHaveBeenLastCalledWith(
       undefined,
       expect.objectContaining({
         type: 'budget_exceeded',
-        threshold: 500
+        threshold: 500,
       })
     );
   });
@@ -131,4 +131,3 @@ describe('modelUsageTracker', () => {
     expect(addDoc).toHaveBeenCalledTimes(1);
   });
 });
-
