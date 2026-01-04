@@ -5,9 +5,9 @@ import { visualizer } from 'rollup-plugin-visualizer';
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
-    host: '0.0.0.0', // Bind to all network interfaces
+    host: true, // Listen on all addresses including LAN
     port: 5173,
-    strictPort: true, // Fail if port is already in use
+    strictPort: false, // Auto-find available port if 5173 is taken
     open: false,
   },
   plugins: [
