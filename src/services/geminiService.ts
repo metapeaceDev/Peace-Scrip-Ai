@@ -23,6 +23,131 @@ import { persistVideoUrl } from './videoPersistenceService';
 import { getSavedComfyUIUrl } from './comfyuiInstaller';
 import { buildCastPromptBlock, normalizeCastNames } from './castPrompt';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// NEGATIVE PROMPTS - COMPREHENSIVE ANATOMY & QUALITY CONTROL
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * 🎨 COMPREHENSIVE NEGATIVE PROMPT
+ * Prevents common AI image generation issues:
+ * - Anatomical errors (extra/missing limbs, deformed body parts)
+ * - Quality issues (blur, noise, artifacts)
+ * - Style issues (bad composition, wrong proportions)
+ */
+const NEGATIVE_PROMPT_COMPREHENSIVE = [
+  // === ANATOMY ISSUES ===
+  'bad anatomy',
+  'deformed body',
+  'malformed limbs',
+  'extra limbs',
+  'extra arms',
+  'extra legs',
+  'extra hands',
+  'extra fingers',
+  'missing limbs',
+  'missing arms',
+  'missing legs',
+  'fused fingers',
+  'too many fingers',
+  'mutated hands',
+  'poorly drawn hands',
+  'poorly drawn face',
+  'deformed face',
+  'ugly face',
+  'disfigured',
+  'mutation',
+  'mutilated',
+  
+  // === HEAD & FACE ===
+  'multiple heads',
+  'two heads',
+  'duplicate heads',
+  'elongated neck',
+  'twisted neck',
+  'deformed eyes',
+  'cross-eyed',
+  'asymmetric eyes',
+  'missing eyes',
+  
+  // === BODY PROPORTIONS ===
+  'bad proportions',
+  'wrong proportions',
+  'distorted body',
+  'unrealistic proportions',
+  'asymmetric body',
+  'body out of frame',
+  'cropped body',
+  'cut off',
+  
+  // === QUALITY ISSUES ===
+  'low quality',
+  'worst quality',
+  'blurry',
+  'out of focus',
+  'grainy',
+  'noisy',
+  'pixelated',
+  'jpeg artifacts',
+  'compression artifacts',
+  'watermark',
+  'signature',
+  'username',
+  'text',
+  
+  // === STYLE & COMPOSITION ===
+  'ugly',
+  'amateur',
+  'poorly drawn',
+  'bad composition',
+  'bad lighting',
+  'oversaturated',
+  'undersaturated',
+  'overexposed',
+  'underexposed',
+].join(', ');
+
+/**
+ * 🎨 FACE-FOCUSED NEGATIVE PROMPT
+ * For portrait/face generation - lighter, focused on face quality
+ */
+const NEGATIVE_PROMPT_FACE = [
+  'deformed face',
+  'ugly face',
+  'multiple heads',
+  'bad anatomy',
+  'poorly drawn face',
+  'extra fingers',
+  'mutated hands',
+  'low quality',
+  'blurry',
+  'watermark',
+].join(', ');
+
+/**
+ * 🎨 BODY-FOCUSED NEGATIVE PROMPT  
+ * For full-body generation - comprehensive anatomy control
+ */
+const NEGATIVE_PROMPT_BODY = [
+  'bad anatomy',
+  'deformed body',
+  'extra limbs',
+  'extra arms',
+  'extra legs',
+  'missing limbs',
+  'malformed limbs',
+  'fused fingers',
+  'too many fingers',
+  'poorly drawn hands',
+  'poorly drawn face',
+  'bad proportions',
+  'disfigured',
+  'mutation',
+  'mutilated',
+  'multiple heads',
+  'low quality',
+  'blurry',
+].join(', ');
+
 // Initialize AI with environment variable (Vite)
 const requireGeminiApiKey = (featureName: string) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -1173,7 +1298,7 @@ async function generateImageWithCascade(
         return await generateImageWithComfyUI(prompt, {
           lora: selectedLora,
           loraStrength: 0.8,
-          negativePrompt: options.negativePrompt || 'deformed face, multiple heads, bad anatomy',
+          negativePrompt: options.negativePrompt || (options.imageType === 'portrait' ? NEGATIVE_PROMPT_FACE : NEGATIVE_PROMPT_BODY),
           steps: 20,
           cfg: 7.0,
           referenceImage: options.referenceImage,
@@ -1198,7 +1323,7 @@ async function generateImageWithCascade(
         return await generateImageWithComfyUI(prompt, {
           lora: selectedLora,
           loraStrength: 0.8,
-          negativePrompt: options.negativePrompt || 'deformed face, multiple heads, bad anatomy',
+          negativePrompt: options.negativePrompt || (options.imageType === 'portrait' ? NEGATIVE_PROMPT_FACE : NEGATIVE_PROMPT_BODY),
           steps: 30,
           cfg: 8.0,
           referenceImage: options.referenceImage,
@@ -1837,7 +1962,7 @@ async function generateImageWithCascade(
         useFlux: workflowSelection.useFlux,
         lora: selectedLora,
         loraStrength: loraStrength,
-        negativePrompt: options.negativePrompt || 'low quality, amateur, blurry, text errors, ugly',
+        negativePrompt: options.negativePrompt || (options.imageType === 'portrait' ? NEGATIVE_PROMPT_FACE : NEGATIVE_PROMPT_BODY),
         steps: steps,
         cfg: cfg,
         ckpt_name: ckpt_name, // Pass checkpoint name
@@ -5706,7 +5831,64 @@ export async function generateMoviePoster(
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
+    console.log('\n🎬 ═══════════════════════════════════════════════════════');
+    console.log('🎬 POSTER GENERATION STARTED');
+    console.log('🎬 ═══════════════════════════════════════════════════════');
+    
     let prompt = '';
+    
+    // 🎯 Find protagonist's face image for Face ID
+    let protagonistFaceImage: string | undefined = undefined;
+    let protagonistGender: string | undefined = undefined;
+    
+    console.log('📊 Total characters:', scriptData.characters?.length || 0);
+    if (scriptData.characters && scriptData.characters.length > 0) {
+      console.log('📝 Character list:');
+      scriptData.characters.forEach((c, idx) => {
+        console.log(`  ${idx + 1}. ${c.name} (${c.role || 'no role'})`);
+        console.log(`     - faceReferenceImage: ${c.faceReferenceImage ? '✅ YES' : '❌ NO'}`);
+        console.log(`     - image: ${c.image ? '✅ YES' : '❌ NO'}`);
+        console.log(`     - physical.Gender: ${c.physical?.Gender || 'N/A'}`);
+      });
+    }
+    
+    const protagonist = scriptData.characters?.find(c => 
+      c.role?.toLowerCase().includes('protagonist') || 
+      c.name === scriptData.characters?.[0]?.name
+    );
+    
+    if (protagonist) {
+      console.log('\n🎭 ✅ Protagonist found:', protagonist.name);
+      console.log('   Role:', protagonist.role);
+      
+      // Get face image
+      if (protagonist.faceReferenceImage) {
+        protagonistFaceImage = protagonist.faceReferenceImage;
+        console.log('   📸 ✅ Using faceReferenceImage:', protagonist.faceReferenceImage.substring(0, 80) + '...');
+      } else if (protagonist.image) {
+        protagonistFaceImage = protagonist.image;
+        console.log('   📸 ✅ Using image:', protagonist.image.substring(0, 80) + '...');
+      } else {
+        console.log('   📸 ❌ NO FACE IMAGE - will use text-only prompt');
+      }
+      
+      // Get gender (Iteration 13.9.2)
+      if (protagonist.physical?.Gender) {
+        protagonistGender = protagonist.physical.Gender;
+        console.log('   ⚧️ ✅ Gender from profile:', protagonistGender);
+      } else {
+        console.log('   ⚧️ ❌ NO GENDER INFO');
+      }
+      
+      // Show all physical data
+      if (protagonist.physical) {
+        console.log('   📋 Physical data:', JSON.stringify(protagonist.physical, null, 2));
+      }
+    } else {
+      console.log('\n🎭 ❌ NO PROTAGONIST FOUND');
+      console.log('   Will generate poster without Face ID');
+    }
+    
     if (customPrompt && customPrompt.trim().length > 0) {
       // User provided custom prompt - enhance it with language directive
       prompt = customPrompt;
@@ -5742,17 +5924,28 @@ export async function generateMoviePoster(
         parts.push(`Concept: ${scriptData.bigIdea.substring(0, 150)}.`);
       }
 
-      // 🎭 ENHANCED: Add ALL characters from Step 3 (not just protagonist)
+      // 🎭 ENHANCED: Add ALL characters from Step 3 with physical details
       if (scriptData.characters && scriptData.characters.length > 0) {
         const characterDescriptions = scriptData.characters
           .filter(c => c.name && c.name.trim() !== '')
           .slice(0, 5) // Limit to top 5 characters to avoid prompt overflow
           .map(c => {
             const desc = c.description?.substring(0, 80) || c.role || 'character';
-            // Include ethnicity for proper rendering
-            const ethnicity = c.external?.['Ethnicity'] || c.external?.['Nationality'] || '';
-            const ethnicityNote = ethnicity ? ` (${ethnicity})` : '';
-            return `${c.name}${ethnicityNote} - ${desc}`;
+            
+            // 🔥 Add physical features (Iteration 13.9.2)
+            const physical = c.physical || {};
+            const physicalParts: string[] = [];
+            
+            if (physical.Gender) physicalParts.push(physical.Gender);
+            if (physical.Age) physicalParts.push(`${physical.Age} years old`);
+            if (physical.Ethnicity) physicalParts.push(physical.Ethnicity);
+            if (physical.Hair) physicalParts.push(`${physical.Hair} hair`);
+            
+            const physicalDesc = physicalParts.length > 0 
+              ? ` [${physicalParts.join(', ')}]` 
+              : '';
+            
+            return `${c.name}${physicalDesc} - ${desc}`;
           });
 
         if (characterDescriptions.length > 0) {
@@ -5775,12 +5968,37 @@ export async function generateMoviePoster(
       prompt = parts.join(' ');
     }
 
+    console.log('\n📝 Final prompt:', prompt.substring(0, 200) + '...');
+    console.log('\n🎯 Face ID Configuration:');
+    console.log('   referenceImage:', protagonistFaceImage ? '✅ YES (' + protagonistFaceImage.substring(0, 50) + '...)' : '❌ NO');
+    console.log('   gender:', protagonistGender || '❌ NO');
+    
+    // 🇹🇭 CRITICAL: Force Gemini for Thai language (SDXL doesn't support Thai text)
+    const isThai = scriptData.language === 'Thai';
+    if (isThai) {
+      console.log('\n⚠️ THAI LANGUAGE DETECTED - Using Gemini 2.5 Pro (SDXL does not support Thai)');
+      console.log('🎬 ═══════════════════════════════════════════════════════\n');
+      
+      return await generateImageWithCascade(prompt, {
+        preferredModel: 'gemini-pro', // 🇹🇭 Force Gemini for Thai
+        negativePrompt: NEGATIVE_PROMPT_COMPREHENSIVE + ', chinese characters, wrong language text',
+        onProgress: onProgress,
+        referenceImage: protagonistFaceImage,
+        gender: protagonistGender,
+      });
+    }
+    
+    console.log('\n🎬 Calling generateImageWithCascade (SDXL)...');
+    console.log('🎬 ═══════════════════════════════════════════════════════\n');
+
+    // 🎯 Pass protagonist face to InstantID (Iteration 13.9.2)
     return await generateImageWithCascade(prompt, {
       useLora: true,
       loraType: 'DETAIL_ENHANCER',
-      negativePrompt:
-        'low quality, amateur, blurry, text errors, ugly, chinese characters, wrong language text',
+      negativePrompt: NEGATIVE_PROMPT_COMPREHENSIVE + ', chinese characters, wrong language text',
       onProgress: onProgress,
+      referenceImage: protagonistFaceImage, // 🔥 Enable Face ID if face available
+      gender: protagonistGender, // 🔥 Pass gender from profile
     });
   } catch (error: unknown) {
     const err = error as { message?: string };
