@@ -1887,9 +1887,128 @@ async function generateImageWithCascade(
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🆕 GEMINI-FIRST CASCADE (Cost-Optimized)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Priority Order (NEW):
+  // 1️⃣ Gemini Pro (Fast, High Quality, Free tier: 50/day)
+  // 2️⃣ Gemini Flash (Very Fast, Good Quality, Free tier: 1500/day)
+  // 3️⃣ ComfyUI (Custom LoRA, Face ID, Unlimited but costs GPU time)
+  // 4️⃣ Pollinations (Free backup, Basic quality)
+  
+  // TIER 1: Try Gemini 2.5 Pro (High Quality, Fast)
+  try {
+    console.log('🎨 Tier 1: Trying Gemini 2.5 Pro (Imagen 3)...');
+    console.log('   ⚡ Speed: 3-5 seconds');
+    console.log('   🎯 Quality: Excellent (Imagen 3)');
+    console.log('   💰 Cost: Free (50/day) or ฿0.05/image');
+
+    // Debug: Check if reference image is being passed
+    if (options.referenceImage) {
+      console.log('📸 Face ID Mode: Reference image will be sent to Gemini Pro');
+      console.log(
+        '📏 Reference image size:',
+        Math.round(options.referenceImage.length / 1024),
+        'KB'
+      );
+    } else {
+      console.log('⚠️ No reference image - generating without Face ID');
+    }
+
+    const result = await generateImageWithGemini25(prompt, options.referenceImage);
+    console.log('✅ Tier 1 Success: Gemini 2.5 Pro');
+    return result;
+  } catch (error: unknown) {
+    const err = error as { message?: string; status?: string };
+    const isQuotaError =
+      err?.message?.includes('quota') ||
+      err?.message?.includes('429') ||
+      err?.status === 'RESOURCE_EXHAUSTED';
+    if (isQuotaError) {
+      const resetIn = 60;
+      console.log(`⚠️ Tier 1: Gemini Pro quota exceeded. Resets in ${resetIn}s.`);
+      errors.push(`Gemini Pro quota exceeded (reset in ${resetIn}s)`);
+    } else {
+      console.error('❌ Tier 1 failed:', error);
+      errors.push(`Gemini Pro error: ${err.message}`);
+    }
+    console.log('⏭️  Falling back to Tier 2: Gemini Flash...');
+  }
+
+  // TIER 2: Try Gemini 2.0 Flash (Very Fast, Free tier)
+  try {
+    console.log('🎨 Tier 2: Trying Gemini 2.5 Flash Image...');
+
+    // Debug: Check if reference image is being passed
+    if (options.referenceImage) {
+      console.log('📸 Face ID Mode: Reference image will be sent to Gemini 2.5');
+      console.log(
+        '📏 Reference image size:',
+        Math.round(options.referenceImage.length / 1024),
+        'KB'
+      );
+    } else {
+      console.log('⚠️ No reference image - generating without Face ID');
+    }
+
+    const result = await generateImageWithGemini25(prompt, options.referenceImage);
+    console.log('✅ Tier 2 Success: Gemini 2.5 Flash Image');
+    return result;
+  } catch (error: unknown) {
+    const err = error as { message?: string; status?: string };
+    const isQuotaError =
+      err?.message?.includes('quota') ||
+      err?.message?.includes('429') ||
+      err?.status === 'RESOURCE_EXHAUSTED';
+    if (isQuotaError) {
+      const resetIn = 60; // getTimeUntilReset('gemini-2.5');
+      console.log(`⚠️ Tier 2: Gemini 2.5 quota exceeded. Resets in ${resetIn}s.`);
+      errors.push(`Gemini 2.5 quota exceeded (reset in ${resetIn}s)`);
+    } else {
+      console.error('❌ Tier 2 failed:', error);
+      errors.push(`Gemini 2.5 error: ${err.message}`);
+    }
+  }
+
+  // TIER 2: Try Gemini 2.0 Flash (Very Fast, Free tier)
+  try {
+    console.log('🎨 Tier 2: Trying Gemini 2.0 Flash...');
+    console.log('   ⚡ Speed: 2-3 seconds');
+    console.log('   🎯 Quality: Good');
+    console.log('   💰 Cost: Free (1500/day) or ฿0.02/image');
+
+    // Debug: Check if reference image is being passed
+    if (options.referenceImage) {
+      console.log('📸 Face ID Mode: Reference image will be sent to Gemini Flash');
+    }
+
+    const result = await generateImageWithGemini20(prompt, options.referenceImage);
+    console.log('✅ Tier 2 Success: Gemini 2.0 Flash');
+    return result;
+  } catch (error: unknown) {
+    const err = error as { message?: string; status?: string };
+    const isQuotaError =
+      err?.message?.includes('quota') ||
+      err?.message?.includes('429') ||
+      err?.status === 'RESOURCE_EXHAUSTED';
+    if (isQuotaError) {
+      const resetIn = 60;
+      console.error(`❌ Tier 2 failed: Quota exceeded (reset in ${resetIn}s)`);
+      errors.push(`Gemini Flash quota exceeded (reset in ${resetIn}s)`);
+    } else {
+      console.error('❌ Tier 2 failed:', error);
+      errors.push(`Gemini Flash error: ${err.message}`);
+    }
+    console.log('⏭️  Falling back to Tier 3: ComfyUI...');
+  }
+
+  // TIER 3: Try ComfyUI Backend (Custom LoRA, Face ID)
   if (USE_COMFYUI_BACKEND) {
     try {
-      console.log('🎨 Tier 1: Trying ComfyUI Backend + LoRA (Priority)...');
+      console.log('🎨 Tier 3: Trying ComfyUI Backend + LoRA...');
+      console.log('   ⚡ Speed: 30-120 seconds (depends on GPU)');
+      console.log('   🎯 Quality: Excellent (SDXL/FLUX)');
+      console.log('   💰 Cost: GPU time (unlimited generations)');
       console.log('🌐 Backend URL:', import.meta.env.VITE_COMFYUI_SERVICE_URL);
 
       // Quick backend health check with timeout
@@ -1972,80 +2091,17 @@ async function generateImageWithCascade(
         onProgress: options.onProgress,
       });
 
-      console.log('✅ Tier 1 Success: ComfyUI Backend + LoRA');
+      console.log('✅ Tier 3 Success: ComfyUI Backend + LoRA');
       return comfyImage;
     } catch (error: unknown) {
       const err = error as { message?: string };
-      console.error('❌ Tier 1 (ComfyUI Backend) failed:', error);
+      console.error('❌ Tier 3 (ComfyUI Backend) failed:', error);
       errors.push(`ComfyUI Backend error: ${err.message}`);
-      console.log('⚠️ ComfyUI Backend unavailable, falling back to Gemini API...');
+      console.log('⚠️ ComfyUI Backend unavailable, falling back to Pollinations...');
     }
   } else {
-    console.log('⚠️ ComfyUI Backend disabled (USE_COMFYUI_BACKEND=false), skipping Tier 1...');
+    console.log('⚠️ ComfyUI Backend disabled (USE_COMFYUI_BACKEND=false), skipping Tier 3...');
     errors.push('ComfyUI Backend not enabled');
-  }
-
-  // TIER 2: Try Gemini 2.5 Flash Image (fast, quota-limited)
-  try {
-    console.log('🎨 Tier 2: Trying Gemini 2.5 Flash Image...');
-
-    // Debug: Check if reference image is being passed
-    if (options.referenceImage) {
-      console.log('📸 Face ID Mode: Reference image will be sent to Gemini 2.5');
-      console.log(
-        '📏 Reference image size:',
-        Math.round(options.referenceImage.length / 1024),
-        'KB'
-      );
-    } else {
-      console.log('⚠️ No reference image - generating without Face ID');
-    }
-
-    const result = await generateImageWithGemini25(prompt, options.referenceImage);
-    console.log('✅ Tier 2 Success: Gemini 2.5 Flash Image');
-    return result;
-  } catch (error: unknown) {
-    const err = error as { message?: string; status?: string };
-    const isQuotaError =
-      err?.message?.includes('quota') ||
-      err?.message?.includes('429') ||
-      err?.status === 'RESOURCE_EXHAUSTED';
-    if (isQuotaError) {
-      const resetIn = 60; // getTimeUntilReset('gemini-2.5');
-      console.log(`⚠️ Tier 2: Gemini 2.5 quota exceeded. Resets in ${resetIn}s.`);
-      errors.push(`Gemini 2.5 quota exceeded (reset in ${resetIn}s)`);
-    } else {
-      console.error('❌ Tier 2 failed:', error);
-      errors.push(`Gemini 2.5 error: ${err.message}`);
-    }
-  }
-
-  // TIER 3: Try Gemini 2.0 Flash Exp
-  try {
-    console.log('🎨 Tier 3: Trying Gemini 2.0 Flash Exp...');
-
-    // Debug: Check if reference image is being passed
-    if (options.referenceImage) {
-      console.log('📸 Face ID Mode: Reference image will be sent to Gemini 2.0');
-    }
-
-    const result = await generateImageWithGemini20(prompt, options.referenceImage);
-    console.log('✅ Tier 3 Success: Gemini 2.0 Flash Exp');
-    return result;
-  } catch (error: unknown) {
-    const err = error as { message?: string; status?: string };
-    const isQuotaError =
-      err?.message?.includes('quota') ||
-      err?.message?.includes('429') ||
-      err?.status === 'RESOURCE_EXHAUSTED';
-    if (isQuotaError) {
-      const resetIn = 60; // getTimeUntilReset('gemini-2.0');
-      console.error(`❌ Tier 3 failed: Quota exceeded (reset in ${resetIn}s)`);
-      errors.push(`Gemini 2.0 quota exceeded (reset in ${resetIn}s)`);
-    } else {
-      console.error('❌ Tier 3 failed:', error);
-      errors.push(`Gemini 2.0 error: ${err.message}`);
-    }
   }
 
   // TIER 4: Try Pollinations.ai (Last Resort - No Face ID support)
