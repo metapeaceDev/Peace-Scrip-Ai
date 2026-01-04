@@ -48,7 +48,7 @@ cp .env.example .env
 - ตั้ง `FIREBASE_STORAGE_URL_MODE=token` เพื่อให้ backend คืน Firebase download token URL (ไม่หมดอายุ)
 - ถ้าตั้งเป็น `public` จะพยายาม `makePublic()` (อาจล้มเหลวถ้า bucket เปิด UBLA)
 - ถ้าตั้งเป็น `signed` จะเป็น Signed URL (มีวันหมดอายุ)
-**ตัวอย่าง .env:**
+  **ตัวอย่าง .env:**
 
 ```env
 NODE_ENV=development

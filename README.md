@@ -14,6 +14,7 @@
 Peace Script AI is a professional screenwriting and video production platform that combines cutting-edge AI technology with Buddhist psychological principles to create meaningful, educational content. Built with React, TypeScript, and Firebase.
 
 **Key Features:**
+
 - 📝 AI-powered script generation and analysis
 - 🎬 Video generation with ComfyUI integration
 - 🎙️ Voice cloning and text-to-speech (Thai language support)
@@ -57,17 +58,20 @@ The app will be available at `http://localhost:5173`
 ## 📚 Documentation
 
 ### Core Documentation
+
 - [Getting Started Guide](docs/getting-started/README.md)
 - [Development Guide](docs/development/DEVELOPMENT_GUIDE.md)
 - [API Documentation](docs/api/README.md)
 - [Architecture Overview](docs/architecture/README.md)
 
 ### Feature Documentation
+
 - [ComfyUI Video Generation](docs/features/COMFYUI_USER_GUIDE.md)
 - [Voice Cloning Setup](docs/voice-cloning/README.md)
 - [Admin Dashboard](docs-archive/admin/ADMIN_README.md)
 
 ### Deployment
+
 - [Firebase Deployment](docs/deployment/FIREBASE_SETUP_GUIDE.md)
 - [Security Best Practices](docs/SECURITY.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING_GUIDE.md)
@@ -77,18 +81,21 @@ The app will be available at `http://localhost:5173`
 ## 🛠️ Tech Stack
 
 **Frontend:**
+
 - React 18.2 with TypeScript
 - Vite 7.3 (fast build tool)
 - React Router 7.10
 - Recharts (analytics)
 
 **Backend:**
+
 - Firebase (Authentication, Firestore, Functions, Hosting, Storage)
 - ComfyUI (video generation)
 - Google Gemini AI
 - Microsoft Azure Speech SDK
 
 **Testing:**
+
 - Vitest with coverage
 - React Testing Library
 - ESLint + Prettier
@@ -231,6 +238,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Made with ❤️ for meaningful storytelling**
+
 - [CLOUD_GPU_SETUP_GUIDE.md](./CLOUD_GPU_SETUP_GUIDE.md) - Alternative platforms
 
 #### **Option 2: Wait for PyTorch sm_120** (Free but slow)
@@ -251,29 +259,29 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### 📚 Documentation Suite (18 files, 5,800+ lines)
 
-| Document | Purpose | Lines |
-|----------|---------|-------|
-| **[RUNPOD_COMPLETE_SETUP.md](./RUNPOD_COMPLETE_SETUP.md)** ⭐ | Complete RunPod guide with troubleshooting | 850+ |
-| [RUNPOD_QUICK_START.md](./RUNPOD_QUICK_START.md) | Fast 5-step beginner guide | 545 |
-| [RUNPOD_COMMANDS.md](./RUNPOD_COMMANDS.md) | Copy-paste command reference | 85 |
-| [CLOUD_GPU_SETUP_GUIDE.md](./CLOUD_GPU_SETUP_GUIDE.md) | Multi-platform cloud setup | 614 |
-| [RTX5090_INCOMPATIBILITY_REPORT.md](./RTX5090_INCOMPATIBILITY_REPORT.md) | Technical analysis | 398 |
-| [PROJECT_COMPLETION_STATUS.md](./PROJECT_COMPLETION_STATUS.md) | Overall project status | 570+ |
-| `setup-runpod-comfyui.sh` | Automated RunPod setup script | 240+ |
-| `setup-monitor-simple.ps1` | PyTorch monitor installer | 65 |
-| `monitor-sm120.ps1` | Weekly check script | 12 |
-| `test_sm120.py` | CUDA capability tester | 28 |
+| Document                                                                 | Purpose                                    | Lines |
+| ------------------------------------------------------------------------ | ------------------------------------------ | ----- |
+| **[RUNPOD_COMPLETE_SETUP.md](./RUNPOD_COMPLETE_SETUP.md)** ⭐            | Complete RunPod guide with troubleshooting | 850+  |
+| [RUNPOD_QUICK_START.md](./RUNPOD_QUICK_START.md)                         | Fast 5-step beginner guide                 | 545   |
+| [RUNPOD_COMMANDS.md](./RUNPOD_COMMANDS.md)                               | Copy-paste command reference               | 85    |
+| [CLOUD_GPU_SETUP_GUIDE.md](./CLOUD_GPU_SETUP_GUIDE.md)                   | Multi-platform cloud setup                 | 614   |
+| [RTX5090_INCOMPATIBILITY_REPORT.md](./RTX5090_INCOMPATIBILITY_REPORT.md) | Technical analysis                         | 398   |
+| [PROJECT_COMPLETION_STATUS.md](./PROJECT_COMPLETION_STATUS.md)           | Overall project status                     | 570+  |
+| `setup-runpod-comfyui.sh`                                                | Automated RunPod setup script              | 240+  |
+| `setup-monitor-simple.ps1`                                               | PyTorch monitor installer                  | 65    |
+| `monitor-sm120.ps1`                                                      | Weekly check script                        | 12    |
+| `test_sm120.py`                                                          | CUDA capability tester                     | 28    |
 
 **Total:** 18 files, 5,800+ lines, 195+ KB
 
 ### 💰 RunPod Cost Calculator
 
-| Scenario | Duration | Cost |
-|----------|----------|------|
-| Quick POC (5 videos) | 1 hour | $0.44 |
-| Complete Testing (10 videos) | 2 hours | $0.89 |
-| Development Session | 4 hours | $1.76 |
-| Full Day Testing | 8 hours | $3.52 |
+| Scenario                     | Duration | Cost  |
+| ---------------------------- | -------- | ----- |
+| Quick POC (5 videos)         | 1 hour   | $0.44 |
+| Complete Testing (10 videos) | 2 hours  | $0.89 |
+| Development Session          | 4 hours  | $1.76 |
+| Full Day Testing             | 8 hours  | $3.52 |
 
 **GPU Rate:** $0.44/hour (RTX 4090)  
 **Storage:** $10/month for 100GB Volume  
@@ -282,11 +290,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### 🎯 Recommended Workflow
 
 **For Immediate Testing:** Use RunPod Option 1
+
 - ✅ Working in 20 minutes
 - ✅ Only $2-4 for POC
 - ✅ Full automation included
 
 **For Long-term Production:** Wait for PyTorch + Use RTX 5090
+
 - ⏳ 1-3 months wait
 - ✅ Free (local GPU)
 - ✅ Faster than RTX 4090

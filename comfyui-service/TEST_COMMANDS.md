@@ -56,6 +56,7 @@ curl http://localhost:8188/object_info/VHS_VideoCombine -UseBasicParsing
 ## Troubleshooting
 
 ### Service won't start
+
 ```powershell
 # Check if port is busy
 netstat -ano | findstr :8000
@@ -66,19 +67,24 @@ taskkill /PID $pid /F
 ```
 
 ### Redis errors
+
 Make sure Redis is commented out in `.env`:
+
 ```env
 # REDIS_URL=redis://localhost:6379
 # REDIS_MAX_RETRIES=3
 ```
 
 ### VHS nodes not found
+
 1. Check custom nodes installed:
+
    ```powershell
    Get-ChildItem "C:\ComfyUI\ComfyUI_windows_portable\ComfyUI\custom_nodes"
    ```
 
 2. Reinstall dependencies:
+
    ```powershell
    cd C:\ComfyUI\ComfyUI_windows_portable
    .\python_embeded\python.exe -m pip install opencv-python imageio-ffmpeg

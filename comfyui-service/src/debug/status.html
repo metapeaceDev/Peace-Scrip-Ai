@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Job Status Checker</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1e1e1e; color: #fff; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #4fc3f7; }
+        .section { background: #2d2d2d; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .status { font-size: 18px; font-weight: bold; }
+        .completed { color: #4caf50; }
+        .processing { color: #ff9800; }
+        .failed { color: #f44336; }
+        pre { background: #1a1a1a; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { background: #4fc3f7; color: #000; border: none; padding: 10px 20px;
+                border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px; }
+        button:hover { background: #81d4fa; }
+        input { padding: 8px; border-radius: 4px; border: 1px solid #555; background: #111; color: #fff; width: 520px; }
+        .recommendation { background: #424242; padding: 15px; margin: 15px 0;
+                         border-left: 4px solid #ff9800; }
+        a { color: #81d4fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Job Status Checker</h1>
+
+        <div class="section">
+            <h2>Job</h2>
+            <div>
+                <input id="jobId" value="ed56c0c8-894a-4a85-81a3-0ddd4547e466" />
+                <button onclick="checkAll()">Check All</button>
+                <button onclick="checkJob()">Check Job Status</button>
+                <button onclick="checkQueue()">Check Queue</button>
+            </div>
+            <div id="jobStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>Queue Status</h2>
+            <div id="queueStatus"></div>
+        </div>
+
+        <div class="recommendation" id="recommendation" style="display:none;">
+            <h3>Recommendations</h3>
+            <div id="recommendationText"></div>
+        </div>
+    </div>
+
+    <script>
+        function getJobId() {
+            const url = new URL(window.location.href);
+            const fromQuery = url.searchParams.get('jobId');
+            const el = document.getElementById('jobId');
+            return (fromQuery || el.value || '').trim();
+        }
+
+        function safeJsonStringify(value) {
+            try { return JSON.stringify(value, null, 2); } catch { return String(value); }
+        }
+
+        async function checkJob() {
+            const jobId = getJobId();
+            const el = document.getElementById('jobStatus');
+            el.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const response = await fetch(`/debug/job/${encodeURIComponent(jobId)}`);
+                const payload = await response.json();
+
+                if (!payload?.success) {
+                    throw new Error(payload?.message || 'Request failed');
+                }
+
+                const job = payload.data?.job;
+                const state = job?.state || 'unknown';
+
+                let statusClass = 'processing';
+                if (state === 'completed') statusClass = 'completed';
+                if (state === 'failed') statusClass = 'failed';
+
+                const videoUrl = job?.result?.videoUrl;
+
+                el.innerHTML = `
+                    <p><strong>Status:</strong> <span class="status ${statusClass}">${state}</span></p>
+                    <p><strong>Progress:</strong> ${job?.progress ?? 0}%</p>
+                    ${job?.createdAt ? `<p><strong>Created:</strong> ${new Date(job.createdAt).toLocaleString()}</p>` : ''}
+                    ${videoUrl ? `<p><strong>Video URL:</strong> <a href="${videoUrl}" target="_blank">${videoUrl}</a></p>` : ''}
+                    ${job?.error ? `<p><strong>Error:</strong> ${job.error}</p>` : ''}
+                    <details>
+                        <summary>Full Job Data</summary>
+                        <pre>${safeJsonStringify(payload)}</pre>
+                    </details>
+                `;
+
+                showRecommendation(job, payload.data?.analysis);
+            } catch (error) {
+                el.innerHTML = `<p class="failed">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function checkQueue() {
+            const el = document.getElementById('queueStatus');
+            el.innerHTML = '<p>Loading...</p>';
+
+            try {
+            const response = await fetch(`/debug/queue`);
+                const payload = await response.json();
+
+                if (!payload?.success) {
+                    throw new Error(payload?.message || 'Request failed');
+                }
+
+                const queue = payload.data.queue || {};
+                const comfy = payload.data.comfyui || {};
+
+                el.innerHTML = `
+                    <p><strong>Backend queue</strong></p>
+                    <p><strong>Active:</strong> ${queue.active ?? 0}</p>
+                    <p><strong>Waiting:</strong> ${queue.waiting ?? 0}</p>
+                    <p><strong>Completed:</strong> ${queue.completed ?? 0}</p>
+                    <p><strong>Failed:</strong> ${queue.failed ?? 0}</p>
+                    <p><strong>Delayed:</strong> ${queue.delayed ?? 0}</p>
+                    <hr />
+                    <p><strong>ComfyUI queue</strong> ${comfy.url ? `(${comfy.url})` : ''}</p>
+                    ${comfy.ok
+                        ? `<p><strong>Running:</strong> ${comfy.running ?? 0} &nbsp; <strong>Pending:</strong> ${comfy.pending ?? 0} &nbsp; <strong>Status:</strong> ${(comfy.running ?? 0) > 0 ? 'GENERATING' : 'IDLE'}</p>`
+                        : `<p class="failed">ComfyUI not responding${comfy.error ? ` (${comfy.error})` : ''}</p>`
+                    }
+                    <details>
+                        <summary>Full Status Payload</summary>
+                        <pre>${safeJsonStringify(payload)}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                el.innerHTML = `<p class="failed">Error: ${error.message}</p>`;
+            }
+        }
+
+        function showRecommendation(job, analysis) {
+            const recDiv = document.getElementById('recommendation');
+            const recText = document.getElementById('recommendationText');
+
+            recDiv.style.display = 'block';
+
+            if (analysis?.likelyFinalizing) {
+                recText.innerHTML = `
+                    <p><strong>Likely:</strong> finalizing (download/upload)</p>
+                    <p>${analysis?.note || ''}</p>
+                    <p><strong>Next check:</strong> look at backend logs for download/upload progress or errors.</p>
+                `;
+                return;
+            }
+
+            if (job?.state === 'completed') {
+                recText.innerHTML = `<p><strong>SUCCESS:</strong> Job completed.</p>`;
+                return;
+            }
+
+            if (job?.state === 'failed') {
+                recText.innerHTML = `<p><strong>ERROR:</strong> Job failed. ${job?.error ? `Error: ${job.error}` : ''}</p>`;
+                return;
+            }
+
+            recText.innerHTML = `<p>Job state: ${job?.state || 'unknown'} (${job?.progress ?? 0}%).</p>`;
+        }
+
+        async function checkAll() {
+            await checkJob();
+            await checkQueue();
+        }
+
+        window.onload = async () => {
+            await checkAll();
+        };
+    </script>
+</body>
+</html>

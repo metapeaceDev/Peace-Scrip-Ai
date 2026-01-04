@@ -3,6 +3,7 @@
 ## Overview
 
 The Intelligent Load Balancer automatically routes video/image generation jobs to the optimal backend based on:
+
 - **Cost** (prefer free local GPU)
 - **Speed** (faster processing = better UX)
 - **Availability** (health checks every 30s)
@@ -11,11 +12,11 @@ The Intelligent Load Balancer automatically routes video/image generation jobs t
 
 ## Backends
 
-| Backend | Priority | Cost/Job | Speed | Notes |
-|---------|----------|----------|-------|-------|
-| **Local GPU** | 1 (highest) | $0 | ~10s | RTX 5090 32GB, ComfyUI localhost:8188 |
-| **Cloud (RunPod)** | 2 | $0.007 | ~20s | Auto-scaling RTX 3090/4090 pods |
-| **Gemini AI** | 3 (fallback) | $0.08 | ~5s | Fast but expensive, image only |
+| Backend            | Priority     | Cost/Job | Speed | Notes                                 |
+| ------------------ | ------------ | -------- | ----- | ------------------------------------- |
+| **Local GPU**      | 1 (highest)  | $0       | ~10s  | RTX 5090 32GB, ComfyUI localhost:8188 |
+| **Cloud (RunPod)** | 2            | $0.007   | ~20s  | Auto-scaling RTX 3090/4090 pods       |
+| **Gemini AI**      | 3 (fallback) | $0.08    | ~5s   | Fast but expensive, image only        |
 
 ## API Endpoints
 
@@ -24,6 +25,7 @@ The Intelligent Load Balancer automatically routes video/image generation jobs t
 Get load balancer status and statistics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -76,6 +78,7 @@ Get load balancer status and statistics.
 Get backend recommendation for a job (preview only, doesn't process).
 
 **Request Body:**
+
 ```json
 {
   "jobType": "video",
@@ -88,6 +91,7 @@ Get backend recommendation for a job (preview only, doesn't process).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -107,16 +111,19 @@ Get backend recommendation for a job (preview only, doesn't process).
 Get recommendations based on workload.
 
 **Query Parameters:**
+
 - `jobCount` - Number of jobs to process (default: 1)
 - `maxBudget` - Maximum total budget (optional)
 - `needsFast` - Prioritize speed over cost (default: false)
 
 **Example:**
+
 ```
 GET /api/loadbalancer/recommendations?jobCount=100&maxBudget=1.00&needsFast=false
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -154,14 +161,16 @@ GET /api/loadbalancer/recommendations?jobCount=100&maxBudget=1.00&needsFast=fals
 Calculate cost estimate for jobs.
 
 **Request Body:**
+
 ```json
 {
   "jobCount": 1000,
-  "backend": "local"  // optional, defaults to auto-selection
+  "backend": "local" // optional, defaults to auto-selection
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -184,16 +193,18 @@ Calculate cost estimate for jobs.
 Update user preferences.
 
 **Request Body:**
+
 ```json
 {
-  "preferredBackend": "cloud",      // "auto", "local", "cloud", "gemini"
-  "maxCostPerJob": 0.01,            // Max cost per job (USD)
-  "prioritizeSpeed": true,          // Speed over cost
-  "allowCloudFallback": true        // Allow fallback to cloud if local fails
+  "preferredBackend": "cloud", // "auto", "local", "cloud", "gemini"
+  "maxCostPerJob": 0.01, // Max cost per job (USD)
+  "prioritizeSpeed": true, // Speed over cost
+  "allowCloudFallback": true // Allow fallback to cloud if local fails
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -211,6 +222,7 @@ Update user preferences.
 Get all backend information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -239,21 +251,25 @@ Score = Priority(40%) + Cost(30%) + Speed(20%) + Queue(10%)
 ```
 
 ### Priority Score (40 points max)
+
 - Priority 1 (local): 40 points
 - Priority 2 (cloud): 26.7 points
 - Priority 3 (gemini): 13.3 points
 
 ### Cost Score (30 points max)
+
 - $0 (local): 30 points
 - $0.007 (cloud): 27.4 points
 - $0.08 (gemini): 0 points
 
 ### Speed Score (20 points max)
+
 - 5s (gemini): 20 points
 - 10s (local): 10 points
 - 20s (cloud): 0 points
 
 ### Queue Score (10 points max)
+
 - 0 jobs: 10 points
 - 5 jobs: 5 points
 - 10+ jobs: 0 points
@@ -271,11 +287,12 @@ Total retry attempts: **3** with exponential backoff.
 ## Usage Examples
 
 ### Example 1: Auto Mode (Default)
+
 ```javascript
 // Job automatically routed to best backend
 const job = await queue.add({
-  prompt: "Beautiful landscape",
-  userId: "user123"
+  prompt: 'Beautiful landscape',
+  userId: 'user123',
 });
 
 // Load balancer selects:
@@ -285,15 +302,16 @@ const job = await queue.add({
 ```
 
 ### Example 2: Cost-Conscious Mode
+
 ```javascript
 // Force cheap backends only
 const job = await queue.add({
-  prompt: "Portrait photo",
-  userId: "user123",
+  prompt: 'Portrait photo',
+  userId: 'user123',
   userPreferences: {
-    maxCostPerJob: 0.01,     // Max $0.01 per job
-    allowCloudFallback: true  // Allow cloud if local fails
-  }
+    maxCostPerJob: 0.01, // Max $0.01 per job
+    allowCloudFallback: true, // Allow cloud if local fails
+  },
 });
 
 // Load balancer selects:
@@ -303,15 +321,16 @@ const job = await queue.add({
 ```
 
 ### Example 3: Speed Mode
+
 ```javascript
 // Prioritize fast processing
 const job = await queue.add({
-  prompt: "Quick sketch",
-  userId: "user123",
+  prompt: 'Quick sketch',
+  userId: 'user123',
   userPreferences: {
     prioritizeSpeed: true,
-    allowCloudFallback: true
-  }
+    allowCloudFallback: true,
+  },
 });
 
 // Load balancer adjusts scoring:
@@ -321,14 +340,15 @@ const job = await queue.add({
 ```
 
 ### Example 4: Force Specific Backend
+
 ```javascript
 // Manual backend selection
 const job = await queue.add({
-  prompt: "Test image",
-  userId: "user123",
+  prompt: 'Test image',
+  userId: 'user123',
   userPreferences: {
-    preferredBackend: "cloud"  // Force cloud usage
-  }
+    preferredBackend: 'cloud', // Force cloud usage
+  },
 });
 
 // Load balancer always uses cloud (unless health check fails)
@@ -361,12 +381,12 @@ The load balancer is automatically integrated with the queue service:
 
 ```javascript
 // Queue service automatically uses load balancer
-imageQueue.process(async (job) => {
+imageQueue.process(async job => {
   // Internally calls: processImageGenerationSmart(job)
   // Which uses: loadBalancer.selectBackend() + failover
 });
 
-videoQueue.process(async (job) => {
+videoQueue.process(async job => {
   // Internally calls: processVideoGenerationSmart(job)
   // Which uses: loadBalancer.selectBackend() + failover
 });
@@ -417,31 +437,35 @@ curl -X PUT http://localhost:8000/api/loadbalancer/preferences \
 
 Expected performance with hybrid setup:
 
-| Metric | Local Only | Hybrid (Local + Cloud) |
-|--------|-----------|------------------------|
-| **Throughput** | 6 videos/min | 15-50 videos/min |
-| **Cost** | $0 | $0.007/video avg |
-| **Availability** | 95% (single GPU) | 99.9% (auto-scaling) |
-| **Failover** | Manual | Automatic |
+| Metric           | Local Only       | Hybrid (Local + Cloud) |
+| ---------------- | ---------------- | ---------------------- |
+| **Throughput**   | 6 videos/min     | 15-50 videos/min       |
+| **Cost**         | $0               | $0.007/video avg       |
+| **Availability** | 95% (single GPU) | 99.9% (auto-scaling)   |
+| **Failover**     | Manual           | Automatic              |
 
 ## Troubleshooting
 
 **Backend not available:**
+
 - Check health status: `GET /api/loadbalancer/status`
 - Verify backend config: Local GPU running? Cloud API key valid?
 - Check backend health endpoint directly
 
 **High costs:**
+
 - Set `maxCostPerJob` limit
 - Prefer local GPU: `preferredBackend: "local"`
 - Monitor costs: `GET /api/cloud/cost`
 
 **Slow processing:**
+
 - Enable speed mode: `prioritizeSpeed: true`
 - Scale cloud workers: `POST /api/cloud/spawn`
 - Check queue length: `GET /api/loadbalancer/status`
 
 **Failover not working:**
+
 - Verify `allowCloudFallback: true`
 - Check retry count in logs
 - Test manual backend switch
