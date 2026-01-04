@@ -25,4 +25,3 @@ describe('Studio', () => {
     expect(typeof Studio).toBe('function');
   });
 });
-

@@ -180,4 +180,3 @@ export function runPsychologyTests() {
 
 // Export test characters for use in actual scenes
 export { virtuousMonk, corruptPolitician };
-

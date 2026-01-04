@@ -55,4 +55,3 @@ describe('AuthPage', () => {
     expect(screen.getByText('เข้าสู่ระบบ')).toBeInTheDocument();
   });
 });
-

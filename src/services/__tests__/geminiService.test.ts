@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  generateTitle, 
-  generateStructure, 
-  generateCharacterDetails, 
-  generateScene 
+import {
+  generateTitle,
+  generateStructure,
+  generateCharacterDetails,
+  generateScene,
 } from '../geminiService';
 
 // Mock dependencies
@@ -98,36 +98,34 @@ describe('GeminiService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-       mocks.generateContent.mockRejectedValue(new Error('API Error'));
-       const scriptData = {
+      mocks.generateContent.mockRejectedValue(new Error('API Error'));
+      const scriptData = {
         genre: 'Adventure',
         premise: 'A hero goes on a journey',
       };
-      
+
       await expect(generateTitle(scriptData as any)).rejects.toThrow();
     });
   });
 
   describe('generateStructure', () => {
-      it('should generate structure', async () => {
-          const mockStructure = [
-              { title: 'Inciting Incident', description: 'Something happens' }
-          ];
-          const mockResponse = {
-            text: JSON.stringify(mockStructure),
-          };
-          mocks.generateContent.mockResolvedValue(mockResponse);
+    it('should generate structure', async () => {
+      const mockStructure = [{ title: 'Inciting Incident', description: 'Something happens' }];
+      const mockResponse = {
+        text: JSON.stringify(mockStructure),
+      };
+      mocks.generateContent.mockResolvedValue(mockResponse);
 
-          const scriptData = {
-            genre: 'Drama',
-            premise: 'A sad story',
-            theme: 'Loss',
-            characters: [],
-          };
+      const scriptData = {
+        genre: 'Drama',
+        premise: 'A sad story',
+        theme: 'Loss',
+        characters: [],
+      };
 
-          const result = await generateStructure(scriptData as any);
-          expect(result).toEqual(mockStructure);
-      });
+      const result = await generateStructure(scriptData as any);
+      expect(result).toEqual(mockStructure);
+    });
   });
 
   describe('generateCharacterDetails', () => {
@@ -155,9 +153,9 @@ describe('GeminiService', () => {
             {
               action: 'John enters.',
               dialogue: [{ speaker: 'John', text: 'Hello.' }],
-            }
-          ]
-        }
+            },
+          ],
+        },
       };
       const mockResponse = {
         text: JSON.stringify(mockScene),
@@ -177,8 +175,9 @@ describe('GeminiService', () => {
       const result = await generateScene(scriptData as any, plotPoint as any, 0, 1, 1);
       // The result will be processed, so we check if it contains our data
       expect(result.slugline).toEqual(mockScene.slugline);
-      expect(result.sceneDesign.situations[0].action).toEqual(mockScene.sceneDesign.situations[0].action);
+      expect(result.sceneDesign.situations[0].action).toEqual(
+        mockScene.sceneDesign.situations[0].action
+      );
     });
   });
 });
-

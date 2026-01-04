@@ -30,4 +30,3 @@ describe('Step1Genre', () => {
     expect(container).toBeTruthy();
   });
 });
-

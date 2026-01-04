@@ -24,4 +24,3 @@ describe('Step5Output', () => {
     expect(typeof Step5Output).toBe('function');
   });
 });
-

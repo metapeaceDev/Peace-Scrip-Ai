@@ -36,4 +36,3 @@ describe('App', () => {
     expect(mainDiv).toBeInTheDocument();
   });
 });
-

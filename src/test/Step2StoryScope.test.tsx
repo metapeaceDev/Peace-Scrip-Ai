@@ -18,4 +18,3 @@ describe('Step2StoryScope', () => {
     expect(typeof Step2StoryScope).toBe('function');
   });
 });
-

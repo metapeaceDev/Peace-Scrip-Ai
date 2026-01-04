@@ -28,7 +28,7 @@ vi.mock('firebase/firestore', () => ({
   getDocs: vi.fn(),
   Timestamp: {
     now: vi.fn(() => ({ toDate: () => new Date() })),
-    fromDate: vi.fn((date) => ({ toDate: () => date })),
+    fromDate: vi.fn(date => ({ toDate: () => date })),
   },
   arrayUnion: vi.fn(),
   arrayRemove: vi.fn(),
@@ -128,9 +128,9 @@ describe('TeamCollaborationService', () => {
         exists: () => false,
       });
 
-      await expect(
-        teamCollaborationService.acceptInvitation('inv-1', 'user-1')
-      ).rejects.toThrow('Invitation not found');
+      await expect(teamCollaborationService.acceptInvitation('inv-1', 'user-1')).rejects.toThrow(
+        'Invitation not found'
+      );
     });
   });
 
@@ -155,7 +155,7 @@ describe('TeamCollaborationService', () => {
     it('should remove collaborator from project and update user shared projects', async () => {
       const projectId = 'proj-1';
       const userId = 'user-2';
-      
+
       (doc as any).mockReturnValue('doc-ref');
       (getDoc as any).mockResolvedValue({
         exists: () => true,
@@ -171,4 +171,3 @@ describe('TeamCollaborationService', () => {
     });
   });
 });
-

@@ -24,4 +24,3 @@ describe('Step4Structure', () => {
     expect(typeof Step4Structure).toBe('function');
   });
 });
-

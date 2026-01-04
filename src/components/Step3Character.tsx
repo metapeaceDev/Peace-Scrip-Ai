@@ -15,6 +15,7 @@ import {
   fillMissingCharacterDetails,
   generateCharacterImage,
   generateCostumeImage,
+  generateCostumeFashionDesign,
   generateAllCharactersFromStory,
 } from '../services/geminiService';
 import {
@@ -35,6 +36,7 @@ import { hybridTTS, HybridTTSService } from '../services/hybridTTSService';
 import { VoiceUploadModal } from './VoiceUploadModal';
 import { voiceCloningService } from '../services/voiceCloningService';
 import type { GenerationMode } from '../services/comfyuiWorkflowBuilder';
+import { checkBackendStatus } from '../services/comfyuiBackendClient';
 
 interface Step3CharacterProps {
   scriptData: ScriptData;
@@ -118,6 +120,154 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   // i18n
   const { t } = useTranslation();
 
+  const [comfyPlatformStatus, setComfyPlatformStatus] = useState<{
+    running: boolean;
+    workers?: number;
+    healthyWorkers?: number;
+    platform?: {
+      hasNvidiaGPU?: boolean;
+      supportsFaceID?: boolean;
+      recommendedFaceIdMethod?: string;
+      reason?: string;
+    };
+    error?: string;
+  } | null>(null);
+
+  // Face ID Mode Selection
+  const [faceIdMode, setFaceIdMode] = useState<'auto' | 'manual'>('auto');
+  const [selectedFaceIdMethod, setSelectedFaceIdMethod] = useState<
+    'instantid' | 'ipadapter' | 'gemini' | 'lora' | 'faceswap'
+  >('instantid'); // Default: InstantID (best quality)
+
+  const loadComfyPlatformStatus = async () => {
+    try {
+      const status = await checkBackendStatus(true);
+      setComfyPlatformStatus(status);
+    } catch {
+      // Never block UI on background capability checks
+      setComfyPlatformStatus({ running: false, error: 'Backend check failed' });
+    }
+  };
+
+  const renderAIModelSelector = (props?: { className?: string }) => {
+    const hasReferenceImage = Boolean(activeCharacter.faceReferenceImage || activeCharacter.image);
+    const comfyKnown = comfyPlatformStatus !== null;
+    const comfyRunning = Boolean(comfyPlatformStatus?.running);
+    const comfyHasNvidia = Boolean(comfyPlatformStatus?.platform?.hasNvidiaGPU);
+    const comfySupportsFaceId = Boolean(comfyPlatformStatus?.platform?.supportsFaceID);
+    const comfyRecommended = String(
+      comfyPlatformStatus?.platform?.recommendedFaceIdMethod || ''
+    ).toLowerCase();
+
+    const comfyBaseLabel = comfyKnown
+      ? comfyRunning
+        ? 'ComfyUI detected'
+        : 'ComfyUI not detected'
+      : 'ComfyUI status unknown';
+
+    const comfyFaceIdLabel = comfyKnown
+      ? comfySupportsFaceId
+        ? `Face ID: ${comfyRecommended || 'supported'}`
+        : 'Face ID: not supported'
+      : 'Face ID: unknown';
+
+    const comfyDisabled = comfyKnown ? !comfyRunning : false;
+    const fluxDisabled = comfyKnown ? !comfyRunning || !comfyHasNvidia : false;
+
+    return (
+      <>
+        <label className="block text-[10px] font-medium text-gray-400 mb-1">
+          AI Model
+          <span className="text-[9px] text-gray-500 ml-1">(Free & Paid)</span>
+        </label>
+        <select
+          value={activeCharacter.preferredModel || 'auto'}
+          onFocus={() => void loadComfyPlatformStatus()}
+          onChange={e => {
+            if (onRegisterUndo) onRegisterUndo();
+            updateCharacterAtIndex(activeCharIndex, { preferredModel: e.target.value });
+          }}
+          className={
+            props?.className ||
+            'w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500'
+          }
+        >
+          <option value="auto">🤖 AUTO - Smart selection (with fallback)</option>
+          <optgroup label="🎁 FREE MODELS">
+            <option value="pollinations">⚡⚡⚡ Pollinations.ai (5-10s, Medium quality)</option>
+            <option value="comfyui-sdxl" disabled={comfyDisabled}>
+              ⚡⚡ ComfyUI + SDXL (Local) — {comfyKnown ? comfyBaseLabel : 'requires backend'}
+            </option>
+            <option value="gemini-flash">⚡⚡⚡ Gemini 2.0 Flash (10-30s, free quota)</option>
+          </optgroup>
+          <optgroup label="💵 PAID MODELS">
+            <option value="gemini-pro">🌟🌟🌟🌟 Gemini 2.5 Flash Image (paid)</option>
+            <option value="comfyui-flux" disabled={fluxDisabled}>
+              🌟🌟🌟🌟🌟 ComfyUI + FLUX (Local) —{' '}
+              {comfyKnown ? (comfyHasNvidia ? 'NVIDIA OK' : 'NVIDIA required') : 'NVIDIA required'}
+            </option>
+            <option value="openai-dalle">🌟🌟🌟🌟🌟 DALL-E 3 (paid, no Face ID)</option>
+          </optgroup>
+        </select>
+
+        {hasReferenceImage && (
+          <div className="mt-1 text-[10px] text-gray-500">
+            {comfyKnown
+              ? `${comfyBaseLabel} • ${comfyFaceIdLabel}`
+              : 'Tip: Face ID support depends on your selected provider and local ComfyUI capabilities.'}
+          </div>
+        )}
+
+        {/* Face ID Mode Selection */}
+        {hasReferenceImage && comfySupportsFaceId && (
+          <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="flex items-start gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="faceIdMode"
+                checked={faceIdMode === 'auto'}
+                onChange={e => setFaceIdMode(e.target.checked ? 'auto' : 'manual')}
+                className="mt-0.5 h-4 w-4 text-cyan-500 border-gray-600 rounded focus:ring-cyan-500 focus:ring-offset-gray-900"
+              />
+              <label htmlFor="faceIdMode" className="flex-1 cursor-pointer">
+                <div className="text-[11px] font-semibold text-cyan-400">
+                  ✓ Smart Auto-Select (Recommended)
+                </div>
+                <div className="text-[9px] text-gray-400 mt-0.5">
+                  System tries: Best Quality → Fast Mode → Ultra Fast
+                </div>
+              </label>
+            </div>
+
+            {faceIdMode === 'manual' && (
+              <div className="mt-2 pl-6">
+                <label className="block text-[10px] font-medium text-gray-400 mb-1">
+                  Manual Mode (Advanced)
+                </label>
+                <select
+                  value={selectedFaceIdMethod}
+                  onChange={e => setSelectedFaceIdMethod(e.target.value as any)}
+                  className="w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="instantid">✨ Best Quality (InstantID) - 90-95%, 5-10 min</option>
+                  <option value="ipadapter">⚡ Fast Mode (IP-Adapter) - 65-75%, 3-5 min</option>
+                  <option value="gemini">🚀 Ultra Fast (Gemini 2.5) - 60-70%, 30 sec</option>
+                  <option value="lora">
+                    🎨 Custom (LoRA) - 95-98% [train with Kohya SS first]
+                  </option>
+                  <option value="faceswap">🏆 Production (FaceSwap) - 99%+, 3-5 min ✓ READY</option>
+                </select>
+                <div className="mt-1 text-[9px] text-amber-400">
+                  ⚠️ Manual mode disables automatic fallback
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
   // i18n helper (for legacy code compatibility)
   const legacyT = (th: string, en: string) => (scriptData.language === 'Thai' ? th : en);
 
@@ -130,6 +280,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [detailsModal, setDetailsModal] = useState<{
     isOpen: boolean;
   }>({ isOpen: false });
+
+  // Costume & Fashion Design Regenerate Modal State
+  const [fashionDesignModal, setFashionDesignModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
 
   const [activeCharIndex, setActiveCharIndex] = useState(0);
   const [showPsychologyTimeline, setShowPsychologyTimeline] = useState(false);
@@ -151,8 +306,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isImgLoading, setIsImgLoading] = useState(false);
   const [isCostumeLoading, setIsCostumeLoading] = useState(false);
+  const [isFashionDesignLoading, setIsFashionDesignLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationMode, setGenerationMode] = useState<GenerationMode>('balanced'); // BALANCED recommended for Mac stability
+
+  const [fashionDesignHint, setFashionDesignHint] = useState('');
 
   const [error, setError] = useState<string | null>(null);
   const [fillEmptyOnly, setFillEmptyOnly] = useState(false);
@@ -440,6 +598,34 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     }
   };
 
+  const hasFashionEdits = useMemo(() => {
+    const merged = { ...EMPTY_CHARACTER.fashion, ...(activeCharacter.fashion || {}) };
+    return Object.entries(merged).some(([_k, v]) => typeof v === 'string' && v.trim().length > 0);
+  }, [activeCharacter.fashion]);
+
+  const handleOpenFashionDesignModal = () => {
+    setFashionDesignModal({ isOpen: true });
+  };
+
+  const handleRegenerateFashionDesignConfirm = async (mode: RegenerationMode) => {
+    if (onRegisterUndo) onRegisterUndo();
+    setIsFashionDesignLoading(true);
+    setError(null);
+    try {
+      const newFashion = await generateCostumeFashionDesign(
+        activeCharacter,
+        scriptData,
+        mode,
+        fashionDesignHint
+      );
+      updateCharacterAtIndex(activeCharIndex, { fashion: newFashion });
+    } catch (e: any) {
+      setError(e?.message || 'Failed to regenerate Costume & Fashion design.');
+    } finally {
+      setIsFashionDesignLoading(false);
+    }
+  };
+
   // Generate ALL characters from Story (Step 1-2)
   const handleGenerateAllCharacters = async () => {
     // Open modal to choose regeneration mode
@@ -537,6 +723,19 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       // Including: External (Information), Physical, and Fashion data
 
       // 🇹🇭 CRITICAL: Include Ethnicity and Nationality for proper ethnicity rendering
+      const usedFashionKeys = new Set([
+        'Style Concept',
+        'Main Outfit',
+        'Accessories',
+        'Color Palette',
+        'Condition/Texture',
+        'Style preference',
+      ]);
+
+      const additionalFashionLines = Object.entries(activeCharacter.fashion || {})
+        .filter(([key, value]) => !usedFashionKeys.has(key) && !!(value || '').trim())
+        .map(([key, value]) => `${key}: ${value}`);
+
       const facialFeatures = [
         // External Information - ข้อมูลพื้นฐาน
         activeCharacter.external['Ethnicity']
@@ -565,18 +764,32 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           : null,
 
         // Fashion/Costume - เครื่องแต่งกาย (สำหรับ Portrait)
+        // IMPORTANT: Include all fashion fields (some users fill robes/จีวร in Style Concept/Texture).
+        activeCharacter.fashion['Style Concept']
+          ? `Style Concept: ${activeCharacter.fashion['Style Concept']}`
+          : null,
         activeCharacter.fashion['Main Outfit']
           ? `Wearing: ${activeCharacter.fashion['Main Outfit']}`
           : null,
         activeCharacter.fashion['Accessories']
           ? `Accessories: ${activeCharacter.fashion['Accessories']}`
           : null,
-        activeCharacter.fashion['Style preference']
-          ? `Style: ${activeCharacter.fashion['Style preference']}`
+        activeCharacter.fashion['Color Palette']
+          ? `Color Palette: ${activeCharacter.fashion['Color Palette']}`
           : null,
+        activeCharacter.fashion['Condition/Texture']
+          ? `Condition/Texture: ${activeCharacter.fashion['Condition/Texture']}`
+          : null,
+        // Backward-compat: older field name used in some saved projects
+        activeCharacter.fashion['Style preference']
+          ? `Style preference: ${activeCharacter.fashion['Style preference']}`
+          : null,
+
+        // Catch-all: include any additional fashion keys (e.g. legacy/custom fields)
+        ...additionalFashionLines,
       ]
         .filter(Boolean)
-        .join(', ');
+        .join('\n');
 
       const fullDescription = `${activeCharacter.description}. ${activeCharacter.physical['Physical Characteristics'] || ''}`;
 
@@ -593,7 +806,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         activeCharacter.faceReferenceImage, // Pass master face reference
         p => setProgress(p), // Update progress state
         generationMode, // Pass selected mode
-        activeCharacter.preferredModel // Pass preferred AI model
+        activeCharacter.preferredModel, // Pass preferred AI model
+        faceIdMode, // 🆕 Pass Face ID mode (auto/manual)
+        selectedFaceIdMethod // 🆕 Pass selected Face ID method
       );
       updateCharacterAtIndex(activeCharIndex, { image: base64Image });
     } catch (e) {
@@ -634,6 +849,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         // Fashion - ข้อมูลเสื้อผ้าและแฟชั่น
         ...activeCharacter.fashion,
       };
+      
+      // 🔍 Debug: Check Gender field
+      console.log('🔍 Character Gender Debug:');
+      console.log('  - external.gender:', activeCharacter.external?.gender);
+      console.log('  - physical.Gender:', activeCharacter.physical?.Gender);
+      console.log('  - completeCharacterData.Gender:', completeCharacterData.Gender);
+      console.log('  - completeCharacterData keys:', Object.keys(completeCharacterData));
 
       // Show detailed debug info
       if (referenceImage) {
@@ -661,7 +883,9 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         costumeReference,
         p => setProgress(p), // Update progress state
         generationMode, // Pass selected generation mode
-        activeCharacter.preferredModel // Pass preferred AI model
+        activeCharacter.preferredModel, // Pass preferred AI model
+        faceIdMode, // Pass Face ID mode (auto/manual)
+        selectedFaceIdMethod // Pass selected Face ID method
       );
 
       // Add to collection with ID
@@ -1589,42 +1813,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
               </div>
 
               {/* AI Model Selector */}
-              <div>
-                <label className="block text-[10px] font-medium text-gray-400 mb-1">
-                  AI Model
-                  <span className="text-[9px] text-gray-500 ml-1">(Free & Paid)</span>
-                </label>
-                <select
-                  value={activeCharacter.preferredModel || 'auto'}
-                  onChange={e => {
-                    if (onRegisterUndo) onRegisterUndo();
-                    updateCharacterAtIndex(activeCharIndex, { preferredModel: e.target.value });
-                  }}
-                  className="w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="auto">🤖 AUTO - Smart Selection</option>
-                  <optgroup label="🎁 FREE MODELS">
-                    <option value="pollinations">
-                      ⚡⚡⚡ Pollinations (5-10s, Medium quality)
-                    </option>
-                    <option value="comfyui-sdxl">
-                      ⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)
-                    </option>
-                    <option value="gemini-flash">
-                      ⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)
-                    </option>
-                  </optgroup>
-                  <optgroup label="💵 PAID MODELS">
-                    <option value="gemini-pro">🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)</option>
-                    <option value="comfyui-flux">
-                      🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)
-                    </option>
-                    <option value="openai-dalle">
-                      🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)
-                    </option>
-                  </optgroup>
-                </select>
-              </div>
+              <div>{renderAIModelSelector()}</div>
 
               {/* Generation Mode Selector */}
               <div>
@@ -2621,10 +2810,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                 </span>
               </div>
 
+              {/* MAIN: 2 COLUMNS */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                {/* LEFT: Data Entry */}
+                {/* LEFT COLUMN */}
                 <div className="md:col-span-6 lg:col-span-5 flex flex-col gap-6">
-                  {/* Costume Reference Input */}
+                  {/* Costume Reference (TOP LEFT) */}
                   <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
                     <div className="flex justify-between items-center mb-2">
                       <label className="text-xs font-bold text-gray-400 uppercase">
@@ -2687,8 +2877,45 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                     </div>
                   </div>
 
+                  {/* Generate Costume & Fashion */}
+                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase">
+                        Generate Costume & Fashion
+                      </label>
+                      <span className="text-[10px] text-gray-500">Optional hint</span>
+                    </div>
+                    <textarea
+                      value={fashionDesignHint}
+                      onChange={e => setFashionDesignHint(e.target.value)}
+                      placeholder={legacyT(
+                        'ใส่คำใบ้สั้นๆ เช่น "รองเท้าหนังดำ", "สตรีทแวร์", "ชุดนักธุรกิจ" (ไม่บังคับ)',
+                        'Optional short hint e.g. "black leather shoes", "streetwear", "business suit"'
+                      )}
+                      rows={2}
+                      className="w-full bg-gray-900 border border-gray-600 rounded-md py-1.5 px-2 text-white text-xs focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                    />
+                    <button
+                      onClick={handleOpenFashionDesignModal}
+                      disabled={isFashionDesignLoading}
+                      className="mt-3 w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-3 rounded-lg transition"
+                    >
+                      {isFashionDesignLoading
+                        ? legacyT('กำลังสร้าง...', 'Generating...')
+                        : legacyT('Regenerate Costume', 'Regenerate Costume')}
+                    </button>
+                  </div>
+
+                  {/* Information Costume & Fashion */}
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Information Costume & Fashion
+                  </div>
+
                   <div className="space-y-4">
-                    {Object.entries(activeCharacter.fashion || {}).map(([key, value]) => (
+                    {Object.entries({
+                      ...EMPTY_CHARACTER.fashion,
+                      ...(activeCharacter.fashion || {}),
+                    }).map(([key, value]) => (
                       <InfoField
                         key={key}
                         label={key}
@@ -2699,297 +2926,272 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
                       />
                     ))}
                   </div>
+                </div>
 
-                  {/* AI Model Selector for Outfit */}
-                  <div className="mt-3">
-                    <label className="block text-[10px] font-medium text-gray-400 mb-1">
-                      AI Model
-                      <span className="text-[9px] text-gray-500 ml-1">(Free & Paid)</span>
-                    </label>
-                    <select
-                      value={activeCharacter.preferredModel || 'auto'}
-                      onChange={e => {
-                        if (onRegisterUndo) onRegisterUndo();
-                        updateCharacterAtIndex(activeCharIndex, { preferredModel: e.target.value });
-                      }}
-                      className="w-full text-[11px] bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="auto">🤖 AUTO - Smart Selection</option>
-                      <optgroup label="🎁 FREE MODELS">
-                        <option value="pollinations">
-                          ⚡⚡⚡ Pollinations (5-10s, Medium quality)
-                        </option>
-                        <option value="comfyui-sdxl">
-                          ⚡⚡ ComfyUI SDXL (2-4min, High, Face ID 70%)
-                        </option>
-                        <option value="gemini-flash">
-                          ⚡⚡⚡ Gemini Flash (10-30s, FREE quota 1.5k/day)
-                        </option>
-                      </optgroup>
-                      <optgroup label="💵 PAID MODELS">
-                        <option value="gemini-pro">
-                          🌟🌟🌟🌟 Gemini Pro ($0.0025, Face ID 80%)
-                        </option>
-                        <option value="comfyui-flux">
-                          🌟🌟🌟🌟🌟 FLUX (5-10min, Best, NVIDIA only)
-                        </option>
-                        <option value="openai-dalle">
-                          🌟🌟🌟🌟🌟 DALL-E 3 ($0.04-0.12, No Face ID)
-                        </option>
-                      </optgroup>
-                    </select>
-                  </div>
+                {/* RIGHT COLUMN */}
+                <div className="md:col-span-6 lg:col-span-7 flex flex-col gap-6">
+                  {/* Fitting Room (Newest First) - TOP RIGHT */}
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider text-center">
+                      Fitting Room (Newest First)
+                    </h4>
 
-                  {/* Generation Mode Selector for Outfit */}
-                  <div className="mt-3">
-                    <label className="block text-[10px] font-medium text-gray-400 mb-1">
-                      Generation Mode
-                    </label>
-                    <select
-                      value={generationMode}
-                      onChange={e => setGenerationMode(e.target.value as GenerationMode)}
-                      className="w-full text-xs bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="quality">
-                        🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac
-                      </option>
-                      <option value="balanced">
-                        ⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended
-                      </option>
-                      <option value="speed">⚡ SPEED (15 steps, 3-5 min)</option>
-                    </select>
-                  </div>
+                    <div className="bg-black/40 rounded-xl border border-gray-600 overflow-hidden relative group max-w-md mx-auto w-full shadow-2xl">
+                      {selectedOutfitIndex !== null &&
+                      activeCharacter.outfitCollection &&
+                      activeCharacter.outfitCollection[selectedOutfitIndex] ? (
+                        <>
+                          {/* Image Area */}
+                          <div className="relative aspect-[3/4] w-full bg-gray-900 flex items-center justify-center overflow-hidden">
+                            <img
+                              src={activeCharacter.outfitCollection[selectedOutfitIndex].image}
+                              alt="Outfit"
+                              className="w-full h-full object-cover"
+                            />
 
-                  <button
-                    onClick={handleGenerateCostume}
-                    disabled={isCostumeLoading}
-                    className={`w-full text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${activeCharacter.faceReferenceImage || activeCharacter.image ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20'}`}
-                  >
-                    {isCostumeLoading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                    {activeCharacter.faceReferenceImage || activeCharacter.image
-                      ? 'Generate Outfit (Face ID)'
-                      : 'Generate Outfit'}
-                  </button>
+                            {/* Top Overlay Info */}
+                            <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
+                              <span className="bg-black/60 backdrop-blur-sm text-cyan-400 text-xs font-mono px-2 py-1 rounded border border-cyan-500/30 shadow-lg">
+                                Outfit #
+                                {activeCharacter.outfitCollection.length - selectedOutfitIndex}
+                              </span>
+                              <span className="bg-black/60 backdrop-blur-sm text-gray-300 text-[10px] font-mono px-2 py-0.5 rounded border border-gray-600/50">
+                                ID:{' '}
+                                {activeCharacter.outfitCollection[selectedOutfitIndex].id || 'GEN'}
+                              </span>
+                            </div>
 
-                  {/* ComfyUI Skipped Warning */}
-                  {typeof window !== 'undefined' &&
-                    localStorage.getItem('peace_comfyui_skipped') === 'true' &&
-                    (activeCharacter.faceReferenceImage || activeCharacter.image) && (
-                      <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                        <div className="flex gap-2 items-start">
+                            {/* Tag Overlay if used in scene */}
+                            {getOutfitUsage(
+                              activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
+                            ).length > 0 && (
+                              <div className="absolute top-4 right-4 bg-purple-900/80 backdrop-blur-sm text-purple-200 text-[10px] font-bold px-2 py-1 rounded border border-purple-500/50 shadow-lg max-w-[120px] text-right">
+                                {
+                                  getOutfitUsage(
+                                    activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
+                                  )[0]
+                                }
+                                {getOutfitUsage(
+                                  activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
+                                ).length > 1 &&
+                                  ` +${getOutfitUsage(activeCharacter.outfitCollection[selectedOutfitIndex].id || '').length - 1}`}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bottom Action Bar */}
+                          <div className="bg-gray-800 border-t border-gray-600 p-3 flex gap-2">
+                            <button
+                              onClick={handleDownloadOutfit}
+                              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Download
+                            </button>
+                            <button
+                              onClick={handleSetProfileFromOutfit}
+                              className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/30"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Set as Profile
+                            </button>
+                            <button
+                              onClick={handleDeleteOutfit}
+                              className="px-3 bg-red-900/30 hover:bg-red-900/60 text-red-400 border border-red-900/50 rounded transition-colors"
+                              title="Delete Outfit"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="aspect-[3/4] flex flex-col items-center justify-center text-center p-12 text-gray-500 bg-gray-900">
                           <svg
-                            className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-16 w-16 mx-auto mb-4 opacity-30"
                             fill="none"
-                            stroke="currentColor"
                             viewBox="0 0 24 24"
+                            stroke="currentColor"
                           >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                              strokeWidth={1}
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                             />
                           </svg>
-                          <div className="text-amber-300 text-xs">
-                            <strong>Face ID Disabled:</strong> ComfyUI setup was skipped. Face
-                            matching will not work.
-                            <button
-                              onClick={() => {
-                                localStorage.removeItem('peace_comfyui_skipped');
-                                window.location.reload();
-                              }}
-                              className="underline ml-1 hover:text-amber-200"
-                            >
-                              Enable Face ID
-                            </button>
-                          </div>
+                          <p>Wardrobe Empty</p>
+                          <p className="text-xs mt-2">Generate an outfit to see preview</p>
                         </div>
-                      </div>
-                    )}
-                </div>
+                      )}
 
-                {/* RIGHT: Fitting Room (Mirror) */}
-                <div className="md:col-span-6 lg:col-span-7 flex flex-col">
-                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider text-center">
-                    Fitting Room (Newest First)
-                  </h4>
+                      {isCostumeLoading && (
+                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 backdrop-blur-sm p-6">
+                          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                          <span className="text-cyan-400 font-bold animate-pulse mb-2">
+                            Designing New Look...
+                          </span>
+                          <div className="w-full max-w-[200px] bg-gray-700 rounded-full h-2 mb-1">
+                            <div
+                              className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-cyan-400 text-xs font-bold">{progress}%</span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="bg-black/40 rounded-xl border border-gray-600 overflow-hidden relative group max-w-md mx-auto w-full shadow-2xl">
-                    {selectedOutfitIndex !== null &&
-                    activeCharacter.outfitCollection &&
-                    activeCharacter.outfitCollection[selectedOutfitIndex] ? (
-                      <>
-                        {/* Image Area */}
-                        <div className="relative aspect-[3/4] w-full bg-gray-900 flex items-center justify-center overflow-hidden">
+                    {/* Gallery Strip */}
+                    <div className="mt-4 flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-700">
+                      {(activeCharacter.outfitCollection || []).map((outfit, i) => (
+                        <div
+                          key={i}
+                          onClick={() => setSelectedOutfitIndex(i)}
+                          className={`flex-shrink-0 w-16 h-24 cursor-pointer rounded-md overflow-hidden border-2 transition-all relative ${selectedOutfitIndex === i ? 'border-cyan-500 opacity-100 ring-2 ring-cyan-500/50' : 'border-gray-800 opacity-60 hover:opacity-100'}`}
+                        >
                           <img
-                            src={activeCharacter.outfitCollection[selectedOutfitIndex].image}
-                            alt="Outfit"
+                            src={outfit.image}
+                            alt="Thumb"
                             className="w-full h-full object-cover"
                           />
-
-                          {/* Top Overlay Info */}
-                          <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
-                            <span className="bg-black/60 backdrop-blur-sm text-cyan-400 text-xs font-mono px-2 py-1 rounded border border-cyan-500/30 shadow-lg">
-                              Outfit #
-                              {activeCharacter.outfitCollection.length - selectedOutfitIndex}
-                            </span>
-                            <span className="bg-black/60 backdrop-blur-sm text-gray-300 text-[10px] font-mono px-2 py-0.5 rounded border border-gray-600/50">
-                              ID:{' '}
-                              {activeCharacter.outfitCollection[selectedOutfitIndex].id || 'GEN'}
-                            </span>
+                          <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 font-mono">
+                            #{(activeCharacter.outfitCollection?.length || 0) - i}
                           </div>
-
-                          {/* Tag Overlay if used in scene */}
-                          {getOutfitUsage(
-                            activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
-                          ).length > 0 && (
-                            <div className="absolute top-4 right-4 bg-purple-900/80 backdrop-blur-sm text-purple-200 text-[10px] font-bold px-2 py-1 rounded border border-purple-500/50 shadow-lg max-w-[120px] text-right">
-                              {
-                                getOutfitUsage(
-                                  activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
-                                )[0]
-                              }
-                              {getOutfitUsage(
-                                activeCharacter.outfitCollection[selectedOutfitIndex].id || ''
-                              ).length > 1 &&
-                                ` +${getOutfitUsage(activeCharacter.outfitCollection[selectedOutfitIndex].id || '').length - 1}`}
-                            </div>
+                          {getOutfitUsage(outfit.id || '').length > 0 && (
+                            <div className="absolute top-0 right-0 w-2 h-2 bg-purple-500 rounded-bl-sm"></div>
                           )}
                         </div>
-
-                        {/* Bottom Action Bar */}
-                        <div className="bg-gray-800 border-t border-gray-600 p-3 flex gap-2">
-                          <button
-                            onClick={handleDownloadOutfit}
-                            className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Download
-                          </button>
-                          <button
-                            onClick={handleSetProfileFromOutfit}
-                            className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-2 rounded transition-colors flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/30"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Set as Profile
-                          </button>
-                          <button
-                            onClick={handleDeleteOutfit}
-                            className="px-3 bg-red-900/30 hover:bg-red-900/60 text-red-400 border border-red-900/50 rounded transition-colors"
-                            title="Delete Outfit"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="aspect-[3/4] flex flex-col items-center justify-center text-center p-12 text-gray-500 bg-gray-900">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-16 w-16 mx-auto mb-4 opacity-30"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1}
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                          />
-                        </svg>
-                        <p>Wardrobe Empty</p>
-                        <p className="text-xs mt-2">Generate an outfit to see preview</p>
-                      </div>
-                    )}
-
-                    {isCostumeLoading && (
-                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 backdrop-blur-sm p-6">
-                        <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <span className="text-cyan-400 font-bold animate-pulse mb-2">
-                          Designing New Look...
-                        </span>
-                        <div className="w-full max-w-[200px] bg-gray-700 rounded-full h-2 mb-1">
-                          <div
-                            className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-cyan-400 text-xs font-bold">{progress}%</span>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Gallery Strip */}
-                  <div className="mt-4 flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-700">
-                    {(activeCharacter.outfitCollection || []).map((outfit, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setSelectedOutfitIndex(i)}
-                        className={`flex-shrink-0 w-16 h-24 cursor-pointer rounded-md overflow-hidden border-2 transition-all relative ${selectedOutfitIndex === i ? 'border-cyan-500 opacity-100 ring-2 ring-cyan-500/50' : 'border-gray-800 opacity-60 hover:opacity-100'}`}
-                      >
-                        <img
-                          src={outfit.image}
-                          alt="Thumb"
-                          className="w-full h-full object-cover"
-                        />
-                        {/* Tiny Sequence Number */}
-                        <div className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 font-mono">
-                          #{(activeCharacter.outfitCollection?.length || 0) - i}
-                        </div>
-                        {getOutfitUsage(outfit.id || '').length > 0 && (
-                          <div className="absolute top-0 right-0 w-2 h-2 bg-purple-500 rounded-bl-sm"></div>
-                        )}
+                  {/* Generate Outfit - BOTTOM RIGHT (Card with 2 columns inside) */}
+                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                      Generate Outfit
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                      {/* Left: AI Model + Generation Mode */}
+                      <div>
+                        {renderAIModelSelector()}
+
+                        <label className="block text-[10px] font-medium text-gray-400 mb-1 mt-3">
+                          Generation Mode
+                        </label>
+                        <select
+                          value={generationMode}
+                          onChange={e => setGenerationMode(e.target.value as GenerationMode)}
+                          className="w-full text-xs bg-gray-900 border border-gray-600 text-gray-300 py-1.5 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="quality">
+                            🏆 QUALITY (25 steps, 5-7 min) ⚠️ May crash on Mac
+                          </option>
+                          <option value="balanced">
+                            ⚖️ BALANCED (20 steps, 4-6 min) ✅ Recommended
+                          </option>
+                          <option value="speed">⚡ SPEED (15 steps, 3-5 min)</option>
+                        </select>
                       </div>
-                    ))}
+
+                      {/* Right: Generate Outfit Button */}
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={handleGenerateCostume}
+                          disabled={isCostumeLoading}
+                          className={`w-full text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${activeCharacter.faceReferenceImage || activeCharacter.image ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20'}`}
+                        >
+                          {isCostumeLoading ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                          {activeCharacter.faceReferenceImage || activeCharacter.image
+                            ? 'Generate Outfit (Face ID)'
+                            : 'Generate Outfit'}
+                        </button>
+
+                        {typeof window !== 'undefined' &&
+                          localStorage.getItem('peace_comfyui_skipped') === 'true' &&
+                          (activeCharacter.faceReferenceImage || activeCharacter.image) && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                              <div className="flex gap-2 items-start">
+                                <svg
+                                  className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                  />
+                                </svg>
+                                <div className="text-amber-300 text-xs">
+                                  <strong>Face ID Disabled:</strong> ComfyUI setup was skipped. Face
+                                  matching will not work.
+                                  <button
+                                    onClick={() => {
+                                      localStorage.removeItem('peace_comfyui_skipped');
+                                      window.location.reload();
+                                    }}
+                                    className="underline ml-1 hover:text-amber-200"
+                                  >
+                                    Enable Face ID
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3702,6 +3904,15 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           )
         }
       />
+
+      {/* Costume & Fashion Design Modal */}
+      <RegenerateOptionsModal
+        isOpen={fashionDesignModal.isOpen}
+        onClose={() => setFashionDesignModal({ isOpen: false })}
+        onConfirm={handleRegenerateFashionDesignConfirm}
+        sceneName="Costume & Fashion"
+        hasEdits={hasFashionEdits}
+      />
     </div>
   );
 };
@@ -3985,4 +4196,3 @@ ${characters
 };
 
 export default Step3Character;
-

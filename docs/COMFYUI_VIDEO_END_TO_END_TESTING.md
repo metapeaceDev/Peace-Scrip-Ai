@@ -146,6 +146,35 @@ curl http://localhost:8000/api/video/requirements/svd
 # Expected: { "ready": true, "vramOk": true, "modelsFound": true }
 ```
 
+### 3.3 WAN (Windows / CMD-first) Model Detection
+
+WAN is validated by ComfyUI at workflow-submit time: the `WanVideoModelLoader` node will reject any `model` value that is not in its enumerated choice list.
+
+On Windows, prefer the provided CMD scripts to avoid PowerShell + PSReadLine unicode-history crashes.
+
+```bat
+:: From repo root
+cmd /c place-wan-models.cmd
+cmd /c diagnose-wan.cmd
+```
+
+Confirm ComfyUI is advertising WAN models:
+
+```bash
+# Per-node schema (preferred): shows the exact choices list
+curl http://127.0.0.1:8188/object_info/WanVideoModelLoader
+
+# Backend aggregated view (shows supported + installed list)
+curl http://localhost:8000/api/video/models
+
+# Backend full detection dump (useful for debugging)
+curl http://localhost:8000/api/video/detect-models
+```
+
+Expected outcomes:
+- `/object_info/WanVideoModelLoader` returns a JSON object containing `input.required.model[0]` as a non-empty array.
+- `/api/video/models` returns `data.wan.supported: true` and `data.wan.installed` contains your WAN model entries.
+
 ---
 
 ## Phase 4: AnimateDiff Video Generation

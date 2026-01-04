@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ScriptData, PlotPoint, Character, GeneratedScene } from '../types';
 import { EMPTY_CHARACTER, DIALECT_PRESETS, ACCENT_PATTERNS } from '../constants';
+import { logger } from '../utils/logger';
 import {
   generateWithComfyUI as generateWithBackendComfyUI,
   checkBackendStatus,
@@ -8,20 +9,19 @@ import {
 } from './comfyuiBackendClient';
 import { formatPsychologyForPrompt, calculatePsychologyProfile } from './psychologyCalculator';
 import type { GenerationMode } from './comfyuiWorkflowBuilder';
-import { 
-  MODE_PRESETS, 
-  buildAnimateDiffWorkflow, 
-  buildSVDWorkflow,
-} from './comfyuiWorkflowBuilder';
+import { MODE_PRESETS, buildAnimateDiffWorkflow, buildSVDWorkflow } from './comfyuiWorkflowBuilder';
 import { hasAccessToModel, deductCredits } from './userStore';
 import { checkQuota, recordUsage, checkVeoQuota, recordVeoUsage } from './subscriptionManager';
 import { auth } from '../config/firebase';
 import { recordGeneration } from './modelUsageTracker';
 import { API_PRICING } from '../types/analytics';
+import type { MotionEdit } from '../types/motionEdit';
+import { buildVideoPromptWithMotion, motionEditToAnimateDiffParams } from './motionEditorService';
 import { loadRenderSettings } from './deviceManager';
 import { generateAnimateDiffVideo, generateSVDVideo, generateHotshotXL } from './replicateService';
 import { persistVideoUrl } from './videoPersistenceService';
 import { getSavedComfyUIUrl } from './comfyuiInstaller';
+import { buildCastPromptBlock, normalizeCastNames } from './castPrompt';
 
 // Initialize AI with environment variable (Vite)
 const requireGeminiApiKey = (featureName: string) => {
@@ -41,7 +41,9 @@ const requireGeminiApiKey = (featureName: string) => {
 const getAI = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn('API Key not found in environment. Gemini features will be unavailable until VITE_GEMINI_API_KEY is set.');
+    logger.warn(
+      'API Key not found in environment. Gemini features will be unavailable until VITE_GEMINI_API_KEY is set.'
+    );
   }
   // Use empty string to avoid accidentally "working" with a fake key.
   // All Gemini calls must pass through requireGeminiApiKey() first.
@@ -180,6 +182,73 @@ export const VIDEO_MODELS_CONFIG = {
       costPerGen: 0,
       isCloudGPU: true,
     },
+    // 🆕 WAN Models - FREE for all tiers (Kijai converted models)
+    COMFYUI_WAN_I2V: {
+      id: 'comfyui-wan-i2v',
+      name: '⭐ WAN 2.1 I2V 14B FP8 (Image-to-Video)',
+      provider: 'Local ComfyUI',
+      cost: 'FREE - No Credits',
+      speed: '⚡ Medium (2-4 min)',
+      quality: '🌟🌟🌟🌟🌟 Ultimate',
+      duration: '5 sec (81 frames)',
+      limits: 'GPU required (16GB+ VRAM)',
+      description: 'FREE - Best for character animation with face ID (DEFAULT)',
+      tier: 'free',
+      costPerGen: 0,
+    },
+    COMFYUI_WAN_T2V: {
+      id: 'comfyui-wan-t2v',
+      name: '🎬 WAN 2.1 T2V 14B FP8 (Text-to-Video)',
+      provider: 'Local ComfyUI',
+      cost: 'FREE - No Credits',
+      speed: '⚡ Medium (2-4 min)',
+      quality: '🌟🌟🌟🌟🌟 Ultimate',
+      duration: '5 sec (81 frames)',
+      limits: 'GPU required (16GB+ VRAM)',
+      description: 'FREE - General purpose text-to-video generation',
+      tier: 'free',
+      costPerGen: 0,
+    },
+    // COMFYUI_WAN_S2V: {
+    //   id: 'comfyui-wan-s2v',
+    //   name: 'WAN 2.2 S2V 14B (Sound-to-Video)',
+    //   provider: 'Local ComfyUI',
+    //   cost: 'FREE - No Credits',
+    //   speed: '⚡ Slow (3-6 min)',
+    //   quality: '🌟🌟🌟🌟🌟 Ultimate',
+    //   duration: '5 sec (81 frames)',
+    //   limits: 'GPU required (24GB+ VRAM), Audio input',
+    //   description: 'FREE - Audio-driven animation',
+    //   tier: 'free',
+    //   costPerGen: 0,
+    // },
+    // 🆕 AnimateDiff & SVD - FREE for all tiers
+    COMFYUI_ANIMATEDIFF_V3: {
+      id: 'comfyui-animatediff-v3',
+      name: '⭐ AnimateDiff v3 (Fast Motion)',
+      provider: 'Local ComfyUI',
+      cost: 'FREE - No Credits',
+      speed: '⚡⚡ Fast (30-60s)',
+      quality: '⭐⭐⭐⭐ High',
+      duration: '2-4 sec (16-32 frames)',
+      limits: 'GPU required (8GB+ VRAM)',
+      description: 'FREE - Fast character animation (DEFAULT)',
+      tier: 'free',
+      costPerGen: 0,
+    },
+    COMFYUI_SVD: {
+      id: 'comfyui-svd',
+      name: 'Stable Video Diffusion (Image-to-Video)',
+      provider: 'Local ComfyUI',
+      cost: 'FREE - No Credits',
+      speed: '⚡⚡ Fast (30-90s)',
+      quality: '⭐⭐⭐⭐ High',
+      duration: '2-4 sec (25 frames)',
+      limits: 'GPU required (12GB+ VRAM)',
+      description: 'FREE - Convert images to motion video',
+      tier: 'free',
+      costPerGen: 0,
+    },
   },
   BASIC: {
     REPLICATE_SVD: {
@@ -259,11 +328,13 @@ const GEMINI_25_IMAGE_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_20_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
 
 // --- DEBUG: CACHE BUSTER & ENV CHECK ---
-console.log('%c 🚀 GEMINI SERVICE LOADED v2.2 (Time: ' + new Date().toLocaleTimeString() + ')', 'background: #222; color: #bada55; font-size: 16px; padding: 4px; border-radius: 4px;');
-console.log('🔧 ENV CONFIG:', {
-  VITE_USE_COMFYUI_BACKEND: import.meta.env.VITE_USE_COMFYUI_BACKEND,
-  TYPE: typeof import.meta.env.VITE_USE_COMFYUI_BACKEND,
-  IS_TRUE: import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true'
+logger.info('🚀 GEMINI SERVICE LOADED v2.2', {
+  time: new Date().toLocaleTimeString(),
+  config: {
+    VITE_USE_COMFYUI_BACKEND: import.meta.env.VITE_USE_COMFYUI_BACKEND,
+    TYPE: typeof import.meta.env.VITE_USE_COMFYUI_BACKEND,
+    IS_TRUE: import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true',
+  },
 });
 // ---------------------------------------
 
@@ -357,11 +428,12 @@ function selectWorkflow(preferredWorkflow: string = PREFERRED_WORKFLOW): {
     };
   }
 
-  // Default to FLUX for non-Mac (assume CUDA)
+  // 🔧 DEFAULT: Use SDXL for compatibility (FLUX requires 16GB+ model download)
+  // User can manually select FLUX via model dropdown if they have it installed
   return {
-    useFlux: true,
+    useFlux: false,
     useTurbo: false,
-    reason: 'Auto: Non-Mac detected → FLUX (assumes CUDA/NVIDIA)',
+    reason: 'Auto: Using SDXL Base (compatible, high quality)',
   };
 }
 
@@ -378,8 +450,7 @@ import {
 async function generateImageWithStableDiffusion(prompt: string, seed?: number): Promise<string> {
   const startTime = Date.now();
   try {
-    console.log('🎨 Using Stable Diffusion XL (Alternative API)...');
-    console.log('🎲 Pollinations seed:', seed);
+    logger.info('🎨 Using Stable Diffusion XL (Alternative API)', { seed });
 
     // 🇹🇭 CRITICAL FIX: Translate Thai text to English for Pollinations.ai
     // SDXL doesn't understand Thai language → gets wrong ethnicity
@@ -388,7 +459,7 @@ async function generateImageWithStableDiffusion(prompt: string, seed?: number): 
     // Detect if prompt contains Thai characters
     const hasThaiText = /[\u0E00-\u0E7F]/.test(prompt);
     if (hasThaiText) {
-      console.log('🇹🇭 Detected Thai text - translating for SDXL...');
+      logger.info('🇹🇭 Detected Thai text - translating for SDXL');
 
       // Common Thai → English translations for physical features
       const thaiToEnglish: Record<string, string> = {
@@ -528,6 +599,8 @@ async function generateImageWithComfyUI(
     useIPAdapter?: boolean; // Mac: IP-Adapter instead of InstantID
     generationMode?: GenerationMode; // QUALITY/BALANCED/SPEED
     preferredModel?: string; // User's preferred AI model (model ID)
+    imageType?: 'portrait' | 'full-body'; // 🆕 NEW: Distinguish portrait vs full body
+    gender?: string; // 🔥 Iteration 13.9.2: Character gender from profile
   } = {}
 ): Promise<string> {
   // Use Backend Service if enabled
@@ -568,9 +641,12 @@ async function generateVideoWithComfyUI(
     // 🆕 Resolution control
     width?: number;
     height?: number;
+    cfg?: number;
+    steps?: number;
     character?: Character; // NEW: For psychology-driven motion
     shotData?: ShotData; // NEW: For camera/timing intelligence
     currentScene?: GeneratedScene; // NEW: For environmental context
+    characterImages?: string[]; // 🆕 Character reference images for Face ID
     onProgress?: (progress: number) => void;
   } = {}
 ): Promise<string> {
@@ -635,16 +711,44 @@ async function generateVideoWithComfyUI(
         motionModel: options.motionModule,
         lora: options.lora,
         loraStrength: options.loraStrength,
+        characterImages: options.characterImages, // 🆕 Pass character images for Face ID
       });
     } else if (options.baseImage) {
       // eslint-disable-next-line no-console
       console.log('🎬 Building SVD workflow (image-to-video)');
-      workflow = buildSVDWorkflow(options.baseImage, {
+
+      // 🎨 PREPROCESSING: Optimize image for SVD
+      // Import preprocessing function
+      const { preprocessImageForSVDFast } = await import('./imagePreprocessing');
+      console.log('🎨 Preprocessing image for SVD (reduce contrast, normalize colors)...');
+      const preprocessedImage = await preprocessImageForSVDFast(options.baseImage);
+
+      // 🎯 PHYSICS-AWARE PROMPTS: Add motion constraints
+      const physicsPrompts = [
+        'realistic motion physics',
+        'natural weight and momentum',
+        'smooth cinematic camera movement',
+        'proper motion blur',
+        'consistent perspective',
+        'NO warping',
+        'NO morphing',
+        'NO sudden jumps',
+      ];
+      const enhancedPrompt = `${prompt}. ${physicsPrompts.join(', ')}`;
+
+      workflow = buildSVDWorkflow(preprocessedImage, {
         seed: options.seed,
         numFrames: finalFrameCount,
         fps: finalFPS,
-        motionScale: Math.round(finalMotionStrength * 255), // SVD uses 0-255 for motion bucket
+        // 🔧 MOTION TUNING: Reduce motion for smoother, more natural results
+        // SVD motion_bucket_id: 1-255 (lower = subtle, higher = dramatic)
+        // Psychology-driven: 0.3 energy → ~76, 0.8 energy → ~204
+        motionScale: Math.round(Math.min(finalMotionStrength * 255, 150)), // Cap at 150 for realism
       });
+
+      console.log(
+        `🎬 SVD: Preprocessed image, enhanced prompt: "${enhancedPrompt.substring(0, 100)}..."`
+      );
     } else {
       throw new Error('SVD requires a base image. Use AnimateDiff for text-to-video.');
     }
@@ -653,10 +757,10 @@ async function generateVideoWithComfyUI(
     if (USE_COMFYUI_BACKEND) {
       console.log('🔌 Routing video generation through ComfyUI Backend Service (Port 8000)');
       return await generateImageWithBackend(
-        prompt, 
-        workflow as Record<string, unknown>, 
+        prompt,
+        workflow as Record<string, unknown>,
         options.baseImage || null,
-        10, 
+        10,
         options.onProgress
       );
     }
@@ -701,7 +805,7 @@ async function generateVideoWithComfyUI(
           // Check for video output from VHS_VideoCombine node
           const outputs = history[prompt_id].outputs;
           const videoNode = useAnimateDiff ? outputs['8'] : outputs['6'];
-          
+
           if (videoNode?.gifs && videoNode.gifs.length > 0) {
             // Get video from ComfyUI
             const videoUrl = `${comfyuiUrlForHistory}/view?filename=${videoNode.gifs[0].filename}&type=output`;
@@ -760,6 +864,45 @@ async function generateVideoWithComfyUI(
 // async function generateImageWithProviderSelection(...) { ... }
 
 // Individual provider functions for direct calls
+
+/**
+ * Generate image using FaceSwap (Impact Pack)
+ * 99%+ face similarity using inswapper_128.onnx
+ * ใช้สำหรับ "Generate Outfit (Face ID)" - ให้ full body ได้ดีกว่า InstantID
+ */
+async function generateImageWithFaceSwap(
+  prompt: string,
+  referenceImageBase64?: string
+): Promise<string> {
+  console.log('🎭 generateImageWithFaceSwap called');
+
+  if (!referenceImageBase64) {
+    throw new Error('❌ FaceSwap requires a reference image');
+  }
+
+  console.log('✅ Using FaceSwap workflow (best for full body + costume)');
+  console.log('🔄 Building FaceSwap workflow with ReActor...');
+
+  // Build FaceSwap workflow (supports full body better than InstantID)
+  const { buildFaceSwapWorkflow } = await import('./comfyuiWorkflowBuilder');
+  const workflow = buildFaceSwapWorkflow(prompt, 'reference.png', {
+    negativePrompt:
+      'ugly, deformed, noisy, blurry, low quality, bad anatomy, wrong proportions, portrait, headshot, close-up, upper body only',
+    steps: 25,
+    cfg: 7.0,
+  });
+
+  console.log('📦 FaceSwap workflow built:', Object.keys(workflow).length, 'nodes');
+
+  // Use comfyuiBackendClient to submit workflow
+  const { generateImageWithBackend } = await import('./comfyuiBackendClient');
+
+  const imageUrl = await generateImageWithBackend(prompt, workflow, referenceImageBase64);
+
+  console.log('✅ FaceSwap generation complete (full body):', imageUrl);
+  return imageUrl;
+}
+
 async function generateImageWithGemini25(
   prompt: string,
   referenceImageBase64?: string
@@ -950,6 +1093,10 @@ async function generateImageWithCascade(
     useIPAdapter?: boolean; // Mac: use IP-Adapter instead of InstantID
     generationMode?: GenerationMode; // QUALITY/BALANCED/SPEED
     preferredModel?: string; // Model ID from AI_MODELS
+    faceIdMode?: 'auto' | 'manual'; // 🆕 Face ID mode: auto (fallback) vs manual (single method)
+    selectedFaceIdMethod?: 'instantid' | 'ipadapter' | 'gemini' | 'lora' | 'faceswap'; // 🆕 Manual method
+    imageType?: 'portrait' | 'full-body'; // 🆕 NEW: Distinguish portrait vs full body
+    gender?: string; // 🔥 Iteration 13.9.2: Character gender from profile
   } = {}
 ): Promise<string> {
   const errors: string[] = [];
@@ -1004,6 +1151,91 @@ async function generateImageWithCascade(
     console.log('📸 Reference image detected - enabling hybrid fallback system');
 
     // ────────────────────────────────────────────────────────────────────────
+    // 🆕 MANUAL MODE: Force specific Face ID method (no fallback)
+    // ────────────────────────────────────────────────────────────────────────
+    if (options.faceIdMode === 'manual' && options.selectedFaceIdMethod) {
+      console.log('\n🎯 ═══ MANUAL MODE ACTIVATED ═══');
+      console.log(`📌 User selected method: ${options.selectedFaceIdMethod.toUpperCase()}`);
+      console.log('⚠️  Fallback disabled - will fail if selected method fails');
+
+      const method = options.selectedFaceIdMethod;
+
+      // Execute ONLY the selected method
+      if (method === 'instantid') {
+        console.log('\n🚀 Executing: ✨ Best Quality (InstantID)');
+        console.log('   ⚡ Speed: 5-10 minutes');
+        console.log('   🎯 Face Similarity: 90-95%');
+
+        const selectedLora = options.loraType
+          ? LORA_MODELS[options.loraType]
+          : LORA_MODELS.CHARACTER_CONSISTENCY;
+
+        return await generateImageWithComfyUI(prompt, {
+          lora: selectedLora,
+          loraStrength: 0.8,
+          negativePrompt: options.negativePrompt || 'deformed face, multiple heads, bad anatomy',
+          steps: 20,
+          cfg: 7.0,
+          referenceImage: options.referenceImage,
+          outfitReference: options.outfitReference,
+          seed: options.seed,
+          onProgress: options.onProgress,
+          useIPAdapter: false, // Force InstantID
+          imageType: options.imageType, // Pass through imageType
+          gender: options.gender, // 🔥 Pass gender from profile
+        });
+      }
+
+      if (method === 'ipadapter') {
+        console.log('\n🚀 Executing: ⚡ Fast Mode (IP-Adapter)');
+        console.log('   ⚡ Speed: 3-5 minutes');
+        console.log('   🎯 Face Similarity: 65-75%');
+
+        const selectedLora = options.loraType
+          ? LORA_MODELS[options.loraType]
+          : LORA_MODELS.CHARACTER_CONSISTENCY;
+
+        return await generateImageWithComfyUI(prompt, {
+          lora: selectedLora,
+          loraStrength: 0.8,
+          negativePrompt: options.negativePrompt || 'deformed face, multiple heads, bad anatomy',
+          steps: 30,
+          cfg: 8.0,
+          referenceImage: options.referenceImage,
+          outfitReference: options.outfitReference,
+          seed: options.seed,
+          onProgress: options.onProgress,
+          useIPAdapter: true, // Force IP-Adapter
+          imageType: options.imageType, // Pass through imageType
+          gender: options.gender, // 🔥 Pass gender from profile
+        });
+      }
+
+      if (method === 'gemini') {
+        console.log('\n🚀 Executing: 🚀 Ultra Fast (Gemini 2.5)');
+        console.log('   ⚡ Speed: ~30 seconds');
+        console.log('   🎯 Face Similarity: 60-70%');
+
+        return await generateImageWithGemini25(prompt, options.referenceImage);
+      }
+
+      if (method === 'lora') {
+        throw new Error(
+          '❌ LoRA Face ID not yet implemented\n\n' +
+            'This feature requires:\n' +
+            '1. Training a custom LoRA model with your face\n' +
+            '2. Installing the trained model in ComfyUI\n\n' +
+            'Please select another method or use Auto mode.'
+        );
+      }
+
+      if (method === 'faceswap') {
+        console.log('🔄 Using FaceSwap (Impact Pack)...');
+        return await generateImageWithFaceSwap(prompt, options.referenceImage);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
     // USER MODEL SELECTION OVERRIDE
     // ────────────────────────────────────────────────────────────────────────
     if (modelId !== 'auto') {
@@ -1040,9 +1272,13 @@ async function generateImageWithCascade(
       }
     }
 
-    // Check backend health to detect platform
+    // Check backend health to detect platform + capability
     let platformSupport = false;
     let isMacPlatform = false;
+    let platformOs: string | undefined;
+    let platformHasNvidiaGPU: boolean | undefined;
+    let platformReason: string | undefined;
+    let platformRecommendedFaceIdMethod: string | undefined;
 
     try {
       const backendStatus = await Promise.race([
@@ -1053,19 +1289,83 @@ async function generateImageWithCascade(
       ]);
 
       const status = backendStatus as {
-        platform?: { supportsFaceID?: boolean; os?: string; hasNvidiaGPU?: boolean };
+        platform?: {
+          supportsFaceID?: boolean;
+          os?: string;
+          hasNvidiaGPU?: boolean;
+          recommendedFaceIdMethod?: string;
+          reason?: string;
+          nodes?: {
+            hasIPAdapterUnifiedLoader?: boolean;
+            hasIPAdapter?: boolean;
+            hasInstantID?: boolean;
+            checked?: boolean;
+            error?: string | null;
+          };
+        };
       };
       platformSupport = status.platform?.supportsFaceID ?? false;
-      isMacPlatform = !platformSupport;
+      platformOs = status.platform?.os;
+      platformHasNvidiaGPU = status.platform?.hasNvidiaGPU;
+      platformRecommendedFaceIdMethod = status.platform?.recommendedFaceIdMethod;
+      platformReason = status.platform?.reason;
+
+      // IMPORTANT: OS determines "Mac chain" vs "Windows/Linux chain".
+      // Do NOT infer Mac just because FaceID is unsupported (often means missing nodes).
+      const osLower = String(platformOs || '').toLowerCase();
+      isMacPlatform = osLower === 'darwin' || osLower.includes('mac');
 
       console.log(`\n🖥️  Platform Detection:`);
-      console.log(`   OS: ${status.platform?.os || 'unknown'}`);
-      console.log(`   GPU: ${status.platform?.hasNvidiaGPU ? 'NVIDIA' : 'Integrated/MPS'}`);
-      console.log(`   InstantID Support: ${platformSupport ? '✅ Yes' : '❌ No (Mac/MPS)'}`);
+      console.log(`   OS: ${platformOs || 'unknown'}`);
+      console.log(`   GPU: ${platformHasNvidiaGPU ? 'NVIDIA' : 'Integrated/MPS'}`);
+      console.log(
+        `   FaceID Support: ${platformSupport ? '✅ Yes' : '❌ No (missing nodes / unsupported)'}${platformReason ? ` - ${platformReason}` : ''}`
+      );
     } catch (error) {
+      // If backend status can't be fetched, keep previous behavior (safe fallback)
       console.log('⚠️  Backend offline - assuming Mac platform for safety');
       isMacPlatform = true;
       platformSupport = false;
+    }
+
+    // If FaceID is not supported by local ComfyUI (typically missing custom nodes),
+    // skip ComfyUI FaceID attempts to avoid hard failures and wasted time.
+    if (!platformSupport) {
+      console.log(`\n⚠️  Local ComfyUI does not support Face ID right now.`);
+      console.log(`   → Skipping ComfyUI FaceID workflows (InstantID/IP-Adapter).`);
+      console.log(`   → Using Gemini 2.5 Face ID as fallback.`);
+
+      try {
+        const result = await generateImageWithGemini25(prompt, options.referenceImage);
+        return result;
+      } catch (error: unknown) {
+        const err = error as { message?: string; status?: string };
+        errors.push(`Gemini 2.5 failed: ${err.message}`);
+
+        // Last resort: generate without Face ID
+        if (USE_COMFYUI_BACKEND) {
+          const backendStatus = await checkBackendStatus(true);
+          if (backendStatus.running) {
+            const comfyImage = await generateImageWithComfyUI(prompt, {
+              lora: 'add-detail-xl.safetensors',
+              loraStrength: 0.8,
+              negativePrompt:
+                options.negativePrompt ||
+                'deformed face, multiple heads, bad anatomy, low quality, blurry',
+              steps: 30,
+              cfg: 8.0,
+              seed: options.seed,
+              onProgress: options.onProgress,
+              imageType: options.imageType, // Pass through imageType
+            });
+            return comfyImage;
+          }
+        }
+
+        throw new Error(
+          `Face ID unavailable (ComfyUI missing nodes) and Gemini failed: ${err.message}`
+        );
+      }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1143,6 +1443,7 @@ async function generateImageWithCascade(
             useIPAdapter: true,
             generationMode: mode,
             preferredModel: options.preferredModel, // Pass model preference to ComfyUI
+            imageType: options.imageType, // Pass through imageType
           });
 
           console.log(`✅ [1/3] SUCCESS: IP-Adapter Unified completed!`);
@@ -1209,6 +1510,7 @@ async function generateImageWithCascade(
             cfg: 8.0,
             seed: options.seed,
             onProgress: options.onProgress,
+            imageType: options.imageType, // Pass through imageType
             // NO referenceImage - plain SDXL generation
           });
 
@@ -1241,17 +1543,36 @@ async function generateImageWithCascade(
     // ──────────────────────────────────────────────────────────────────────────
     else {
       console.log(`\n🚀 ═══ WINDOWS/LINUX HYBRID FALLBACK CHAIN ═══`);
-      console.log(`Priority 1: InstantID (5-10 min, 90-95%, FREE)`);
-      console.log(`Priority 2: IP-Adapter (3-5 min, 65-75%, FREE)`);
-      console.log(`Priority 3: Gemini 2.5 (30 sec, 60-70%, QUOTA)`);
+      const recommended = String(platformRecommendedFaceIdMethod || '').toLowerCase();
+      const canTryInstantId = recommended === 'instantid' || !recommended;
 
-      // ─── PRIORITY 1: InstantID ──────────────────────────────────────────────
-      if (USE_COMFYUI_BACKEND) {
+      if (recommended && recommended !== 'none') {
+        console.log(`Recommended: ${platformRecommendedFaceIdMethod}`);
+      }
+
+      if (canTryInstantId) {
+        console.log(`Priority 1: ✨ Best Quality (InstantID) - 5-10 min, 90-95%, FREE`);
+        console.log(`Priority 2: ⚡ Fast Mode (IP-Adapter) - 3-5 min, 65-75%, FREE`);
+        console.log(`Priority 3: 🚀 Ultra Fast (Gemini 2.5) - 30 sec, 60-70%, QUOTA`);
+      } else {
+        console.log(`Priority 1: ⚡ Fast Mode (IP-Adapter) - 3-5 min, 65-75%, FREE`);
+        console.log(`Priority 2: 🚀 Ultra Fast (Gemini 2.5) - 30 sec, 60-70%, QUOTA`);
+      }
+
+      // ⚠️ FaceSwap (ReActor) skipped - extension not available
+      // Using InstantID with full body optimization instead
+      console.log(`\n⏭️  FaceSwap skipped - ReActor not installed`);
+      console.log(`💡 Using InstantID with full body optimization instead`);
+
+      // ─── PRIORITY 1: InstantID (Full Body Optimized) ──────────────────────────
+      if (USE_COMFYUI_BACKEND && canTryInstantId) {
         try {
-          console.log(`\n🔄 [1/3] Trying InstantID (Best Quality)...`);
-          console.log(`   ⚡ Speed: 5-10 minutes`);
-          console.log(`   🎯 Similarity: 90-95% (BEST)`);
+          console.log(`\n🔄 [1/3] 🎨 Full Body Mode (InstantID Optimized)...`);
+          console.log(`   ⚡ Speed: 5-8 minutes`);
+          console.log(`   🎯 Face Similarity: 90-95%`);
           console.log(`   💰 Cost: FREE (unlimited)`);
+          console.log(`   🔧 Technology: InstantID + Full Body Optimization`);
+          console.log(`   👕 Use Case: Generate Outfit (Face ID) - Full body with costume`);
 
           const backendStatus = await Promise.race([
             checkBackendStatus(),
@@ -1264,7 +1585,9 @@ async function generateImageWithCascade(
             throw new Error('Backend not running');
           }
 
-          console.log(`   🎨 Settings: Steps=20, CFG=7.0, LoRA=0.8 (InstantID)`);
+          console.log(
+            `   🎨 Settings: Steps=25, CFG=5.5, ip_weight=0.8, cn_strength=0.65, full body optimized`
+          );
 
           const selectedLora = options.loraType
             ? LORA_MODELS[options.loraType]
@@ -1275,36 +1598,42 @@ async function generateImageWithCascade(
             loraStrength: 0.8,
             negativePrompt:
               options.negativePrompt ||
-              'deformed face, multiple heads, bad anatomy, low quality, blurry',
-            steps: 20,
-            cfg: 7.0,
+              'deformed face, multiple heads, bad anatomy, low quality, blurry, portrait, headshot, close-up, upper body only',
+            steps: 25,
+            cfg: 5.5,
             referenceImage: options.referenceImage,
             outfitReference: options.outfitReference,
             seed: options.seed,
             onProgress: options.onProgress,
             useIPAdapter: false, // Use InstantID
+            imageType: options.imageType, // Pass through imageType
           });
 
-          console.log(`✅ [1/3] SUCCESS: InstantID completed!`);
+          console.log(`✅ [1/3] SUCCESS: 🎨 Full Body Mode completed!`);
           return comfyImage;
         } catch (error: unknown) {
           const err = error as { message?: string };
-          console.error(`❌ [1/3] FAILED: InstantID - ${err.message}`);
-          console.log(`⏭️  Falling back to Priority 2: IP-Adapter...`);
-          errors.push(`InstantID failed: ${err.message}`);
+          console.error(`❌ [1/3] FAILED: 🎨 Full Body Mode - ${err.message}`);
+          console.log(`⏭️  Falling back to Priority 2: ⚡ Fast Mode (IP-Adapter)...`);
+          errors.push(`Full Body (InstantID) failed: ${err.message}`);
         }
       } else {
-        console.log(`⏭️  [1/3] SKIPPED: ComfyUI Backend disabled`);
-        errors.push('ComfyUI Backend not enabled');
+        if (!USE_COMFYUI_BACKEND) {
+          console.log(`⏭️  [1/3] SKIPPED: ComfyUI Backend disabled`);
+          errors.push('ComfyUI Backend not enabled');
+        } else {
+          console.log(`⏭️  [1/3] SKIPPED: InstantID not recommended/available on this worker`);
+        }
       }
 
       // ─── PRIORITY 2: IP-Adapter ─────────────────────────────────────────────
       if (USE_COMFYUI_BACKEND) {
         try {
-          console.log(`\n🔄 [2/3] Trying IP-Adapter (Faster Alternative)...`);
-          console.log(`   ⚡ Speed: 3-5 minutes (faster on NVIDIA)`);
-          console.log(`   🎯 Similarity: 65-75%`);
+          console.log(`\n🔄 [2/3] ⚡ Fast Mode (IP-Adapter)...`);
+          console.log(`   ⚡ Speed: 3-5 minutes`);
+          console.log(`   🎯 Face Similarity: 65-75%`);
           console.log(`   💰 Cost: FREE (unlimited)`);
+          console.log(`   🔧 Technology: IP-Adapter Unified + CLIP Vision`);
 
           const backendStatus = await checkBackendStatus();
           if (!backendStatus.running) {
@@ -1330,27 +1659,29 @@ async function generateImageWithCascade(
             seed: options.seed,
             onProgress: options.onProgress,
             useIPAdapter: true,
+            imageType: options.imageType, // Pass through imageType
           });
 
-          console.log(`✅ [2/3] SUCCESS: IP-Adapter completed!`);
+          console.log(`✅ [2/3] SUCCESS: ⚡ Fast Mode completed!`);
           return comfyImage;
         } catch (error: unknown) {
           const err = error as { message?: string };
-          console.error(`❌ [2/3] FAILED: IP-Adapter - ${err.message}`);
-          console.log(`⏭️  Falling back to Priority 3: Gemini 2.5...`);
-          errors.push(`IP-Adapter failed: ${err.message}`);
+          console.error(`❌ [2/3] FAILED: ⚡ Fast Mode - ${err.message}`);
+          console.log(`⏭️  Falling back to Priority 3: 🚀 Ultra Fast...`);
+          errors.push(`Fast Mode (IP-Adapter) failed: ${err.message}`);
         }
       }
 
       // ─── PRIORITY 3: Gemini 2.5 ─────────────────────────────────────────────
       try {
-        console.log(`\n🔄 [3/3] Trying Gemini 2.5 Flash Image (Last Resort)...`);
+        console.log(`\n🔄 [3/3] 🚀 Ultra Fast Mode (Gemini 2.5)...`);
         console.log(`   ⚡ Speed: ~30 seconds`);
-        console.log(`   🎯 Similarity: 60-70%`);
+        console.log(`   🎯 Face Similarity: 60-70%`);
         console.log(`   ⚠️  Cost: HAS QUOTA LIMITS`);
+        console.log(`   🔧 Technology: Gemini 2.5 Flash Imagen`);
 
         const result = await generateImageWithGemini25(prompt, options.referenceImage);
-        console.log(`✅ [3/3] SUCCESS: Gemini 2.5 completed!`);
+        console.log(`✅ [3/3] SUCCESS: 🚀 Ultra Fast Mode completed!`);
         return result;
       } catch (error: unknown) {
         const err = error as { message?: string; status?: string };
@@ -1360,11 +1691,11 @@ async function generateImageWithCascade(
           err?.status === 'RESOURCE_EXHAUSTED';
 
         if (isQuotaError) {
-          console.error(`❌ [3/3] FAILED: Gemini 2.5 - Quota exceeded`);
-          errors.push('Gemini 2.5 quota exceeded');
+          console.error(`❌ [3/3] FAILED: 🚀 Ultra Fast Mode - Quota exceeded`);
+          errors.push('Ultra Fast (Gemini 2.5) quota exceeded');
         } else {
-          console.error(`❌ [3/3] FAILED: Gemini 2.5 - ${err.message}`);
-          errors.push(`Gemini 2.5 failed: ${err.message}`);
+          console.error(`❌ [3/3] FAILED: 🚀 Ultra Fast Mode - ${err.message}`);
+          errors.push(`Ultra Fast (Gemini 2.5) failed: ${err.message}`);
         }
       }
 
@@ -1372,7 +1703,7 @@ async function generateImageWithCascade(
       throw new Error(
         `❌ All Face ID methods failed on Windows/Linux\n\n` +
           `Tried:\n` +
-          `1. InstantID (5-10 min, 90-95%) - ${errors[0] || 'failed'}\n` +
+          `1. InstantID Full Body (5-8 min, 90-95%) - ${errors[0] || 'failed'}\n` +
           `2. IP-Adapter (3-5 min, 65-75%) - ${errors[1] || 'failed'}\n` +
           `3. Gemini 2.5 (30 sec, 60-70%) - ${errors[2] || 'failed'}\n\n` +
           `Please check:\n` +
@@ -1862,7 +2193,7 @@ export async function generateCharacterDetails(
           "Physical Characteristics": "...", "Voice characteristics": "...", "Eye characteristics": "...", "Facial characteristics": "...", "Gender": "...", "Height, Weight": "...", "Skin color": "...", "Hair style": "..."
         },
         "fashion": {
-          "Style Concept": "...", "Main Outfit": "...", "Accessories": "...", "Color Palette": "...", "Condition/Texture": "..."
+          "Style Concept": "...", "Main Outfit": "...", "Shoe": "...", "Accessories": "...", "Color Palette": "...", "Condition/Texture": "..."
         },
         "internal": {
           "consciousness": { "Mindfulness (remembrance)": 80, "Wisdom (right view)": 75, "Faith (Belief in the right)": 85, "Hiri (Shame of sin)": 80, "Karuna (Compassion, knowing suffering)": 90, "Mudita (Joy in happiness)": 70 },
@@ -1888,11 +2219,11 @@ export async function generateCharacterDetails(
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -1909,8 +2240,8 @@ export async function generateCharacterDetails(
         duration,
         metadata: {
           prompt: 'Character Details Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
 
       await recordUsage(userId, {
@@ -2025,6 +2356,7 @@ Return ONLY a valid JSON array of characters:
     "fashion": {
       "Style Concept": "...", 
       "Main Outfit": "...", 
+      "Shoe": "...",
       "Accessories": "...", 
       "Color Palette": "...", 
       "Condition/Texture": "..."
@@ -2107,11 +2439,11 @@ Return ONLY a valid JSON array of characters:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -2128,8 +2460,8 @@ Return ONLY a valid JSON array of characters:
         duration,
         metadata: {
           prompt: 'Generate All Characters',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
 
       await recordUsage(userId, {
@@ -2252,6 +2584,7 @@ Return ONLY a valid JSON array of 2-4 new characters:
     "fashion": {
       "Style Concept": "...", 
       "Main Outfit": "...", 
+      "Shoe": "...",
       "Accessories": "...", 
       "Color Palette": "...", 
       "Condition/Texture": "..."
@@ -2334,11 +2667,11 @@ Return ONLY a valid JSON array of 2-4 new characters:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -2355,8 +2688,8 @@ Return ONLY a valid JSON array of 2-4 new characters:
         duration,
         metadata: {
           prompt: 'Compatible Characters Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
 
       await recordUsage(userId, {
@@ -2409,11 +2742,11 @@ export async function fillMissingCharacterDetails(
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -2430,8 +2763,8 @@ export async function fillMissingCharacterDetails(
         duration,
         metadata: {
           prompt: 'Fill Character Details',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -2439,6 +2772,138 @@ export async function fillMissingCharacterDetails(
   } catch (error) {
     console.error('Error filling missing character details:', error);
     throw new Error('Failed to fill missing details.');
+  }
+}
+
+export type FashionRegenerationMode = 'fresh' | 'refine' | 'use-edited';
+
+export async function generateCostumeFashionDesign(
+  character: Character,
+  scriptData: ScriptData,
+  mode: FashionRegenerationMode,
+  userHint?: string
+): Promise<Record<string, string>> {
+  const startTime = Date.now();
+  const userId = auth.currentUser?.uid;
+
+  try {
+    const langInstruction =
+      scriptData.language === 'Thai'
+        ? 'STRICTLY OUTPUT VALUES IN THAI ONLY. Do not use English in values. Keep JSON keys in English.'
+        : 'Ensure all value fields are written in English.';
+
+    const safeHint = (userHint || '').trim();
+
+    const baseContext = {
+      name: character.name,
+      role: character.role,
+      description: character.description,
+      external: character.external || {},
+      physical: character.physical || {},
+    };
+
+    const currentFashion = character.fashion || {};
+
+    const modeInstruction =
+      mode === 'fresh'
+        ? `REGENERATION MODE: Fresh Start\n- Generate completely new Costume & Fashion from scratch.\n- Do NOT reference Current Fashion values.\n- Still ensure the design fits the character context (role/description/physical/external) and story genre.`
+        : mode === 'refine'
+          ? `REGENERATION MODE: Refine Existing\n- Improve and enhance the existing Costume & Fashion while keeping its core identity.\n- Keep any non-empty fields consistent; fill missing fields; improve specificity and coherence.\n- Avoid drastic outfit changes unless required by the hint.`
+          : `REGENERATION MODE: Use Edited Data\n- Treat Current Fashion as the user's edited source of truth.\n- Do NOT overwrite user's non-empty fields; expand around them and fill any missing fields.\n- Ensure the final set feels coherent and production-ready.`;
+
+    const prompt = `You are a professional costume designer for film/series. Create a Costume & Fashion Design for ONE character.
+
+Story context:
+- Project Type: ${scriptData.projectType}
+- Genre: ${scriptData.mainGenre || 'Not specified'}
+- Theme: ${scriptData.theme || 'Not specified'}
+
+Character context (JSON):
+${JSON.stringify(baseContext, null, 2)}
+
+${modeInstruction}
+
+${safeHint ? `USER HINT (optional): ${safeHint}\n` : ''}
+
+Current Fashion (JSON):
+${mode === 'fresh' ? '{ }' : JSON.stringify(currentFashion, null, 2)}
+
+${langInstruction}
+
+OUTPUT REQUIREMENTS:
+1. Return ONLY valid JSON.
+2. Return an object with a single key "fashion".
+3. "fashion" MUST be a JSON object (Record<string,string>) using EXACTLY these keys:
+   - "Style Concept"
+   - "Main Outfit"
+   - "Shoe"
+   - "Accessories"
+   - "Color Palette"
+   - "Condition/Texture"
+4. Every value must be a non-empty string (fill all fields).
+`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: mode === 'fresh' ? 0.9 : 0.6,
+      },
+    });
+
+    const text = extractJsonFromResponse(response.text || '{}');
+    const parsed = JSON.parse(text) as
+      | { fashion?: Record<string, string> }
+      | Record<string, string>;
+
+    const fashionObject =
+      typeof (parsed as any)?.fashion === 'object' && (parsed as any)?.fashion
+        ? ((parsed as any).fashion as Record<string, string>)
+        : (parsed as Record<string, string>);
+
+    const normalizedFashion: Record<string, string> = {
+      ...EMPTY_CHARACTER.fashion,
+      ...(mode === 'fresh' ? {} : currentFashion),
+      ...Object.fromEntries(
+        Object.entries(fashionObject || {}).filter(
+          ([k, v]) => typeof k === 'string' && typeof v === 'string'
+        )
+      ),
+    };
+
+    // ✅ Record usage after successful generation
+    if (userId) {
+      const duration = (Date.now() - startTime) / 1000;
+
+      const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
+      const outputTokens = await countTokens(text, 'gemini-2.5-flash');
+
+      const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
+      const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
+      const totalCost = inputCost + outputCost;
+
+      await recordGeneration({
+        userId,
+        type: 'text',
+        modelId: 'gemini-2.5-flash',
+        modelName: 'Gemini 2.5 Flash (Costume & Fashion)',
+        provider: 'gemini',
+        costInCredits: 1,
+        costInTHB: totalCost,
+        success: true,
+        duration,
+        metadata: {
+          prompt: 'Costume & Fashion Design',
+          tokens: { input: inputTokens, output: outputTokens },
+        },
+      });
+    }
+
+    return normalizedFashion;
+  } catch (error) {
+    console.error('Error generating Costume & Fashion design:', error);
+    throw new Error('Failed to generate Costume & Fashion design.');
   }
 }
 
@@ -2478,16 +2943,16 @@ export async function generateFullScriptOutline(
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-1.5-pro'); // Use 1.5 pro tokenizer as proxy
       const outputTokens = await countTokens(text, 'gemini-1.5-pro');
-      
+
       // Use 1.5 Pro pricing as proxy for 2.5 Pro if not defined, or assume similar
-      // Assuming API_PRICING has GEMINI['1.5-pro'] or similar. 
+      // Assuming API_PRICING has GEMINI['1.5-pro'] or similar.
       // If 2.5-pro is not in pricing, fallback to 1.5-pro pricing
       const pricing = API_PRICING.GEMINI['1.5-pro'] || { input: 0.000125, output: 0.000375 }; // Fallback values
-      
+
       const inputCost = inputTokens * pricing.input;
       const outputCost = outputTokens * pricing.output;
       const totalCost = inputCost + outputCost;
@@ -2504,8 +2969,8 @@ export async function generateFullScriptOutline(
         duration,
         metadata: {
           prompt: 'Full Script Outline',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -2561,6 +3026,89 @@ export async function generateScene(
     )
     .join('\n');
 
+  const buildWardrobeCanonForScene = (scene: any): string => {
+    if (!scene || typeof scene !== 'object') return '';
+
+    const sceneNo = typeof scene.sceneNumber === 'number' ? scene.sceneNumber : undefined;
+    const sceneName =
+      typeof scene?.sceneDesign?.sceneName === 'string' ? scene.sceneDesign.sceneName : '';
+    const location =
+      typeof scene?.sceneDesign?.location === 'string' ? scene.sceneDesign.location : '';
+
+    const outfits =
+      scene?.characterOutfits && typeof scene.characterOutfits === 'object'
+        ? scene.characterOutfits
+        : null;
+    const outfitLine = outfits
+      ? Object.entries(outfits)
+          .filter(
+            ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+          )
+          .slice(0, 10)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(', ')
+      : '';
+
+    const shotList: any[] = Array.isArray(scene?.shotList) ? scene.shotList : [];
+    const costumeValues = shotList
+      .map(s => (typeof s?.costume === 'string' ? s.costume.trim() : ''))
+      .filter(Boolean);
+
+    const mostCommon = (items: string[]): string => {
+      const counts = new Map<string, number>();
+      for (const item of items) counts.set(item, (counts.get(item) || 0) + 1);
+      let best = '';
+      let bestCount = 0;
+      for (const [k, c] of counts.entries()) {
+        if (c > bestCount) {
+          best = k;
+          bestCount = c;
+        }
+      }
+      return best;
+    };
+
+    const costumeCanon = mostCommon(costumeValues);
+    const cf = shotList.find(
+      s => s?.costumeFashion && typeof s.costumeFashion === 'object'
+    )?.costumeFashion;
+    const cfSummary =
+      cf && typeof cf === 'object'
+        ? Object.entries(cf)
+            .filter(
+              ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+            )
+            .slice(0, 6)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(' | ')
+        : '';
+
+    return (
+      `Scene ${sceneNo ?? '?'}${sceneName ? ` — ${sceneName}` : ''}${location ? ` @ ${location}` : ''}\n` +
+      (outfitLine ? `- characterOutfits: ${outfitLine}\n` : '') +
+      (costumeCanon ? `- costume CANON (copy exact if continuous): ${costumeCanon}\n` : '') +
+      (cfSummary ? `- costumeFashion CANON (copy exact if continuous): ${cfSummary}\n` : '')
+    ).trim();
+  };
+
+  const previousWardrobeInfo = (() => {
+    const buckets =
+      scriptData?.generatedScenes && typeof scriptData.generatedScenes === 'object'
+        ? Object.values(scriptData.generatedScenes)
+        : [];
+    const allScenes = buckets.flatMap(v => (Array.isArray(v) ? v : []));
+
+    const prev = allScenes
+      .filter(
+        s => typeof (s as any)?.sceneNumber === 'number' && (s as any).sceneNumber < sceneNumber
+      )
+      .sort((a: any, b: any) => Number(b.sceneNumber) - Number(a.sceneNumber))
+      .slice(0, 2);
+
+    const lines = prev.map(s => buildWardrobeCanonForScene(s)).filter(Boolean);
+    return lines.join('\n\n');
+  })();
+
   // Generate psychology profiles for all characters
   const psychologyProfiles = scriptData.characters
     .map(c => formatPsychologyForPrompt(c))
@@ -2591,6 +3139,9 @@ IMPORTANT: Use these psychological profiles to:
     Story Bible: ${storyBible}
     Previous Scenes: ${previousScenesInfo}
 
+    Previous Wardrobe Canon (for continuity across scenes if the story is continuous):
+    ${previousWardrobeInfo || 'N/A'}
+
     ${characterPsychology}
 
     Return JSON with the following structure:
@@ -2608,6 +3159,10 @@ IMPORTANT: Use these psychological profiles to:
         ],
         "moodTone": "Mood description in ${scriptData.language}"
       },
+      "characterOutfits": {
+        "Character Name": "stable-outfit-id",
+        "Another Character": "stable-outfit-id"
+      },
       "shotList": [
         {
           "scene": "${sceneNumber}",
@@ -2617,13 +3172,21 @@ IMPORTANT: Use these psychological profiles to:
           "shotSize": "Choose from: ECU, CU, MCU, MS, MLS, LS, VLS, EST",
           "perspective": "Choose from: Eye-Level, High Angle, Low Angle, Bird's Eye, Worm's Eye, POV, OTS, Canted",
           "movement": "Choose from: Static, Pan, Tilt, Dolly In, Dolly Out, Zoom In, Zoom Out, Tracking, Handheld, Steadicam, Crane",
+          "visualEffects": "Choose from: None, Slow Motion, Fast Motion / Time-lapse, Black & White, Sepia Tone, Film Grain, Smoke / Fog, Rain / Snow, Lens Flare, or other appropriate VFX",
           "equipment": "Choose from: Tripod, Dolly, Slider, Crane, Steadicam, Gimbal, Handheld Rig, Drone",
           "focalLength": "Choose from: 14mm, 24mm, 35mm, 50mm, 85mm, 100mm, 135mm, 200mm+",
           "aspectRatio": "Choose from: 16:9, 2.39:1, 4:3, 1:1",
           "lightingDesign": "Lighting description in ${scriptData.language}",
           "colorTemperature": "Choose from: Warm (3200K), Neutral (5600K), Cool (6500K+)",
           "cast": "Character names in shot",
-          "costume": "Costume description in ${scriptData.language}",
+          "costume": "Costume description in ${scriptData.language} (KEEP CONSISTENT across shots unless an explicit change is required)",
+          "costumeFashion": {
+            "Style Concept": "...",
+            "Main Outfit": "...",
+            "Color Palette": "...",
+            "Accessories": "...",
+            "Condition/Texture": "..."
+          },
           "set": "Set/Location description in ${scriptData.language}"
         }
       ],
@@ -2687,6 +3250,10 @@ IMPORTANT: Use these psychological profiles to:
     1. Generate at least 5-8 shots per scene with COMPLETE details for ALL fields
     2. Each shot MUST have ALL fields filled (no empty strings)
     3. Use actual values from the dropdown options provided
+     4. WARDROBE / COSTUME CONTINUITY (CRITICAL):
+       - Within the SAME scene: costumes MUST be continuous. Do NOT randomly change clothing, age, hairstyle, accessories, or makeup across shots.
+       - If this scene is a direct continuation of the previous scene(s) (same moment/time/location), COPY the wardrobe canon EXACTLY (same costume text + same costumeFashion object) unless the story explicitly requires a change.
+       - If a costume change is required by the story, make it explicit in the costume text (e.g., "เปลี่ยนชุดแล้ว: ...") and keep it consistent for the rest of the scene.
     4. PropList should list ALL props mentioned in the scene (at least 3-5 items)
     5. Breakdown MUST follow professional Film Production Breakdown format:
        
@@ -2913,11 +3480,11 @@ DO NOT change the structure, just improve the quality of content within it.
 
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -2934,8 +3501,8 @@ DO NOT change the structure, just improve the quality of content within it.
         duration,
         metadata: {
           prompt: 'Refine Scene',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
 
       await recordUsage(userId, {
@@ -2989,6 +3556,84 @@ export async function regenerateWithEdits(
 
   const editedSceneJson = JSON.stringify(editedScene.sceneDesign, null, 2);
 
+  const buildWardrobeCanonForScene = (scene: any): string => {
+    if (!scene || typeof scene !== 'object') return '';
+
+    const outfits =
+      scene?.characterOutfits && typeof scene.characterOutfits === 'object'
+        ? scene.characterOutfits
+        : null;
+    const outfitLine = outfits
+      ? Object.entries(outfits)
+          .filter(
+            ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+          )
+          .slice(0, 10)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(', ')
+      : '';
+
+    const shotList: any[] = Array.isArray(scene?.shotList) ? scene.shotList : [];
+    const costumeValues = shotList
+      .map(s => (typeof s?.costume === 'string' ? s.costume.trim() : ''))
+      .filter(Boolean);
+
+    const mostCommon = (items: string[]): string => {
+      const counts = new Map<string, number>();
+      for (const item of items) counts.set(item, (counts.get(item) || 0) + 1);
+      let best = '';
+      let bestCount = 0;
+      for (const [k, c] of counts.entries()) {
+        if (c > bestCount) {
+          best = k;
+          bestCount = c;
+        }
+      }
+      return best;
+    };
+
+    const costumeCanon = mostCommon(costumeValues);
+    const cf = shotList.find(
+      s => s?.costumeFashion && typeof s.costumeFashion === 'object'
+    )?.costumeFashion;
+    const cfSummary =
+      cf && typeof cf === 'object'
+        ? Object.entries(cf)
+            .filter(
+              ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+            )
+            .slice(0, 6)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(' | ')
+        : '';
+
+    return (
+      (outfitLine ? `- characterOutfits: ${outfitLine}\n` : '') +
+      (costumeCanon ? `- costume CANON: ${costumeCanon}\n` : '') +
+      (cfSummary ? `- costumeFashion CANON: ${cfSummary}\n` : '')
+    ).trim();
+  };
+
+  const editedWardrobeCanon = buildWardrobeCanonForScene(editedScene);
+
+  const previousWardrobeInfo = (() => {
+    const buckets =
+      scriptData?.generatedScenes && typeof scriptData.generatedScenes === 'object'
+        ? Object.values(scriptData.generatedScenes)
+        : [];
+    const allScenes = buckets.flatMap(v => (Array.isArray(v) ? v : []));
+
+    const prev = allScenes
+      .filter(
+        s => typeof (s as any)?.sceneNumber === 'number' && (s as any).sceneNumber < sceneNumber
+      )
+      .sort((a: any, b: any) => Number(b.sceneNumber) - Number(a.sceneNumber))
+      .slice(0, 2);
+
+    const lines = prev.map(s => buildWardrobeCanonForScene(s)).filter(Boolean);
+    return lines.join('\n\n');
+  })();
+
   // Extract character list from edited scene for emphasis
   const editedCharacterList = editedScene.sceneDesign.characters || [];
   const characterListStr =
@@ -3041,9 +3686,19 @@ Your role:
 
 **SHOT LIST:**
 - Generate at least 5-8 complete shots
-- EVERY shot MUST have ALL fields filled (scene, shot, description, durationSec, shotSize, perspective, movement, equipment, focalLength, aspectRatio, lightingDesign, colorTemperature, cast, costume, set)
+- EVERY shot MUST have ALL fields filled (scene, shot, description, durationSec, shotSize, perspective, movement, equipment, focalLength, aspectRatio, lightingDesign, colorTemperature, cast, costume, costumeFashion, set, visualEffects)
 - Use proper technical values (ECU, CU, MS, LS, etc. for shotSize)
 - Include all characters who appear in each shot in the "cast" field
+- WARDROBE / COSTUME CONTINUITY (CRITICAL):
+  - Within the SAME scene: costumes MUST be continuous. Do NOT randomly change clothing/age/hairstyle/accessories across shots.
+  - If this regenerated scene is continuous with the previous scene(s), COPY the wardrobe canon EXACTLY unless user edits explicitly require a change.
+  - "costumeFashion" MUST be a JSON object (schema matches Step 3 Costume & Fashion) and should remain consistent across shots unless a change is explicitly required.
+
+WARDROBE CANON FROM USER-EDITED SCENE (highest priority if present):
+${editedWardrobeCanon || 'N/A'}
+
+WARDROBE CANON FROM PREVIOUS GENERATED SCENES (use for continuity across scenes if applicable):
+${previousWardrobeInfo || 'N/A'}
 
 **BREAKDOWN:**
 - Part 1: Production Information (1 complete row with ALL fields)
@@ -3094,6 +3749,13 @@ Example structure showing COMPLETE data:
       "colorTemperature": "Neutral (5600K)",
       "cast": "${editedCharacterList.join(', ')}",
       "costume": "Costume description",
+      "costumeFashion": {
+        "Style Concept": "...",
+        "Main Outfit": "...",
+        "Color Palette": "...",
+        "Accessories": "...",
+        "Condition/Texture": "..."
+      },
       "set": "Set description"
     }
   ],
@@ -3218,11 +3880,11 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
 
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -3239,8 +3901,8 @@ Generate a complete scene with ALL fields properly filled. DO NOT use empty stri
         duration,
         metadata: {
           prompt: 'Regenerate Scene',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
 
       await recordUsage(userId, {
@@ -3294,10 +3956,10 @@ export async function convertDialogueToDialect(
     // Since I can't see the prompt construction in the previous read_file, I'll assume it's there.
     // Wait, I need to be careful not to delete the prompt construction.
     // I will read the function from the beginning to make sure I capture the prompt construction.
-    
+
     // Actually, I can just wrap the generateContent call and add tracking.
     // But I need the prompt variable.
-    
+
     // Let's read the whole function first.
 
     const dialectInfo =
@@ -3376,14 +4038,14 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.0-flash-exp');
       const outputTokens = await countTokens(convertedDialogue, 'gemini-2.0-flash-exp');
-      
+
       // Use 1.5 Flash pricing as proxy for 2.0 Flash Exp if not defined
       const pricing = API_PRICING.GEMINI['1.5-flash'] || { input: 0.00001875, output: 0.000075 };
-      
+
       const inputCost = inputTokens * pricing.input;
       const outputCost = outputTokens * pricing.output;
       const totalCost = inputCost + outputCost;
@@ -3400,8 +4062,8 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
         duration,
         metadata: {
           prompt: 'Dialect Conversion',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -3418,9 +4080,25 @@ ${speechPattern.customPhrases && speechPattern.customPhrases.length > 0 ? `ว�
 export async function generateStoryboardImage(
   prompt: string,
   characters?: Character[],
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  options?: {
+    seed?: number; // 🆕 Stable seed for scene consistency
+    previousShotImage?: string; // 🆕 Previous shot for continuity
+    preferredModel?: string; // 🆕 User-selected model
+  }
 ): Promise<string> {
   try {
+    // 🆕 CONSISTENCY: Extract character reference images for Face ID
+    let primaryCharacterRef: string | undefined;
+    if (characters && characters.length > 0) {
+      // Use first character with image as primary reference
+      const charWithImage = characters.find(c => c.image);
+      if (charWithImage?.image) {
+        primaryCharacterRef = charWithImage.image;
+        console.log(`🎭 Using Face ID for character: ${charWithImage.name}`);
+      }
+    }
+
     // If characters are provided, add psychology context to enhance the image
     let enhancedPrompt = prompt;
     if (characters && characters.length > 0) {
@@ -3433,10 +4111,22 @@ export async function generateStoryboardImage(
       enhancedPrompt = `${prompt}\n\nCharacter Emotions & Expressions: ${psychologyContext}`;
     }
 
-    return await generateImageWithCascade(enhancedPrompt, {
-      useLora: true,
-      loraType: 'DETAIL_ENHANCER',
-      negativePrompt: 'low quality, blurry, distorted, text, watermark',
+    // 🆕 CONTINUITY: Add previous shot context if available
+    if (options?.previousShotImage) {
+      enhancedPrompt += `\n\nIMPORTANT: Maintain visual continuity with previous shot. Keep consistent lighting, color palette, and character appearances.`;
+    }
+
+    // 🎬 CINEMATIC STYLE: Add photorealistic keywords
+    const cinematicPrompt = `professional cinematic photography, photorealistic, film grain, depth of field, dramatic lighting, movie scene, high quality cinematography, realistic textures\n\n${enhancedPrompt}`;
+
+    return await generateImageWithCascade(cinematicPrompt, {
+      referenceImage: primaryCharacterRef, // 🆕 FACE ID: Use character reference
+      useLora: characters && characters.length > 0, // Use LoRA only when characters exist
+      loraType: characters && characters.length > 0 ? 'CHARACTER_CONSISTENCY' : 'DETAIL_ENHANCER',
+      negativePrompt:
+        'anime, cartoon, manga, illustration, drawing, painting, sketch, 2d art, cell shading, comic book, animated, stylized, non-photorealistic, low quality, blurry, distorted, text, watermark, inconsistent style, changing faces, morphing',
+      seed: options?.seed, // 🆕 SEED CONSISTENCY
+      preferredModel: options?.preferredModel,
       onProgress: onProgress,
     });
   } catch (error: unknown) {
@@ -3446,6 +4136,25 @@ export async function generateStoryboardImage(
   }
 }
 
+/**
+ * 📸 SYSTEM 1: GENERATE PROFILE (เจนโปรไฟล์)
+ *
+ * สร้างภาพ PORTRAIT (ครึ่งตัว/ใบหน้า) สำหรับตัวละคร
+ * - ✅ ใช้ Face ID: Match กับ faceReferenceImage (Face Identity Master)
+ * - Focus: Portrait style (head and shoulders) + Face matching
+ * - Output: ภาพครึ่งตัวที่รักษาใบหน้าจาก Face Identity Master
+ * - Use Case: Character profile picture, avatar with consistent face
+ *
+ * เรียกใช้จาก: Step 3 Character → "Generate Portrait" button
+ * ใช้ faceReferenceImage: activeCharacter.faceReferenceImage
+ *
+ * Face ID Methods:
+ * - InstantID: Best quality, photorealistic (ใช้ buildSDXLFaceIDWorkflow)
+ * - IP-Adapter: Mac optimized alternative
+ * - Gemini: AI-based face matching
+ * - LoRA: Fine-tuned model (not yet implemented)
+ * - FaceSwap: Direct face replacement (ReActor)
+ */
 export async function generateCharacterImage(
   description: string,
   style: string,
@@ -3453,7 +4162,9 @@ export async function generateCharacterImage(
   referenceImageBase64?: string,
   onProgress?: (progress: number) => void,
   generationMode: GenerationMode = 'balanced',
-  preferredModel?: string // Model ID: 'pollinations', 'comfyui-sdxl', 'gemini-pro', etc.
+  preferredModel?: string, // Model ID: 'pollinations', 'comfyui-sdxl', 'gemini-pro', etc.
+  faceIdMode?: 'auto' | 'manual', // 🆕 Face ID mode: auto (fallback chain) vs manual (single method)
+  selectedFaceIdMethod?: 'instantid' | 'ipadapter' | 'gemini' | 'lora' | 'faceswap' // 🆕 Manual mode method selection
 ): Promise<string> {
   // ✅ Quota validation
   const userId = auth.currentUser?.uid;
@@ -3477,163 +4188,28 @@ export async function generateCharacterImage(
     console.log('  - Facial Features:', facialFeatures);
     console.log('  - Has Reference:', !!referenceImageBase64);
 
-    // Extract gender from facial features (Thai words FIRST for better matching)
-    // Use looser pattern for Thai words (no word boundary)
-    const thaiGenderMatch = facialFeatures.match(/(ชาย|หญิง|ผู้ชาย|ผู้หญิง)/i);
-    const engGenderMatch = facialFeatures.match(/\b(male|female|man|woman|boy|girl)\b/i);
-    const genderMatch = thaiGenderMatch || engGenderMatch;
-    let gender = genderMatch ? genderMatch[1].trim().toLowerCase() : '';
+    const { buildCharacterImagePrompt } = await import('./characterImagePromptBuilder');
 
-    // Normalize Thai gender to English IMMEDIATELY
-    if (gender === 'ชาย' || gender === 'ผู้ชาย') {
-      gender = 'male';
-    } else if (gender === 'หญิง' || gender === 'ผู้หญิง') {
-      gender = 'female';
-    }
-
-    // Extract age from facial features
-    const ageMatch =
-      facialFeatures.match(/age[:\s]+([^,]+)/i) ||
-      facialFeatures.match(/(\d+)\s*(?:years?\s+old|yr|y\.o\.|ปี)/i) ||
-      facialFeatures.match(/อายุ[:\s]*(\d+)/i);
-    const age = ageMatch ? ageMatch[1].trim() : '';
-
-    console.log('🔍 Extracted gender:', gender);
-    console.log('🔍 Extracted age:', age);
-
-    // 🇹🇭 CRITICAL: Extract ethnicity/nationality for Thai characters
-    const ethnicityMatch =
-      facialFeatures.match(/ethnicity[:\s]+([^,]+)/i) ||
-      facialFeatures.match(/เชื้อชาติ[:\s]*([^,]+)/i) ||
-      facialFeatures.match(/\b(Thai|ไทย|Southeast Asian|Asian)\b/i);
-    const nationalityMatch =
-      facialFeatures.match(/nationality[:\s]+([^,]+)/i) ||
-      facialFeatures.match(/สัญชาติ[:\s]*([^,]+)/i);
-
-    let ethnicity = '';
-    if (ethnicityMatch) {
-      ethnicity = ethnicityMatch[1].trim().toLowerCase();
-      if (ethnicity === 'ไทย') ethnicity = 'thai';
-    }
-    if (nationalityMatch) {
-      const nationality = nationalityMatch[1].trim().toLowerCase();
-      if (nationality === 'ไทย' || nationality === 'thai') ethnicity = 'thai';
-    }
-
-    console.log('🇹🇭 Extracted ethnicity:', ethnicity);
-
-    // Build ethnicity-specific keywords for Thai people
-    let ethnicityKeywords = '';
-    if (ethnicity.includes('thai') || ethnicity.includes('ไทย')) {
-      ethnicityKeywords =
-        'Thai person, Southeast Asian features, Thai ethnicity, Asian facial features, tan skin tone, Thai face, warm skin tone, monolid eyes, black hair, Southeast Asian appearance';
-    } else if (ethnicity.includes('asian') || ethnicity.includes('เอเชีย')) {
-      ethnicityKeywords = 'Asian person, Asian facial features, monolid eyes, Asian ethnicity';
-    }
-
-    // Build gender-specific keywords for stronger differentiation
-    let genderKeywords = '';
-    if (gender.includes('female') || gender.includes('woman') || gender.includes('girl')) {
-      genderKeywords = 'FEMALE WOMAN, feminine features, lady, she, her, NEVER male features';
-    } else if (gender.includes('male') || gender.includes('man') || gender.includes('boy')) {
-      genderKeywords = 'MALE MAN, masculine features, gentleman, he, him, NEVER female features';
-    }
-
-    // Build age-specific keywords
-    let ageKeywords = '';
-    if (age) {
-      const ageNum = parseInt(age);
-      if (!isNaN(ageNum)) {
-        if (ageNum < 18) ageKeywords = 'young, youthful, adolescent';
-        else if (ageNum < 30) ageKeywords = 'young adult, fresh-faced';
-        else if (ageNum < 50) ageKeywords = 'mature, adult';
-        else if (ageNum < 65) ageKeywords = 'middle-aged, experienced';
-        else ageKeywords = 'elderly, senior, aged, wise';
-      }
-    }
-
-    // Generate unique random seed for this character to ensure different results
     const randomSeed = Math.floor(Math.random() * 1000000);
     const timestamp = Date.now();
 
-    // Add uniqueness markers to description
-    const uniqueMarker = `[Character-${timestamp}-${randomSeed}]`;
+    const built = buildCharacterImagePrompt({
+      description,
+      style,
+      facialFeatures,
+      referenceProvided: !!referenceImageBase64,
+      randomSeed,
+      timestamp,
+    });
 
-    // Build comprehensive prompt with GENDER FIRST for Pollinations.ai
-    let prompt = `${uniqueMarker} `;
+    const prompt = built.prompt;
+    const negativePrompt = built.negativePrompt;
 
-    // 🇹🇭 CRITICAL: Ethnicity MUST be at the very start for SDXL to understand
-    if (ethnicityKeywords) {
-      prompt += `${ethnicityKeywords.split(',')[0].toUpperCase()} `; // e.g., "THAI PERSON"
-    }
-
-    // CRITICAL: Gender and Age MUST be at the start for Pollinations.ai to understand
-    if (genderKeywords) {
-      prompt += `${genderKeywords.split(',')[0].toUpperCase()} `; // e.g., "FEMALE WOMAN" or "MALE MAN"
-    }
-
-    if (age) {
-      prompt += `AGE ${age} ${ageKeywords} `;
-    }
-
-    prompt += `PORTRAIT - UNIQUE CHARACTER #${randomSeed}
-
-`;
-
-    // Style-specific keywords
-    const isRealisticStyle =
-      style.toLowerCase().includes('realistic') ||
-      style.toLowerCase().includes('photorealistic') ||
-      style.toLowerCase().includes('cinematic') ||
-      style.toLowerCase().includes('photograph');
-
-    if (isRealisticStyle) {
-      // Realistic styles - add photorealistic keywords
-      prompt += `Art Style: ${style}, PHOTOREALISTIC, REAL PHOTOGRAPH, professional photography, 8K resolution, highly detailed, realistic skin texture, natural lighting, lifelike, real person, canon camera, dslr photo, sharp focus, detailed eyes, detailed hair, pores visible, skin imperfections, natural shadows
-
-`;
-    } else {
-      // Cartoon/Anime/Artistic styles - use style as-is without photorealistic keywords
-      prompt += `Art Style: ${style}, highly detailed, vivid colors, professional illustration, clean lines, expressive features
-
-`;
-    }
-
-    // 🇹🇭 Add ethnicity description again for emphasis
-    if (ethnicityKeywords) {
-      prompt += `ETHNICITY: ${ethnicityKeywords}\n\n`;
-    }
-
-    // Physical features with gender emphasis
-    if (genderKeywords) {
-      prompt += `GENDER: ${genderKeywords}\n\n`;
-    }
-
-    prompt += `PHYSICAL FEATURES (MUST BE UNIQUE AND DIFFERENT):
-${facialFeatures}
-
-PERSONALITY:
-${description}`;
-
-    if (referenceImageBase64) {
-      prompt += `\n\nREFERENCE IMAGE PROVIDED: Copy exact facial features from reference image.`;
-    } else {
-      prompt += `\n\nNO REFERENCE: Create completely original, never-seen-before face.`;
-    }
-
-    prompt += `\n\nREQUIREMENTS:
-- UNIQUE individual #${randomSeed}
-- MAXIMUM difference from other characters
-- DISTINCTIVE facial structure and features`;
-
-    // Style-specific negative prompts
-    let negativePrompt;
-    if (isRealisticStyle) {
-      // Realistic styles - block cartoon/anime
-      negativePrompt = `cartoon, anime, manga, illustration, drawing, painting, sketch, 2d, flat colors, cell shading, comic, graphic novel, stylized, artistic, non-photorealistic, painterly, rendered, cg, 3d render, unreal engine, digital art, fantasy art, concept art, deformed face, multiple heads, bad anatomy, low quality, blurry, duplicate face, same face as other character, identical twin, generic face, copy of previous character, similar appearance to other people, clone face, repeated facial features, non-unique appearance, reused face, recycled appearance, common features, standard face, typical appearance, average face, copied from memory, previously generated face`;
-    } else {
-      // Cartoon/Anime styles - only block quality issues and duplicates
-      negativePrompt = `deformed face, multiple heads, bad anatomy, low quality, blurry, bad proportions, duplicate face, same face as other character, identical twin, generic face, copy of previous character, similar appearance to other people, clone face, repeated facial features, non-unique appearance, reused face, recycled appearance, common features, standard face, typical appearance, average face, copied from memory, previously generated face, ugly, distorted, malformed`;
+    console.log('🔍 Extracted gender:', built.meta.gender);
+    console.log('🔍 Extracted age:', built.meta.age);
+    console.log('🇹🇭 Extracted ethnicity:', built.meta.ethnicity);
+    if (built.meta.hasShavedHead) {
+      console.log('🪒 Detected shaved head/bald cue: enforcing no-hair portrait');
     }
 
     console.log('📝 Generated prompt:', prompt);
@@ -3652,6 +4228,9 @@ ${description}`;
       onProgress: onProgress, // Pass progress callback
       generationMode: generationMode, // Pass selected mode
       preferredModel: preferredModel, // Pass model preference
+      faceIdMode: faceIdMode, // 🆕 Pass Face ID mode
+      selectedFaceIdMethod: selectedFaceIdMethod, // 🆕 Pass selected Face ID method
+      imageType: 'portrait', // 🆕 PORTRAIT mode for head and shoulders
     });
   } catch (error: unknown) {
     const err = error as { message?: string };
@@ -3660,6 +4239,25 @@ ${description}`;
   }
 }
 
+/**
+ * 👔 SYSTEM 2: GENERATE OUTFIT WITH FACE ID (เจนเสื้อผ้า)
+ *
+ * สร้างภาพ FULL BODY (ตัวเต็ม) พร้อมชุดเสื้อผ้า
+ * - ✅ ใช้ Face ID: Match กับ faceReferenceImage (Face Identity Master)
+ * - Focus: Full body photo + outfit + photorealistic skin texture
+ * - Output: Full body standing pose (head to feet) ที่รักษาใบหน้า
+ * - Use Case: Character outfit design, costume variations
+ *
+ * เรียกใช้จาก: Step 3 Character → "Generate Outfit (Face ID)" button
+ * ใช้ faceReferenceImage: activeCharacter.faceReferenceImage || activeCharacter.image
+ *
+ * Face ID Methods:
+ * - InstantID: Best quality, photorealistic (ใช้ buildSDXLFaceIDWorkflow)
+ * - IP-Adapter: Mac optimized alternative
+ * - Gemini: AI-based face matching
+ * - LoRA: Fine-tuned model (not yet implemented)
+ * - FaceSwap: Direct face replacement (ReActor)
+ */
 export async function generateCostumeImage(
   characterName: string,
   costumeDesc: string,
@@ -3669,7 +4267,9 @@ export async function generateCostumeImage(
   outfitReferenceImageBase64?: string,
   onProgress?: (progress: number) => void,
   generationMode?: GenerationMode,
-  preferredModel?: string // Model ID: 'pollinations', 'comfyui-sdxl', 'gemini-pro', etc.
+  preferredModel?: string, // Model ID: 'pollinations', 'comfyui-sdxl', 'gemini-pro', etc.
+  faceIdMode?: 'auto' | 'manual', // 🆕 Face ID mode: auto (fallback chain) vs manual (single method)
+  selectedFaceIdMethod?: 'instantid' | 'ipadapter' | 'gemini' | 'lora' | 'faceswap' // 🆕 Manual mode method selection
 ): Promise<string> {
   try {
     // Always use the selected style - Face ID only controls face matching, not art style
@@ -3709,11 +4309,14 @@ export async function generateCostumeImage(
     console.log('  - Style Keywords:', styleKeywords);
     console.log('  - Has Face ID:', !!referenceImageBase64);
     console.log('  - Costume:', costumeDesc);
+    console.log('  - physicalInfo keys:', Object.keys(physicalInfo));
+    console.log('  - physicalInfo.Gender:', physicalInfo['Gender']);
 
     // ✅ Extract ALL character information: Information + Physical + Fashion
 
     // Information Section (external)
     const gender = physicalInfo['Gender'] || '';
+    console.log('🔍 Extracted gender for workflow:', gender);
     const ethnicity = physicalInfo['Ethnicity'] || physicalInfo['Nationality'] || 'Global';
     const age = physicalInfo['Age'] || '';
     const occupation = physicalInfo['Occupation'] || '';
@@ -3795,9 +4398,18 @@ export async function generateCostumeImage(
 2. I am providing a REFERENCE IMAGE - copy their EXACT facial features
 3. This is a ${genderPronoun ? genderPronoun.toUpperCase() : 'PERSON'} character${gender ? ` (Gender: ${gender})` : ''}
 
-CREATE IMAGE IN ${styleDescription.toUpperCase()} STYLE
+CREATE PHOTOREALISTIC IMAGE IN ${styleDescription.toUpperCase()} STYLE
 
-Style Keywords: ${styleKeywords}
+PHOTOREALISM REQUIREMENTS:
+- REAL PERSON PHOTOGRAPH (not illustration, not digital art, not painting)
+- PROFESSIONAL PHOTOGRAPHY (studio quality, high-end camera)
+- NATURAL SKIN TEXTURE with visible pores and natural imperfections
+- REALISTIC LIGHTING (soft professional lighting, no harsh shadows)
+- FILM GRAIN and natural photography artifacts
+- HIGH DETAIL 8K PHOTOGRAPH
+- REAL HUMAN BEING (not CGI, not 3D render, not artificial)
+
+Style Keywords: ${styleKeywords}, photorealistic, hyperrealistic, professional photography, real human photograph, natural skin texture, realistic lighting, film grain, high detail
 
 Task: Create a full-body portrait of ${characterName} wearing the specified outfit.
 
@@ -3813,11 +4425,13 @@ The first image I provided is the REFERENCE FACE. You MUST:
 8. Keep all facial features IDENTICAL to the reference person
 9. The final image must look like THE SAME PERSON as in the reference image
 
-ART STYLE REQUIREMENTS:
-- Render in ${styleDescription} style
-- Apply these visual characteristics: ${styleKeywords}
-- The art style affects the rendering technique, NOT the person's identity
-- The person's face must remain identical to the reference
+PHOTOREALISTIC RENDERING:
+- Render as REAL PHOTOGRAPH (not illustration, not digital art)
+- NATURAL SKIN TEXTURE with visible pores, fine lines, natural imperfections
+- REALISTIC LIGHTING with soft professional photography lighting
+- The person must look like a REAL HUMAN BEING photographed by a professional camera
+- Add FILM GRAIN for photorealistic quality
+- HIGH DETAIL 8K resolution photograph
 
 CHARACTER INFORMATION:
 - Name: ${characterName}
@@ -3829,30 +4443,40 @@ OUTFIT & FASHION:
 - Main Outfit: ${costumeDesc}
 ${fashionDesc ? `- Fashion Details: ${fashionDesc}` : ''}
 
-COMPOSITION REQUIREMENTS:
-- ONE SINGLE FULL-BODY IMAGE (NOT a grid, collage, or multiple views)
-- Full body shot from head to toe
-- Clear view of the complete outfit and all accessories
-- Show footwear, headwear, and special items if specified
-- Professional composition with attention to fashion details
-- NO reference sheets, NO multiple angles, NO split images
+COMPOSITION REQUIREMENTS (CRITICAL - READ CAREFULLY):
+- 🎬 LONG SHOT (LS) CINEMATOGRAPHY - ENTIRE CHARACTER FROM HEAD TO FEET MUST BE VISIBLE
+- 📸 FULL BODY PHOTOGRAPH showing complete person from head to toe (including feet and shoes)
+- ✅ Character MUST occupy 70-85% of frame height
+- ✅ Clear view of complete outfit from top to bottom with all accessories
+- ✅ Footwear MUST be fully visible (shoes, boots, or bare feet)
+- ✅ Headwear and top accessories MUST be fully visible
+- ✅ Professional fashion photography with subject centered in frame
+- ❌ NO portrait crops, NO close-ups, NO upper body only
+- ❌ NO reference sheets, NO multiple angles, NO split images, NO grids or collages
+- ❌ NEVER cut off feet, legs, or top of head
 
 FINAL REMINDER: 
+This must be a REAL PHOTOGRAPH of a REAL PERSON, not an illustration or digital art.
 The face MUST be an exact copy of the reference image person. 
-Render it in ${styleDescription} style, but the facial identity must match the reference perfectly.`;
+Render as PHOTOREALISTIC PROFESSIONAL PHOTOGRAPHY with natural skin texture and realistic lighting.`;
 
       console.log('📝 Face ID Prompt:', prompt.substring(0, 300) + '...');
 
       // Adjust negative prompt based on style
-      // Don't block cartoon/anime if that's the selected style
+      // Strongly block cartoon/anime/illustration for photorealistic styles
       if (
         effectiveStyle.toLowerCase().includes('photorealistic') ||
         effectiveStyle.toLowerCase().includes('cinematic realistic') ||
         effectiveStyle.toLowerCase().includes('professional photography')
       ) {
         negativePrompt =
-          'cartoon, anime, 3d render, illustration, painting, drawing, sketch, ' + negativePrompt;
+          '(cartoon:2.0), (anime:2.0), (illustration:2.0), (digital art:1.8), (3d render:1.8), (CGI:1.8), painting, drawing, sketch, stylized, artistic, ' +
+          negativePrompt;
       }
+
+      // 🎯 BLOCK PORTRAIT CROPS - Force full body composition
+      negativePrompt +=
+        ', (close-up:1.8), (portrait crop:1.8), (headshot:1.8), (upper body only:1.8), (cropped legs:1.8), (cut off feet:1.8), (missing feet:1.8), (head and shoulders:1.5)';
     } else {
       // REGULAR MODE - Use specified style without face reference
       prompt = `CRITICAL: Create ONE SINGLE IMAGE ONLY (not a grid, collage, or multiple views)
@@ -3897,6 +4521,10 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
       onProgress: onProgress, // Pass progress callback
       generationMode: generationMode, // Pass generation mode for quality/speed control
       preferredModel: preferredModel, // Pass model preference
+      faceIdMode: faceIdMode, // 🆕 Pass Face ID mode selection
+      selectedFaceIdMethod: selectedFaceIdMethod, // 🆕 Pass manual method selection
+      imageType: 'full-body', // 🆕 FULL BODY mode for head to feet
+      gender: gender, // 🔥 Iteration 13.9.2: Pass gender from character profile to workflow builder
     });
 
     // ✅ Record usage after successful generation
@@ -3916,13 +4544,10 @@ Render this ${genderPronoun} character in ${styleDescription} style with full ou
   }
 }
 
-import type { MotionEdit } from '../types/motionEdit';
-import { buildVideoPromptWithMotion, motionEditToAnimateDiffParams } from './motionEditorService';
-
 export async function generateStoryboardVideo(
   prompt: string,
   base64Image?: string,
-  onProgress?: (progress: number) => void,
+  onProgress?: (progress: number, details?: any, jobId?: string) => void,
   preferredModel: string = 'auto',
   options?: {
     character?: Character;
@@ -3931,6 +4556,8 @@ export async function generateStoryboardVideo(
     useAnimateDiff?: boolean;
     motionStrength?: number;
     fps?: number;
+    steps?: number;
+    cfg?: number;
     duration?: number;
     seed?: number;
     motionEdit?: MotionEdit; // 🆕 NEW: Motion Editor support
@@ -3938,6 +4565,8 @@ export async function generateStoryboardVideo(
     aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | 'custom';
     width?: number;
     height?: number;
+    // 🆕 CHARACTER FACE ID: Character reference images for consistency
+    characterImages?: string[]; // Array of character reference images (base64)
   }
 ): Promise<string> {
   try {
@@ -3992,6 +4621,21 @@ export async function generateStoryboardVideo(
         prompt
       );
 
+      // WAN default behavior request: avoid injecting extra environmental elements that can
+      // override the user's scene intent (e.g., cars/pedestrians in a temple courtyard).
+      // Keep framing/identity rules but strip the ENVIRONMENTAL MOTION block.
+      if (preferredModel.startsWith('comfyui-wan')) {
+        enhancedPrompt = enhancedPrompt.replace(
+          /(?:\r?\n){1,3}ENVIRONMENTAL MOTION:\s*(?:\r?\n)- Background:[^\r\n]*(?:\r?\n)- Atmosphere:[^\r\n]*(?:\r?\n)*/i,
+          '\n'
+        );
+      }
+
+      console.log('📝 ENHANCED PROMPT FROM buildVideoPrompt:');
+      console.log('━'.repeat(80));
+      console.log(enhancedPrompt);
+      console.log('━'.repeat(80));
+
       // Auto-calculate optimal parameters
       const recommendedFPS = getRecommendedFPS(options.shotData);
       const recommendedFrames = getRecommendedFrameCount(
@@ -4011,6 +4655,15 @@ export async function generateStoryboardVideo(
   - Motion Strength: ${finalMotionStrength.toFixed(2)}
   - Camera: ${options.shotData.movement || 'Static'}
   - Character Energy: ${options.character.emotionalState?.energyLevel || 50}`);
+
+      console.log('📋 Shot Data Details:', {
+        shotSize: options.shotData.shotSize,
+        perspective: options.shotData.perspective,
+        movement: options.shotData.movement,
+        visualEffects: options.shotData.visualEffects,
+        cast: options.shotData.cast,
+        description: options.shotData.description?.substring(0, 100) + '...',
+      });
     }
 
     // 1. Handle User Selection - Prioritize user's explicit choice
@@ -4023,8 +4676,16 @@ export async function generateStoryboardVideo(
       console.log(`🔄 Mapping local-gpu → ${mappedModel}`);
     }
 
+    // WAN is handled via backend service and can receive identity/reference inputs.
+    // Do NOT force-route WAN -> SVD just because a base image exists.
+
     // 🔧 FIX: Check ComfyUI FIRST if user explicitly selected it
-    if (mappedModel === 'comfyui-svd' || mappedModel === 'comfyui-animatediff' || mappedModel === 'comfyui-wan') {
+    const isComfyUIModel =
+      mappedModel === 'comfyui-svd' ||
+      mappedModel === 'comfyui-animatediff' ||
+      mappedModel === 'comfyui-animatediff-v3' ||
+      mappedModel.startsWith('comfyui-wan');
+    if (isComfyUIModel) {
       console.warn('🎬 USER SELECTED COMFYUI:', mappedModel);
 
       // Skip direct ComfyUI check if using backend service (has its own health checks)
@@ -4048,25 +4709,170 @@ export async function generateStoryboardVideo(
 
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
-          const isWan = mappedModel === 'comfyui-wan';
+          const isWan = mappedModel.startsWith('comfyui-wan');
           const useAnimateDiff =
-            mappedModel === 'comfyui-animatediff' || (options?.useAnimateDiff !== false && mappedModel !== 'comfyui-svd');
+            mappedModel === 'comfyui-animatediff' ||
+            mappedModel === 'comfyui-animatediff-v3' ||
+            (options?.useAnimateDiff !== false && mappedModel !== 'comfyui-svd');
           const useSVD = mappedModel === 'comfyui-svd';
-          console.warn(`🎬 ComfyUI Mode: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          console.warn(
+            `🎬 ComfyUI Mode: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`
+          );
 
           // IMPORTANT: Do not force SDXL LoRA for video workflows.
           // AnimateDiff video in this project uses an SD1.5 base checkpoint; applying an SDXL LoRA (e.g. add-detail-xl)
           // will often produce noisy/garbled frames.
-          const selectedVideoLora = typeof (options as any)?.lora === 'string' ? ((options as any).lora as string) : undefined;
+          const selectedVideoLora =
+            typeof (options as any)?.lora === 'string'
+              ? ((options as any).lora as string)
+              : undefined;
           const selectedVideoLoraStrength =
-            typeof (options as any)?.loraStrength === 'number' ? ((options as any).loraStrength as number) : undefined;
+            typeof (options as any)?.loraStrength === 'number'
+              ? ((options as any).loraStrength as number)
+              : undefined;
 
-          const result = await generateVideoWithComfyUI(enhancedPrompt, {
+          // 🆕 FIX: Use enhanced prompt directly (already has "Cinematic shot." from buildVideoPrompt)
+          // Don't add prefix again to avoid diluting ABSOLUTE MANDATORY RULES
+          let finalPrompt = enhancedPrompt;
+
+          // Cast parsing must handle both string and array forms. A false negative here can
+          // accidentally add "no people" negatives and cause characters to disappear.
+          const castNames = normalizeCastNames(options?.shotData?.cast);
+          const castCount = castNames.length;
+          const hasCharacters = castCount > 0;
+          const hasThaiCast = castNames.some(n => /[\u0E00-\u0E7F]/.test(n));
+
+          // For shots with no cast, ban people only (NOT buildings) so environments like temples remain allowed.
+          const characterNegatives = hasCharacters
+            ? ', extra people, crowd, background people'
+            : ', people in frame, humans visible, person walking, crowd';
+
+          const userNegativePrompt =
+            typeof (options as any)?.negativePrompt === 'string'
+              ? String((options as any).negativePrompt)
+              : '';
+
+          const continuityNegatives = hasCharacters
+            ? ', outfit change, costume change, different clothes, missing accessories, jewelry change, face blur, soft focus, out of focus face, blurred background, soft background, noisy, grainy, pixelated, distorted face, deformed eyes, missing character, missing person, absent character, character disappears, missing limbs, missing arms, missing legs, amputated, dismembered, extra limbs, bad anatomy, broken anatomy, malformed hands, fused fingers' +
+              (castCount > 1 ? ', only one person, single person, one person only' : '')
+            : '';
+
+          // Add authoritative cast constraints to the positive prompt.
+          // WAN is prompt-only, so this is a key lever for "ตัวละครครบ".
+          const castBlock = buildCastPromptBlock(castNames);
+          if (castBlock && !finalPrompt.includes('CAST RULES (AUTHORITATIVE):')) {
+            finalPrompt = `${finalPrompt}\n\n${castBlock}`;
+          }
+
+          // If cast names are Thai, strongly bias away from Western/Caucasian defaults.
+          // (Common failure mode: model defaults to Western-looking faces when prompt is underspecified.)
+          if (isWan && hasThaiCast && !finalPrompt.includes('ETHNICITY (AUTHORITATIVE):')) {
+            finalPrompt = `${finalPrompt}\n\nETHNICITY (AUTHORITATIVE):\n- Thai / Southeast Asian facial features.\n- Do NOT generate Western/Caucasian-looking faces unless explicitly required by the script.`;
+          }
+
+          // 🎬 WAN 2.1 NATURAL QUALITY: Add photorealistic keywords for character shots
+          if (isWan && hasCharacters) {
+            const naturalBlock = [
+              'NATURAL QUALITY:',
+              '- Natural skin texture, photorealistic, depth of field',
+              '- Gentle breathing movement, subtle expressions',
+              '- Soft natural lighting, cinematic look',
+            ].join('\n');
+            if (!finalPrompt.includes('NATURAL QUALITY:')) {
+              finalPrompt = `${finalPrompt}\n\n${naturalBlock}`;
+            }
+          }
+
+          const ethnicityNegatives = hasThaiCast
+            ? ', caucasian, western, european facial features'
+            : '';
+
+          const finalNegativePrompt = `morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, static, frozen, blurry, low resolution, watermark, scene changes, jump cuts, multiple shots, multiple angles, camera switches, angle changes, noisy, grainy, pixelated, poor quality${characterNegatives}${continuityNegatives}${ethnicityNegatives}${userNegativePrompt ? `, ${userNegativePrompt}` : ''}`;
+
+          console.log('🎬 FINAL PROMPT TO COMFYUI:');
+          console.log('━'.repeat(80));
+          console.log(finalPrompt);
+          console.log('━'.repeat(80));
+          console.log('❌ NEGATIVE PROMPT:');
+          console.log(finalNegativePrompt);
+          console.log('━'.repeat(80));
+          if (!isWan) {
+            console.log('⚙️ ANIMATEDIFF QUALITY PARAMETERS:');
+            console.log('  CFG Scale: 12 (↑ from 6.5 - forces strict prompt following)');
+            console.log('  Steps: 40 (↑ from 25 - more refinement, less noise)');
+          }
+
+          // 🆕 ASPECT RATIO TO RESOLUTION: Convert user selection to dimensions
+          const getResolutionFromAspectRatio = (aspectRatio?: string) => {
+            switch (aspectRatio) {
+              case '16:9':
+                return { width: 896, height: 512 }; // Cinematic landscape (multiple of 16 for Wan 2.1)
+              case '9:16':
+                return { width: 512, height: 896 }; // Portrait/TikTok (multiple of 16)
+              case '1:1':
+                return { width: 512, height: 512 }; // Square/Instagram
+              case '4:3':
+                return { width: 768, height: 576 }; // Standard
+              default:
+                return { width: 768, height: 512 }; // AnimateDiff default
+            }
+          };
+
+          const aspectRatio = options?.aspectRatio || '16:9';
+          const resolution = getResolutionFromAspectRatio(aspectRatio);
+          const finalWidth = options?.width || resolution.width;
+          const finalHeight = options?.height || resolution.height;
+
+          console.log(`  Resolution: ${finalWidth}x${finalHeight} (Aspect Ratio: ${aspectRatio})`);
+          console.log('  Expected: Single take, no cuts, HD quality, clear details');
+          console.log('━'.repeat(80));
+
+          // 🆕 WAN MODEL SELECTION: Map UI model ID to backend modelPath (Kijai format)
+          let wanModelPath: string | undefined = undefined;
+          if (isWan) {
+            switch (preferredModel) {
+              case 'comfyui-wan-i2v':
+                wanModelPath = 'Wan2_1-I2V-14B-480P_fp8_e4m3fn';
+                console.log('📦 WAN Model: Wan2_1-I2V-14B-480P_fp8_e4m3fn (Image-to-Video FP8) ⭐');
+                break;
+              case 'comfyui-wan-t2v':
+                wanModelPath = 'Wan2_1-T2V-14B_fp8_e4m3fn';
+                console.log('📦 WAN Model: Wan2_1-T2V-14B_fp8_e4m3fn (Text-to-Video FP8) 🎬');
+                break;
+              // S2V model not downloaded - fallback to I2V
+              case 'comfyui-wan-s2v':
+                wanModelPath = 'Wan2_1-I2V-14B-480P_fp8_e4m3fn';
+                console.log('⚠️ S2V model not available - Using I2V FP8 instead');
+                console.log('📦 WAN Model: Wan2_1-I2V-14B-480P_fp8_e4m3fn (Fallback) ⭐');
+                break;
+              default:
+                // Default to T2V FP8 for prompt-driven consistency and to avoid conditioning/mode mismatches.
+                // Users can still explicitly select I2V if they want image-driven identity.
+                wanModelPath = 'Wan2_1-T2V-14B_fp8_e4m3fn';
+                console.log('📦 WAN Model: Wan2_1-T2V-14B_fp8_e4m3fn (Default) 🎬');
+            }
+          }
+
+          // 🆕 ANIMATEDIFF MODEL SELECTION: v3 for better quality
+          let animatediffMotionModel: string | undefined = undefined;
+          // For WAN jobs, do not select/log/pass AnimateDiff motion modules.
+          if (useAnimateDiff && !isWan) {
+            switch (preferredModel) {
+              case 'comfyui-animatediff-v3':
+                animatediffMotionModel = 'v3_sd15_mm.ckpt';
+                console.log('📦 AnimateDiff Model: v3_sd15_mm.ckpt (v3 Motion) ⭐');
+                break;
+              default:
+                animatediffMotionModel = 'v3_sd15_mm.ckpt';
+                console.log('📦 AnimateDiff Model: v3_sd15_mm.ckpt (Default v3) ⭐');
+            }
+          }
+
+          const result = await generateVideoWithComfyUI(finalPrompt, {
             baseImage: base64Image,
             lora: selectedVideoLora,
             loraStrength: selectedVideoLoraStrength,
-            negativePrompt:
-              'low quality, blurry, static, watermark, frozen frames, duplicate frames, inconsistent character, different face, changing outfit',
+            negativePrompt: finalNegativePrompt,
             seed: options?.seed,
             frameCount: finalFrameCount || 25,
             fps: finalFPS || 8,
@@ -4075,41 +4881,52 @@ export async function generateStoryboardVideo(
             useSVD: useSVD,
             // 🆕 WAN routing: handled by backend service client
             ...(isWan ? { useWan: true, videoType: 'wan' } : {}),
-            // 🆕 Pass resolution through when provided
-            width: options?.width,
-            height: options?.height,
+            // 🆕 MODEL SELECTION: Pass specific model paths
+            ...(wanModelPath ? { modelPath: wanModelPath } : {}),
+            ...(!isWan && animatediffMotionModel ? { motionModel: animatediffMotionModel } : {}),
+            // 🆕 RESOLUTION: Use user-selected aspect ratio (from Shot List UI)
+            width: finalWidth,
+            height: finalHeight,
+            // 🆕 QUALITY BOOST: Use user settings or safe Wan defaults
+            cfg: options?.cfg || 6, // Wan 2.1 optimal: 5-8
+            steps: options?.steps || 25, // Wan 2.1 safe max: 30
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,
+            // 🆕 Face ID / identity references (used by client-side WAN tuning + other flows)
+            characterImages: options?.characterImages,
             onProgress: onProgress,
           });
           // Free model, no credit deduction
-          console.warn(`✅ ComfyUI Success: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`);
+          console.warn(
+            `✅ ComfyUI Success: ${isWan ? 'WAN' : useAnimateDiff ? 'AnimateDiff' : 'SVD'}`
+          );
           console.warn('🎬 Video Result:', result);
-          
+
           // 🆕 CRITICAL FIX: Ensure we return valid video URL
           if (!result || typeof result !== 'string' || result.trim() === '') {
             throw new Error('Video generation returned empty URL');
           }
-          
+
           return result;
         } catch (comfyError: unknown) {
           const err = comfyError as { message?: string };
           console.error('❌ ComfyUI Generation Failed:', err);
-          
+
           // Enhanced error message with alternatives
           const errorMessage = err.message || 'Unknown error';
           throw new Error(
             `ComfyUI Error: ${errorMessage}\n\n` +
-            `💡 Try these alternatives:\n` +
-            `• Gemini Veo 2 (Best quality, PRO tier)\n` +
-            `• Replicate AnimateDiff (Good quality, BASIC tier)\n` +
-            `• Replicate SVD (Fast, BASIC tier)\n\n` +
-            `Or start ComfyUI server at: ${COMFYUI_DEFAULT_URL}`
+              `💡 Try these alternatives:\n` +
+              `• Gemini Veo 2 (Best quality, PRO tier)\n` +
+              `• Replicate AnimateDiff (Good quality, BASIC tier)\n` +
+              `• Replicate SVD (Fast, BASIC tier)\n\n` +
+              `Or start ComfyUI server at: ${COMFYUI_DEFAULT_URL}`
           );
         }
       } else {
-        const errorMsg = `ComfyUI is not enabled in environment settings.\n\n` +
+        const errorMsg =
+          `ComfyUI is not enabled in environment settings.\n\n` +
           `💡 Try these alternatives instead:\n` +
           `• Gemini Veo 2 (Best quality, PRO tier)\n` +
           `• Replicate AnimateDiff (Good quality, BASIC tier)\n` +
@@ -4409,9 +5226,14 @@ export async function generateStoryboardVideo(
 
           const result = await generateVideoWithComfyUI(enhancedPrompt, {
             baseImage: base64Image,
-            lora: typeof (options as any)?.lora === 'string' ? ((options as any).lora as string) : undefined,
+            lora:
+              typeof (options as any)?.lora === 'string'
+                ? ((options as any).lora as string)
+                : undefined,
             loraStrength:
-              typeof (options as any)?.loraStrength === 'number' ? ((options as any).loraStrength as number) : undefined,
+              typeof (options as any)?.loraStrength === 'number'
+                ? ((options as any).loraStrength as number)
+                : undefined,
             negativePrompt:
               'low quality, blurry, static, watermark, frozen frames, duplicate frames',
             frameCount: finalFrameCount || 25,
@@ -4419,6 +5241,8 @@ export async function generateStoryboardVideo(
             motionStrength: finalMotionStrength || 0.8,
             useAnimateDiff: useAnimateDiff,
             useSVD: useSVD,
+            cfg: options?.cfg || 6, // Wan 2.1 optimal: 5-8
+            steps: options?.steps || 25, // Wan 2.1 safe max: 30
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,
@@ -4502,6 +5326,377 @@ export async function generateStoryboardVideo(
     const err = error as { message?: string };
     console.error('❌ Video generation failed:', error);
     throw new Error(`Failed to generate video: ${err.message}`);
+  }
+}
+
+// =========================================================
+// Shot List Generation (per-shot Costume & Fashion overrides)
+// =========================================================
+
+export async function generateShotListForScene(
+  scene: {
+    sceneNumber: number;
+    sceneDesign: GeneratedScene['sceneDesign'];
+  },
+  scriptData: { language?: string; title?: string; logline?: string },
+  existingShotList?: GeneratedScene['shotList'],
+  continuity?: {
+    previousScenes?: Array<
+      Pick<GeneratedScene, 'sceneNumber' | 'sceneDesign' | 'shotList' | 'characterOutfits'>
+    >;
+  }
+): Promise<GeneratedScene['shotList']> {
+  try {
+    requireGeminiApiKey('generateShotListForScene');
+
+    const lang = typeof scriptData?.language === 'string' ? scriptData.language : 'Thai';
+    const sceneName =
+      typeof scene.sceneDesign?.sceneName === 'string' ? scene.sceneDesign.sceneName : '';
+    const location =
+      typeof scene.sceneDesign?.location === 'string' ? scene.sceneDesign.location : '';
+    const moodTone =
+      typeof scene.sceneDesign?.moodTone === 'string' ? scene.sceneDesign.moodTone : '';
+    const characters = Array.isArray(scene.sceneDesign?.characters)
+      ? scene.sceneDesign.characters
+      : [];
+    const situations = Array.isArray((scene.sceneDesign as any)?.situations)
+      ? (scene.sceneDesign as any).situations
+      : [];
+
+    const situationSummary = situations
+      .slice(0, 3)
+      .map((s: any, idx: number) => {
+        const desc = typeof s?.description === 'string' ? s.description : '';
+        return desc ? `(${idx + 1}) ${desc}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    const continuityAnchors = Array.isArray(existingShotList)
+      ? existingShotList
+          .slice(0, 3)
+          .map(s => {
+            const shotNo = typeof (s as any)?.shot === 'number' ? (s as any).shot : undefined;
+            const desc = typeof (s as any)?.description === 'string' ? (s as any).description : '';
+            const cast = typeof (s as any)?.cast === 'string' ? (s as any).cast : '';
+            return `${shotNo ?? '?'}: ${cast ? `cast=${cast}; ` : ''}${desc}`.trim();
+          })
+          .filter(Boolean)
+          .join('\n')
+      : '';
+
+    const buildWardrobeCanonForScene = (s: any): string => {
+      if (!s || typeof s !== 'object') return '';
+      const location2 = typeof s?.sceneDesign?.location === 'string' ? s.sceneDesign.location : '';
+      const outfits =
+        s?.characterOutfits && typeof s.characterOutfits === 'object' ? s.characterOutfits : null;
+      const outfitLine = outfits
+        ? Object.entries(outfits)
+            .filter(
+              ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+            )
+            .slice(0, 10)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ')
+        : '';
+      const shotList2: any[] = Array.isArray(s?.shotList) ? s.shotList : [];
+      const costumeCanon = shotList2
+        .map(x => (typeof x?.costume === 'string' ? x.costume.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 1)
+        .join('');
+      const cf = shotList2.find(
+        x => x?.costumeFashion && typeof x.costumeFashion === 'object'
+      )?.costumeFashion;
+      const cfSummary =
+        cf && typeof cf === 'object'
+          ? Object.entries(cf)
+              .filter(
+                ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+              )
+              .slice(0, 6)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(' | ')
+          : '';
+      return (
+        `Scene ${typeof s?.sceneNumber === 'number' ? s.sceneNumber : '?'}${location2 ? ` @ ${location2}` : ''}\n` +
+        (outfitLine ? `- characterOutfits: ${outfitLine}\n` : '') +
+        (costumeCanon ? `- costume CANON: ${costumeCanon}\n` : '') +
+        (cfSummary ? `- costumeFashion CANON: ${cfSummary}\n` : '')
+      ).trim();
+    };
+
+    const previousWardrobeCanon = Array.isArray(continuity?.previousScenes)
+      ? continuity!
+          .previousScenes!.filter(Boolean)
+          .sort((a, b) => Number(b.sceneNumber) - Number(a.sceneNumber))
+          .slice(0, 2)
+          .map(s => buildWardrobeCanonForScene(s))
+          .filter(Boolean)
+          .join('\n\n')
+      : '';
+
+    const prompt = `You are a professional cinematographer and script supervisor.
+
+Task: Generate a COMPLETE Shot List (5-8 shots) for the scene below.
+
+Language: ${lang}
+Scene: ${scene.sceneNumber}${sceneName ? ` — ${sceneName}` : ''}
+Location: ${location || 'N/A'}
+Tone/Mood: ${moodTone || 'N/A'}
+Characters (MUST NOT add/remove): ${JSON.stringify(characters)}
+
+Situations (context):
+${situationSummary || 'N/A'}
+
+Continuity anchors (keep wardrobe/age/identity consistent across shots):
+${continuityAnchors || 'N/A'}
+
+Previous scene wardrobe canon (use if this scene is continuous with prior scene(s)):
+${previousWardrobeCanon || 'N/A'}
+
+CRITICAL REQUIREMENTS:
+- Return ONLY valid JSON (no markdown).
+- Output must be a JSON array of shot objects.
+- Each shot MUST include ALL fields:
+  scene, shot, description, durationSec, shotSize, perspective, movement, equipment, focalLength, aspectRatio, lightingDesign, colorTemperature, cast, costume, costumeFashion, set, visualEffects
+- "cast" must list only characters from the provided character list (comma-separated string).
+- "costume" is a short human-readable summary.
+- "costumeFashion" MUST be a JSON object with the SAME schema as Step 3 Costume & Fashion (Record<string,string>), with at least these keys filled:
+  "Style Concept", "Main Outfit", "Shoe", "Color Palette", "Accessories", "Condition/Texture"
+- Keep costumes consistent across the scene unless a change is explicitly required by the action.
+- If the scene is continuous with previous scene(s), COPY the wardrobe canon EXACTLY (especially costumeFashion keys/values) unless the story explicitly requires a change.
+
+Example shot object:
+{
+  "scene": "${scene.sceneNumber}",
+  "shot": 1,
+  "description": "...",
+  "durationSec": 3,
+  "shotSize": "MS",
+  "perspective": "Eye-Level",
+  "movement": "Static",
+  "equipment": "Tripod",
+  "focalLength": "50mm",
+  "aspectRatio": "16:9",
+  "lightingDesign": "...",
+  "colorTemperature": "Neutral (5600K)",
+  "cast": "${characters.join(', ')}",
+  "costume": "...",
+  "costumeFashion": {
+    "Style Concept": "...",
+    "Main Outfit": "...",
+        "Shoe": "...",
+    "Color Palette": "...",
+    "Accessories": "...",
+    "Condition/Texture": "..."
+  },
+  "set": "...",
+  "visualEffects": "None"
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
+    });
+
+    if (!response || !response.text) {
+      throw new Error('No response from AI model');
+    }
+
+    const text = extractJsonFromResponse(response.text || '[]');
+    const parsed = JSON.parse(text);
+
+    if (!Array.isArray(parsed)) {
+      throw new Error('Shot list response is not an array');
+    }
+
+    // Best-effort normalize + keep required fields present
+    return parsed.map((s: any, idx: number) => {
+      const shotNo = typeof s?.shot === 'number' ? s.shot : idx + 1;
+      const costumeFashion =
+        s?.costumeFashion && typeof s.costumeFashion === 'object' ? s.costumeFashion : undefined;
+      return {
+        scene: String(s?.scene ?? scene.sceneNumber),
+        shot: shotNo,
+        description: String(s?.description ?? ''),
+        durationSec: Number(s?.durationSec ?? 3),
+        shotSize: String(s?.shotSize ?? 'MS'),
+        perspective: String(s?.perspective ?? 'Eye-Level'),
+        movement: String(s?.movement ?? 'Static'),
+        equipment: String(s?.equipment ?? 'Tripod'),
+        focalLength: String(s?.focalLength ?? '50mm'),
+        aspectRatio: String(s?.aspectRatio ?? '16:9'),
+        lightingDesign: String(s?.lightingDesign ?? 'Neutral'),
+        colorTemperature: String(s?.colorTemperature ?? 'Neutral (5600K)'),
+        cast: String(s?.cast ?? characters.join(', ')),
+        costume: String(s?.costume ?? ''),
+        costumeFashion: costumeFashion as Record<string, string> | undefined,
+        set: String(s?.set ?? (location || '')),
+        visualEffects: String(s?.visualEffects ?? 'None'),
+      };
+    });
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    console.error('Error generating shot list:', error);
+    throw new Error(err.message || 'Failed to generate shot list');
+  }
+}
+
+export async function regenerateShotListItem(
+  scene: {
+    sceneNumber: number;
+    sceneDesign: GeneratedScene['sceneDesign'];
+  },
+  shotNumber: number,
+  scriptData: { language?: string },
+  context: {
+    previousShot?: Partial<GeneratedScene['shotList'][number]>;
+    currentShot?: Partial<GeneratedScene['shotList'][number]>;
+    nextShot?: Partial<GeneratedScene['shotList'][number]>;
+  },
+  continuity?: {
+    previousScenes?: Array<
+      Pick<GeneratedScene, 'sceneNumber' | 'sceneDesign' | 'shotList' | 'characterOutfits'>
+    >;
+  }
+): Promise<GeneratedScene['shotList'][number]> {
+  try {
+    requireGeminiApiKey('regenerateShotListItem');
+
+    const lang = typeof scriptData?.language === 'string' ? scriptData.language : 'Thai';
+    const sceneName =
+      typeof scene.sceneDesign?.sceneName === 'string' ? scene.sceneDesign.sceneName : '';
+    const location =
+      typeof scene.sceneDesign?.location === 'string' ? scene.sceneDesign.location : '';
+    const moodTone =
+      typeof scene.sceneDesign?.moodTone === 'string' ? scene.sceneDesign.moodTone : '';
+    const characters = Array.isArray(scene.sceneDesign?.characters)
+      ? scene.sceneDesign.characters
+      : [];
+
+    const buildWardrobeCanonForScene = (s: any): string => {
+      if (!s || typeof s !== 'object') return '';
+      const location2 = typeof s?.sceneDesign?.location === 'string' ? s.sceneDesign.location : '';
+      const outfits =
+        s?.characterOutfits && typeof s.characterOutfits === 'object' ? s.characterOutfits : null;
+      const outfitLine = outfits
+        ? Object.entries(outfits)
+            .filter(
+              ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+            )
+            .slice(0, 10)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ')
+        : '';
+      const shotList2: any[] = Array.isArray(s?.shotList) ? s.shotList : [];
+      const costumeCanon = shotList2
+        .map(x => (typeof x?.costume === 'string' ? x.costume.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 1)
+        .join('');
+      const cf = shotList2.find(
+        x => x?.costumeFashion && typeof x.costumeFashion === 'object'
+      )?.costumeFashion;
+      const cfSummary =
+        cf && typeof cf === 'object'
+          ? Object.entries(cf)
+              .filter(
+                ([k, v]) => typeof k === 'string' && typeof v === 'string' && k.trim() && v.trim()
+              )
+              .slice(0, 6)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(' | ')
+          : '';
+      return (
+        `Scene ${typeof s?.sceneNumber === 'number' ? s.sceneNumber : '?'}${location2 ? ` @ ${location2}` : ''}\n` +
+        (outfitLine ? `- characterOutfits: ${outfitLine}\n` : '') +
+        (costumeCanon ? `- costume CANON: ${costumeCanon}\n` : '') +
+        (cfSummary ? `- costumeFashion CANON: ${cfSummary}\n` : '')
+      ).trim();
+    };
+
+    const previousWardrobeCanon = Array.isArray(continuity?.previousScenes)
+      ? continuity!
+          .previousScenes!.filter(Boolean)
+          .sort((a, b) => Number(b.sceneNumber) - Number(a.sceneNumber))
+          .slice(0, 2)
+          .map(s => buildWardrobeCanonForScene(s))
+          .filter(Boolean)
+          .join('\n\n')
+      : '';
+
+    const prompt = `You are a professional cinematographer and script supervisor.
+
+Task: Regenerate ONLY one shot list row for the scene below.
+
+Language: ${lang}
+Scene: ${scene.sceneNumber}${sceneName ? ` — ${sceneName}` : ''}
+Location: ${location || 'N/A'}
+Tone/Mood: ${moodTone || 'N/A'}
+Characters (MUST NOT add/remove): ${JSON.stringify(characters)}
+
+Target shot number: ${shotNumber}
+
+Continuity context (keep wardrobe/age/identity consistent):
+- Previous shot: ${JSON.stringify(context.previousShot || null)}
+- Current shot (to improve): ${JSON.stringify(context.currentShot || null)}
+- Next shot: ${JSON.stringify(context.nextShot || null)}
+
+Previous scene wardrobe canon (use if this scene is continuous with prior scene(s)):
+${previousWardrobeCanon || 'N/A'}
+
+CRITICAL REQUIREMENTS:
+- Return ONLY valid JSON (no markdown).
+- Output must be a single shot object (NOT an array).
+- The shot number MUST remain ${shotNumber}.
+- The object MUST include ALL fields:
+  scene, shot, description, durationSec, shotSize, perspective, movement, equipment, focalLength, aspectRatio, lightingDesign, colorTemperature, cast, costume, costumeFashion, set, visualEffects
+- "cast" must list only characters from the provided character list (comma-separated string).
+- "costumeFashion" MUST be a JSON object with keys:
+  "Style Concept", "Main Outfit", "Shoe", "Color Palette", "Accessories", "Condition/Texture".
+`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
+    });
+
+    if (!response || !response.text) {
+      throw new Error('No response from AI model');
+    }
+
+    const text = extractJsonFromResponse(response.text || '{}');
+    const s = JSON.parse(text);
+
+    const costumeFashion =
+      s?.costumeFashion && typeof s.costumeFashion === 'object' ? s.costumeFashion : undefined;
+
+    return {
+      scene: String(s?.scene ?? scene.sceneNumber),
+      shot: shotNumber,
+      description: String(s?.description ?? ''),
+      durationSec: Number(s?.durationSec ?? 3),
+      shotSize: String(s?.shotSize ?? 'MS'),
+      perspective: String(s?.perspective ?? 'Eye-Level'),
+      movement: String(s?.movement ?? 'Static'),
+      equipment: String(s?.equipment ?? 'Tripod'),
+      focalLength: String(s?.focalLength ?? '50mm'),
+      aspectRatio: String(s?.aspectRatio ?? '16:9'),
+      lightingDesign: String(s?.lightingDesign ?? 'Neutral'),
+      colorTemperature: String(s?.colorTemperature ?? 'Neutral (5600K)'),
+      cast: String(s?.cast ?? characters.join(', ')),
+      costume: String(s?.costume ?? ''),
+      costumeFashion: costumeFashion as Record<string, string> | undefined,
+      set: String(s?.set ?? (location || '')),
+      visualEffects: String(s?.visualEffects ?? 'None'),
+    };
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    console.error('Error regenerating shot list item:', error);
+    throw new Error(err.message || 'Failed to regenerate shot list item');
   }
 }
 
@@ -4855,11 +6050,11 @@ IMPORTANT:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -4876,8 +6071,8 @@ IMPORTANT:
         duration,
         metadata: {
           prompt: 'Story Boundary Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -4939,11 +6134,11 @@ Return ONLY a JSON object:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -4960,8 +6155,8 @@ Return ONLY a JSON object:
         duration,
         metadata: {
           prompt: 'Title Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -5186,11 +6381,11 @@ IMPORTANT:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -5207,8 +6402,8 @@ IMPORTANT:
         duration,
         metadata: {
           prompt: 'Structure Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -5345,11 +6540,11 @@ Return ONLY a valid JSON object:
     // ✅ Record usage after successful generation
     if (userId) {
       const duration = (Date.now() - startTime) / 1000;
-      
+
       // Calculate tokens for accurate pricing
       const inputTokens = await countTokens(prompt, 'gemini-2.5-flash');
       const outputTokens = await countTokens(text, 'gemini-2.5-flash');
-      
+
       const inputCost = inputTokens * API_PRICING.GEMINI['2.5-flash'].input;
       const outputCost = outputTokens * API_PRICING.GEMINI['2.5-flash'].output;
       const totalCost = inputCost + outputCost;
@@ -5366,8 +6561,8 @@ Return ONLY a valid JSON object:
         duration,
         metadata: {
           prompt: 'Single Plot Point Generation',
-          tokens: { input: inputTokens, output: outputTokens }
-        }
+          tokens: { input: inputTokens, output: outputTokens },
+        },
       });
     }
 
@@ -5412,21 +6607,21 @@ export async function generateVideoWithGemini(params: {
   processingTime: number;
 }> {
   const startTime = Date.now();
-  
+
   console.log('🎬 Generating video with Gemini Veo 2...');
-  
+
   try {
     // Use Gemini Veo 2 for video generation (via Vertex AI)
     // Note: This requires Vertex AI setup and Veo 2 access
     // For now, fallback to ComfyUI AnimateDiff
-    
+
     const videoUrl = await generateVideoWithComfyUI(params.prompt, {
       frameCount: params.numFrames || 25,
       fps: params.fps || 24,
       baseImage: params.referenceImage,
       useAnimateDiff: !params.referenceImage, // Use AnimateDiff for text-to-video, SVD for image-to-video
     });
-    
+
     return {
       videoUrl,
       processingTime: Date.now() - startTime,
@@ -5437,3 +6632,4 @@ export async function generateVideoWithGemini(params: {
   }
 }
 
+// Force refresh

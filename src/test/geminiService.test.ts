@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock Google GenAI
 vi.mock('@google/genai', () => ({
-  GoogleGenAI: vi.fn(function() {
+  GoogleGenAI: vi.fn(function () {
     return {
       models: {
         generateContent: vi.fn().mockResolvedValue({
@@ -33,4 +33,3 @@ describe('geminiService', () => {
     expect(AI_MODELS.FREE).toBeDefined();
   });
 });
-
