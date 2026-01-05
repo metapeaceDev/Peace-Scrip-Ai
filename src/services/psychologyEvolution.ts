@@ -620,6 +620,17 @@ export function calculatePsychologyChanges(
     reasoning = `การกระทำเป็นกลาง ไม่มีผลเปลี่ยนแปลงที่เด่นชัด`;
   }
 
+  console.log('🧬 [Change Calculation]', {
+    character: character.name,
+    karma_type: karmaResult.type,
+    consciousness_delta_count: Object.keys(consciousnessChanges).length,
+    consciousness_delta_sum: Object.values(consciousnessChanges).reduce((s, v) => s + Math.abs(v), 0),
+    defilement_delta_count: Object.keys(defilementChanges).length,
+    defilement_delta_sum: Object.values(defilementChanges).reduce((s, v) => s + Math.abs(v), 0),
+    consciousnessChanges,
+    defilementChanges,
+  });
+
   return {
     sceneNumber: scene.sceneNumber,
     timestamp: new Date(),
@@ -856,7 +867,8 @@ export function updatePsychologyTimeline(
   timeline: CharacterPsychologyTimeline,
   character: Character,
   scene: GeneratedScene,
-  _plotPoint: string
+  _plotPoint: string,
+  sceneNumber: number
 ): { timeline: CharacterPsychologyTimeline; updatedCharacter: Character } {
   // Calculate changes from this scene
   const change = calculatePsychologyChanges(character, scene, _plotPoint);
@@ -865,12 +877,34 @@ export function updatePsychologyTimeline(
   const updatedCharacter = applyPsychologyChanges(character, change);
 
   // Create snapshot of new state
-  const snapshot = createPsychologySnapshot(updatedCharacter, scene.sceneNumber);
+  const snapshot = createPsychologySnapshot(updatedCharacter, sceneNumber);
 
-  // Calculate summary statistics
+  // Calculate summary statistics by summing deltas, not counting changes
   const allChanges = [...timeline.changes, change];
-  const kusalaCount = allChanges.filter(c => c.karma_type === 'กุศลกรรม').length;
-  const akusalaCount = allChanges.filter(c => c.karma_type === 'อกุศลกรรม').length;
+  
+  const totalKusala = allChanges
+    .filter(c => c.karma_type === 'กุศลกรรม')
+    .reduce((sum, c) => {
+      const consciousnessDelta = Object.values(c.consciousness_delta).reduce((s, v) => s + Math.abs(v), 0);
+      return sum + consciousnessDelta;
+    }, 0);
+  
+  const totalAkusala = allChanges
+    .filter(c => c.karma_type === 'อกุศลกรรม')
+    .reduce((sum, c) => {
+      const defilementDelta = Object.values(c.defilement_delta).reduce((s, v) => s + Math.abs(v), 0);
+      return sum + defilementDelta;
+    }, 0);
+
+  console.log('🔍 [Summary Calculation]', {
+    character: character.name,
+    totalChanges: allChanges.length,
+    kusalaChanges: allChanges.filter(c => c.karma_type === 'กุศลกรรม').length,
+    akusalaChanges: allChanges.filter(c => c.karma_type === 'อกุศลกรรม').length,
+    totalKusala,
+    totalAkusala,
+    net: totalKusala - totalAkusala,
+  });
 
   // Update snapshots and calculate overall arc
   const allSnapshots = [...timeline.snapshots, snapshot];
@@ -882,13 +916,13 @@ export function updatePsychologyTimeline(
     snapshots: allSnapshots,
     changes: allChanges,
     summary: {
-      total_kusala: kusalaCount,
-      total_akusala: akusalaCount,
-      net_progress: kusalaCount - akusalaCount,
+      total_kusala: Math.round(totalKusala),
+      total_akusala: Math.round(totalAkusala),
+      net_progress: Math.round(totalKusala - totalAkusala),
       dominant_pattern:
-        kusalaCount > akusalaCount
+        totalKusala > totalAkusala
           ? 'กุศลเด่น'
-          : akusalaCount > kusalaCount
+          : totalAkusala > totalKusala
             ? 'อกุศลเด่น'
             : 'สมดุล',
     },

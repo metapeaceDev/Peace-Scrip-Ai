@@ -56,7 +56,8 @@ export function updatePsychologyAfterScene(
       timeline,
       character,
       scene,
-      plotPoint.title
+      plotPoint.title,
+      scene.sceneNumber || 0
     );
 
     // Replace character and timeline

@@ -2477,7 +2477,24 @@ ${
                       </div>
                     )}
                     {editedScene.sceneDesign.characters.map(charName => {
-                      const profile = allCharacters.find(c => c.name === charName);
+                      // Flexible character matching - support both short and full names
+                      const profile = allCharacters.find(c => 
+                        c.name === charName || 
+                        c.name.startsWith(charName) || 
+                        charName.includes(c.name.split('(')[0].trim())
+                      );
+                      
+                      // Debug logging
+                      console.log('🔍 [Character Avatar Debug]', {
+                        charName,
+                        hasProfile: !!profile,
+                        profileName: profile?.name,
+                        hasImage: !!profile?.image,
+                        imageUrl: profile?.image?.substring(0, 100),
+                        allCharactersCount: allCharacters.length,
+                        allCharacterNames: allCharacters.map(c => c.name),
+                      });
+                      
                       const outfits = profile?.outfitCollection || [];
                       const currentOutfitId = editedScene.characterOutfits?.[charName] || '';
                       const currentOutfitDesc =
@@ -2496,12 +2513,24 @@ ${
                                   src={profile.image}
                                   alt={charName}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    console.warn('🖼️ Failed to load character image:', {
+                                      character: charName,
+                                      imageUrl: profile.image?.substring(0, 100) + '...',
+                                    });
+                                    e.currentTarget.style.display = 'none';
+                                    if (e.currentTarget.nextSibling) {
+                                      (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
+                                    }
+                                  }}
                                 />
-                              ) : (
-                                <span className="text-[10px] font-bold text-gray-500">
-                                  {charName.substring(0, 2).toUpperCase()}
-                                </span>
-                              )}
+                              ) : null}
+                              <span 
+                                className="text-[10px] font-bold text-gray-500"
+                                style={{ display: profile?.image ? 'none' : 'flex' }}
+                              >
+                                {charName.substring(0, 2).toUpperCase()}
+                              </span>
                             </div>
 
                             {/* Name & Wardrobe */}
@@ -4060,7 +4089,6 @@ const SceneItem: React.FC<{
   sceneData: GeneratedScene | undefined;
   button: React.ReactNode;
   onUpdate: (scene: GeneratedScene) => void;
-  allCharacters: Character[];
   onRegisterUndo?: () => void;
   _goToStep: (step: number) => void;
   onNavigateToCharacter?: (
@@ -4080,7 +4108,6 @@ const SceneItem: React.FC<{
   sceneData,
   button,
   onUpdate,
-  allCharacters,
   onRegisterUndo,
   _goToStep,
   onNavigateToCharacter,
@@ -4167,7 +4194,7 @@ const SceneItem: React.FC<{
             <SceneDisplay
               sceneData={sceneData}
               onSave={onUpdate}
-              allCharacters={allCharacters}
+              allCharacters={scriptData.characters || []}
               onRegisterUndo={onRegisterUndo}
               _goToStep={_goToStep}
               onNavigateToCharacter={onNavigateToCharacter}
@@ -4651,7 +4678,36 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'loading' },
       }));
       try {
-        const sceneNumber = sceneNumberMap[plotPoint.title][sceneIndex];
+        let sceneNumber = sceneNumberMap[plotPoint.title]?.[sceneIndex];
+        
+        // DEBUG: Check why sceneNumber might be undefined
+        console.log('🔍 [DEBUG] sceneNumber calculation:', {
+          plotPointTitle: plotPoint.title,
+          sceneIndex,
+          sceneNumber,
+          hasPlotPointInMap: plotPoint.title in sceneNumberMap,
+          mapForPlotPoint: sceneNumberMap[plotPoint.title],
+          mapKeys: sceneNumberMap[plotPoint.title] ? Object.keys(sceneNumberMap[plotPoint.title]) : [],
+          allPlotPointsInMap: Object.keys(sceneNumberMap),
+          scenesPerPoint: scriptData.scenesPerPoint,
+          currentPlotPointSceneCount: scriptData.scenesPerPoint[plotPoint.title],
+        });
+        
+        // If sceneNumber is still undefined, calculate it manually as fallback
+        if (sceneNumber === undefined) {
+          console.error('❌ [CRITICAL] sceneNumber is undefined! Using fallback calculation.');
+          let fallbackNumber = 1;
+          for (const point of scriptData.structure) {
+            if (point.title === plotPoint.title) {
+              sceneNumber = fallbackNumber + sceneIndex;
+              console.log('✅ Fallback sceneNumber calculated:', sceneNumber);
+              break;
+            }
+            const count = scriptData.scenesPerPoint[point.title] ?? 1;
+            fallbackNumber += count;
+          }
+        }
+        
         const existingScene = scriptData.generatedScenes[plotPoint.title]?.[sceneIndex];
 
         let scene;
@@ -4716,9 +4772,39 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         );
 
         presentCharNames.forEach(charName => {
-          const charIndex = updatedCharacters.findIndex(c => c.name === charName);
+          // Normalize strings for matching (trim whitespace, normalize Unicode)
+          const normalizedSceneName = charName.trim().normalize('NFC');
+          
+          // Try exact match first
+          let charIndex = updatedCharacters.findIndex(c => 
+            c.name.trim().normalize('NFC') === normalizedSceneName
+          );
+          
+          // If exact match fails, try partial match (contains or is contained by)
+          if (charIndex === -1) {
+            charIndex = updatedCharacters.findIndex(c => {
+              const normalizedChar = c.name.trim().normalize('NFC');
+              // Check if one name contains the other (for cases like "ลินดา" vs "ลินดา พิชชากร")
+              return normalizedChar.includes(normalizedSceneName) || 
+                     normalizedSceneName.includes(normalizedChar);
+            });
+          }
+          
+          // If still no match, try matching just the first name
+          if (charIndex === -1) {
+            const firstName = normalizedSceneName.split(/\s+/)[0];
+            charIndex = updatedCharacters.findIndex(c => {
+              const charFirstName = c.name.trim().normalize('NFC').split(/\s+/)[0];
+              return charFirstName === firstName;
+            });
+          }
+          
           if (charIndex === -1) {
             console.warn(`⚠️ [Psychology] Character "${charName}" not found in characters list`);
+            console.warn(`   Scene name (normalized): "${normalizedSceneName}"`);
+            console.warn(`   Available names (normalized):`, 
+              updatedCharacters.map(c => c.name.trim().normalize('NFC'))
+            );
             return;
           }
 
@@ -4745,11 +4831,16 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             },
           };
 
-          const result = updatePsychologyTimeline(timeline, character, scene, plotPoint.title);
+          const result = updatePsychologyTimeline(timeline, character, scene, plotPoint.title, sceneNumber);
 
-          console.log(`🧠 [Psychology] Updated timeline for ${character.name}:`, {
-            snapshots: result.timeline.snapshots.length,
-            changes: result.timeline.changes.length,
+          console.log(`🧠 [Psychology] ✅ CREATED timeline for ${character.name}:`, {
+            sceneNumber: sceneNumber, // Use the parameter, not scene.sceneNumber
+            snapshotsCount: result.timeline.snapshots.length,
+            changesCount: result.timeline.changes.length,
+            latestSnapshot: result.timeline.snapshots.length > 0 ? {
+              sceneNumber: result.timeline.snapshots[result.timeline.snapshots.length - 1]?.sceneNumber,
+              mentalBalance: result.timeline.snapshots[result.timeline.snapshots.length - 1]?.mentalBalance,
+            } : null,
             summary: result.timeline.summary,
           });
 
@@ -4758,11 +4849,26 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         });
 
         console.log(`🧠 [Psychology] Final timelines:`, Object.keys(updatedTimelines));
+        console.log(`🧠 [Psychology] 💾 SAVING to scriptData:`, {
+          timelinesCount: Object.keys(updatedTimelines).length,
+          characterIds: Object.keys(updatedTimelines),
+          snapshotsPerCharacter: Object.entries(updatedTimelines).map(([id, tl]: [string, any]) => ({
+            characterId: id,
+            characterName: tl.characterName,
+            snapshotsCount: tl.snapshots?.length || 0,
+          })),
+        });
         // --- PSYCHOLOGY UPDATE END ---
+
+        // ✅ FIX: Add sceneNumber to scene object for later retrieval
+        const sceneWithNumber = {
+          ...scene,
+          sceneNumber, // Store the scene number for psychology snapshot lookup
+        };
 
         setScriptData(prev => {
           const newScenesForPoint = [...(prev.generatedScenes[plotPoint.title] || [])];
-          newScenesForPoint[sceneIndex] = scene;
+          newScenesForPoint[sceneIndex] = sceneWithNumber;
           return {
             ...prev,
             generatedScenes: { ...prev.generatedScenes, [plotPoint.title]: newScenesForPoint },
@@ -5086,6 +5192,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       const newScenes = prev.generatedScenes[pointTitle]
         ? [...prev.generatedScenes[pointTitle]]
         : [];
+      
+      // Get the scene before deletion to know which sceneNumber to remove
+      const deletedScene = newScenes[sceneIndex];
+      const deletedSceneNumber = deletedScene?.sceneNumber;
+      
       if (newScenes.length > sceneIndex) {
         newScenes.splice(sceneIndex, 1);
       }
@@ -5093,7 +5204,104 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       console.log('🔄 Updated scenes:', {
         before: prev.generatedScenes[pointTitle]?.length || 0,
         after: newScenes.length,
+        deletedSceneNumber,
       });
+
+      // CLEANUP PSYCHOLOGY SNAPSHOTS AND CHANGES for deleted scene
+      const updatedTimelines = { ...(prev.psychologyTimelines || {}) };
+      
+      // If no scenes left at all, clear all timelines
+      const totalScenesLeft = Object.values(prev.generatedScenes).reduce(
+        (sum, scenes) => sum + (scenes?.length || 0), 
+        0
+      ) - 1; // -1 because we're deleting one
+      
+      if (totalScenesLeft === 0) {
+        console.log('🗑️ No scenes left - clearing all psychology timelines');
+        Object.keys(updatedTimelines).forEach(key => delete updatedTimelines[key]);
+      } else if (deletedSceneNumber !== undefined) {
+        let removedSnapshotsCount = 0;
+        let removedChangesCount = 0;
+        
+        Object.keys(updatedTimelines).forEach(characterId => {
+          const timeline = updatedTimelines[characterId];
+          
+          // Remove snapshots for this scene
+          if (timeline?.snapshots) {
+            const originalSnapshotsLength = timeline.snapshots.length;
+            timeline.snapshots = timeline.snapshots.filter(
+              snapshot => snapshot.sceneNumber !== deletedSceneNumber
+            );
+            const newSnapshotsLength = timeline.snapshots.length;
+            if (newSnapshotsLength < originalSnapshotsLength) {
+              removedSnapshotsCount++;
+              console.log(`🧹 Removed snapshot for scene ${deletedSceneNumber} from character ${characterId}`);
+            }
+          }
+          
+          // Remove changes for this scene
+          if (timeline?.changes) {
+            const originalChangesLength = timeline.changes.length;
+            timeline.changes = timeline.changes.filter(
+              change => change.sceneNumber !== deletedSceneNumber
+            );
+            const newChangesLength = timeline.changes.length;
+            if (newChangesLength < originalChangesLength) {
+              removedChangesCount++;
+              console.log(`🧹 Removed ${originalChangesLength - newChangesLength} change(s) for scene ${deletedSceneNumber} from character ${characterId}`);
+            }
+          }
+          
+          // Recalculate summary after cleanup
+          if (timeline?.changes) {
+            // Sum the actual consciousness/defilement changes, not just count them
+            const totalKusala = timeline.changes
+              .filter(c => c.karma_type === 'กุศลกรรม')
+              .reduce((sum, change) => {
+                const consciousnessDelta = Object.values(change.consciousness_delta).reduce((s, v) => s + Math.abs(v), 0);
+                return sum + consciousnessDelta;
+              }, 0);
+            
+            const totalAkusala = timeline.changes
+              .filter(c => c.karma_type === 'อกุศลกรรม')
+              .reduce((sum, change) => {
+                const defilementDelta = Object.values(change.defilement_delta).reduce((s, v) => s + Math.abs(v), 0);
+                return sum + defilementDelta;
+              }, 0);
+            
+            timeline.summary = {
+              total_kusala: Math.round(totalKusala),
+              total_akusala: Math.round(totalAkusala),
+              net_progress: Math.round(totalKusala - totalAkusala),
+              dominant_pattern:
+                totalKusala > totalAkusala
+                  ? 'กุศลเด่น'
+                  : totalAkusala > totalKusala
+                    ? 'อกุศลเด่น'
+                    : 'สมดุล',
+            };
+          }
+        });
+        
+        // Remove empty timelines (no snapshots left)
+        const timelinesBeforeCleanup = Object.keys(updatedTimelines).length;
+        Object.keys(updatedTimelines).forEach(characterId => {
+          const timeline = updatedTimelines[characterId];
+          if (!timeline?.snapshots || timeline.snapshots.length === 0) {
+            delete updatedTimelines[characterId];
+            console.log(`🗑️ Removed empty timeline for character ${characterId}`);
+          }
+        });
+        const timelinesAfterCleanup = Object.keys(updatedTimelines).length;
+        
+        if (removedSnapshotsCount > 0 || removedChangesCount > 0) {
+          console.log(`✅ Cleaned up ${removedSnapshotsCount} snapshots and ${removedChangesCount} changes for scene ${deletedSceneNumber}`);
+        }
+        
+        if (timelinesBeforeCleanup > timelinesAfterCleanup) {
+          console.log(`🗑️ Removed ${timelinesBeforeCleanup - timelinesAfterCleanup} empty timeline(s)`);
+        }
+      }
 
       return {
         ...prev,
@@ -5105,6 +5313,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           ...prev.generatedScenes,
           [pointTitle]: newScenes,
         },
+        psychologyTimelines: updatedTimelines,
       };
     });
 
@@ -5520,7 +5729,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                             onUpdate={updated =>
                               handleSceneUpdate(point.title, sceneIndex, updated)
                             }
-                            allCharacters={scriptData.characters}
                             onRegisterUndo={onRegisterUndo}
                             _goToStep={_goToStep}
                             onNavigateToCharacter={onNavigateToCharacter}
@@ -5601,18 +5809,30 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                                 </div>
                                               </div>
                                             </div>
-                                            <div className="text-xs text-gray-500 text-center py-2">
-                                              No psychology data
+                                            <div className="text-xs text-center py-4 space-y-2">
+                                              <div className="text-gray-400">
+                                                🧠 ไม่พบข้อมูลจิตวิทยาสำหรับฉากนี้
+                                              </div>
+                                              <div className="text-gray-500 text-[10px]">
+                                                กรุณาสร้างฉากใหม่เพื่ออัพเดทข้อมูลจิตวิทยา
+                                              </div>
                                             </div>
                                           </div>
                                         );
                                       }
 
-                                      // Use continuousSceneNumber directly instead of sceneNumberMap
-                                      console.debug('[Psychology] Looking for snapshot:', {
+                                      // CRITICAL FIX: Use stored sceneNumber (from generation) with fallback to calculated continuousSceneNumber
+                                      // Priority: sceneData.sceneNumber > continuousSceneNumber
+                                      const actualSceneNumber = sceneData.sceneNumber ?? continuousSceneNumber;
+                                      
+                                      console.log('[Psychology] 🔍 SNAPSHOT SEARCH:', {
                                         character: character.name,
-                                        currentSceneNumber: continuousSceneNumber,
+                                        actualSceneNumber,
+                                        sceneDataHasSceneNumber: 'sceneNumber' in sceneData,
+                                        storedSceneNumber: sceneData.sceneNumber,
+                                        calculatedContinuousNumber: continuousSceneNumber,
                                         snapshotsCount: timeline.snapshots?.length || 0,
+                                        timelineExists: !!timeline,
                                         availableSnapshots: (timeline.snapshots || []).map(s => ({
                                           sceneNumber: s?.sceneNumber,
                                           hasMentalBalance: typeof s?.mentalBalance === 'number',
@@ -5623,9 +5843,15 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                         s =>
                                           s &&
                                           typeof s === 'object' &&
-                                          s.sceneNumber === continuousSceneNumber &&
+                                          s.sceneNumber === actualSceneNumber &&
                                           typeof s.mentalBalance === 'number'
                                       );
+                                      
+                                      console.log('[Psychology] 🎯 FOUND SNAPSHOT:', foundSnapshot ? {
+                                        sceneNumber: foundSnapshot.sceneNumber,
+                                        mentalBalance: foundSnapshot.mentalBalance,
+                                        hasData: !!foundSnapshot
+                                      } : 'NOT FOUND');
 
                                       // CRITICAL: Create immutable references to prevent race conditions
                                       if (
@@ -5635,8 +5861,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                       ) {
                                         console.warn(
                                           '[Psychology] No valid snapshot found for scene',
+                                          actualSceneNumber,
+                                          '(continuous:',
                                           continuousSceneNumber,
-                                          'character',
+                                          ') character',
                                           character.name
                                         );
                                         return (
@@ -5661,8 +5889,16 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                                 </div>
                                               </div>
                                             </div>
-                                            <div className="text-xs text-gray-500 text-center py-2">
-                                              No data for this scene
+                                            <div className="text-xs text-center py-4 space-y-2">
+                                              <div className="text-yellow-400">
+                                                ⚠️ ข้อมูลสำหรับฉากนี้ไม่พร้อม
+                                              </div>
+                                              <div className="text-gray-500 text-[10px]">
+                                                Timeline: {timeline.snapshots?.length || 0} snapshots | Looking for scene #{actualSceneNumber}
+                                              </div>
+                                              <div className="text-gray-600 text-[9px]">
+                                                ลอง: สร้างฉากใหม่ หรือ Regenerate ฉากนี้
+                                              </div>
                                             </div>
                                           </div>
                                         );
@@ -5725,18 +5961,18 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                                               <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <div className="bg-green-900/20 border border-green-500/30 rounded px-2 py-1 text-center">
                                                   <div className="text-green-400">
-                                                    +{snapshot.total_kusala_kamma || 0}
+                                                    {snapshot.total_kusala_kamma || 0}
                                                   </div>
                                                   <div className="text-[10px] text-gray-500">
-                                                    Kusala
+                                                    Consciousness
                                                   </div>
                                                 </div>
                                                 <div className="bg-red-900/20 border border-red-500/30 rounded px-2 py-1 text-center">
                                                   <div className="text-red-400">
-                                                    -{snapshot.total_akusala_kamma || 0}
+                                                    {snapshot.total_akusala_kamma || 0}
                                                   </div>
                                                   <div className="text-[10px] text-gray-500">
-                                                    Akusala
+                                                    Defilement
                                                   </div>
                                                 </div>
                                               </div>
@@ -5867,35 +6103,44 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
                           {/* Stats Grid */}
                           {summary && (
-                            <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
-                              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-green-400 mb-1">Kusala</div>
-                                <div className="text-lg font-bold text-green-300">
-                                  +{summary.total_kusala || 0}
+                            <>
+                              {console.log('[Timeline Display] Summary:', {
+                                character: character.name,
+                                total_kusala: summary.total_kusala,
+                                total_akusala: summary.total_akusala,
+                                net_progress: summary.net_progress,
+                                dominant_pattern: summary.dominant_pattern,
+                              })}
+                              <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-700">
+                                <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-2 text-center">
+                                  <div className="text-[10px] text-green-400 mb-1">Kusala Changes</div>
+                                  <div className="text-lg font-bold text-green-300">
+                                    {summary.total_kusala || 0}
+                                  </div>
+                                </div>
+                                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
+                                  <div className="text-[10px] text-red-400 mb-1">Akusala Changes</div>
+                                  <div className="text-lg font-bold text-red-300">
+                                    {summary.total_akusala || 0}
+                                  </div>
+                                </div>
+                                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
+                                  <div className="text-[10px] text-blue-400 mb-1">Net</div>
+                                  <div
+                                    className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}
+                                  >
+                                    {(summary.net_progress || 0) >= 0 ? '+' : ''}
+                                    {summary.net_progress || 0}
+                                  </div>
+                                </div>
+                                <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
+                                  <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
+                                  <div className="text-xs font-bold text-purple-300 truncate">
+                                    {summary.dominant_pattern || 'N/A'}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-red-400 mb-1">Akusala</div>
-                                <div className="text-lg font-bold text-red-300">
-                                  -{summary.total_akusala || 0}
-                                </div>
-                              </div>
-                              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-blue-400 mb-1">Net</div>
-                                <div
-                                  className={`text-lg font-bold ${(summary.net_progress || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}
-                                >
-                                  {(summary.net_progress || 0) >= 0 ? '+' : ''}
-                                  {summary.net_progress || 0}
-                                </div>
-                              </div>
-                              <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-2 text-center">
-                                <div className="text-[10px] text-purple-400 mb-1">Pattern</div>
-                                <div className="text-xs font-bold text-purple-300 truncate">
-                                  {summary.dominant_pattern || 'N/A'}
-                                </div>
-                              </div>
-                            </div>
+                            </>
                           )}
 
                           {/* Overall Arc - Compact */}

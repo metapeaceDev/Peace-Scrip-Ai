@@ -1,283 +1,402 @@
 # 🚀 Deployment Checklist - Peace Script AI
 
-**สถานะ**: ✅ Ready for Staging Deployment  
-**วันที่**: 10 ธันวาคม 2568  
-**Production Readiness**: 85%
+## Pre-Deployment Checklist
+
+### 🔐 Security Check
+- [ ] ตรวจสอบว่าไม่มี secrets ใน git
+  ```bash
+  git grep -i "api.*key"
+  git grep -i "secret"
+  git grep -i "password"
+  ```
+- [ ] ตรวจสอบ .gitignore ครอบคลุมทุกไฟล์ sensitive
+- [ ] ลบ service-account.json จาก git history (ถ้ามี)
+- [ ] ตรวจสอบ environment variables ทั้งหมด
+
+### 📦 Build & Test
+- [ ] รัน `npm run lint` (ไม่มี errors)
+- [ ] รัน `npm run type-check` (TypeScript ถูกต้อง)
+- [ ] รัน `npm test` (tests ผ่านทั้งหมด)
+- [ ] รัน `npm run build` (build สำเร็จ)
+- [ ] ทดสอบ build locally: `npm run preview`
+
+### 🔧 Configuration Files
+
+#### Frontend (.env)
+- [ ] VITE_FIREBASE_API_KEY
+- [ ] VITE_FIREBASE_AUTH_DOMAIN
+- [ ] VITE_FIREBASE_PROJECT_ID
+- [ ] VITE_FIREBASE_STORAGE_BUCKET
+- [ ] VITE_FIREBASE_MESSAGING_SENDER_ID
+- [ ] VITE_FIREBASE_APP_ID
+- [ ] VITE_GEMINI_API_KEY
+- [ ] VITE_USE_COMFYUI_BACKEND=true
+- [ ] VITE_COMFYUI_BACKEND_URL=http://localhost:8000
+
+#### Backend (comfyui-service/.env)
+- [ ] PORT=8000
+- [ ] NODE_ENV=production
+- [ ] FIREBASE_PROJECT_ID
+- [ ] FIREBASE_CLIENT_EMAIL
+- [ ] FIREBASE_PRIVATE_KEY
+- [ ] COMFYUI_WORKERS (ComfyUI URLs)
+- [ ] CORS_ORIGIN (allowed origins)
 
 ---
 
-## ✅ สรุปการแก้ไข Session นี้
+## 🌐 Frontend Deployment (Netlify/Firebase Hosting)
 
-### 📊 Metrics Improvement
+### Option 1: Netlify
 
-| Metric             | Before | After  | Change     |
-| ------------------ | ------ | ------ | ---------- |
-| ESLint Warnings    | 129    | 87     | -42 (-32%) |
-| ESLint Errors      | 0      | 0      | ✅         |
-| Build Time         | 1.44s  | 1.39s  | -3%        |
-| Bundle Size (gzip) | 163 kB | 163 kB | ✅         |
+#### Netlify Dashboard Setup
+1. Connect GitHub repository
+2. Build settings:
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist`
+   - **Node version:** 18 or higher
 
-### 🔧 Changes Made
+3. Environment Variables (Settings → Environment Variables):
+   ```
+   VITE_FIREBASE_API_KEY=your_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_GEMINI_API_KEY=your_gemini_key
+   VITE_USE_COMFYUI_BACKEND=true
+   VITE_COMFYUI_BACKEND_URL=https://your-backend.com
+   ```
 
-**Pass 1: Unused Variables (-27 warnings)**
+4. Deploy settings:
+   - [ ] Enable continuous deployment
+   - [ ] Set production branch: `main`
+   - [ ] Enable deploy previews for PRs
 
-- Removed unused `ErrorBoundary` import in App.tsx
-- Removed `firestoreService` imports (2 files)
-- Removed `showPosterSettings` state (2 files)
-- Removed unused imports: `PsychologyTTSOptions`, `UsageStats`, `checkCloudProvider`, `AutoSelectionCriteria`, `getDeviceDisplayName`
-- Removed unused variables: `completePhysicalInfo`, `generateScene`
-- Added `_` prefix and eslint-disable for unused state setters
+#### Manual Deploy
+```bash
+# Build
+npm run build
 
-**Pass 2: React Hooks Dependencies**
+# Deploy using Netlify CLI
+npm install -g netlify-cli
+netlify login
+netlify deploy --prod
+```
 
-- ✅ No warnings remaining (fixed in previous session)
+### Option 2: Firebase Hosting
 
-**Pass 3: Type Safety - Any Types (-11 warnings)**
+```bash
+# Build
+npm run build
 
-- **AuthPage** (4 fixes): `err: any` → `err: unknown` + type assertion
-- **Step1Genre** (2 fixes): `e: any` → `e: unknown`
-- **DeviceSettings** (1 fix): Defined specific type `{ status?, message?, local?, cloud? }`
-- **ProviderSettings** (2 fixes): Union type for `value` parameter
-- **Step3Character** (2 fixes): Specific types for field handlers
+# Deploy
+firebase deploy --only hosting
 
-**Pass 4: Remaining Unused Vars (-4 warnings)**
-
-- SubscriptionDashboard: Added eslint-disable for `selectedPlan`
-- Test files: Added eslint-disable for `_portfolio`, `anusaya`
-- comfyuiInstaller: Added eslint-disable for `data`
-
-**Pass 5: Build & Testing**
-
-- ✅ Production build successful (1.39s)
-- ✅ No compilation errors
-- ✅ Bundle optimization verified
-
-### 📝 Commits
-
-1. `460dd2b2c` - chore: Update .gitignore to track components and services folders
-2. `7854287e6` - refactor: Improve code quality - reduce ESLint warnings
-
----
-
-## 📋 Pre-Deployment Checklist
-
-### 🔐 Environment & Security
-
-- [x] `.env` variables documented
-- [x] No sensitive data in git
-- [x] `.gitignore` configured properly
-- [ ] Firebase config verified in production
-- [ ] Gemini API key tested
-- [ ] Backend URL configured
-
-### 🧪 Testing Requirements
-
-- [x] Build production successful
-- [x] TypeScript compilation passes
-- [x] ESLint: 0 errors
-- [ ] Backend tests passing (Currently: 2/9 ⚠️)
-- [ ] Test coverage > 70% (Currently: 42% ⚠️)
-- [ ] Manual smoke testing
-
-### 📦 Code Quality Standards
-
-- [x] ESLint errors: 0 ✅
-- [x] ESLint warnings: 87 (down from 129) ✅
-- [x] TypeScript strict mode enabled ✅
-- [x] Build successful ✅
-- [x] No console errors in build ✅
-
-### 🚀 Deployment Steps
-
-- [ ] Run final tests
-- [ ] Create release branch
-- [ ] Update version number
-- [ ] Build production bundle
-- [ ] Deploy to staging
-- [ ] Verify staging deployment
-- [ ] Deploy to production
-- [ ] Monitor error tracking (Sentry)
-
-### 🔍 Post-Deployment Verification
-
-- [ ] Check console for errors
-- [ ] Test critical user flows:
-  - [ ] User registration
-  - [ ] User login
-  - [ ] Script generation
-  - [ ] Character creation
-  - [ ] Export functionality
-- [ ] Monitor performance metrics
-- [ ] Verify error tracking active
+# Or use the npm script
+npm run firebase:hosting
+```
 
 ---
 
-## ⚠️ Known Issues & Risks
+## 🖥️ Backend Deployment (ComfyUI Service)
 
-### 🔴 HIGH Priority (Blockers for Production)
+### Option 1: Docker Deployment (Recommended)
 
-**Backend Tests Failing**
+#### Prerequisites
+- Docker installed
+- Docker Compose installed
+- GPU support configured (NVIDIA Container Toolkit)
 
-- **Status**: 7/9 tests failing
-- **Issue**: Auth endpoints return 400/401 errors
-- **Impact**: Authentication may not work reliably
-- **Action Required**: Debug and fix auth validation before production deploy
-- **ETA**: 2-4 hours
+#### Deploy Steps
+```bash
+cd comfyui-service
 
-### 🟡 MEDIUM Priority (Fix Soon)
+# Create .env file
+cp .env.example .env
+# Edit .env with production values
 
-**Test Coverage Below Target**
+# Build image
+docker build -t peace-script-backend .
 
-- **Current**: 42.28%
-- **Target**: 70%
-- **Missing Coverage**:
-  - projectController.js: 10.16%
-  - middleware/auth.js: 25%
-  - middleware/errorHandler.js: 13.33%
-- **Action**: Add integration tests
-- **ETA**: 1-2 days
+# Run with docker-compose
+docker-compose up -d
 
-### 🟢 LOW Priority (Future Improvements)
+# Check logs
+docker-compose logs -f
+```
 
-**Large File Technical Debt**
+#### docker-compose.yml
+```yaml
+version: '3.8'
+services:
+  backend:
+    image: peace-script-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
 
-- Step5Output.tsx: 4,288 lines
-- Step3Character.tsx: 3,110 lines
-- **Impact**: Maintainability, code review difficulty
-- **Action**: Continue refactoring (Phase 2 pending)
-- **ETA**: 1 week
+### Option 2: Railway Deployment
 
-**Remaining ESLint Warnings**
+1. Install Railway CLI:
+   ```bash
+   npm install -g @railway/cli
+   ```
 
-- 87 warnings (mostly in Step5Output.tsx)
-- Mainly `any` types in complex data structures
-- **Impact**: Minor type safety gaps
-- **Action**: Address incrementally
-- **ETA**: Ongoing
+2. Login and create project:
+   ```bash
+   railway login
+   cd comfyui-service
+   railway init
+   ```
 
----
+3. Add environment variables:
+   ```bash
+   railway variables set NODE_ENV=production
+   railway variables set PORT=8000
+   # Add all other env vars
+   ```
 
-## 📊 Component Readiness Assessment
+4. Deploy:
+   ```bash
+   railway up
+   ```
 
-| Component              | Status           | Score   | Notes                           |
-| ---------------------- | ---------------- | ------- | ------------------------------- |
-| **Frontend**           | ✅ Ready         | 95%     | Build passing, minimal warnings |
-| **Build System**       | ✅ Ready         | 100%    | Fast, optimized                 |
-| **Type Safety**        | ✅ Good          | 85%     | Improved from 75%               |
-| **Error Handling**     | ✅ Ready         | 95%     | ErrorBoundary + Sentry ready    |
-| **Environment Config** | ✅ Ready         | 100%    | Validation implemented          |
-| **Backend API**        | ⚠️ Needs Work    | 70%     | Core working, tests failing     |
-| **Test Coverage**      | ⚠️ Needs Work    | 60%     | Below 70% target                |
-| **Documentation**      | ✅ Good          | 80%     | README + API docs               |
-|                        |                  |         |                                 |
-| **Overall Score**      | ✅ Staging Ready | **85%** | **Not production ready**        |
+### Option 3: Render Deployment
 
----
+1. Create new Web Service on Render
+2. Connect GitHub repository
+3. Build settings:
+   - **Root Directory:** `comfyui-service`
+   - **Build Command:** `npm install`
+   - **Start Command:** `node src/server.js`
+4. Add environment variables in Render dashboard
+5. Deploy
 
-## 🎯 Immediate Next Steps
+### Option 4: VPS/Dedicated Server
 
-### Before Staging Deploy
+```bash
+# SSH into server
+ssh user@your-server.com
 
-1. ✅ Commit all changes
-2. ✅ Verify build successful
-3. [ ] Manual testing session (30 min)
-4. [ ] Create staging release branch
+# Clone repository
+git clone https://github.com/metapeaceDev/Peace-Scrip-Ai.git
+cd Peace-Scrip-Ai/peace-script-basic-v1/comfyui-service
 
-### Before Production Deploy (MUST DO)
+# Install dependencies
+npm install
 
-1. �� **Fix backend auth tests** (BLOCKER)
-   - Debug registration endpoint 400 error
-   - Debug login endpoint 401 error
-   - Ensure all 9 tests pass
-2. 🟡 **Increase test coverage to >60%** (RECOMMENDED)
-   - Add tests for projectController
-   - Add tests for auth middleware
-3. 🟢 **Manual QA testing** (REQUIRED)
-   - Test all critical user flows
-   - Verify environment validation
-   - Test error boundary
+# Create .env
+nano .env
+# Paste your environment variables
 
-### Short Term (Next Sprint)
+# Install PM2 for process management
+npm install -g pm2
 
-- Complete Step5Output refactoring Phase 2
-- Address remaining 87 ESLint warnings
-- Add E2E tests for critical flows
-- Implement full Sentry integration
+# Start with PM2
+pm2 start src/server.js --name peace-script-backend
+pm2 save
+pm2 startup
 
-### Long Term (Roadmap)
+# Setup Nginx reverse proxy (optional)
+sudo nano /etc/nginx/sites-available/peace-script
+```
 
-- Refactor Step3Character.tsx
-- Performance optimization
-- A/B testing framework
-- Internationalization (i18n)
+#### Nginx config:
+```nginx
+server {
+    listen 80;
+    server_name api.yoursite.com;
 
----
-
-## 📈 Progress Tracking
-
-### Session Achievements ✅
-
-- [x] Reduce ESLint warnings by 32%
-- [x] Improve type safety (11 any types fixed)
-- [x] Remove unused code (31 instances)
-- [x] Maintain zero ESLint errors
-- [x] Production build working
-- [x] Create deployment checklist
-
-### Previous Sessions ✅
-
-- [x] Type safety in App.tsx (8 any types)
-- [x] Type safety in geminiService.ts (20+ any types)
-- [x] Backend test infrastructure
-- [x] Error boundaries + Sentry framework
-- [x] Environment validation system
-- [x] Large file refactoring Phase 1
-
-### Remaining Work 🔄
-
-- [ ] Fix backend auth tests (CRITICAL)
-- [ ] Increase test coverage to 70%
-- [ ] Large file refactoring Phase 2
-- [ ] Address remaining 87 warnings
-- [ ] Production deployment
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
 
 ---
 
-## 🔗 Resources
+## 🔥 Firebase Functions Deployment
 
-- **Repository**: Peace-Scrip-Ai (main branch)
-- **Last Commit**: `7854287e6` - refactor: Improve code quality
-- **Build Output**: dist/ (605 kB, gzip: 163 kB)
-- **Documentation**: README.md, REFACTORING_PROGRESS.md
-- **Test Results**: backend/tests/ (2/9 passing)
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
 
----
+# Login
+firebase login
 
-## ✅ Sign-Off Checklist
+# Deploy functions only
+firebase deploy --only functions
 
-**Code Quality**
+# Deploy specific function
+firebase deploy --only functions:yourFunctionName
+```
 
-- [x] ESLint: 0 errors, 87 warnings (acceptable)
-- [x] TypeScript: No compilation errors
-- [x] Build: Successful
-- [x] Git: All changes committed
+### Environment Variables for Functions
+```bash
+# Set via CLI
+firebase functions:config:set \
+  stripe.secret_key="your_stripe_key" \
+  openai.api_key="your_openai_key"
 
-**Testing**
-
-- [x] Unit tests: Infrastructure ready
-- [ ] Integration tests: Need fixes
-- [ ] E2E tests: Not implemented
-- [ ] Manual QA: Pending
-
-**Deployment**
-
-- [x] Staging: Ready ✅
-- [ ] Production: Not ready (backend tests failing) ⚠️
-
-**Recommendation**: 🟢 **PROCEED TO STAGING** | 🔴 **HOLD PRODUCTION** until backend tests fixed
+# View current config
+firebase functions:config:get
+```
 
 ---
 
-_Last Updated: 10 ธันวาคม 2568, 06:40_  
-_Maintainer: GitHub Copilot_  
-_Project: Peace Script AI - Thai Screenplay Generator_
+## 🗄️ Database & Storage Setup
+
+### Firestore Rules
+```bash
+firebase deploy --only firestore:rules
+```
+
+### Storage Rules
+```bash
+firebase deploy --only storage:rules
+```
+
+### Indexes
+```bash
+firebase deploy --only firestore:indexes
+```
+
+---
+
+## 📊 Post-Deployment Verification
+
+### Frontend
+- [ ] เข้าถึงได้ที่ URL ที่ deploy แล้ว
+- [ ] Login/Logout ทำงาน
+- [ ] Generate image ทำงาน
+- [ ] Generate video ทำงาน
+- [ ] Upload files ทำงาน
+- [ ] Check browser console (ไม่มี errors)
+- [ ] Test on mobile devices
+
+### Backend
+- [ ] Health check endpoint: `GET /health`
+  ```bash
+  curl https://your-backend.com/health
+  ```
+- [ ] ComfyUI workers status: `GET /api/comfyui/workers`
+- [ ] Generate endpoint: `POST /api/comfyui/generate`
+- [ ] Check logs ไม่มี errors
+- [ ] Test image generation end-to-end
+- [ ] Test video generation end-to-end
+
+### Database
+- [ ] Firestore rules ใช้งานได้
+- [ ] Storage rules ใช้งานได้
+- [ ] Data เขียนได้ถูกต้อง
+- [ ] Query performance ดี
+
+---
+
+## 🚨 Rollback Plan
+
+### Frontend (Netlify)
+```bash
+# List deployments
+netlify deploy list
+
+# Rollback to specific deploy
+netlify deploy:rollback <deploy-id>
+```
+
+### Frontend (Firebase)
+```bash
+# View hosting releases
+firebase hosting:list
+
+# Rollback to previous version
+firebase hosting:rollback
+```
+
+### Backend
+```bash
+# Docker
+docker-compose down
+docker-compose up -d --force-recreate
+
+# PM2
+pm2 restart peace-script-backend
+pm2 logs
+```
+
+---
+
+## 📈 Monitoring & Logs
+
+### Frontend
+- Netlify Analytics (built-in)
+- Firebase Performance Monitoring
+- Browser console errors
+
+### Backend
+- Application logs: `docker-compose logs -f`
+- PM2 logs: `pm2 logs peace-script-backend`
+- Error tracking (Sentry - if configured)
+
+### Database
+- Firebase Console → Firestore → Usage
+- Check quota usage
+- Monitor query performance
+
+---
+
+## ✅ Final Checklist
+
+- [ ] Frontend deployed and accessible
+- [ ] Backend deployed and responding
+- [ ] Database rules deployed
+- [ ] Storage rules deployed
+- [ ] All environment variables set correctly
+- [ ] SSL certificates active (HTTPS)
+- [ ] CORS configured properly
+- [ ] Monitoring setup complete
+- [ ] Rollback plan tested
+- [ ] Team notified of deployment
+- [ ] Documentation updated
+- [ ] Create git tag for release
+  ```bash
+  git tag -a v1.0.0 -m "Production release v1.0.0"
+  git push origin v1.0.0
+  ```
+
+---
+
+## 📞 Support Contacts
+
+- **DevOps:** [Your DevOps Team]
+- **Backend:** [Backend Team]
+- **Frontend:** [Frontend Team]
+- **Emergency:** [Emergency Contact]
+
+---
+
+## 📝 Notes
+
+- Always deploy to **staging** first before production
+- Test thoroughly after each deployment
+- Keep backup of database before major changes
+- Document any manual configuration changes
+- Update this checklist with lessons learned
+
+---
+
+**Last Updated:** 2026-01-01
+**Version:** 1.0.0
