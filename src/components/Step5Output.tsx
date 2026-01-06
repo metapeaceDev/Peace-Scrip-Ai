@@ -1355,6 +1355,11 @@ const SceneDisplay: React.FC<{
 SCENE SETTING: ${setDetails}.
 CHARACTERS: ${characterContext || 'Generic characters'}.`;
 
+    // 👔 ADD EXPLICIT COSTUME CONSISTENCY WARNING
+    if (characterContext && characterContext.length > 50) {
+      prompt += `\n\n👔 COSTUME MUST REMAIN IDENTICAL: The character outfit described above is FIXED for this entire scene. DO NOT change clothes, colors, patterns, or accessories between shots.`;
+    }
+
     // Add psychology context if available
     if (psychologyContext) {
       prompt += `\n${psychologyContext}`;
@@ -1427,9 +1432,16 @@ ${
       const previousShotImage = previousShotNumber
         ? editedScene.storyboard?.find(s => isSameShotNumber(s.shot, previousShotNumber))?.image
         : undefined;
+      
+      // 👔 COSTUME CHANGE DETECTION: Check if this shot involves changing clothes
+      const shotDesc = (shotData.description || '').toLowerCase();
+      const isCostumeChangeShot = /\b(เปลี่ยนเสื้อ|เปลี่ยนชุด|แต่งตัว|ถอดเสื้อ|ใส่เสื้อ|costume change|changing clothes|getting dressed|wardrobe change|outfit change|putting on|taking off)\b/i.test(shotDesc);
+      
+      // If costume change, don't enforce costume consistency
+      const shouldEnforceCostumeConsistency = previousShotImage && !isCostumeChangeShot;
 
       console.log(
-        `🎨 Generating shot ${shotNumber} with seed: ${sceneSeed}, previous shot: ${previousShotNumber || 'none'}`
+        `🎨 Generating shot ${shotNumber} with seed: ${sceneSeed}, previous shot: ${previousShotNumber || 'none'}, costume change: ${isCostumeChangeShot}`
       );
 
       const base64Image = await generateStoryboardImage(
@@ -1438,9 +1450,10 @@ ${
         p => setProgress(p),
         {
           seed: sceneSeed, // 🔧 STABLE SEED per scene
-          previousShotImage: previousShotImage, // 🔧 CONTINUITY reference
+          previousShotImage: shouldEnforceCostumeConsistency ? previousShotImage : undefined, // 🔧 CONTINUITY reference (skip if costume change)
           preferredModel: storyboardModel, // 🆕 USER SELECTED MODEL
           locationDetails: editedScene.sceneDesign?.locationDetails, // 📍 Location Details
+          isCostumeChangeShot: isCostumeChangeShot, // 👔 Flag for costume change detection
         }
       );
 

@@ -4483,6 +4483,7 @@ export async function generateStoryboardImage(
     previousShotImage?: string; // 🆕 Previous shot for continuity
     preferredModel?: string; // 🆕 User-selected model
     locationDetails?: LocationDetails; // 📍 Location Details for environment context
+    isCostumeChangeShot?: boolean; // 👔 Flag to indicate costume change scene
   }
 ): Promise<string> {
   try {
@@ -4555,18 +4556,64 @@ export async function generateStoryboardImage(
 
     // 🆕 CONTINUITY: Add previous shot context if available
     if (options?.previousShotImage) {
-      enhancedPrompt += `\n\nIMPORTANT: Maintain visual continuity with previous shot. Keep consistent lighting, color palette, and character appearances.`;
+      enhancedPrompt += `\n\n🎭 SCENE CONTINUITY - MAINTAIN FROM PREVIOUS SHOT:`;
+      
+      // 👔 COSTUME CONSISTENCY: Only enforce if NOT a costume change shot
+      if (!options?.isCostumeChangeShot) {
+        enhancedPrompt += `\n\n👔 COSTUME MUST BE IDENTICAL:`;
+        enhancedPrompt += `\n- EXACT SAME outfit, clothing, colors, patterns, textures`;
+        enhancedPrompt += `\n- SAME accessories, jewelry, shoes, props worn by character`;
+        enhancedPrompt += `\n- DO NOT change, add, remove, or alter ANY clothing items`;
+        enhancedPrompt += `\n- CRITICAL: Character wardrobe is LOCKED for entire scene`;
+      }
+      
+      // 💡 LIGHTING CONSISTENCY: ALWAYS enforce (even during costume changes)
+      enhancedPrompt += `\n\n💡 LIGHTING MUST BE IDENTICAL:`;
+      if (options?.locationDetails?.sensory?.lighting) {
+        enhancedPrompt += `\n- Maintain exact lighting: "${options.locationDetails.sensory.lighting}"`;
+      } else {
+        enhancedPrompt += `\n- Maintain exact same light direction, intensity, and quality`;
+      }
+      enhancedPrompt += `\n- SAME light color temperature (warm/cool/neutral)`;
+      enhancedPrompt += `\n- SAME shadow direction and hardness/softness`;
+      enhancedPrompt += `\n- SAME ambient light level and contrast ratio`;
+      
+      // 🎨 COLOR PALETTE: Lock in scene colors
+      if (options?.locationDetails?.sensory?.colors) {
+        enhancedPrompt += `\n\n🎨 COLOR PALETTE LOCKED: "${options.locationDetails.sensory.colors}"`;
+        enhancedPrompt += `\n- Maintain exact same overall color grading and tone`;
+      }
+      
+      // 🎬 ATMOSPHERE: Lock in scene mood
+      if (options?.locationDetails?.atmosphere?.weather) {
+        enhancedPrompt += `\n\n🌤️ ATMOSPHERE CONSTANT: ${options.locationDetails.atmosphere.weather}`;
+        if (options.locationDetails.atmosphere?.temperature) {
+          enhancedPrompt += ` at ${options.locationDetails.atmosphere.temperature}`;
+        }
+      }
     }
 
     // 🎬 CINEMATIC STYLE: Add photorealistic keywords
     const cinematicPrompt = `professional cinematic photography, photorealistic, film grain, depth of field, dramatic lighting, movie scene, high quality cinematography, realistic textures\n\n${enhancedPrompt}`;
 
+    // 🚫 NEGATIVE PROMPT: Build comprehensive exclusions
+    let negativePrompt = 'anime, cartoon, manga, illustration, drawing, painting, sketch, 2d art, cell shading, comic book, animated, stylized, non-photorealistic, low quality, blurry, distorted, text, watermark, inconsistent style, changing faces, morphing';
+    
+    // Add continuity-specific negatives if previous shot exists
+    if (options?.previousShotImage) {
+      // Costume negatives (only if NOT a costume change shot)
+      if (!options?.isCostumeChangeShot) {
+        negativePrompt += ', changing clothes, different outfit, costume change, wardrobe change, different shirt, different pants, different dress, different accessories, added clothing, removed clothing, altered outfit, different colors on clothes, different patterns, different textures, wardrobe inconsistency';
+      }
+      // Lighting negatives (ALWAYS enforce)
+      negativePrompt += ', different lighting, inconsistent lighting, changed lighting direction, different light color, different shadows, lighting shift, brightness change, contrast change, different light quality, different light intensity, lighting inconsistency, color temperature shift, different ambient light, changed mood lighting';
+    }
+    
     return await generateImageWithCascade(cinematicPrompt, {
       referenceImage: primaryCharacterRef, // 🆕 FACE ID: Use character reference
       useLora: characters && characters.length > 0, // Use LoRA only when characters exist
       loraType: characters && characters.length > 0 ? 'CHARACTER_CONSISTENCY' : 'DETAIL_ENHANCER',
-      negativePrompt:
-        'anime, cartoon, manga, illustration, drawing, painting, sketch, 2d art, cell shading, comic book, animated, stylized, non-photorealistic, low quality, blurry, distorted, text, watermark, inconsistent style, changing faces, morphing',
+      negativePrompt: negativePrompt,
       seed: options?.seed, // 🆕 SEED CONSISTENCY
       preferredModel: options?.preferredModel,
       onProgress: onProgress,
