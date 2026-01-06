@@ -222,6 +222,15 @@ export interface GeneratedScene {
     location: string;
     // Detailed location information for environment generation
     locationDetails?: LocationDetails;
+    // Location Image Album - stores generated location images
+    locationImageAlbum?: Array<{
+      url: string;
+      timestamp: number;
+      locationString: string;
+      id: string;
+    }>;
+    // Selected location image ID for display
+    selectedLocationImageId?: string | null;
     situations: {
       description: string;
       characterThoughts: string;
