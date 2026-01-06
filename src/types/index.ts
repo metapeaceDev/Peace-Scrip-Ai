@@ -165,12 +165,63 @@ export interface DialogueLine {
   dialogue: string;
 }
 
+// Location Details for comprehensive environment description
+export interface LocationDetails {
+  // Basic Information
+  locationType: string; // INT/EXT
+  locationName: string; // Name of the place
+  timeOfDay: string; // DAY/NIGHT/DAWN/DUSK/GOLDEN HOUR
+  
+  // Environment Details
+  environment: {
+    description: string; // Comprehensive description
+    architecture?: string; // Building style, structure
+    landscaping?: string; // Natural/artificial elements
+    dimensions?: string; // Size, scale
+    capacity?: string; // How many people can fit
+  };
+  
+  // Atmospheric Conditions
+  atmosphere: {
+    weather: string; // Sunny, rainy, cloudy, etc.
+    temperature: string; // Hot, warm, cool, cold (with °C/°F)
+    humidity: string; // Dry, moderate, humid, very humid
+    windSpeed?: string; // Calm, breezy, windy, stormy
+    visibility?: string; // Clear, hazy, foggy
+  };
+  
+  // Sensory Details
+  sensory: {
+    smell?: string; // Dominant scents
+    sounds?: string; // Ambient sounds
+    lighting?: string; // Natural/artificial light quality
+    colors?: string; // Dominant color palette
+  };
+  
+  // Production Details
+  production: {
+    setDressing?: string; // Furniture, decorations
+    props?: string; // Key props in location
+    practicalLights?: string; // Light sources in scene
+    specialRequirements?: string; // Specific needs
+  };
+  
+  // Reference Information
+  references?: {
+    inspirationImages?: string[]; // Reference image URLs
+    realWorldLocation?: string; // Real-world equivalent
+    culturalContext?: string; // Cultural/historical context
+  };
+}
+
 export interface GeneratedScene {
   sceneNumber: number;
   sceneDesign: {
     sceneName: string;
     characters: string[];
     location: string;
+    // Detailed location information for environment generation
+    locationDetails?: LocationDetails;
     situations: {
       description: string;
       characterThoughts: string;

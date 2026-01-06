@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   ScriptData,
   GeneratedScene,
@@ -7,12 +8,14 @@ import type {
   DialogueLine,
   PsychologySnapshot,
   PsychologyChange,
+  LocationDetails,
 } from '../types';
 import { useTranslation } from './LanguageSwitcher';
 import {
   generateStoryboardImage,
   generateStoryboardVideo,
   VIDEO_MODELS_CONFIG,
+  getAI,
 } from '../services/geminiService';
 import { checkBackendStatus } from '../services/comfyuiBackendClient';
 import {
@@ -24,6 +27,8 @@ import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../constants';
 import { hasAccessToModel } from '../services/userStore';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
+import { LocationDetailsModal } from './LocationDetailsModal';
+import { generateLocationImage } from './locationImageGenerator';
 import { MotionEditor } from './MotionEditor';
 import type { MotionEdit } from '../types/motionEdit';
 import { DEFAULT_MOTION_EDIT } from '../types/motionEdit';
@@ -467,6 +472,22 @@ const SceneDisplay: React.FC<{
   pointTitle: string;
   sceneIndex: number;
   scriptData: ScriptData;
+  isRegenerateLocationModalOpen: boolean;
+  setIsRegenerateLocationModalOpen: (value: boolean) => void;
+  isRegeneratingAllLocation: boolean;
+  locationRegenerationProgress: number;
+  handleRegenerateAllLocationDetails: (mode: 'fresh' | 'refine' | 'edited') => Promise<void>;
+  locationImageAlbum: Array<{
+    url: string;
+    timestamp: number;
+    locationString: string;
+    id: string;
+  }>;
+  selectedLocationImageId: string | null;
+  isGeneratingLocationImage: boolean;
+  onSelectLocationImage: (id: string) => void;
+  onDeleteLocationImage: (id: string) => void;
+  handleGenerateLocationImage: () => void;
 }> = ({
   sceneData,
   onSave,
@@ -476,6 +497,17 @@ const SceneDisplay: React.FC<{
   pointTitle,
   sceneIndex,
   scriptData,
+  isRegenerateLocationModalOpen,
+  setIsRegenerateLocationModalOpen,
+  isRegeneratingAllLocation,
+  locationRegenerationProgress,
+  handleRegenerateAllLocationDetails,
+  locationImageAlbum,
+  selectedLocationImageId,
+  isGeneratingLocationImage,
+  onSelectLocationImage,
+  onDeleteLocationImage,
+  handleGenerateLocationImage,
 }) => {
   // Sub-tabs for Scene Design only
   const [activeTab, setActiveTab] = useState('design');
@@ -622,7 +654,7 @@ const SceneDisplay: React.FC<{
   );
 
   // 🎙️ Voice Generation States
-  const [includeVoice, setIncludeVoice] = useState(false);
+
   // @ts-ignore - audioTimeline reserved for future audio preview feature
   const [audioTimeline, setAudioTimeline] = useState<AudioTimeline | null>(null);
   const [audioProgress, setAudioProgress] = useState(0);
@@ -1415,7 +1447,11 @@ ${
       // Immediate Save
       if (!isEditing) onSave(updatedScene);
     } catch (error) {
-      alert('Failed to generate image. Please try again.');
+      setErrorModal({
+        isOpen: true,
+        title: t('step5.error.generationFailed') || 'Generation Failed',
+        message: t('step5.error.imageFailed') || 'Failed to generate image. Please try again.',
+      });
       console.error(error);
     } finally {
       setGeneratingShotId(null);
@@ -1434,7 +1470,11 @@ ${
 
     // ✅ Validate required data before generation
     if (!shotData.description || shotData.description.trim() === '') {
-      alert('❌ ข้อมูลไม่ครบถ้วน: Shot description is required for video generation');
+      setErrorModal({
+        isOpen: true,
+        title: t('common.missingInfo') || 'ข้อมูลไม่ครบถ้วน',
+        message: 'Shot description is required for video generation',
+      });
       return;
     }
     const sceneDialogueLines =
@@ -1446,21 +1486,45 @@ ${
       console.warn('⚠️ Warning: No character data found');
     }
 
-    // 🎙️ Check voice generation requirements
-    const shouldIncludeVoice = includeVoice && sceneDialogueLines.length > 0;
+    // 🎙️ Automatic Voice Detection & Fallback System
+    // ตรวจสอบว่ามี dialogue ในฉากนี้หรือไม่
+    const shouldIncludeVoice = sceneDialogueLines.length > 0;
     if (shouldIncludeVoice) {
-      // Validate that characters have voice samples
+      // วิเคราะห์ตัวละครที่มี dialogue
       const charactersInDialogue = [...new Set(sceneDialogueLines.map(d => d.character))];
-      const charactersWithoutVoice = charactersInDialogue.filter(charName => {
+      
+      // แยกประเภทตัวละคร: มี voice sample, มีแค่ speech pattern, หรือไม่มีอะไรเลย
+      const voiceStatus = charactersInDialogue.map(charName => {
         const char = scriptData.characters.find(c => c.name === charName);
-        return !char?.voiceCloning?.hasVoiceSample;
+        return {
+          name: charName,
+          hasVoiceSample: !!char?.voiceCloning?.hasVoiceSample,
+          hasSpeechPattern: !!(char?.speechPattern || char?.dialect),
+          character: char
+        };
       });
 
-      if (charactersWithoutVoice.length > 0) {
-        const shouldContinue = confirm(
-          `⚠️ Warning: Some characters don't have voice samples:\n${charactersWithoutVoice.join(', ')}\n\nContinue without voice for these characters?`
-        );
-        if (!shouldContinue) return;
+      const charactersWithVoice = voiceStatus.filter(s => s.hasVoiceSample);
+      const charactersWithSpeechPattern = voiceStatus.filter(s => !s.hasVoiceSample && s.hasSpeechPattern);
+      const charactersWithoutAnyData = voiceStatus.filter(s => !s.hasVoiceSample && !s.hasSpeechPattern);
+
+      // แจ้งเตือนผู้ใช้เกี่ยวกับการใช้เสียง
+      if (charactersWithVoice.length > 0 || charactersWithSpeechPattern.length > 0) {
+        console.warn('🎙️ Voice Generation Status:');
+        if (charactersWithVoice.length > 0) {
+          console.warn(`  ✅ Voice Cloning (${charactersWithVoice.length}):`, charactersWithVoice.map(c => c.name));
+        }
+        if (charactersWithSpeechPattern.length > 0) {
+          console.warn(`  📝 Speech Pattern Fallback (${charactersWithSpeechPattern.length}):`, charactersWithSpeechPattern.map(c => c.name));
+        }
+        if (charactersWithoutAnyData.length > 0) {
+          console.warn(`  ⚠️ No Voice Data (${charactersWithoutAnyData.length}):`, charactersWithoutAnyData.map(c => c.name));
+          
+          const shouldContinue = confirm(
+            `⚠️ Warning: Some characters have no voice data:\n${charactersWithoutAnyData.map(c => c.name).join(', ')}\n\nContinue without voice for these characters?`
+          );
+          if (!shouldContinue) return;
+        }
       }
     }
 
@@ -1627,6 +1691,7 @@ ${
       console.warn('🎬 Step5Output - Length:', videoUri?.length);
 
       // 🎙️ VOICE GENERATION: Generate audio and merge with video
+      // ระบบจะใช้ Voice Cloning อัตโนมัติถ้ามี ถ้าไม่มีจะใช้ Speech Pattern & Dialect
       let finalVideoUri = videoUri;
       if (shouldIncludeVoice) {
         try {
@@ -1634,23 +1699,32 @@ ${
           setGeneratingAudioForShot(shotIndex);
           setAudioProgress(0);
 
-          // Find dialogues for this shot (approximate - use scene dialogues)
-          const dialoguesForShot = sceneDialogueLines.filter(d => {
+          // แยก dialogues ตามประเภทการสร้างเสียง
+          const dialoguesWithVoice = sceneDialogueLines.filter(d => {
             const char = scriptData.characters.find(c => c.name === d.character);
             return char?.voiceCloning?.hasVoiceSample;
           });
 
-          if (dialoguesForShot.length > 0) {
-            setAudioProgress(20);
-            console.warn(`🎙️ Generating audio for ${dialoguesForShot.length} dialogue lines...`);
+          const dialoguesWithSpeechPattern = sceneDialogueLines.filter(d => {
+            const char = scriptData.characters.find(c => c.name === d.character);
+            return !char?.voiceCloning?.hasVoiceSample && (char?.speechPattern || char?.dialect);
+          });
 
-            // Generate audio timeline
+          if (dialoguesWithVoice.length > 0 || dialoguesWithSpeechPattern.length > 0) {
+            setAudioProgress(20);
+            console.warn(`🎙️ Generating audio:`);
+            console.warn(`  ✅ Voice Cloning: ${dialoguesWithVoice.length} lines`);
+            console.warn(`  📝 Speech Pattern: ${dialoguesWithSpeechPattern.length} lines`);
+
+            // สร้าง audio timeline รวมทั้ง voice cloning และ speech pattern
+            const allDialogues = [...dialoguesWithVoice, ...dialoguesWithSpeechPattern];
             const { audioBlob, timeline } = await generateSceneAudio(
-              dialoguesForShot,
+              allDialogues,
               scriptData.characters,
               {
                 gapBetweenLines: 0.5,
                 startDelay: 0.5,
+                useSpeechPatternFallback: true, // เปิดใช้ Speech Pattern fallback
               }
             );
 
@@ -1676,13 +1750,15 @@ ${
             finalVideoUri = URL.createObjectURL(finalVideoBlob);
             console.warn('🎙️ Video+Audio merge complete!');
           } else {
-            console.warn('🎙️ No characters with voice samples in this shot');
+            console.warn('🎙️ No dialogues with voice data in this shot');
           }
         } catch (audioError) {
           console.error('❌ Audio generation failed:', audioError);
-          alert(
-            `Video generated successfully, but audio generation failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`
-          );
+          setErrorModal({
+            isOpen: true,
+            title: '⚠️ Audio Error',
+            message: `Video generated successfully, but audio generation failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`,
+          });
           // Continue with video-only
         } finally {
           setGeneratingAudioForShot(null);
@@ -1714,7 +1790,11 @@ ${
       console.error('❌ Error message:', errorMessage);
       console.error('❌ Preferred model was:', preferredVideoModel);
 
-      alert(`Failed to generate video: ${errorMessage}`);
+      setErrorModal({
+        isOpen: true,
+        title: 'Video Generation Failed',
+        message: `Failed to generate video: ${errorMessage}`,
+      });
     } finally {
       setGeneratingVideoShotId(null);
       setCurrentVideoJobId(null);
@@ -1738,14 +1818,26 @@ ${
       const result = await cancelVideoJob(currentVideoJobId);
 
       if (result.success) {
-        alert('✅ Video generation cancelled successfully');
+        setSuccessModal({
+          isOpen: true,
+          title: '✅ Cancelled',
+          message: 'Video generation cancelled successfully',
+        });
         console.log('✅ Cancellation result:', result);
       } else {
-        alert(`⚠️ Cancellation result: ${result.message}`);
+        setInfoModal({
+          isOpen: true,
+          title: '⚠️ Cancellation Result',
+          message: result.message,
+        });
       }
     } catch (error) {
       console.error('❌ Failed to cancel video job:', error);
-      alert(`❌ Failed to cancel: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setErrorModal({
+        isOpen: true,
+        title: 'Cancellation Failed',
+        message: `Failed to cancel: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     } finally {
       setGeneratingVideoShotId(null);
       setCurrentVideoJobId(null);
@@ -1773,7 +1865,11 @@ ${
 
     // Safety check for shotList
     if (!currentSceneState.shotList || currentSceneState.shotList.length === 0) {
-      alert('No shots available to generate images for.');
+      setErrorModal({
+        isOpen: true,
+        title: 'No Shots Available',
+        message: 'No shots available to generate images for.',
+      });
       setIsGeneratingAll(false);
       return;
     }
@@ -1852,9 +1948,17 @@ ${
     setGeneratingShotId(null);
     setProgress(0);
     if (abortGenerationRef.current) {
-      alert('Auto-generation stopped by user.');
+      setInfoModal({
+        isOpen: true,
+        title: 'Stopped',
+        message: 'Auto-generation stopped by user.',
+      });
     } else {
-      alert('Batch generation complete!');
+      setSuccessModal({
+        isOpen: true,
+        title: '✅ Complete!',
+        message: 'Batch generation complete!',
+      });
     }
   };
 
@@ -1917,6 +2021,30 @@ ${
   // Shot List AI actions
   const [isGeneratingShotList, setIsGeneratingShotList] = useState(false);
   const [regeneratingShotListIndex, setRegeneratingShotListIndex] = useState<number | null>(null);
+  const [regeneratingPropListIndex, setRegeneratingPropListIndex] = useState<number | null>(null);
+  const [isRegeneratingAllShots, setIsRegeneratingAllShots] = useState(false);
+  const [regenerationProgress, setRegenerationProgress] = useState(0);
+  const [singleShotProgress, setSingleShotProgress] = useState(0);
+  const [singlePropProgress, setSinglePropProgress] = useState(0);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isGeneratingLocationDetails, setIsGeneratingLocationDetails] = useState(false);
+  // Regenerate Shot List Modal (for regenerating all shots)
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  const [selectedRegenerateMode, setSelectedRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
+  // Regenerate Single Shot Modal
+  const [regenerateSingleShotModal, setRegenerateSingleShotModal] = useState<{
+    isOpen: boolean;
+    shotIndex: number | null;
+  }>({ isOpen: false, shotIndex: null });
+  // Regenerate Prop List Modal (for regenerating all props)
+  const [isRegeneratePropModalOpen, setIsRegeneratePropModalOpen] = useState(false);
+  const [isRegeneratingAllProps, setIsRegeneratingAllProps] = useState(false);
+  const [selectedPropRegenerateMode, setSelectedPropRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
+  // Regenerate Single Prop Modal
+  const [regenerateSinglePropModal, setRegenerateSinglePropModal] = useState<{
+    isOpen: boolean;
+    propIndex: number | null;
+  }>({ isOpen: false, propIndex: null });
 
   const handleClearAllShotList = () => {
     if (confirmClearSection === 'shotlist') {
@@ -1981,20 +2109,140 @@ ${
       if (!isEditing) onSave({ ...editedScene, shotList: newShotList as any });
     } catch (e) {
       console.error('Failed to generate shot list:', e);
-      alert(`Failed to generate Shot List: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      setErrorModal({
+        isOpen: true,
+        title: 'Generation Failed',
+        message: `Failed to generate Shot List: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
     } finally {
       setIsGeneratingShotList(false);
     }
   };
 
-  const handleRegenerateShotListItem = async (index: number) => {
+  // Regenerate all shots in Shot List (ทีละช็อต เพื่อรักษา continuity)
+  const handleRegenerateAllShotList = async () => {
     if (!isEditing) return;
+    if (!editedScene.shotList || editedScene.shotList.length === 0) {
+      setErrorModal({
+        isOpen: true,
+        title: 'No Shot List',
+        message: 'ไม่มี Shot List ให้รีเจน กรุณาสร้าง Shot List ก่อน',
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `คุณต้องการรีเจน Shot List ทั้งหมด (${editedScene.shotList.length} ช็อต) ใช่หรือไม่?\n\nระบบจะรีเจนทีละช็อตเพื่อรักษา Continuity (ชุด, พร็อพ, อารมณ์)`
+    );
+    if (!confirmed) return;
+
+    if (onRegisterUndo) onRegisterUndo();
+    setIsRegeneratingAllShots(true);
+
+    try {
+      const { regenerateShotListItem } = await import('../services/geminiService');
+      const totalShots = editedScene.shotList.length;
+      const newShotList = [...editedScene.shotList];
+
+      // Get previous scenes for continuity context
+      const previousScenes = (() => {
+        const buckets =
+          (scriptData as any)?.generatedScenes &&
+          typeof (scriptData as any).generatedScenes === 'object'
+            ? Object.values((scriptData as any).generatedScenes)
+            : [];
+        const all = buckets.flatMap((v: any) => (Array.isArray(v) ? v : []));
+        return all
+          .filter(
+            (s: any) =>
+              typeof s?.sceneNumber === 'number' && s.sceneNumber < editedScene.sceneNumber
+          )
+          .sort((a: any, b: any) => Number(b.sceneNumber) - Number(a.sceneNumber))
+          .slice(0, 2);
+      })();
+
+      // Regenerate each shot sequentially (preserves continuity)
+      for (let i = 0; i < totalShots; i++) {
+        console.log(`🔄 Regenerating shot ${i + 1} of ${totalShots}...`);
+        
+        const current = newShotList[i];
+        const shotNumber = typeof (current as any)?.shot === 'number' ? (current as any).shot : i + 1;
+        const prev = i > 0 ? newShotList[i - 1] : undefined;
+        const next = i < totalShots - 1 ? editedScene.shotList[i + 1] : undefined;
+
+        try {
+          const regenerated = await regenerateShotListItem(
+            { sceneNumber: editedScene.sceneNumber, sceneDesign: editedScene.sceneDesign },
+            shotNumber,
+            { language: scriptData?.language },
+            { previousShot: prev, currentShot: current, nextShot: next },
+            { previousScenes }
+          );
+
+          // Update the shot in newShotList (preserving continuity for next iteration)
+          newShotList[i] = { ...(newShotList[i] || {}), ...(regenerated as any), shot: shotNumber };
+
+          // Update UI progressively
+          setEditedScene(prevState => {
+            const list = [...newShotList];
+            return { ...prevState, shotList: list };
+          });
+        } catch (error) {
+          console.error(`Failed to regenerate shot ${i + 1}:`, error);
+          // Continue with next shot even if one fails
+        }
+      }
+
+      // Final save
+      if (!isEditing) {
+        onSave({ ...editedScene, shotList: newShotList });
+      }
+
+      setSuccessModal({
+        isOpen: true,
+        title: '✅ รีเจนเสร็จสิ้น',
+        message: `รีเจน Shot List เสร็จสิ้น: ${totalShots} ช็อต\n\nระบบรักษา Continuity ของชุด พร็อพ และอารมณ์ตัวละครไว้แล้ว`,
+      });
+    } catch (e) {
+      console.error('Failed to regenerate all shots:', e);
+      setErrorModal({
+        isOpen: true,
+        title: '❌ เกิดข้อผิดพลาด',
+        message: `เกิดข้อผิดพลาดในการรีเจน Shot List: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsRegeneratingAllShots(false);
+    }
+  };
+
+  const handleRegenerateShotListItem = async (index: number) => {
+    // Open modal to let user choose regeneration mode
+    setRegenerateSingleShotModal({ isOpen: true, shotIndex: index });
+  };
+
+  const handleRegenerateSingleShotWithMode = async (mode: 'fresh' | 'refine' | 'edited') => {
+    const index = regenerateSingleShotModal.shotIndex;
+    if (index === null) return;
+
+    // Close modal
+    setRegenerateSingleShotModal({ isOpen: false, shotIndex: null });
+
     if (onRegisterUndo) onRegisterUndo();
 
     const current = (editedScene.shotList || [])[index];
     const shotNumber =
       typeof (current as any)?.shot === 'number' ? (current as any).shot : index + 1;
     setRegeneratingShotListIndex(index);
+    setSingleShotProgress(0);
+
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      setSingleShotProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + Math.random() * 5;
+      });
+    }, 300);
+
     try {
       const { regenerateShotListItem } = await import('../services/geminiService');
       const prev = index > 0 ? (editedScene.shotList || [])[index - 1] : undefined;
@@ -2024,26 +2272,772 @@ ${
         shotNumber,
         { language: scriptData?.language },
         { previousShot: prev, currentShot: current, nextShot: next },
-        { previousScenes }
+        { previousScenes },
+        mode // Pass the selected mode
       );
+
+      clearInterval(progressInterval);
+      setSingleShotProgress(95);
 
       setEditedScene(prevState => {
         const list = [...(prevState.shotList || [])];
         list[index] = { ...(list[index] || {}), ...(regenerated as any), shot: shotNumber };
         const updated = { ...prevState, shotList: list };
+        // Auto-save if not in editing mode
+        if (!isEditing) {
+          onSave(updated);
+        }
+        return updated;
+      });
+
+      setSingleShotProgress(100);
+      setTimeout(() => setSingleShotProgress(0), 500);
+    } catch (e) {
+      clearInterval(progressInterval);
+      setSingleShotProgress(0);
+      console.error('Failed to regenerate shot list row:', e);
+      setErrorModal({
+        isOpen: true,
+        title: 'Regeneration Failed',
+        message: `Failed to regenerate shot: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
+    } finally {
+      setRegeneratingShotListIndex(null);
+    }
+  };
+
+  const handleRegeneratePropListItem = async (index: number) => {
+    // Open modal to select regeneration mode
+    setRegenerateSinglePropModal({ isOpen: true, propIndex: index });
+  };
+
+  // Handler for single prop regeneration with mode
+  const handleRegenerateSinglePropWithMode = async (mode: 'fresh' | 'refine' | 'edited') => {
+    const index = regenerateSinglePropModal.propIndex;
+    if (index === null) return;
+
+    // Close modal
+    setRegenerateSinglePropModal({ isOpen: false, propIndex: null });
+
+    if (onRegisterUndo) onRegisterUndo();
+
+    const current = (editedScene.propList || [])[index];
+    setRegeneratingPropListIndex(index);
+    setSinglePropProgress(0);
+
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      setSinglePropProgress((prev) => {
+        if (prev >= 90) return 90;
+        return prev + Math.random() * 5;
+      });
+    }, 300);
+
+    try {
+      const { getAI, extractJsonFromResponse } = await import('../services/geminiService');
+      const ai = getAI();
+
+      const lang = typeof scriptData?.language === 'string' ? scriptData.language : 'Thai';
+      const languageInstruction = lang === 'Thai'
+        ? 'Output all text in THAI language (ภาษาไทยเท่านั้น)'
+        : 'Output all text in English';
+
+      // Build mode-specific instructions
+      let modeInstructions = '';
+      let currentPropContext = '';
+
+      if (mode === 'fresh') {
+        modeInstructions = `
+🔄 FRESH START MODE:
+- สร้าง Prop Art ใหม่ทั้งหมด ไม่อิงจาก Prop Art เดิม
+- ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details, Shot List, Prop List)
+- สร้างแนวทางใหม่ทั้งหมด
+`;
+      } else if (mode === 'refine') {
+        currentPropContext = `\n\nCURRENT PROP (สำหรับอ้างอิง):\n- Prop Art: ${current.propArt}\n- Scene Set Details: ${current.sceneSetDetails}`;
+        modeInstructions = `
+✨ REFINE EXISTING MODE:
+- ปรับปรุง Prop Art เดิก โดยรักษาโครงสร้างหลัก
+- ใช้ Shot List, Scene Details, Prop List ปัจจุบันเป็นพื้นฐาน
+- วิเคราะห์ เชื่อมโยง ต่อเนื่อง ปรับปรุง เพิ่มรายละเอียด
+`;
+      } else if (mode === 'edited') {
+        currentPropContext = `\n\nEDITED PROP (ที่ผู้ใช้แก้ไข):\n- Prop Art: ${current.propArt}\n- Scene Set Details: ${current.sceneSetDetails}`;
+        modeInstructions = `
+📝 USE EDITED DATA MODE:
+- สร้าง Prop Art ใหม่โดยรวมการแก้ไขของผู้ใช้เข้าไป
+- นำการแก้ไข Shot List, Scene Details, Prop List ไปใช้
+- รักษาข้อมูลที่แก้ไขแล้ว เติมส่วนที่ยังขาดให้สมบูรณ์
+`;
+      }
+
+      // Get location details if available
+      const locationDetails = (editedScene.sceneDesign as any)?.locationDetails;
+      const locationContext = locationDetails
+        ? `\n\nLOCATION DETAILS:\n- Environment: ${locationDetails.environment?.description || ''}\n- Set Dressing: ${locationDetails.production?.setDressing || ''}\n- Props Reference: ${locationDetails.production?.props || ''}`
+        : '';
+
+      const prompt = `You are a professional production designer and prop master.
+
+Task: Regenerate improved prop item for Scene ${editedScene.sceneNumber}.
+
+${languageInstruction}
+
+${modeInstructions}
+
+SCENE CONTEXT:
+- Location: ${editedScene.sceneDesign.location}
+- Scene: ${editedScene.sceneDesign.sceneName}
+- Mood: ${editedScene.sceneDesign.moodTone}
+- Situations: ${editedScene.sceneDesign.situations.map((s: any) => s.description).join('; ')}${locationContext}${currentPropContext}
+
+OTHER PROPS IN SCENE:
+${(editedScene.propList || []).filter((_, i) => i !== index).map(p => `- ${p.propArt}`).join('\n')}
+
+Generate an IMPROVED version of this prop with:
+1. More specific and detailed propArt name
+2. Enhanced sceneSetDetails with better description
+3. Consider the location environment and atmosphere
+4. Ensure it fits naturally with other props in the scene
+
+Return ONLY valid JSON (no markdown):
+{
+  "propArt": "Improved prop name in ${lang}",
+  "sceneSetDetails": "Enhanced detailed set description in ${lang}"
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      const text = extractJsonFromResponse(response.text || '{}');
+      const regenerated = JSON.parse(text);
+
+      clearInterval(progressInterval);
+      setSinglePropProgress(95);
+
+      setEditedScene(prevState => {
+        const list = [...(prevState.propList || [])];
+        list[index] = {
+          scene: current.scene || String(editedScene.sceneNumber),
+          propArt: regenerated.propArt || current.propArt,
+          sceneSetDetails: regenerated.sceneSetDetails || current.sceneSetDetails,
+        };
+        const updated = { ...prevState, propList: list };
         if (!isEditing) onSave(updated);
         return updated;
       });
       if (!isEditing) {
-        const list = [...(editedScene.shotList || [])];
-        list[index] = { ...(list[index] || {}), ...(regenerated as any), shot: shotNumber };
-        onSave({ ...editedScene, shotList: list });
+        const list = [...(editedScene.propList || [])];
+        list[index] = {
+          scene: current.scene || String(editedScene.sceneNumber),
+          propArt: regenerated.propArt || current.propArt,
+          sceneSetDetails: regenerated.sceneSetDetails || current.sceneSetDetails,
+        };
+        onSave({ ...editedScene, propList: list });
       }
+
+      setSinglePropProgress(100);
+      setTimeout(() => setSinglePropProgress(0), 500);
     } catch (e) {
-      console.error('Failed to regenerate shot list row:', e);
-      alert(`Failed to regenerate shot: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      clearInterval(progressInterval);
+      setSinglePropProgress(0);
+      console.error('Failed to regenerate prop list item:', e);
+      setErrorModal({
+        isOpen: true,
+        title: 'Regeneration Failed',
+        message: `Failed to regenerate prop: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
     } finally {
-      setRegeneratingShotListIndex(null);
+      setRegeneratingPropListIndex(null);
+    }
+  };
+
+  // Handler function for Regenerate All Props
+  const handleRegenerateAllProps = async (mode: 'fresh' | 'refine' | 'edited') => {
+    setIsRegeneratePropModalOpen(false);
+    setSelectedPropRegenerateMode(mode);
+
+    if (!editedScene.propList || editedScene.propList.length === 0) {
+      setErrorModal({
+        isOpen: true,
+        title: 'No Prop List',
+        message: 'ไม่มี Prop List ให้รีเจน กรุณาสร้าง Prop List ก่อน',
+      });
+      return;
+    }
+
+    if (onRegisterUndo) onRegisterUndo();
+    setIsRegeneratingAllProps(true);
+    setRegenerationProgress(0);
+
+    try {
+      const progressInterval = setInterval(() => {
+        setRegenerationProgress(prev => {
+          if (prev >= 40) return 40;
+          return prev + Math.random() * 4;
+        });
+      }, 400);
+
+      const { getAI, extractJsonFromResponse } = await import('../services/geminiService');
+      const ai = getAI();
+
+      const lang = typeof scriptData?.language === 'string' ? scriptData.language : 'Thai';
+      const languageInstruction = lang === 'Thai'
+        ? 'Output all text in THAI language (ภาษาไทยเท่านั้น)'
+        : 'Output all text in English';
+
+      const locationDetails = (editedScene.sceneDesign as any)?.locationDetails;
+      const locationContext = locationDetails
+        ? `\n\nLOCATION DETAILS:\n- Environment: ${locationDetails.environment?.description || ''}\n- Set Dressing: ${locationDetails.production?.setDressing || ''}\n- Props Reference: ${locationDetails.production?.props || ''}`
+        : '';
+
+      const existingProps = editedScene.propList.map((p: any) => `- ${p.propArt}: ${p.sceneSetDetails}`).join('\n');
+      
+      // Shot List context
+      const shotListContext = (editedScene.shotList && editedScene.shotList.length > 0)
+        ? `\n\nSHOT LIST (for reference):\n${editedScene.shotList.map((shot: any, i: number) => 
+            `Shot ${i + 1}: ${shot.shotSize || 'N/A'} - ${shot.description?.substring(0, 100) || 'No description'}...`
+          ).join('\n')}`
+        : '';
+
+      // Build mode-specific instructions
+      let modeInstructions = '';
+      let existingPropsContext = '';
+
+      if (mode === 'fresh') {
+        modeInstructions = `
+🔄 FRESH START MODE:
+- สร้าง Prop List ใหม่ทั้งหมด ไม่อิงจาก Prop List เดิม
+- ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details, Shot List)
+- ไม่นำข้อมูล Prop List เดิม มาพิจารณา
+- สร้างรายการ props ที่จำเป็นและเหมาะสมกับฉากใหม่ทั้งหมด
+`;
+      } else if (mode === 'refine') {
+        existingPropsContext = `\n\nCURRENT PROP LIST (สำหรับอ้างอิง):\n${existingProps}`;
+        modeInstructions = `
+✨ REFINE EXISTING MODE:
+- ปรับปรุงคุณภาพ Prop List เดิม โดยรักษาโครงสร้างหลัก
+- ใช้ Shot List, Scene Details ปัจจุบันเป็นพื้นฐาน
+- วิเคราะห์ เชื่อมโยง ต่อเนื่อง ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์
+- ปรับปรุงชื่อและรายละเอียดให้ชัดเจนและละเอียดมากขึ้น
+- เพิ่ม props ที่จำเป็นแต่ยังขาด
+- ลบ props ที่ซ้ำซ้อนหรือไม่จำเป็น
+`;
+      } else if (mode === 'edited') {
+        existingPropsContext = `\n\nEDITED PROP LIST (ที่ผู้ใช้แก้ไข):\n${existingProps}`;
+        modeInstructions = `
+📝 USE EDITED DATA MODE:
+- สร้าง Prop List ใหม่โดยรวมการแก้ไขของผู้ใช้เข้าไป
+- นำการแก้ไข Shot List, Scene Details ข้อมูลปัจจุบัน ไปใช้
+- สร้าง Prop List ใหม่ที่สอดคล้องคอนทินิวิตี้กับที่แก้ไข
+- รักษาข้อมูลที่ผู้ใช้แก้ไขแล้ว และเติมส่วนที่ยังขาดให้สมบูรณ์
+- ปรับ props อื่นๆ ให้เข้ากับที่ผู้ใช้แก้ไข
+`;
+      }
+
+      const prompt = `You are a professional production designer and prop master.
+
+Task: Regenerate the ENTIRE prop list for Scene ${editedScene.sceneNumber}.
+
+${languageInstruction}
+
+${modeInstructions}
+
+SCENE CONTEXT:
+- Scene: ${editedScene.sceneNumber} — ${editedScene.sceneDesign.sceneName}
+- Location: ${editedScene.sceneDesign.location}
+- Mood: ${editedScene.sceneDesign.moodTone}
+- Situations: ${editedScene.sceneDesign.situations.map((s: any) => s.description).join('; ')}${locationContext}${shotListContext}${existingPropsContext}
+
+Generate a comprehensive prop list with:
+1. Specific and detailed prop names (ชื่อ prop ที่ชัดเจนและเฉพาะเจาะจง)
+2. Detailed scene set descriptions (คำอธิบายฉากและการใช้งานอย่างละเอียด)
+3. Consider the location environment and atmosphere
+4. Ensure props fit naturally with Shot List and Scene mood
+5. Include essential props for the scene to work
+
+Return ONLY valid JSON array (no markdown):
+[
+  {
+    "propArt": "Specific prop name in ${lang}",
+    "sceneSetDetails": "Detailed description of prop usage and placement in ${lang}"
+  }
+]`;
+
+      setRegenerationProgress(prev => Math.max(prev, 40));
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      setRegenerationProgress(prev => Math.max(prev, 90));
+      clearInterval(progressInterval);
+
+      const text = extractJsonFromResponse(response.text || '[]');
+      const regenerated = JSON.parse(text);
+
+      if (!Array.isArray(regenerated) || regenerated.length === 0) {
+        throw new Error('Invalid response from AI - no props generated');
+      }
+
+      const newPropList = regenerated.map((prop: any) => ({
+        scene: String(editedScene.sceneNumber),
+        propArt: prop.propArt || 'Unknown Prop',
+        sceneSetDetails: prop.sceneSetDetails || 'No details',
+      }));
+
+      setEditedScene(prev => {
+        const updated = { ...prev, propList: newPropList };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+
+      if (!isEditing) {
+        onSave({ ...editedScene, propList: newPropList });
+      }
+
+      setRegenerationProgress(100);
+      setTimeout(() => {
+        setRegenerationProgress(0);
+        setIsRegeneratingAllProps(false);
+      }, 500);
+
+    } catch (e) {
+      console.error('Failed to regenerate all props:', e);
+      setErrorModal({
+        isOpen: true,
+        title: 'Regeneration Failed',
+        message: `Failed to regenerate prop list: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
+      setRegenerationProgress(0);
+      setIsRegeneratingAllProps(false);
+    }
+  };
+
+  // Handler functions for Regenerate Shot List Modal
+  const handleRegenerateShotListWithMode = async (mode: 'fresh' | 'refine' | 'edited') => {
+    setIsRegenerateModalOpen(false);
+    setSelectedRegenerateMode(mode);
+
+    if (!editedScene.shotList || editedScene.shotList.length === 0) {
+      setErrorModal({
+        isOpen: true,
+        title: 'No Shot List',
+        message: 'ไม่มี Shot List ให้รีเจน กรุณาสร้าง Shot List ก่อน',
+      });
+      return;
+    }
+
+    if (onRegisterUndo) onRegisterUndo();
+    setIsRegeneratingAllShots(true);
+    setRegenerationProgress(0);
+
+    try {
+      // Simulate progress - smoother animation
+      const progressInterval = setInterval(() => {
+        setRegenerationProgress(prev => {
+          if (prev >= 30) return 30;
+          return prev + Math.random() * 3;
+        });
+      }, 300);
+
+      // Import getAI function and create AI instance
+      const { getAI, extractJsonFromResponse } = await import('../services/geminiService');
+      const ai = getAI();
+
+      const totalShots = editedScene.shotList.length;
+
+      // Build prompt based on mode
+      let modeContext = '';
+      let existingShotListContext = '';
+
+      if (mode === 'fresh') {
+        modeContext = `
+🔄 FRESH START MODE:
+- สร้าง Shot List ใหม่ทั้งหมด
+- ไม่อิงจาก Shot List เดิม
+- ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details)
+- สร้างมุมมอง แนวทาง และ composition ใหม่ทั้งหมด
+`;
+      } else if (mode === 'refine') {
+        existingShotListContext = `
+EXISTING SHOT LIST (สำหรับอ้างอิง):
+${editedScene.shotList.map((shot: any, i: number) => `
+Shot ${i + 1}:
+- Shot Size: ${shot.shotSize || 'N/A'}
+- Perspective: ${shot.perspective || 'N/A'}
+- Movement: ${shot.movement || 'N/A'}
+- Description: ${shot.description || 'N/A'}
+`).join('\\n')}
+`;
+        modeContext = `
+✨ REFINE EXISTING MODE:
+- ปรับปรุงคุณภาพ Shot List เดิม
+- รักษาโครงสร้างหลักและจำนวน shots เดิม
+- วิเคราะห์และเพิ่มรายละเอียดที่เหมาะสม
+- ปรับแต่งให้สมบูรณ์และมืออาชีพขึ้น
+- คงจำนวน shots เท่าเดิม: ${totalShots} shots
+`;
+      } else if (mode === 'edited') {
+        existingShotListContext = `
+CURRENT SHOT LIST WITH EDITS (ข้อมูลปัจจุบันที่ผู้ใช้แก้ไข):
+${editedScene.shotList.map((shot: any, i: number) => `
+Shot ${i + 1}:
+- Shot Size: ${shot.shotSize || 'N/A'}
+- Perspective: ${shot.perspective || 'N/A'}
+- Movement: ${shot.movement || 'N/A'}
+- Equipment: ${shot.equipment || 'N/A'}
+- Focal Length: ${shot.focalLength || 'N/A'}
+- Lighting: ${shot.lighting || 'N/A'}
+- Mood: ${shot.mood || 'N/A'}
+- Description: ${shot.description || 'N/A'}
+- Duration: ${shot.duration || 'N/A'}
+- Notes: ${shot.notes || 'N/A'}
+`).join('\\n')}
+`;
+        modeContext = `
+📝 USE EDITED DATA MODE (แนะนำ):
+- นำการแก้ไขของผู้ใช้ไปใช้
+- สร้าง Shot List ใหม่ที่สอดคล้องกับข้อมูลที่แก้ไข
+- รักษาองค์ประกอบสำคัญที่ผู้ใช้กำหนด
+- ขยายความและเติมรายละเอียดให้สมบูรณ์
+- AI จะเติมส่วนที่ยังไม่ครบและปรับให้เข้ากันได้
+`;
+      }
+
+      const prompt = `คุณคือผู้เชี่ยวชาญด้านการถ่ายทำภาพยนตร์และการออกแบบช็อต (Professional Cinematographer & Shot Designer)
+
+⚠️ สำคัญมาก: ข้อมูลที่คุณสร้างจะถูกใช้โดย AI ในการสร้างภาพและวีดีโอจริง ดังนั้นต้องละเอียด ชัดเจน และเป็นภาษาไทยทั้งหมด
+
+งาน: สร้าง Shot List สำหรับฉากที่ ${editedScene.sceneNumber} โดยใช้แนวทาง ${mode === 'fresh' ? 'FRESH START (เริ่มใหม่ทั้งหมด)' : mode === 'refine' ? 'REFINE EXISTING (ปรับปรุงเดิม)' : 'EDITED DATA (ใช้ข้อมูลที่แก้ไข)'}
+
+${modeContext}
+
+ข้อมูลฉาก:
+- เลขที่ฉาก: ${editedScene.sceneNumber}
+- ชื่อฉาก: ${editedScene.sceneDesign.sceneName}
+- สถานที่: ${editedScene.sceneDesign.location}
+- อารมณ์/โทนสี: ${editedScene.sceneDesign.moodTone}
+- ตัวละคร: ${editedScene.sceneDesign.characters.join(', ')}
+- สถานการณ์/การกระทำ: ${editedScene.sceneDesign.situations.map((s: any) => s.description).join('; ')}
+- จำนวน Shots ที่ต้องสร้าง: ${totalShots}
+${(editedScene.sceneDesign as any)?.locationDetails ? `
+- รายละเอียดสถานที่เพิ่มเติม: ${JSON.stringify((editedScene.sceneDesign as any).locationDetails).substring(0, 300)}...
+` : ''}
+
+บริบทเรื่องราวสำหรับความต่อเนื่อง:
+- จุดประสงค์ของฉาก: เข้าใจว่าฉากนี้ทำหน้าที่อะไรในการเล่าเรื่อง
+- การพัฒนาตัวละคร: ติดตามเส้นทางอารมณ์ตัวละครผ่านแต่ละ shot
+- ธีมภาพ: รักษาภาษาภาพให้สอดคล้องกัน
+- การไหลของ action: แต่ละ shot ต้องเชื่อมโยงอย่างมีเหตุผล
+- การพัฒนาอารมณ์: สร้างหรือคลาย tension อย่างเป็นระบบ
+
+${existingShotListContext}
+
+${mode === 'fresh' ? `
+สร้าง Shot List ใหม่ ${totalShots} shots โดยคำนึงถึง:
+1. Shot Progression: เริ่มจาก Establishing → Coverage → Details → Cutaway
+2. ความหลากหลายในขนาด shot (ECU, CU, MS, LS, EST) - ห้ามใช้ shot size เดิมซ้ำกันติดต่อกัน
+3. มุมกล้องที่เหมาะสมกับอารมณ์ฉาก (High Angle = อ่อนแอ, Low Angle = พลัง)
+4. การเคลื่อนกล้องที่สร้างพลวัต (Pan, Tilt, Dolly, Tracking) - ใช้อย่างมีจุดประสงค์
+5. Continuity: 180-degree rule, eyeline match, screen direction
+6. Match on Action: ตัด shot ในขณะที่มีการเคลื่อนไหว
+7. Rhythm: สลับ shot สั้น-ยาว, นิ่ง-เคลื่อนไหว
+8. ระบุอุปกรณ์และค่า focal length ที่เหมาะสม
+9. เชื่อมโยง shots ด้วย action หรือ emotion ที่ต่อเนื่อง
+10. ระบุใน notes ว่า shot นี้เชื่อมกับ shot ก่อน/หลังอย่างไร
+` : mode === 'refine' ? `
+ปรับปรุง Shot List โดยเน้น:
+1. คงจำนวน shots เท่าเดิม (${totalShots} shots)
+2. ปรับ Shot Progression ให้ลื่นไหลขึ้น
+3. แก้ไข Continuity Issues (180-degree rule, eyeline, screen direction)
+4. เพิ่ม Match Cuts และ Transitions ที่เหมาะสม
+5. ปรับ Shot Rhythm ให้มี dynamics (mix static/moving, wide/close)
+6. เติมรายละเอียด continuity ใน notes
+7. แก้ shot size ที่ซ้ำกันติดต่อกัน
+8. ปรับ camera movement ให้มีจุดประสงค์ชัด
+9. อธิบายการเชื่อมต่อระหว่าง shots ใน description
+10. เสนอแนะการใช้อุปกรณ์ที่เหมาะสมกว่า
+` : `
+สร้าง Shot List ใหม่โดยเน้น:
+1. นำข้อมูลที่ผู้ใช้แก้ไขไปใช้เป็นหลัก
+2. เติม Continuity Details ในส่วนที่ว่าง
+3. ปรับ shots อื่นๆ ให้เข้ากับที่ผู้ใช้แก้ไข
+4. เชื่อม Shot Progression ให้ลื่นไหล
+5. เพิ่ม Match on Action และ Transitions
+6. รักษา 180-degree rule และ Screen Direction
+7. แก้ Shot Size ที่ซ้ำติดกัน
+8. ขยายความใน description เกี่ยวกับการเชื่อมต่อ shots
+9. เติม Continuity Notes อย่างละเอียด
+10. ปรับ Shot Rhythm ให้มี flow
+`}
+
+🎯 ข้อกำหนดสำคัญ (CRITICAL REQUIREMENTS):
+- สร้าง ${totalShots} shots พอดี (ไม่มากไม่น้อย)
+- ทุกฟิลด์ต้องมีข้อมูลจริง เป็นภาษาไทย (ห้าม empty, ห้าม "N/A", ห้าม "TBD")
+- แต่ละ shot ต้องมีรายละเอียดเฉพาะและแตกต่างกัน
+- Description ต้องยาวอย่างน้อย 100 คำ พรรณนาอย่างละเอียดเพื่อให้ AI สร้างภาพได้
+- ใช้ภาษาไทยทั้งหมด ยกเว้นชื่อเทคนิค (เช่น Shot Size, Focal Length)
+
+📸 ข้อมูลสำหรับการสร้างภาพ/วีดีโอ (FOR IMAGE/VIDEO GENERATION):
+⚠️ สำคัญที่สุด: ข้อมูลเหล่านี้จะถูกส่งไป AI เพื่อสร้างภาพและวีดีโอจริง ต้องละเอียดมากพอที่ AI จะสร้างได้
+
+สำหรับแต่ละ shot ต้องระบุอย่างละเอียด:
+
+1. **description (คำบรรยาย)**: 
+   - ต้องยาวอย่างน้อย 100 คำ เป็นภาษาไทย
+   - อธิบายทุกสิ่งที่มองเห็นในเฟรม: ตัวละคร, การกระทำ, อารมณ์ใบหน้า, ท่าทาง, การเคลื่อนไหว
+   - บอกองค์ประกอบภาพ: foreground, middle ground, background
+   - ระบุตำแหน่งกล้อง: สูงต่ำ, ใกล้ไกล, มุมมอง
+   - บอกแสงและเงา: มาจากทิศไหน, สีอุ่นหรือเย็น, บรรยากาศอย่างไร
+   - บอกสี: สีหลักในเฟรม, โทนสีโดยรวม
+   - อธิบายอารมณ์: ผู้ชมควรรู้สึกอย่างไร
+   - เชื่อมโยงกับ shot ก่อนหน้าและถัดไป
+
+2. **cast (นักแสดง)**:
+   - ระบุชื่อตัวละครทุกคนในเฟรม
+   - บอกตำแหน่งและท่าทางของแต่ละคน
+   - บอกอารมณ์และการแสดงออก
+
+3. **costume (เครื่องแต่งกาย)**:
+   - อธิบายเครื่องแต่งกายอย่างละเอียด: สี, ผ้า, สไตล์, อุปกรณ์เสริม
+   - ต้องเหมาะกับตัวละครและสถานการณ์
+   - ถ้ามีรายละเอียดเด่น (เช่น เนคไท สร้อย หมวก) ต้องบอก
+
+4. **set (ฉาก/เซ็ต)**:
+   - บรรยายสถานที่อย่างละเอียดมาก
+   - ระบุสิ่งของ เฟอร์นิเจอร์ ตกแต่ง ทุกอย่างที่มองเห็น
+   - บอกบรรยากาศ เช่น ยุคสมัย สะอาดหรือรกรุงรัง ใหม่หรือเก่า
+   - ระบุพื้นผิว วัสดุ เช่น ไม้ คอนกรีต หญ้า น้ำ
+
+5. **visualEffects (เอฟเฟกต์พิเศษ)**:
+   - ถ้าต้องการ VFX ระบุชัดเจนว่าต้องการอะไร
+   - ถ้าไม่ต้องการ ใช้ "ไม่มี" หรือ "ธรรมชาติ"
+
+6. **lightingDesign (การออกแบบแสง)**:
+   - อธิบายแสงอย่างละเอียด: key light, fill light, back light
+   - บอกตำแหน่งแสง (ซ้าย/ขวา/หน้า/หลัง)
+   - บอกความนุ่มหรือแข็งของแสง
+   - บอกเงา: ชัดหรือนุ่ม, ตกที่ไหน
+
+7. **colorTemperature (อุณหภูมิสี)**:
+   - ระบุเป็น Kelvin: 2700K-3200K (อุ่น), 5000-5600K (กลางวัน), 6000-7000K (เย็น)
+   - เหมาะกับบรรยากาศของฉาก
+
+🎬 ความต่อเนื่อง (CONTINUITY & FLOW):
+- รักษา visual continuity (180-degree rule, eyeline match)
+- สร้าง transitions ที่ลื่นไหล (match on action, cut on movement)
+- สร้าง shot progression: Establish (wide) → Detail (close) → Reaction
+- หลากหลายขนาด shot: ห้ามใช้ shot size เดียวกันซ้ำติดกัน
+- จังหวะ shot: สลับ static/dynamic, สั้น/ยาว
+- แสงและอารมณ์ต่อเนื่องตลอดซีเควนซ์
+- เชื่อมโยง shots ด้วย action หรือ emotion ที่ต่อเนื่อง
+
+📋 รูปแบบ Shot Progression:
+1. Establishing Shot (EST/VLS) - แสดงที่ตั้ง/บริบท
+2. Master Shot (LS/MLS) - แสดงความสัมพันธ์ตัวละคร
+3. Coverage (MS/CU) - shot รายละเอียด, ปฏิกิริยา
+4. Close-ups (CU/ECU) - จังหวะอารมณ์, รายละเอียดสำคัญ
+5. Transitions - เชื่อมไปฉากถัดไป
+
+**CONTINUITY & FLOW REQUIREMENTS:**
+- Maintain visual continuity between shots (180-degree rule, eyeline match)
+- Create smooth transitions (match on action, cut on movement)
+- Build shot progression: Establish (wide) → Detail (close) → Reaction
+- Vary shot sizes for visual interest: Don't use same shot size consecutively
+- Consider shot rhythm: Mix static/dynamic, short/long durations
+- Ensure consistent lighting and mood throughout sequence
+- Link shots with continuous action or emotional progression
+- Use camera movement purposefully to guide viewer attention
+
+**SHOT PROGRESSION PATTERN:**
+1. Establishing Shot (EST/VLS) - Show location/context
+2. Master Shot (LS/MLS) - Show character relationships
+3. Coverage (MS/CU) - Detail shots, reactions, important elements
+4. Close-ups (CU/ECU) - Emotional beats, details
+5. Transitions - Link to next sequence smoothly
+
+📤 รูปแบบ OUTPUT (ต้องตรงตามนี้เท่านั้น):
+ส่งกลับเป็น JSON array เท่านั้น ตัวอย่าง:
+[
+  {
+    "shot": 1,
+    "scene": "${editedScene.sceneNumber}",
+    "shotSize": "ECU|CU|MCU|MS|MLS|LS|VLS|EST (เลือก 1 อัน)",
+    "perspective": "Eye-Level|High Angle|Low Angle|Dutch Angle|POV|OTS (เลือก 1 อัน)",
+    "movement": "Static|Pan Left|Pan Right|Tilt Up|Tilt Down|Dolly In|Dolly Out|Tracking|Handheld|Zoom (เลือก 1 อัน)",
+    "equipment": "Tripod|Handheld|Gimbal|Dolly|Crane|Drone|Steadicam (เลือก 1 อัน)",
+    "focalLength": "16mm|24mm|35mm|50mm|85mm|135mm|200mm (เลือกที่เหมาะสม)",
+    "aspectRatio": "16:9",
+    "cast": "ชื่อตัวละครในช็อตนี้ พร้อมตำแหน่งและท่าทาง เช่น 'จอห์นยืนอยู่ทางซ้าย มือถือแก้วกาแฟ สีหน้าเครียด, แมรี่นั่งโซฟาทางขวา ใส่ชุดแดง กำลังอ่านหนังสือ'",
+    "costume": "รายละเอียดเครื่องแต่งกายอย่างละเอียด เช่น 'จอห์นใส่สูทสีดำ เสื้อเชิ้ตขาว เนคไทสีแดงเข้ม รองเท้าหนังดำ, แมรี่ใส่ชุดเดรสแดงสด กระโปรงยาว สร้อยคอมุกขาว ส้นสูงสีนู้ด'",
+    "set": "คำบรรยายฉากอย่างละเอียดมาก เช่น 'ห้องนั่งเล่นสมัยใหม่ ผนังสีขาวครีม พื้นไม้โอ๊คสว่าง มีโซฟาหนัง สีน้ำตาลเข้ม 3 ที่นั่งวางอยู่กลางห้อง โต๊ะกาแฟกระจกใสตรงกลาง วางหนังสือและแจกันดอกไม้สีขาว หน้าต่างบานใหญ่ด้านหลังส่องแสงเข้ามา ผ้าม่านสีครีมปล่อยลงครึ่งบาน ตู้หนังสือไม้สูงอยู่ฝาซ้าย โคมไฟตั้งพื้นมุมขวา ภาพวาดสีน้ำเงินแขวนผนัง บรรยากาศเรียบหรูและอบอุ่น'",
+    "visualEffects": "ระบุความต้องการ VFX หรือใช้ 'ไม่มี' เช่น 'ไม่มี', 'ฉากหลัง green screen สำหรับ CGI', 'เอฟเฟกต์หิมะตก', 'ใช้ practical effects เท่านั้น'",
+    "lighting": "Natural Light|Soft Light|Hard Light|3-Point|Rembrandt|Silhouette|Golden Hour (เลือกและอธิบายเพิ่ม)",
+    "lightingDesign": "แผนการจัดแสงอย่างละเอียดมาก เช่น 'แสงหลัก (key light) มาจากหน้าต่างด้านซ้าย ทำมุม 45 องศา เป็นแสงธรรมชาติสีอุ่น สร้างเงาบนใบหน้าข้างขวา, แสงเติม (fill light) จากโคมไฟมุมขวาลดเงา 50%, แสงหลัง (back light) จากโคมไฟตั้งพื้นด้านหลังตัวละครสร้างแสงริมขอบแยกตัวออกจากฉากหลัง, แสงรอง (ambient) จากเพดานกระจายทั่วห้อง สร้างบรรยากาศอบอุ่น'",
+    "colorTemperature": "ระบุค่า Kelvin เช่น '3200K' (อบอุ่น), '5600K' (กลางวัน), '6500K' (เย็น) - เลือกให้เหมาะกับบรรยากาศ",
+    "mood": "อธิบายอารมณ์และความรู้สึกอย่างละเอียด เช่น 'บรรยากาศเงียบสงบแต่ตึงเครียด ความรู้สึกหนักใจ ความคาดหวังผสมความวิตกกังวล แสงนุ่มสร้างความอบอุ่นแต่ใบหน้าตัวละครแสดงความกังวล ผู้ชมรู้สึกถึงความตึงเครียดที่กำลังจะปะทุ'",
+    "description": "คำบรรยายยาวอย่างน้อย 100 คำ อธิบายทุกรายละเอียดสำหรับการสร้างภาพ/วีดีโอ: องค์ประกอบภาพ, ตัวละคร, การกระทำ, อารมณ์ใบหน้า, ท่าทาง, การเคลื่อนไหว, foreground-background, แสงและเงา, สี, บรรยากาศ, ตำแหน่งกล้อง, มุมมอง, ความลึก, จุดสนใจ, อารมณ์ที่ต้องการสื่อ, และวิธีเชื่อมต่อกับ shot ก่อนหน้าและถัดไป - ต้องละเอียดพอที่ AI สร้างภาพได้ทันที",
+    "duration": "2s|3s|5s|8s|10s|15s (ประมาณการตามความซับซ้อน)",
+    "durationSec": 5,
+    "notes": "บันทึกเทคนิค ข้อควรระวัง continuity ข้อมูล transition และวิธีเชื่อมต่อกับ shots ข้างเคียง เช่น 'Match on action: ตัดขณะจอห์นหยิบแก้วขึ้น เชื่อมกับ shot ถัดไปที่เห็นแก้วถึงปาก, 180-degree rule: รักษากล้องไว้ฝั่งขวาตลอด, Continuity: ตรวจสอบตำแหน่งหนังสือบนโต๊ะต้องเหมือนกัน'"
+  }
+]
+
+✅ แต่ละฟิลด์ต้องมี (เป็นภาษาไทย):
+- shot: ตัวเลขลำดับ (1, 2, 3...)
+- scene: "${editedScene.sceneNumber}"
+- shotSize: ขนาด shot จริง (ห้ามเป็นคำบรรยายทั่วไป)
+- perspective: มุมกล้องจริง (ห้ามเป็นคำทั่วไป)
+- movement: การเคลื่อนไหวเฉพาะ หรือ "Static"
+- equipment: ชื่ออุปกรณ์เฉพาะ
+- focalLength: ค่า focal length จริงพร้อมหน่วย (เช่น "50mm")
+- aspectRatio: "16:9" (default)
+- cast: ชื่อตัวละคร + ตำแหน่ง + ท่าทาง + อารมณ์ (ภาษาไทย ละเอียด)
+- costume: คำบรรยายเครื่องแต่งกาย สี ผ้า สไตล์ อุปกรณ์ (ภาษาไทย ละเอียดมาก)
+- set: คำบรรยายฉาก สถานที่ สิ่งของ บรรยากาศ วัสดุ (ภาษาไทย ละเอียดมากที่สุด)
+- visualEffects: ความต้องการ VFX หรือ "ไม่มี" (ภาษาไทย)
+- lighting: ประเภทแสงพร้อมคำอธิบาย (ภาษาไทย)
+- lightingDesign: แผนจัดแสงละเอียด key/fill/back/ambient ตำแหน่ง ทิศทาง สี (ภาษาไทย ยาวมาก)
+- colorTemperature: ค่า Kelvin เช่น "3200K" หรือ "5600K"
+- mood: อธิบายอารมณ์และความรู้สึก (ภาษาไทย อย่างน้อย 30 คำ)
+- description: คำบรรยายยาว อย่างน้อย 100 คำ ละเอียดทุกรายละเอียด พร้อมวิธีเชื่อมต่อ shots (ภาษาไทย)
+- duration: เวลาประมาณการพร้อมหน่วย (เช่น "5s")
+- durationSec: ค่าตัวเลขวินาที (เช่น 5)
+- notes: บันทึกเทคนิค continuity transitions (ภาษาไทย อย่างน้อย 50 คำ)
+
+🎬 สร้าง ${totalShots} shots ที่มีความต่อเนื่องสูงทันที:`;
+
+      clearInterval(progressInterval);
+      setRegenerationProgress(40);
+
+      // Continue smooth progress during API call (40% → 98%)
+      const apiProgressInterval = setInterval(() => {
+        setRegenerationProgress(prev => {
+          if (prev >= 98) return 98;
+          return prev + Math.random() * 4;
+        });
+      }, 400);
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: { parts: [{ text: prompt }] },
+        config: { responseMimeType: 'application/json' },
+      });
+
+      clearInterval(apiProgressInterval);
+      setRegenerationProgress(prev => Math.max(prev, 90));
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      setRegenerationProgress(prev => Math.max(prev, 94));
+
+      const regenerated = JSON.parse(extractJsonFromResponse(response.text || '[]'));
+
+      setRegenerationProgress(prev => Math.max(prev, 97));
+
+      if (!Array.isArray(regenerated) || regenerated.length === 0) {
+        throw new Error('AI ส่งกลับข้อมูล Shot List ไม่ถูกต้อง');
+      }
+
+      // Validate that all required fields are present and not empty
+      const requiredFields = [
+        'shot', 'scene', 'shotSize', 'perspective', 'movement', 'equipment', 
+        'focalLength', 'aspectRatio', 'cast', 'costume', 'set', 'visualEffects',
+        'lighting', 'lightingDesign', 'colorTemperature', 'mood', 
+        'description', 'duration', 'durationSec', 'notes'
+      ];
+      let incompleteShots: number[] = [];
+      
+      regenerated.forEach((shot: any, index: number) => {
+        const missingFields = requiredFields.filter(field => !shot[field] || String(shot[field]).trim() === '' || shot[field] === 'N/A');
+        if (missingFields.length > 0) {
+          incompleteShots.push(index + 1);
+          console.warn(`Shot ${index + 1} missing fields:`, missingFields);
+          
+          // Auto-fill missing fields with defaults
+          if (!shot.aspectRatio || shot.aspectRatio === 'N/A') shot.aspectRatio = '16:9';
+          if (!shot.equipment || shot.equipment === 'N/A') shot.equipment = 'Tripod';
+          if (!shot.duration || shot.duration === 'N/A') shot.duration = '5s';
+          if (!shot.durationSec || shot.durationSec === 'N/A') {
+            // Parse duration to get seconds
+            const match = shot.duration?.match(/(\d+)s/);
+            shot.durationSec = match ? parseInt(match[1]) : 5;
+          }
+          if (!shot.cast || shot.cast === 'N/A') shot.cast = editedScene.sceneDesign.characters.join(', ') || 'Background';
+          if (!shot.costume || shot.costume === 'N/A') shot.costume = 'Standard';
+          if (!shot.set || shot.set === 'N/A') shot.set = editedScene.sceneDesign.location || 'Generic location';
+          if (!shot.visualEffects || shot.visualEffects === 'N/A') shot.visualEffects = 'None';
+          if (!shot.lightingDesign || shot.lightingDesign === 'N/A') shot.lightingDesign = shot.lighting || 'Natural light';
+          if (!shot.colorTemperature || shot.colorTemperature === 'N/A') shot.colorTemperature = '5600K';
+        }
+        
+        // Ensure description is detailed enough
+        if (shot.description && shot.description.length < 30) {
+          console.warn(`Shot ${index + 1} has short description:`, shot.description);
+        }
+      });
+
+      // Check for continuity issues
+      let continuityWarnings: string[] = [];
+      for (let i = 0; i < regenerated.length - 1; i++) {
+        const current = regenerated[i];
+        const next = regenerated[i + 1];
+        
+        // Check for consecutive same shot sizes (bad rhythm)
+        if (current.shotSize === next.shotSize && i > 0) {
+          continuityWarnings.push(`Shots ${i + 1}-${i + 2}: Same shot size (${current.shotSize}) - may lack visual variety`);
+        }
+        
+        // Check if notes mention continuity
+        if (next.notes && !next.notes.toLowerCase().includes('transition') && 
+            !next.notes.toLowerCase().includes('cut') && 
+            !next.notes.toLowerCase().includes('continues') &&
+            !next.notes.toLowerCase().includes('follows')) {
+          // Notes don't mention how shot connects - informational only
+        }
+      }
+
+      if (continuityWarnings.length > 0) {
+        console.warn('⚠️ Continuity Suggestions:', continuityWarnings);
+      }
+
+      if (incompleteShots.length > 0) {
+        console.warn(`⚠️ Warning: ${incompleteShots.length} shots have incomplete data (auto-filled):`, incompleteShots);
+      }
+
+      // Update Shot List
+      setEditedScene(prevState => {
+        const updated = { ...prevState, shotList: regenerated };
+        if (!isEditing) onSave(updated);
+        return updated;
+      });
+
+      // Log success to console instead of alert
+      console.log(`✅ สำเร็จ: สร้าง Shot List ใหม่ ${regenerated.length} shots แล้ว`);
+      console.log(`โหมด: ${
+        mode === 'fresh' ? '🔄 เริ่มใหม่ทั้งหมด' :
+        mode === 'refine' ? '✨ ปรับปรุง Shot List เดิม' :
+        '📝 ใช้ข้อมูลที่แก้ไข'
+      }`);
+      
+      // Show inline success message instead of alert
+      setRegenerationProgress(100);
+    } catch (e) {
+      console.error('Failed to regenerate Shot List with mode:', e);
+      setErrorModal({
+        isOpen: true,
+        title: '❌ เกิดข้อผิดพลาด',
+        message: `${e instanceof Error ? e.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsRegeneratingAllShots(false);
+      setSelectedRegenerateMode(null);
+      setRegenerationProgress(0);
     }
   };
 
@@ -2137,22 +3131,81 @@ ${
     section: 'shotList' | 'propList' | 'breakdown',
     subSection?: 'part1' | 'part2' | 'part3'
   ) => (
-    <div className="overflow-x-auto rounded-lg border border-gray-700">
+    <div className="relative">
+      {/* Custom Horizontal Scrollbar - Top Position with Beautiful Design */}
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-cyan-500/30 shadow-lg">
+        <div 
+          className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-gray-800 hover:scrollbar-thumb-cyan-400"
+          style={{ 
+            direction: 'ltr',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#06b6d4 #1f2937'
+          }}
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            const tableWrapper = target.parentElement?.nextElementSibling?.firstChild as HTMLElement;
+            if (tableWrapper) {
+              tableWrapper.scrollLeft = target.scrollLeft;
+            }
+          }}
+        >
+          <div style={{ width: `${Math.max(headers.length * 150 + 100, 1200)}px`, height: '12px' }}></div>
+        </div>
+        <div className="absolute top-1 right-2 text-xs font-medium text-cyan-400 bg-gray-900/90 px-2 py-0.5 rounded-full border border-cyan-500/30">
+          ← Scroll →
+        </div>
+      </div>
+      
+      {/* Table Container with Vertical Scroll Only (Horizontal controlled by top bar) */}
+      <div 
+        className="overflow-y-auto max-h-[70vh] rounded-lg border border-gray-700 shadow-2xl relative"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#06b6d4 #1f2937',
+          overflowX: 'hidden'
+        }}
+      >
+        <div 
+          className="overflow-x-auto"
+          style={{ 
+            overflowY: 'hidden',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            const topScrollbar = target.parentElement?.parentElement?.firstChild?.firstChild as HTMLElement;
+            if (topScrollbar) {
+              topScrollbar.scrollLeft = target.scrollLeft;
+            }
+          }}
+        >
       <table className="w-full text-sm text-left text-gray-400">
-        <thead className="text-xs text-gray-300 uppercase bg-gray-700/50">
+        <thead className="text-xs text-gray-300 uppercase bg-gradient-to-r from-gray-700/70 via-gray-700/50 to-gray-700/70 backdrop-blur sticky top-0 z-[5]">
           <tr>
+            {/* Actions column at LEFT - Regen button always visible, Delete only in Edit Mode */}
+            {section === 'shotList' && (
+              <th scope="col" className="px-4 py-3 min-w-[100px] whitespace-nowrap text-center bg-gray-800/50">
+                Actions
+              </th>
+            )}
+            {/* Actions column for Prop List - Regen always visible, Delete only in Edit Mode */}
+            {section === 'propList' && (
+              <th scope="col" className="px-4 py-3 min-w-[100px] whitespace-nowrap text-center">
+                Actions
+              </th>
+            )}
+            {/* Actions column for Breakdown - only in Edit Mode */}
+            {section === 'breakdown' && isEditing && (
+              <th scope="col" className="px-4 py-3 min-w-[100px] whitespace-nowrap text-center">
+                Actions
+              </th>
+            )}
             {headers.map(h => (
               <th key={h} scope="col" className="px-4 py-3 min-w-[150px] whitespace-nowrap">
                 {h.replace(/([A-Z])/g, ' $1').trim()}
               </th>
             ))}
-            {/* Add Actions column for Shot List, Prop List, and Breakdown */}
-            {(section === 'shotList' || section === 'propList' || section === 'breakdown') &&
-              isEditing && (
-                <th scope="col" className="px-4 py-3 min-w-[100px] whitespace-nowrap text-center">
-                  Actions
-                </th>
-              )}
           </tr>
         </thead>
         <tbody>
@@ -2161,6 +3214,144 @@ ${
               key={i}
               className="border-t border-gray-700 hover:bg-gray-800/50 even:bg-gray-800/30"
             >
+              {/* Actions buttons at LEFT for Shot List - Regen always visible, Delete only in Edit Mode */}
+              {section === 'shotList' && (
+                <td className="px-2 py-2 text-center bg-gray-800/30">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Regen button - always visible */}
+                      <button
+                        type="button"
+                        onClick={() => handleRegenerateShotListItem(i)}
+                        disabled={regeneratingShotListIndex === i}
+                        className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                          regeneratingShotListIndex === i
+                            ? 'bg-gray-700 text-gray-300 opacity-70 cursor-not-allowed'
+                            : 'bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg'
+                        }`}
+                        title="Regenerate this shot with continuity"
+                      >
+                        {regeneratingShotListIndex === i ? '⟳ Regenerating…' : '⟳ Regen'}
+                      </button>
+                      {/* Delete button - only in Edit Mode */}
+                      {isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteShotListItem(i)}
+                          className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                            confirmDeleteShotListId === i
+                              ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                              : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                          }`}
+                          title={confirmDeleteShotListId === i ? 'Click again to confirm' : 'Delete shot'}
+                        >
+                          {confirmDeleteShotListId === i ? (
+                            '✓ Confirm?'
+                          ) : (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {/* Progress Bar - Show when regenerating */}
+                    {regeneratingShotListIndex === i && singleShotProgress > 0 && (
+                      <div className="w-full max-w-[140px]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-cyan-400 font-semibold">Regenerating...</span>
+                          <span className="text-[10px] font-bold text-cyan-400">
+                            {Math.round(singleShotProgress)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${singleShotProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              )}
+              {/* Actions buttons at LEFT for Prop List - Regen always visible, Delete only in Edit Mode */}
+              {section === 'propList' && (
+                <td className="px-2 py-2 text-center bg-gray-800/30">
+                  <div className="flex items-center justify-center gap-2">
+                    {/* Regen button - always visible */}
+                    <button
+                      type="button"
+                      onClick={() => handleRegeneratePropListItem(i)}
+                      disabled={regeneratingPropListIndex === i}
+                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                        regeneratingPropListIndex === i
+                          ? 'bg-gray-700 text-gray-300 opacity-70 cursor-not-allowed'
+                          : 'bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg'
+                      }`}
+                      title="Regenerate this prop with better details"
+                    >
+                      {regeneratingPropListIndex === i ? '⟳ Regenerating…' : '⟳ Regen'}
+                    </button>
+                    {/* Delete button - only in Edit Mode */}
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePropListItem(i)}
+                        className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                          confirmDeletePropId === i
+                            ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                            : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                        }`}
+                        title={confirmDeletePropId === i ? 'Click again to confirm' : 'Delete prop'}
+                      >
+                        {confirmDeletePropId === i ? (
+                          '✓ Confirm?'
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {/* Progress Bar for Prop Regeneration */}
+                  {regeneratingPropListIndex === i && singlePropProgress > 0 && (
+                    <div className="w-full max-w-[140px] mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-cyan-400 font-semibold">Regenerating...</span>
+                        <span className="text-[10px] font-bold text-cyan-400">
+                          {Math.round(singlePropProgress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${singlePropProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </td>
+              )}
               {headers.map(h => {
                 // Specific Logic for Shot List Columns
                 if (section === 'shotList' && h === 'cast') {
@@ -2248,84 +3439,60 @@ ${
                   </td>
                 );
               })}
-              {/* Delete button for Shot List, Prop List, and Breakdown */}
-              {(section === 'shotList' || section === 'propList' || section === 'breakdown') &&
-                isEditing && (
-                  <td className="px-2 py-2 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      {section === 'shotList' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRegenerateShotListItem(i)}
-                          disabled={regeneratingShotListIndex === i}
-                          className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                            regeneratingShotListIndex === i
-                              ? 'bg-gray-700 text-gray-300 opacity-70'
-                              : 'bg-gray-700 hover:bg-cyan-600 text-gray-300 hover:text-white'
-                          }`}
-                          title="Regenerate this shot row"
-                        >
-                          {regeneratingShotListIndex === i ? 'Regenerating…' : 'Regen'}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (section === 'shotList') {
-                            handleDeleteShotListItem(i);
-                          } else if (section === 'propList') {
-                            handleDeletePropListItem(i);
-                          } else if (section === 'breakdown' && subSection) {
-                            handleDeleteBreakdownItem(subSection, i);
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                          (section === 'shotList' && confirmDeleteShotListId === i) ||
-                          (section === 'propList' && confirmDeletePropId === i) ||
-                          (section === 'breakdown' &&
-                            confirmDeleteBreakdownId?.part === subSection &&
-                            confirmDeleteBreakdownId?.index === i)
-                            ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                            : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
-                        }`}
-                        title={
-                          (section === 'shotList' && confirmDeleteShotListId === i) ||
-                          (section === 'propList' && confirmDeletePropId === i) ||
-                          (section === 'breakdown' &&
-                            confirmDeleteBreakdownId?.part === subSection &&
-                            confirmDeleteBreakdownId?.index === i)
-                            ? 'Click again to confirm'
-                            : 'Delete item'
+              {/* Actions buttons for Breakdown - only in Edit Mode */}
+              {section === 'breakdown' && isEditing && (
+                <td className="px-2 py-2 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (subSection) {
+                          handleDeleteBreakdownItem(subSection, i);
                         }
-                      >
-                        {(section === 'shotList' && confirmDeleteShotListId === i) ||
-                        (section === 'propList' && confirmDeletePropId === i) ||
-                        (section === 'breakdown' &&
-                          confirmDeleteBreakdownId?.part === subSection &&
-                          confirmDeleteBreakdownId?.index === i) ? (
-                          '✓ Confirm?'
-                        ) : (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                )}
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                        section === 'breakdown' &&
+                        confirmDeleteBreakdownId?.part === subSection &&
+                        confirmDeleteBreakdownId?.index === i
+                          ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                          : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
+                      }`}
+                      title={
+                        section === 'breakdown' &&
+                        confirmDeleteBreakdownId?.part === subSection &&
+                        confirmDeleteBreakdownId?.index === i
+                          ? 'Click again to confirm'
+                          : 'Delete item'
+                      }
+                    >
+                      {section === 'breakdown' &&
+                      confirmDeleteBreakdownId?.part === subSection &&
+                      confirmDeleteBreakdownId?.index === i ? (
+                        '✓ Confirm?'
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+        </div>
+      </div>
     </div>
   );
 
@@ -2334,8 +3501,721 @@ ${
     c => !editedScene.sceneDesign.characters.includes(c.name)
   );
 
+  // Handle saving location details
+  const handleSaveLocationDetails = (updatedDetails: any) => {
+    if (onRegisterUndo) onRegisterUndo();
+    setEditedScene(prev => ({
+      ...prev,
+      sceneDesign: {
+        ...prev.sceneDesign,
+        locationDetails: updatedDetails,
+      },
+    }));
+    if (!isEditing) {
+      onSave({
+        ...editedScene,
+        sceneDesign: {
+          ...editedScene.sceneDesign,
+          locationDetails: updatedDetails,
+        },
+      });
+    }
+  };
+
+  // Handle regenerating location details section
+  const handleRegenerateLocationSection = async (section: string) => {
+    // TODO: Implement regeneration for specific section
+    console.log('Regenerating section:', section);
+    // This would call generateLocationDetails with specific section parameter
+  };
+
   return (
     <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600 fade-in-scene relative">
+      {/* Location Details Modal */}
+      <LocationDetailsModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        locationDetails={editedScene?.sceneDesign?.locationDetails}
+        locationString={editedScene?.sceneDesign?.location || 'INT. UNKNOWN - DAY'}
+        onSave={handleSaveLocationDetails}
+        onRegenerate={handleRegenerateLocationSection}
+        onRegenerateAll={() => setIsRegenerateLocationModalOpen(true)}
+        isRegeneratingAll={isRegeneratingAllLocation}
+        regenerationProgress={locationRegenerationProgress}
+        locationImageAlbum={locationImageAlbum}
+        selectedLocationImageId={selectedLocationImageId}
+        onGenerateLocationImage={handleGenerateLocationImage}
+        isGeneratingImage={isGeneratingLocationImage}
+        onSelectLocationImage={onSelectLocationImage}
+        onDeleteLocationImage={onDeleteLocationImage}
+      />
+
+      {/* Regenerate Location Details Modal */}
+      {isRegenerateLocationModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Regenerate Location Details
+              </h2>
+              <p className="text-cyan-100 text-sm mt-1">เลือกวิธีการสร้าง Location Details</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Fresh Start */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllLocationDetails('fresh')}
+                disabled={isRegeneratingAllLocation}
+                className="w-full text-left bg-gradient-to-br from-blue-900/50 to-blue-800/30 hover:from-blue-800/60 hover:to-blue-700/40 border-2 border-blue-500/30 hover:border-blue-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">🔄</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      เริ่มใหม่ทั้งหมด <span className="text-sm text-gray-400">(Fresh Start)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Location Details ใหม่ทั้งหมด ไม่อิงจาก Location Details เดิม
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details)</li>
+                      <li>• ไม่นำข้อมูล Location Details เดิม มาพิจารณา</li>
+                      <li className="text-cyan-300 font-medium">• เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Refine Existing */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllLocationDetails('refine')}
+                disabled={isRegeneratingAllLocation}
+                className="w-full text-left bg-gradient-to-br from-purple-900/50 to-purple-800/30 hover:from-purple-800/60 hover:to-purple-700/40 border-2 border-purple-500/30 hover:border-purple-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ปรับปรุง Location Details เดิม <span className="text-sm text-gray-400">(Refine Existing)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      ปรับปรุงคุณภาพ Location Details เดิม โดยรักษาโครงสร้างหลัก
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้ Scene Details ปัจจุบันเป็นพื้นฐาน</li>
+                      <li>• วิเคราะห์ เชื่อมโยง ต่อเนื่อง ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์</li>
+                      <li className="text-purple-300 font-medium">• เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Use Edited Data (Recommended) */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllLocationDetails('edited')}
+                disabled={isRegeneratingAllLocation}
+                className="w-full text-left bg-gradient-to-br from-green-900/50 to-green-800/30 hover:from-green-800/60 hover:to-green-700/40 border-2 border-green-500/40 hover:border-green-400/60 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed relative"
+              >
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  แนะนำ
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📝</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ใช้ข้อมูลที่แก้ไข <span className="text-sm text-gray-400">(Use Edited Data)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Location Details ใหม่โดยรวมการแก้ไขของคุณเข้าไป
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• นำการแก้ไข, Scene Details, Location Details ข้อมูลปัจจุบัน ไปใช้</li>
+                      <li>• สร้าง Location Details ใหม่ที่สอดคล้องคอนทินิวลกับที่แก้ไข</li>
+                      <li className="text-green-300 font-medium">• เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Usage Tips */}
+              <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/20 rounded-lg p-4 mt-4">
+                <h4 className="text-blue-300 font-semibold mb-2 flex items-center gap-2">
+                  <span>💡</span> คำแนะนำการใช้งาน:
+                </h4>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>• ถ้าไม่พอใจ Location Details เลย → <span className="text-cyan-300 font-medium">Fresh Start</span></li>
+                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <span className="text-purple-300 font-medium">Refine Existing</span></li>
+                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <span className="text-green-300 font-medium">Use Edited Data</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-800/50 border-t border-gray-700 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsRegenerateLocationModalOpen(false)}
+                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Regenerate Shot List Modal */}
+      {isRegenerateModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Regenerate Shot List
+              </h2>
+              <p className="text-cyan-100 text-sm mt-1">เลือกวิธีการสร้าง Shot List</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Fresh Start */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateShotListWithMode('fresh')}
+                disabled={isRegeneratingAllShots}
+                className="w-full text-left bg-gradient-to-br from-blue-900/50 to-blue-800/30 hover:from-blue-800/60 hover:to-blue-700/40 border-2 border-blue-500/30 hover:border-blue-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">🔄</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      เริ่มใหม่ทั้งหมด <span className="text-sm text-gray-400">(Fresh Start)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Shot List ใหม่ทั้งหมด ไม่อิงจาก Shot List เดิม
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details)</li>
+                      <li>• ไม่นำข้อมูล Shot List เดิม มาพิจารณา</li>
+                      <li className="text-cyan-300 font-medium">• เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Refine Existing */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateShotListWithMode('refine')}
+                disabled={isRegeneratingAllShots}
+                className="w-full text-left bg-gradient-to-br from-purple-900/50 to-purple-800/30 hover:from-purple-800/60 hover:to-purple-700/40 border-2 border-purple-500/30 hover:border-purple-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ปรับปรุง Shot List เดิม <span className="text-sm text-gray-400">(Refine Existing)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      ปรับปรุงคุณภาพ Shot List เดิม โดยรักษาโครงสร้างหลัก
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้ Shot List, Scene Details ปัจจุบันเป็นพื้นฐาน</li>
+                      <li>• วิเคราะห์ ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์</li>
+                      <li className="text-purple-300 font-medium">• เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Use Edited Data (Recommended) */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateShotListWithMode('edited')}
+                disabled={isRegeneratingAllShots}
+                className="w-full text-left bg-gradient-to-br from-green-900/50 to-green-800/30 hover:from-green-800/60 hover:to-green-700/40 border-2 border-green-500/40 hover:border-green-400/60 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed relative"
+              >
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  แนะนำ
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📝</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ใช้ข้อมูลที่แก้ไข <span className="text-sm text-gray-400">(Use Edited Data)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Shot List ใหม่โดยรวมการแก้ไขของคุณเข้าไป
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• นำการแก้ไข Shot List, Scene Details ข้อมูลปัจจุบัน ไปใช้</li>
+                      <li>• สร้าง Shot List ใหม่ที่สอดคล้องกับที่แก้ไข</li>
+                      <li className="text-green-300 font-medium">• เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Usage Tips */}
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mt-6">
+                <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                  <span>💡</span> คำแนะนำการใช้งาน:
+                </h4>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>• ถ้าไม่พอใจ Shot List เลย → <span className="text-blue-300">Fresh Start</span></li>
+                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <span className="text-purple-300">Refine Existing</span></li>
+                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <span className="text-green-300">Use Edited Data</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-800/30 px-6 py-4 flex justify-end gap-3 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setIsRegenerateModalOpen(false)}
+                disabled={isRegeneratingAllShots}
+                className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Regenerate Single Shot Modal */}
+      {regenerateSingleShotModal.isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                สร้าง Shot ใหม่
+              </h2>
+              <p className="text-cyan-100 text-sm mt-1">
+                เลือกวิธีการสร้าง Shot #{regenerateSingleShotModal.shotIndex !== null ? regenerateSingleShotModal.shotIndex + 1 : '?'}
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Fresh Start */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSingleShotWithMode('fresh')}
+                disabled={regeneratingShotListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-blue-900/50 to-blue-800/30 hover:from-blue-800/60 hover:to-blue-700/40 border-2 border-blue-500/30 hover:border-blue-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">🔄</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      เริ่มใหม่ทั้งหมด <span className="text-sm text-gray-400">(Fresh Start)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Shot ใหม่ทั้งหมด ไม่อิงจาก Shot เดิม
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details, Shot List)</li>
+                      <li>• ไม่นำข้อมูล Shot เดิม มาพิจารณา</li>
+                      <li className="text-cyan-300 font-medium">• เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Refine Existing */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSingleShotWithMode('refine')}
+                disabled={regeneratingShotListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-purple-900/50 to-purple-800/30 hover:from-purple-800/60 hover:to-purple-700/40 border-2 border-purple-500/30 hover:border-purple-400/50 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ปรับปรุง Shot เดิม <span className="text-sm text-gray-400">(Refine Existing)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      ปรับปรุงคุณภาพ Shot เดิม โดยรักษาโครงสร้างหลัก
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้ Shot List, Scene Details ปัจจุบันเป็นพื้นฐาน</li>
+                      <li>• วิเคราะห์ เชื่อมโยง ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์</li>
+                      <li className="text-purple-300 font-medium">• เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Use Edited Data */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSingleShotWithMode('edited')}
+                disabled={regeneratingShotListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-green-900/50 to-green-800/30 hover:from-green-800/60 hover:to-green-700/40 border-2 border-green-500/40 hover:border-green-400/60 rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed relative"
+              >
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  แนะนำ
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📝</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      ใช้ข้อมูลที่แก้ไข <span className="text-sm text-gray-400">(Use Edited Data)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Shot ใหม่โดยรวมการแก้ไขของคุณเข้าไป
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• นำการแก้ไข Shot List, Scene Details ข้อมูลปัจจุบัน ไปใช้</li>
+                      <li>• สร้าง Shot ใหม่ที่สอดคล้องกับที่แก้ไข</li>
+                      <li className="text-green-300 font-medium">• เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Usage Tips */}
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mt-6">
+                <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                  <span>💡</span> คำแนะนำการใช้งาน:
+                </h4>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>• ถ้าไม่พอใจ Shot เลย → <span className="text-blue-300">Fresh Start</span></li>
+                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <span className="text-purple-300">Refine Existing</span></li>
+                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <span className="text-green-300">Use Edited Data</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-800/30 px-6 py-4 flex justify-end gap-3 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setRegenerateSingleShotModal({ isOpen: false, shotIndex: null })}
+                disabled={regeneratingShotListIndex !== null}
+                className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Regenerate Prop List Modal */}
+      {isRegeneratePropModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Regenerate Prop List
+              </h2>
+              <p className="text-cyan-100 text-sm mt-1">เลือกวิธีการสร้าง Prop List</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Fresh Start */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllProps('fresh')}
+                disabled={isRegeneratingAllProps}
+                className="w-full text-left bg-gradient-to-br from-blue-900/40 to-blue-800/40 hover:from-blue-800/60 hover:to-blue-700/60 border-2 border-blue-500/50 hover:border-blue-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">🔄</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      เริ่มใหม่ทั้งหมด <span className="text-sm text-gray-400">(Fresh Start)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Prop List ใหม่ทั้งหมด ไม่อิงจาก Prop List เดิม
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details, Shot List)</li>
+                      <li>• ไม่นำข้อมูล Prop List เดิม มาพิจารณา</li>
+                      <li className="text-blue-300 font-medium">• เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Refine Existing */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllProps('refine')}
+                disabled={isRegeneratingAllProps}
+                className="w-full text-left bg-gradient-to-br from-purple-900/40 to-purple-800/40 hover:from-purple-800/60 hover:to-purple-700/60 border-2 border-purple-500/50 hover:border-purple-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      ปรับปรุง Prop List เดิม <span className="text-sm text-gray-400">(Refine Existing)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      ปรับปรุงคุณภาพ Prop List เดิม โดยรักษาโครงสร้างหลัก
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้ Shot List, Scene Details ปัจจุบันเป็นพื้นฐาน</li>
+                      <li>• วิเคราะห์ เชื่อมโยง ต่อเนื่อง ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์</li>
+                      <li className="text-purple-300 font-medium">• เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Use Edited Data (Recommended) */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateAllProps('edited')}
+                disabled={isRegeneratingAllProps}
+                className="w-full text-left bg-gradient-to-br from-green-900/40 to-green-800/40 hover:from-green-800/60 hover:to-green-700/60 border-2 border-green-500/50 hover:border-green-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed relative"
+              >
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  แนะนำ
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📝</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      ใช้ข้อมูลที่แก้ไข <span className="text-sm text-gray-400">(Use Edited Data)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Prop List ใหม่โดยรวมการแก้ไขของคุณเข้าไป
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• นำการแก้ไข Shot List, Scene Details ข้อมูลปัจจุบัน ไปใช้</li>
+                      <li>• สร้าง Prop List ใหม่ที่สอดคล้องคอนทินิวิตี้กับที่แก้ไข</li>
+                      <li className="text-green-300 font-medium">• เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Usage Tips */}
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mt-6">
+                <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                  <span>💡</span> คำแนะนำการใช้งาน:
+                </h4>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>• ถ้าไม่พอใจ Prop List เลย → <span className="text-blue-300">Fresh Start</span></li>
+                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <span className="text-purple-300">Refine Existing</span></li>
+                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <span className="text-green-300">Use Edited Data</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-800/30 px-6 py-4 flex justify-end gap-3 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setIsRegeneratePropModalOpen(false)}
+                disabled={isRegeneratingAllProps}
+                className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Regenerate Single Prop Modal */}
+      {regenerateSinglePropModal.isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Regenerate Prop Art
+              </h2>
+              <p className="text-cyan-100 text-sm mt-1">เลือกวิธีการสร้าง Prop Art</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Fresh Start */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSinglePropWithMode('fresh')}
+                disabled={regeneratingPropListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-blue-900/40 to-blue-800/40 hover:from-blue-800/60 hover:to-blue-700/60 border-2 border-blue-500/50 hover:border-blue-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">🔄</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      เริ่มใหม่ทั้งหมด <span className="text-sm text-gray-400">(Fresh Start)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Prop Art ใหม่ทั้งหมด ไม่อิงจาก Prop Art เดิม
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้เฉพาะข้อมูลพื้นฐาน (Scene Details, Shot List, Prop List)</li>
+                      <li>• ไม่นำข้อมูล Prop Art เดิม มาพิจารณา</li>
+                      <li className="text-blue-300 font-medium">• เหมาะสำหรับ: ต้องการแนวทางใหม่ทั้งหมด</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Refine Existing */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSinglePropWithMode('refine')}
+                disabled={regeneratingPropListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-purple-900/40 to-purple-800/40 hover:from-purple-800/60 hover:to-purple-700/60 border-2 border-purple-500/50 hover:border-purple-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      ปรับปรุง Prop Art เดิม <span className="text-sm text-gray-400">(Refine Existing)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      ปรับปรุงคุณภาพ Prop Art เดิม โดยรักษาโครงสร้างหลัก
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• ใช้ Shot List, Scene Details, Prop List ปัจจุบันเป็นพื้นฐาน</li>
+                      <li>• วิเคราะห์ เชื่อมโยง ต่อเนื่อง ปรับปรุง เพิ่มรายละเอียดที่เหมาะสมครบถ้วนสมบูรณ์</li>
+                      <li className="text-purple-300 font-medium">• เหมาะสำหรับ: ชอบแนวทางแต่ต้องการคุณภาพดีขึ้น</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Use Edited Data (Recommended) */}
+              <button
+                type="button"
+                onClick={() => handleRegenerateSinglePropWithMode('edited')}
+                disabled={regeneratingPropListIndex !== null}
+                className="w-full text-left bg-gradient-to-br from-green-900/40 to-green-800/40 hover:from-green-800/60 hover:to-green-700/60 border-2 border-green-500/50 hover:border-green-400 rounded-xl p-5 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed relative"
+              >
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  แนะนำ
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="text-4xl">📝</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      ใช้ข้อมูลที่แก้ไข <span className="text-sm text-gray-400">(Use Edited Data)</span>
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      สร้าง Prop Art ใหม่โดยรวมการแก้ไขของคุณเข้าไป
+                    </p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                      <li>• นำการแก้ไข Shot List, Scene Details, Prop List ข้อมูลปัจจุบัน ไปใช้</li>
+                      <li>• สร้าง Prop Art ใหม่ที่สอดคล้องคอนทินิวิตี้กับที่แก้ไข</li>
+                      <li className="text-green-300 font-medium">• เหมาะสำหรับ: แก้ไขแล้ว ต้องการ AI สร้างส่วนอื่นให้เข้ากัน</li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
+
+              {/* Usage Tips */}
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mt-6">
+                <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                  <span>💡</span> คำแนะนำการใช้งาน:
+                </h4>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>• ถ้าไม่พอใจ Prop Art เลย → <span className="text-blue-300">Fresh Start</span></li>
+                  <li>• ถ้าชอบแนวทางแต่ต้องการดีขึ้น → <span className="text-purple-300">Refine Existing</span></li>
+                  <li>• ถ้าแก้ไขแล้วต้องการให้ AI ขยายความ → <span className="text-green-300">Use Edited Data</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-800/30 px-6 py-4 flex justify-end gap-3 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setRegenerateSinglePropModal({ isOpen: false, propIndex: null })}
+                disabled={regeneratingPropListIndex !== null}
+                className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Sub-tabs Navigation (Level 2 - Inside Scene) */}
       <div className="flex justify-between items-center border-b border-gray-600 mb-4 pb-2">
         <div className="flex flex-wrap gap-2">
@@ -2394,21 +4274,93 @@ ${
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-3 w-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            <>
+              {/* Regenerate All button - Only show when Shot List has data and in Shot List tab */}
+              {activeTab === 'shotlist' && (editedScene.shotList?.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsRegenerateModalOpen(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
+                  title="Regenerate entire Shot List with different approaches"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  รีเจนทั้งหมด
+                </button>
+              )}
+              {/* Regenerate All button - Only show when Prop List has data and in Prop List tab */}
+              {activeTab === 'proplist' && (editedScene.propList?.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsRegeneratePropModalOpen(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
+                  title="Regenerate entire Prop List"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  รีเจนทั้งหมด
+                </button>
+              )}
+              {/* Auto-Generate All button - Only show when Storyboard has shots and in Storyboard tab */}
+              {activeTab === 'storyboard' && (editedScene.shotList?.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={handleGenerateAllShots}
+                  disabled={isGeneratingAll}
+                  className="bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Auto-generate images for all shots without images"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {isGeneratingAll ? 'กำลังสร้าง...' : 'สร้างภาพทั้งหมด'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold py-1.5 px-3 rounded transition-colors flex items-center gap-1 shadow-lg"
               >
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-              Edit
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+                Edit
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -2607,14 +4559,76 @@ ${
 
               {/* Right Side: Context Column (Location + Mood) */}
               <div className="w-full md:w-80 flex flex-col gap-4 shrink-0 animate-fade-in-scene">
-                {/* 1. Scene Header (Location Box) */}
-                <div className="bg-black/40 border border-cyan-900/50 rounded-lg overflow-hidden flex flex-col">
-                  <div className="bg-gray-800/80 px-4 py-2 border-b border-gray-700">
-                    <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-widest text-center">
+                {/* Progress Bar for Location Details Regeneration */}
+                {isRegeneratingAllLocation && (
+                  <div className="bg-gray-800/50 border border-purple-500/30 rounded-lg p-4 animate-pulse">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-purple-400 flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        📍 กำลังสร้าง Location Details...
+                      </span>
+                      <span className="text-sm font-bold text-purple-400">
+                        {Math.round(locationRegenerationProgress)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 h-full transition-all duration-300"
+                        style={{ width: `${locationRegenerationProgress}%` }}
+                      >
+                        {locationRegenerationProgress > 10 && (
+                          <span className="text-[10px] font-bold text-white flex items-center justify-center h-full">
+                            {Math.round(locationRegenerationProgress)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      โปรดรอสักครู่ ระบบกำลังสร้างรายละเอียดสถานที่
+                    </p>
+                  </div>
+                )}
+
+                {/* 1. Scene Header (Location Box) - Clickable */}
+                <div 
+                  className="bg-black/40 border border-cyan-900/50 rounded-lg overflow-hidden flex flex-col cursor-pointer hover:bg-black/50 transition-colors"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  title="Click to view Location Details"
+                >
+                  <div className="bg-gray-800/80 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">
                       Scene Header
                     </h4>
+                    {/* Location Details Indicator */}
+                    <div className="flex items-center gap-2">
+                      {editedScene?.sceneDesign?.locationDetails && (
+                        <span className="text-green-400 text-xs">✓ Details</span>
+                      )}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-cyan-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                  <div className="p-4 flex-1 flex flex-col justify-center">
+                  <div 
+                    className="p-4 flex-1 flex flex-col justify-center"
+                    onClick={(e) => {
+                      if (isEditing) {
+                        e.stopPropagation(); // Don't open modal when editing
+                      }
+                    }}
+                  >
                     {isEditing ? (
                       <div className="flex flex-col gap-3">
                         <div>
@@ -2675,13 +4689,32 @@ ${
                             {displayLocation.prefix}
                           </span>
                         </div>
-                        <div className="flex-[2] bg-gray-900/50 rounded p-1.5 border border-gray-700 h-full flex flex-col justify-center">
-                          <span className="block text-[9px] text-gray-500 uppercase font-bold mb-0.5">
-                            LOCATION
-                          </span>
-                          <span className="font-mono text-xs font-bold text-white break-words leading-tight">
-                            {displayLocation.name}
-                          </span>
+                        <div className="flex-[2] bg-gray-900/50 rounded p-1.5 border border-gray-700 h-full flex items-center gap-2">
+                          {/* Location Image Thumbnail */}
+                          {locationImageAlbum.length > 0 && selectedLocationImageId && (() => {
+                            const selectedImage = locationImageAlbum.find(img => img.id === selectedLocationImageId);
+                            return selectedImage ? (
+                              <div className="relative w-16 h-12 flex-shrink-0 rounded overflow-hidden border border-indigo-500/50">
+                                <img
+                                  src={selectedImage.url}
+                                  alt="Location"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ) : null;
+                          })()}
+                          {/* Location Text */}
+                          <div className="flex-1 flex flex-col justify-center">
+                            <span className="block text-[9px] text-gray-500 uppercase font-bold mb-0.5">
+                              LOCATION
+                            </span>
+                            <span className="font-mono text-xs font-bold text-white break-words leading-tight">
+                              {displayLocation.name}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex-1 bg-gray-900/50 rounded p-1.5 border border-gray-700 h-full flex flex-col justify-center">
                           <span className="block text-[9px] text-gray-500 uppercase font-bold mb-0.5">
@@ -2894,7 +4927,11 @@ ${
                                           updateDialogue(i, line.id, 'dialogue', converted);
                                         } catch (error) {
                                           console.error('Failed to convert dialect:', error);
-                                          alert('ไม่สามารถแปลงภาษาได้ กรุณาลองใหม่');
+                                          setErrorModal({
+                                            isOpen: true,
+                                            title: 'Translation Failed',
+                                            message: 'ไม่สามารถแปลงภาษาได้ กรุณาลองใหม่',
+                                          });
                                         }
                                       }}
                                       className="flex items-center gap-1 px-2 py-1 bg-cyan-900/50 hover:bg-cyan-800 border border-cyan-700 hover:border-cyan-500 rounded text-cyan-300 hover:text-white transition-all shrink-0 text-xs"
@@ -2977,6 +5014,39 @@ ${
         {/* Fixed: Use standardized headers for Shot List to ensure all columns appear */}
         {activeTab === 'shotlist' && (
           <div className="space-y-4">
+            {/* Progress Bar for Regeneration */}
+            {isRegeneratingAllShots && (
+              <div className="mb-8 bg-gray-800/50 border border-cyan-500/30 rounded-lg p-4 animate-pulse">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    🎬 กำลังสร้าง Shot List ใหม่...
+                  </span>
+                  <span className="text-sm font-bold text-cyan-400">
+                    {Math.round(regenerationProgress)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-2"
+                    style={{ width: `${regenerationProgress}%` }}
+                  >
+                    {regenerationProgress > 10 && (
+                      <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                        {Math.round(regenerationProgress)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  โปรดรอสักครู่ ระบบกำลังสร้าง Shot List ที่ละเอียดสำหรับการสร้างภาพและวีดีโอ
+                </p>
+              </div>
+            )}
+            
             {isEditing && (editedScene.shotList?.length || 0) > 0 && (
               <div className="flex justify-end gap-2">
                 <button
@@ -2991,6 +5061,33 @@ ${
                   title="Generate a complete Shot List for this scene"
                 >
                   {isGeneratingShotList ? 'Generating…' : 'Generate Shot List'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegenerateAllShotList}
+                  disabled={isRegeneratingAllShots || (editedScene.shotList?.length || 0) === 0}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                    isRegeneratingAllShots
+                      ? 'bg-gray-700 text-gray-300 opacity-70 cursor-not-allowed'
+                      : (editedScene.shotList?.length || 0) === 0
+                      ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
+                  title="Regenerate all shots with Continuity (costume, props, emotions)"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {isRegeneratingAllShots ? `Regenerating... (${editedScene.shotList?.length || 0} shots)` : 'Regenerate All Shots'}
                 </button>
                 <button
                   type="button"
@@ -3052,6 +5149,38 @@ ${
         {/* New Storyboard Tab */}
         {activeTab === 'storyboard' && (
           <div className="flex flex-col gap-6">
+            {/* Progress Bar for Auto-Generate All */}
+            {isGeneratingAll && (
+              <div className="bg-gray-800/50 border border-cyan-500/30 rounded-lg p-4 animate-pulse">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    🎨 กำลังสร้างภาพสตอรีบอร์ด...
+                  </span>
+                  <span className="text-sm font-bold text-cyan-400">
+                    {generatingShotId !== null ? `Shot ${generatingShotId + 1} / ${editedScene.shotList?.length || 0}` : 'กำลังเตรียมการ...'}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-2"
+                    style={{ width: `${progress}%` }}
+                  >
+                    {progress > 10 && (
+                      <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                        {Math.round(progress)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  โปรดรอสักครู่ ระบบกำลังสร้างภาพสตอรีบอร์ดสำหรับทุก Shot
+                </p>
+              </div>
+            )}
             <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex-1 w-full sm:w-auto flex gap-4">
                 <div className="flex-1">
@@ -3262,142 +5391,7 @@ ${
                 </div>
               </div>
 
-              {/* �️ Voice Generation Toggle */}
-              <div className="mt-4 p-4 bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg">
-                <label className="flex items-center cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={includeVoice}
-                    onChange={e => setIncludeVoice(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
-                  />
-                  <div className="ml-3 flex-1">
-                    <span className="text-sm font-bold text-purple-300 group-hover:text-purple-200 transition-colors">
-                      🎙️ Include Character Voices (Voice Cloning)
-                    </span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Generate audio from dialogue using character voice samples. Characters without
-                      voice samples will be skipped.
-                    </p>
-                  </div>
-                  {includeVoice && (
-                    <span className="ml-2 px-2 py-1 bg-purple-600 text-white text-xs rounded-full font-bold animate-pulse">
-                      ACTIVE
-                    </span>
-                  )}
-                </label>
-
-                {/* Voice Status Indicator */}
-                {includeVoice && (
-                  <div className="mt-3 pt-3 border-t border-purple-500/20">
-                    <div className="flex items-center gap-2 text-xs">
-                      {(() => {
-                        const dialogueLines =
-                          editedScene.sceneDesign?.situations?.flatMap(s => s.dialogue || []) || [];
-                        const charactersInDialogue = [
-                          ...new Set(dialogueLines.map(d => d.character)),
-                        ];
-                        const charactersWithVoice = charactersInDialogue.filter(charName => {
-                          const char = scriptData.characters.find(c => c.name === charName);
-                          return char?.voiceCloning?.hasVoiceSample;
-                        });
-                        const charactersWithoutVoice = charactersInDialogue.filter(charName => {
-                          const char = scriptData.characters.find(c => c.name === charName);
-                          return !char?.voiceCloning?.hasVoiceSample;
-                        });
-
-                        if (dialogueLines.length === 0) {
-                          return (
-                            <div className="flex items-center gap-2 text-yellow-400">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              <span>No dialogue found in this scene</span>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <>
-                            {charactersWithVoice.length > 0 && (
-                              <div className="flex items-center gap-2 text-green-400">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                <span>
-                                  ✅ {charactersWithVoice.length} character(s) ready:{' '}
-                                  {charactersWithVoice.join(', ')}
-                                </span>
-                              </div>
-                            )}
-                            {charactersWithoutVoice.length > 0 && (
-                              <>
-                                <div className="flex items-center gap-2 text-orange-400 mt-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 9.293 8.707 8.707z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  <span>
-                                    ⚠️ {charactersWithoutVoice.length} missing voice:{' '}
-                                    {charactersWithoutVoice.join(', ')}
-                                  </span>
-                                </div>
-                                {/* Speech Pattern Fallback Info */}
-                                {(() => {
-                                  const charsWithSpeechPattern = charactersWithoutVoice.filter(
-                                    charName => {
-                                      const char = scriptData.characters.find(
-                                        c => c.name === charName
-                                      );
-                                      return char?.speechPattern;
-                                    }
-                                  );
-
-                                  if (charsWithSpeechPattern.length > 0) {
-                                    return (
-                                      <div className="flex items-center gap-2 text-blue-400 mt-1 ml-6">
-                                        <svg
-                                          className="w-4 h-4"
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                        >
-                                          <path
-                                            fillRule="evenodd"
-                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                            clipRule="evenodd"
-                                          />
-                                        </svg>
-                                        <span className="text-[11px]">
-                                          ℹ️ Using speech pattern data for:{' '}
-                                          {charsWithSpeechPattern.join(', ')}
-                                        </span>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                              </>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* �🆕 Custom Resolution Controls */}
+              {/* 🆕 Custom Resolution Controls */}
               {videoAspectRatio === 'custom' && (
                 <div className="flex gap-3 items-end">
                   <div className="flex-1">
@@ -3474,82 +5468,6 @@ ${
                   </div>
                 </div>
               )}
-
-              <div className="flex gap-2 w-full sm:w-auto">
-                {/* Clear All Storyboard button */}
-                {(editedScene.storyboard?.length || 0) > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearAllStoryboard}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                      confirmClearSection === 'storyboard'
-                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                        : 'bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white'
-                    }`}
-                    title={
-                      confirmClearSection === 'storyboard'
-                        ? 'Click again to confirm'
-                        : 'Clear all storyboard images/videos'
-                    }
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {confirmClearSection === 'storyboard' ? 'Confirm?' : 'Clear All'}
-                  </button>
-                )}
-                {isGeneratingAll ? (
-                  <button
-                    type="button"
-                    onClick={handleStopGeneration}
-                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 animate-pulse"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    STOP GENERATION
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleGenerateAllShots}
-                    disabled={isGeneratingAll}
-                    className="w-full sm:w-auto bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Auto-Generate All Missing Shots
-                  </button>
-                )}
-              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -3956,6 +5874,39 @@ ${
 
         {activeTab === 'proplist' && (
           <div className="space-y-4">
+            {/* Progress Bar for Prop List Regeneration */}
+            {isRegeneratingAllProps && (
+              <div className="mb-8 bg-gray-800/50 border border-cyan-500/30 rounded-lg p-4 animate-pulse">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    🎨 กำลังสร้าง Prop List ใหม่...
+                  </span>
+                  <span className="text-sm font-bold text-cyan-400">
+                    {Math.round(regenerationProgress)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-2"
+                    style={{ width: `${regenerationProgress}%` }}
+                  >
+                    {regenerationProgress > 10 && (
+                      <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                        {Math.round(regenerationProgress)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  โปรดรอสักครู่ ระบบกำลังสร้าง Prop List ที่ละเอียดและเหมาะสมกับฉาก
+                </p>
+              </div>
+            )}
+            
             {isEditing && (editedScene.propList?.length || 0) > 0 && (
               <div className="flex justify-end">
                 <button
@@ -4100,6 +6051,22 @@ const SceneItem: React.FC<{
   onDelete?: () => void;
   canDelete?: boolean;
   scriptData: ScriptData; // Added for dialect conversion
+  isRegenerateLocationModalOpen: boolean;
+  setIsRegenerateLocationModalOpen: (value: boolean) => void;
+  isRegeneratingAllLocation: boolean;
+  locationRegenerationProgress: number;
+  handleRegenerateAllLocationDetails: (mode: 'fresh' | 'refine' | 'edited') => Promise<void>;
+  locationImageAlbum: Array<{
+    url: string;
+    timestamp: number;
+    locationString: string;
+    id: string;
+  }>;
+  selectedLocationImageId: string | null;
+  isGeneratingLocationImage: boolean;
+  onSelectLocationImage: (id: string) => void;
+  onDeleteLocationImage: (id: string) => void;
+  handleGenerateLocationImage: () => void;
 }> = ({
   sceneIndex,
   sceneNumber,
@@ -4115,6 +6082,17 @@ const SceneItem: React.FC<{
   onDelete,
   canDelete,
   scriptData,
+  isRegenerateLocationModalOpen,
+  setIsRegenerateLocationModalOpen,
+  isRegeneratingAllLocation,
+  locationRegenerationProgress,
+  handleRegenerateAllLocationDetails,
+  locationImageAlbum,
+  selectedLocationImageId,
+  isGeneratingLocationImage,
+  onSelectLocationImage,
+  onDeleteLocationImage,
+  handleGenerateLocationImage,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -4160,7 +6138,7 @@ const SceneItem: React.FC<{
             {status === 'done' && <span className="text-green-400">✓ Done</span>}
             {status === 'error' && <span className="text-red-400">✗ Error</span>}
           </div>
-          <div className="w-24 h-6 text-center">{button}</div>
+          <div className="w-32 h-6 text-center">{button}</div>
           {canDelete && onDelete && (
             <button
               onClick={e => {
@@ -4201,6 +6179,19 @@ const SceneItem: React.FC<{
               pointTitle={pointTitle}
               sceneIndex={sceneIndex}
               scriptData={scriptData}
+              isRegenerateLocationModalOpen={isRegenerateLocationModalOpen}
+              setIsRegenerateLocationModalOpen={setIsRegenerateLocationModalOpen}
+              isRegeneratingAllLocation={isRegeneratingAllLocation}
+              locationRegenerationProgress={locationRegenerationProgress}
+              handleRegenerateAllLocationDetails={(mode) =>
+                handleRegenerateAllLocationDetails(mode, pointTitle, sceneIndex, sceneData)
+              }
+              locationImageAlbum={locationImageAlbum}
+              selectedLocationImageId={selectedLocationImageId}
+              isGeneratingLocationImage={isGeneratingLocationImage}
+              onSelectLocationImage={onSelectLocationImage}
+              onDeleteLocationImage={onDeleteLocationImage}
+              handleGenerateLocationImage={handleGenerateLocationImage}
             />
           ) : (
             <div className="mt-4 p-10 flex items-center justify-center bg-gray-900/20 rounded-lg border-2 border-dashed border-gray-700">
@@ -4246,6 +6237,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       ])
     )
   );
+  const [sceneGenerationProgress, setSceneGenerationProgress] = useState<Record<string, number>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -4262,7 +6254,87 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [motionEditorGeneratingVideo, setMotionEditorGeneratingVideo] = useState(false);
   const [motionEditorProgress, setMotionEditorProgress] = useState(0);
 
-  // 🎬 Motion Editor - Generate Image Handler
+  // 📍 Location Details Modal state
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isGeneratingLocationDetails, setIsGeneratingLocationDetails] = useState(false);
+  const [isRegenerateLocationModalOpen, setIsRegenerateLocationModalOpen] = useState(false);
+  const [isRegeneratingAllLocation, setIsRegeneratingAllLocation] = useState(false);
+  const [locationRegenerationProgress, setLocationRegenerationProgress] = useState(0);
+  
+  // 📸 Initialize Location Image Album from scriptData
+  const initializeLocationImageAlbum = () => {
+    const allImages: Array<{
+      url: string;
+      timestamp: number;
+      locationString: string;
+      id: string;
+    }> = [];
+    
+    // Collect all location images from all scenes
+    Object.entries(scriptData.generatedScenes).forEach(([pointTitle, scenes]) => {
+      scenes.forEach((scene, sceneIndex) => {
+        if (scene?.sceneDesign?.locationImageAlbum) {
+          allImages.push(...scene.sceneDesign.locationImageAlbum);
+        }
+      });
+    });
+    
+    // Sort by timestamp (newest first)
+    return allImages.sort((a, b) => b.timestamp - a.timestamp);
+  };
+  
+  const [locationImageAlbum, setLocationImageAlbum] = useState<Array<{
+    url: string;
+    timestamp: number;
+    locationString: string;
+    id: string;
+  }>>(initializeLocationImageAlbum);
+  
+  const [selectedLocationImageId, setSelectedLocationImageId] = useState<string | null>(() => {
+    // Try to get the selected image from the first scene that has one
+    let savedSelection: string | null = null;
+    
+    Object.entries(scriptData.generatedScenes).forEach(([pointTitle, scenes]) => {
+      scenes.forEach((scene) => {
+        if (scene?.sceneDesign?.selectedLocationImageId && !savedSelection) {
+          savedSelection = scene.sceneDesign.selectedLocationImageId;
+        }
+      });
+    });
+    
+    // If no saved selection, use the most recent image
+    if (!savedSelection) {
+      const album = initializeLocationImageAlbum();
+      return album.length > 0 ? album[0].id : null;
+    }
+    
+    return savedSelection;
+  });
+  
+  const [isGeneratingLocationImage, setIsGeneratingLocationImage] = useState(false);
+
+  // � Modal States (Success/Error/Info)
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: Array<{ label: string; value: string }>;
+    onClose?: () => void;
+  }>({ isOpen: false, title: '', message: '' });
+
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+
+  const [infoModal, setInfoModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+
+  // �🎬 Motion Editor - Generate Image Handler
   const handleMotionEditorGenerateImage = async (currentShot: any, sceneData: GeneratedScene) => {
     if (!currentShot || motionEditorGeneratingImage) return;
     if (onRegisterUndo) onRegisterUndo();
@@ -4331,7 +6403,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         };
       });
     } catch (error) {
-      alert('Failed to generate image. Please try again.');
+      setErrorModal({
+        isOpen: true,
+        title: 'Generation Failed',
+        message: 'Failed to generate image. Please try again.',
+      });
       console.error(error);
     } finally {
       setMotionEditorGeneratingImage(false);
@@ -4480,11 +6556,265 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         };
       });
     } catch (error) {
-      alert('Failed to generate video. Please try again.');
+      setErrorModal({
+        isOpen: true,
+        title: 'Generation Failed',
+        message: 'Failed to generate video. Please try again.',
+      });
       console.error(error);
     } finally {
       setMotionEditorGeneratingVideo(false);
       setMotionEditorProgress(0);
+    }
+  };
+
+  // � Handle regenerating ALL location details with mode selection
+  const handleRegenerateAllLocationDetails = async (
+    mode: 'fresh' | 'refine' | 'edited',
+    pointTitle: string,
+    sceneIndex: number,
+    currentScene: GeneratedScene
+  ) => {
+    setIsRegenerateLocationModalOpen(false);
+    setIsRegeneratingAllLocation(true);
+    setLocationRegenerationProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setLocationRegenerationProgress(prev => (prev >= 40 ? 40 : prev + Math.random() * 4));
+    }, 400);
+
+    try {
+      const ai = getAI();
+      
+      let modeInstructions = '';
+      if (mode === 'fresh') {
+        modeInstructions =
+          '🔄 FRESH START MODE: สร้าง Location Details ใหม่ทั้งหมด ไม่อิงจาก Location Details เดิม ใช้เฉพาะข้อมูล Scene Details เป็นพื้นฐาน';
+      } else if (mode === 'refine') {
+        modeInstructions =
+          '✨ REFINE EXISTING MODE: ปรับปรุง Location Details เดิม โดยรักษาโครงสร้างหลักและเพิ่มรายละเอียดให้ครบถ้วนสมบูรณ์';
+      } else if (mode === 'edited') {
+        modeInstructions =
+          '📝 USE EDITED DATA MODE: สร้าง Location Details ใหม่โดยรวมการแก้ไขของผู้ใช้เข้าไป';
+      }
+
+      const sceneContext = `
+SCENE DETAILS:
+- Scene Name: ${currentScene.sceneDesign.sceneName}
+- Location: ${currentScene.sceneDesign.location}
+- Time: ${currentScene.sceneDesign.time}
+- Mood: ${currentScene.sceneDesign.mood}
+- Characters: ${currentScene.sceneDesign.characters.join(', ')}
+- Situations: ${currentScene.sceneDesign.situations.map((s: any) => s.description).join('; ')}
+`;
+
+      const currentLocationDetails =
+        mode === 'fresh'
+          ? ''
+          : `
+
+CURRENT LOCATION DETAILS (for reference):
+${JSON.stringify(currentScene.sceneDesign?.locationDetails, null, 2)}`;
+
+      // Parse location string
+      const location = currentScene.sceneDesign.location;
+      const locMatch = location.match(/^(INT\.|EXT\.)\s*(.+?)\s*-\s*(DAY|NIGHT|DAWN|DUSK|GOLDEN HOUR|กลางวัน|กลางคืน|เช้า|เย็น)/i);
+      const locType = locMatch ? locMatch[1] : 'INT.';
+      const locName = locMatch ? locMatch[2].trim() : location;
+      const timeOfDay = locMatch ? locMatch[3] : 'DAY';
+
+      const prompt = `${modeInstructions}
+
+You are a professional location scout and production designer. Generate comprehensive location details for:
+
+${sceneContext}${currentLocationDetails}
+
+Output all descriptions in THAI language (ภาษาไทยเท่านั้น)
+
+Create a detailed JSON with this EXACT structure (no additional fields):
+{
+  "locationType": "${locType}",
+  "locationName": "${locName}",
+  "timeOfDay": "${timeOfDay}",
+  "environment": {
+    "description": "คำอธิบายที่ครอบคลุม 3-4 ประโยค เกี่ยวกับลักษณะทางกายภาพของสถานที่ รูปแบบ และความรู้สึกโดยรวม",
+    "architecture": "สถาปัตยกรรม วัสดุก่อสร้าง องค์ประกอบการออกแบบ (ถ้ามี)",
+    "landscaping": "องค์ประกอบสิ่งแวดล้อมธรรมชาติหรือประดิษฐ์ พืช ลักษณะภูมิประเทศ",
+    "dimensions": "ขนาดและมาตราส่วนโดยประมาณ (เช่น '20x30 เมตร, เพดานสูง 4 เมตร')",
+    "capacity": "พื้นที่สามารถรองรับคนได้กี่คน"
+  },
+  "atmosphere": {
+    "weather": "สภาพอากาศปัจจุบัน (แดดจัด, มีเมฆ, ฝนตก, ฯลฯ)",
+    "temperature": "อุณหภูมิพร้อมหน่วย (เช่น '28°C อบอุ่นและชื้น', 'หนาว 15°C')",
+    "humidity": "ระดับความชื้นพร้อมรายละเอียด (แห้g/ปานกลาง/ชื้น/ชื้นมาก)",
+    "windSpeed": "สภาวะลม (สงบ/มีลมพัดเบา/ลมแรง/พายุ)",
+    "visibility": "สภาพการมองเห็น (แจ่มใส/หมอกบาง/หมอกหนา)"
+  },
+  "sensory": {
+    "smell": "กลิ่นเด่นและกลิ่นหอมในสถานที่ (2-3 กลิ่นเฉพาะเจาะจง)",
+    "sounds": "เสียงโดยรอบและเสียงรบกวน (3-4 เสียงเฉพาะเจาะจง)",
+    "lighting": "คุณภาพและลักษณะของแสง (ธรรมชาติ/ประดิษฐ์, ความเข้ม, อุณหภูมิสี)",
+    "colors": "จานสีหลักและโทนสีที่มองเห็น (4-5 สีหลัก)"
+  },
+  "production": {
+    "setDressing": "เฟอร์นิเจอร์หลัก ของตกแต่ง และองค์ประกอบฉาก (5-7 รายการเฉพาะเจาะจง)",
+    "props": "อุปกรณ์ประกอบสำคัญที่ควรมี (4-6 รายการ)",
+    "practicalLights": "แหล่งกำเนิดแสงที่มองเห็นในฉาก (โคมไฟ, หน้าต่าง, โคมไฟติดผนัง)",
+    "specialRequirements": "ความต้องการพิเศษด้านการผลิตหรือข้อพิจารณาใดๆ"
+  },
+  "references": {
+    "realWorldLocation": "สถานที่จริงหรือสถานที่ที่คล้ายกับนี้ในโลกจริง",
+    "culturalContext": "บริบททางวัฒนธรรมหรือประวัติศาสตร์ที่เกี่ยวข้องกับสถานที่นี้"
+  }
+}
+
+IMPORTANT GUIDELINES:
+- Be EXTREMELY specific and detailed, avoid generic descriptions
+- Consider the scene's mood (${currentScene.sceneDesign.mood}) when describing atmosphere
+- Think about what would make this location feel authentic and lived-in
+- Include sensory details that would help visualize the space
+- เขียนรายละเอียดเป็นภาษาไทยที่สละสลวย มีความหมายชัดเจน
+- ให้ข้อมูลที่เป็นประโยชน์สำหรับการผลิตภาพยนตร์
+- คำนึงถึงบรรยากาศของฉากและตัวละครที่เกี่ยวข้อง
+`;
+
+      setLocationRegenerationProgress(50);
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        systemInstruction:
+          'You are a professional location scout and production designer with expertise in Thai film production. Generate comprehensive, detailed location information in Thai language.',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      setLocationRegenerationProgress(80);
+      const text = response.text || '';
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
+
+      if (jsonMatch) {
+        const newLocationDetails = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        
+        // Update scriptData with new location details
+        setScriptData(prev => {
+          const scenes = prev.generatedScenes[pointTitle] || [];
+          const updatedScenes = [...scenes];
+          updatedScenes[sceneIndex] = {
+            ...currentScene,
+            sceneDesign: {
+              ...currentScene.sceneDesign,
+              locationDetails: newLocationDetails,
+            },
+          };
+          return {
+            ...prev,
+            generatedScenes: {
+              ...prev.generatedScenes,
+              [pointTitle]: updatedScenes,
+            },
+          };
+        });
+
+        setLocationRegenerationProgress(100);
+        console.log('✅ Location Details regenerated successfully');
+      }
+    } catch (error) {
+      console.error('❌ Location Details regeneration failed:', error);
+      setErrorModal({
+        isOpen: true,
+        title: '⚠️ Regeneration Error',
+        message: `Failed to regenerate Location Details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setLocationRegenerationProgress(0);
+        setIsRegeneratingAllLocation(false);
+      }, 500);
+    }
+  };
+
+  // 🖼️ Handle Generate Location Image
+  const handleGenerateLocationImage = async (
+    locationDetails: any,
+    locationString: string,
+    pointTitle: string,
+    sceneIndex: number
+  ) => {
+    if (!locationDetails) {
+      setErrorModal({
+        isOpen: true,
+        title: '⚠️ Missing Location Details',
+        message: 'กรุณาสร้าง Location Details ก่อนที่จะสร้างรูปภาพ',
+      });
+      return;
+    }
+
+    setIsGeneratingLocationImage(true);
+    
+    try {
+      const imageUrl = await generateLocationImage(locationDetails, locationString);
+      
+      // Add to album with metadata
+      const newImage = {
+        url: imageUrl,
+        timestamp: Date.now(),
+        locationString,
+        id: `loc-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      };
+      
+      // Update local state
+      setLocationImageAlbum(prev => [newImage, ...prev]);
+      setSelectedLocationImageId(newImage.id);
+      
+      // Save to scriptData
+      setScriptData(prev => {
+        const scenes = prev.generatedScenes[pointTitle] || [];
+        const currentScene = scenes[sceneIndex];
+        
+        if (!currentScene) return prev;
+        
+        const updatedAlbum = [
+          newImage,
+          ...(currentScene.sceneDesign?.locationImageAlbum || [])
+        ];
+        
+        const updatedScenes = [...scenes];
+        updatedScenes[sceneIndex] = {
+          ...currentScene,
+          sceneDesign: {
+            ...currentScene.sceneDesign,
+            locationImageAlbum: updatedAlbum,
+          },
+        };
+        
+        return {
+          ...prev,
+          generatedScenes: {
+            ...prev.generatedScenes,
+            [pointTitle]: updatedScenes,
+          },
+        };
+      });
+      
+      // Save the scene data (trigger undo registration)
+      if (onRegisterUndo) {
+        onRegisterUndo();
+      }
+      
+      setSuccessModal({
+        isOpen: true,
+        title: '🎉 สร้างรูปภาพสำเร็จ',
+        message: `สร้างรูปภาพโลเคชั่นจาก Location Details เสร็จสมบูรณ์\n📸 รูปภาพถูกเพิ่มเข้าอัลบั้มแล้ว (ทั้งหมด ${locationImageAlbum.length + 1} รูป)`,
+      });
+    } catch (error) {
+      console.error('❌ Location image generation failed:', error);
+      setErrorModal({
+        isOpen: true,
+        title: '⚠️ Image Generation Error',
+        message: `Failed to generate location image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsGeneratingLocationImage(false);
     }
   };
 
@@ -4677,6 +7007,18 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         ...prev,
         [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'loading' },
       }));
+      
+      // Start progress tracking
+      const sceneKey = `${plotPoint.title}-${sceneIndex}`;
+      setSceneGenerationProgress(prev => ({ ...prev, [sceneKey]: 0 }));
+      
+      const progressInterval = setInterval(() => {
+        setSceneGenerationProgress(prev => ({
+          ...prev,
+          [sceneKey]: Math.min((prev[sceneKey] || 0) + Math.random() * 10, 90),
+        }));
+      }, 500);
+      
       try {
         let sceneNumber = sceneNumberMap[plotPoint.title]?.[sceneIndex];
         
@@ -4866,6 +7208,10 @@ const Step5Output: React.FC<Step5OutputProps> = ({
           sceneNumber, // Store the scene number for psychology snapshot lookup
         };
 
+        // Update progress to 95% before saving
+        clearInterval(progressInterval);
+        setSceneGenerationProgress(prev => ({ ...prev, [sceneKey]: 95 }));
+
         setScriptData(prev => {
           const newScenesForPoint = [...(prev.generatedScenes[plotPoint.title] || [])];
           newScenesForPoint[sceneIndex] = sceneWithNumber;
@@ -4876,12 +7222,31 @@ const Step5Output: React.FC<Step5OutputProps> = ({
             characters: updatedCharacters,
           };
         });
+        
+        // Update progress to 100%
+        setSceneGenerationProgress(prev => ({ ...prev, [sceneKey]: 100 }));
+        
         setGenerationStatus(prev => ({
           ...prev,
           [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'done' },
         }));
+        
+        // Clear progress after brief delay
+        setTimeout(() => {
+          setSceneGenerationProgress(prev => {
+            const newPrev = { ...prev };
+            delete newPrev[sceneKey];
+            return newPrev;
+          });
+        }, 1000);
       } catch (e: any) {
         console.error('❌ Error generating scene:', e);
+        clearInterval(progressInterval);
+        setSceneGenerationProgress(prev => {
+          const newPrev = { ...prev };
+          delete newPrev[sceneKey];
+          return newPrev;
+        });
         setGenerationStatus(prev => ({
           ...prev,
           [plotPoint.title]: { ...prev[plotPoint.title], [sceneIndex]: 'error' },
@@ -5095,9 +7460,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
     // Show instructions
     setTimeout(() => {
-      alert(
-        '📄 ไฟล์ HTML ถูกดาวน์โหลดแล้ว!\n\n💡 วิธีแปลงเป็น PDF:\n1. เปิดไฟล์ HTML ในเบราว์เซอร์\n2. กด Ctrl+P (Windows) หรือ Cmd+P (Mac)\n3. เลือก "Save as PDF"\n4. กด Save'
-      );
+      setInfoModal({
+        isOpen: true,
+        title: '📄 ดาวน์โหลดเสร็จสิ้น',
+        message: 'ไฟล์ HTML ถูกดาวน์โหลดแล้ว!\n\n💡 วิธีแปลงเป็น PDF:\n1. เปิดไฟล์ HTML ในเบราว์เซอร์\n2. กด Ctrl+P (Windows) หรือ Cmd+P (Mac)\n3. เลือก "Save as PDF"\n4. กด Save',
+      });
     }, 500);
   };
 
@@ -5346,9 +7713,27 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 
   const getButtonForScene = (point: PlotPoint, sceneIndex: number) => {
     const status = generationStatus[point.title]?.[sceneIndex];
+    const sceneKey = `${point.title}-${sceneIndex}`;
+    const progress = sceneGenerationProgress[sceneKey];
+    
     switch (status) {
       case 'loading':
-        return <LoadingSpinner />;
+        return (
+          <div className="flex flex-col gap-1 min-w-[120px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-cyan-400 font-semibold">Generating...</span>
+              <span className="text-[10px] font-bold text-cyan-400">
+                {Math.round(progress || 0)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${progress || 0}%` }}
+              ></div>
+            </div>
+          </div>
+        );
       case 'done':
         return (
           <button
@@ -5563,7 +7948,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      alert(t('step5.export.finalDraftNote'));
+                      setInfoModal({
+                        isOpen: true,
+                        title: '🎬 Export Info',
+                        message: t('step5.export.finalDraftNote'),
+                      });
                       setIsExportMenuOpen(false);
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-gray-700 text-gray-200 text-sm border-b border-gray-700"
@@ -5736,6 +8125,91 @@ const Step5Output: React.FC<Step5OutputProps> = ({
                             onDelete={() => handleRemoveScene(point.title, sceneIndex)}
                             canDelete={true}
                             scriptData={scriptData}
+                            isRegenerateLocationModalOpen={isRegenerateLocationModalOpen}
+                            setIsRegenerateLocationModalOpen={setIsRegenerateLocationModalOpen}
+                            isRegeneratingAllLocation={isRegeneratingAllLocation}
+                            locationRegenerationProgress={locationRegenerationProgress}
+                            handleRegenerateAllLocationDetails={(mode) =>
+                              handleRegenerateAllLocationDetails(mode, point.title, sceneIndex, sceneData!)
+                            }
+                            locationImageAlbum={locationImageAlbum}
+                            selectedLocationImageId={selectedLocationImageId}
+                            isGeneratingLocationImage={isGeneratingLocationImage}
+                            onSelectLocationImage={(id) => {
+                              setSelectedLocationImageId(id);
+                              
+                              // Optionally save selection to scriptData
+                              setScriptData(prev => {
+                                const scenes = prev.generatedScenes[point.title] || [];
+                                const currentScene = scenes[sceneIndex];
+                                
+                                if (!currentScene) return prev;
+                                
+                                const updatedScenes = [...scenes];
+                                updatedScenes[sceneIndex] = {
+                                  ...currentScene,
+                                  sceneDesign: {
+                                    ...currentScene.sceneDesign,
+                                    selectedLocationImageId: id,
+                                  },
+                                };
+                                
+                                return {
+                                  ...prev,
+                                  generatedScenes: {
+                                    ...prev.generatedScenes,
+                                    [point.title]: updatedScenes,
+                                  },
+                                };
+                              });
+                            }}
+                            onDeleteLocationImage={(id) => {
+                              // Update local state
+                              setLocationImageAlbum(prev => prev.filter(img => img.id !== id));
+                              if (selectedLocationImageId === id) {
+                                const remaining = locationImageAlbum.filter(img => img.id !== id);
+                                setSelectedLocationImageId(remaining[0]?.id || null);
+                              }
+                              
+                              // Save to scriptData
+                              setScriptData(prev => {
+                                const scenes = prev.generatedScenes[point.title] || [];
+                                const currentScene = scenes[sceneIndex];
+                                
+                                if (!currentScene) return prev;
+                                
+                                const updatedAlbum = (currentScene.sceneDesign?.locationImageAlbum || [])
+                                  .filter(img => img.id !== id);
+                                
+                                const updatedScenes = [...scenes];
+                                updatedScenes[sceneIndex] = {
+                                  ...currentScene,
+                                  sceneDesign: {
+                                    ...currentScene.sceneDesign,
+                                    locationImageAlbum: updatedAlbum,
+                                  },
+                                };
+                                
+                                return {
+                                  ...prev,
+                                  generatedScenes: {
+                                    ...prev.generatedScenes,
+                                    [point.title]: updatedScenes,
+                                  },
+                                };
+                              });
+                              
+                              // Save the scene data
+                              if (onRegisterUndo) {
+                                onRegisterUndo();
+                              }
+                            }}
+                            handleGenerateLocationImage={() => handleGenerateLocationImage(
+                              sceneData?.sceneDesign?.locationDetails,
+                              sceneData?.sceneDesign?.location || 'INT. UNKNOWN - DAY',
+                              point.title,
+                              sceneIndex
+                            )}
                           />
 
                           {/* Psychology Timeline for this scene */}
@@ -6741,6 +9215,164 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       )}
 
       {/* Psychology Timeline removed - now in Simulation tab */}
+
+      {/* 🎨 Success Modal */}
+      {successModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full border border-cyan-500/30 animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-500 to-purple-600 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                  <svg
+                    className="h-8 w-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{successModal.title}</h3>
+                  <p className="text-cyan-100 text-sm mt-1">Operation completed successfully</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed whitespace-pre-line">
+                {successModal.message}
+              </p>
+
+              {successModal.details && successModal.details.length > 0 && (
+                <div className="bg-gray-800/50 rounded-xl p-4 mb-6 border border-cyan-500/20">
+                  <div className="grid grid-cols-1 gap-3">
+                    {successModal.details.map((detail, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <span className="text-cyan-400 font-semibold min-w-[120px]">
+                          {detail.label}:
+                        </span>
+                        <span className="text-gray-300">{detail.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  if (successModal.onClose) {
+                    successModal.onClose();
+                  }
+                  setSuccessModal({ isOpen: false, title: '', message: '' });
+                }}
+                className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/50 hover:scale-105"
+              >
+                {t('common.ok') || 'ตกลง'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎨 Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full border border-red-500/30 animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-orange-500 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                  <svg
+                    className="h-8 w-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{errorModal.title}</h3>
+                  <p className="text-red-100 text-sm mt-1">Please check and try again</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed whitespace-pre-line">
+                {errorModal.message}
+              </p>
+
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-red-500/50 hover:scale-105"
+              >
+                {t('common.close') || 'ปิด'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎨 Info Modal */}
+      {infoModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full border border-blue-500/30 animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                  <svg
+                    className="h-8 w-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{infoModal.title}</h3>
+                  <p className="text-blue-100 text-sm mt-1">Information</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed whitespace-pre-line">
+                {infoModal.message}
+              </p>
+
+              <button
+                onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
+              >
+                {t('common.ok') || 'ตกลง'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -6748,3 +9380,4 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 export default Step5Output;
 
 // Force refresh 2
+

@@ -703,6 +703,18 @@ export function buildVideoPrompt(
   const timing = buildTimingContext(shotData);
   const environmental = buildEnvironmentalMotionContext(currentScene);
 
+  // 📍 Extract Location Details if available
+  const locationDetails = (currentScene.sceneDesign as any)?.locationDetails;
+  const locationEnvironmentContext = locationDetails
+    ? `\n- Environment: ${locationDetails.environment?.description || ''}${locationDetails.environment?.architecture ? ` | Architecture: ${locationDetails.environment.architecture}` : ''}${locationDetails.environment?.dimensions ? ` | Space: ${locationDetails.environment.dimensions}` : ''}`
+    : '';
+  const locationAtmosphereContext = locationDetails?.atmosphere
+    ? `\n- Atmosphere: ${locationDetails.atmosphere.weather || ''}${locationDetails.atmosphere.temperature ? ` | ${locationDetails.atmosphere.temperature}` : ''}${locationDetails.atmosphere.windSpeed ? ` | Wind: ${locationDetails.atmosphere.windSpeed}` : ''}`
+    : '';
+  const locationSensoryContext = locationDetails?.sensory
+    ? `\n- Sensory Details: ${locationDetails.sensory.lighting ? `Light Quality: ${locationDetails.sensory.lighting}` : ''}${locationDetails.sensory.colors ? ` | Color Palette: ${locationDetails.sensory.colors}` : ''}${locationDetails.sensory.sounds ? ` | Ambient Sounds: ${locationDetails.sensory.sounds}` : ''}`
+    : '';
+
   const compactBase = trimBasePrompt(basePrompt);
 
   // 🎬 IMPORTANT: Keep the prompt structured and prioritized.
@@ -723,7 +735,7 @@ ${leadHairSignature ? `- Lead Identity Signature (MUST MATCH): ${leadHairSignatu
 ${castWithoutLead.length > 0 ? `- Also present (DO NOT OMIT): ${castWithoutLead.join(', ')} — must be visible in-frame; keep identity consistent.` : ''}
 
 SCENE DETAILS:
-- Location: ${sceneLocation || 'N/A'}
+- Location: ${sceneLocation || 'N/A'}${locationEnvironmentContext}${locationAtmosphereContext}${locationSensoryContext}
 - Mood/Tone: ${moodTone || 'N/A'}
 ${contextualContinuityLine(currentScene, resolvedShotRow, shotData) ? `- Continuity: ${contextualContinuityLine(currentScene, resolvedShotRow, shotData)}` : ''}
 ${safeText(resolvedShotRow?.lightingDesign) ? `- Lighting: ${safeText(resolvedShotRow?.lightingDesign)}` : ''}

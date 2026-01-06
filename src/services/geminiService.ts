@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import type { ScriptData, PlotPoint, Character, GeneratedScene } from '../types';
+import type { ScriptData, PlotPoint, Character, GeneratedScene, LocationDetails } from '../types';
 import { EMPTY_CHARACTER, DIALECT_PRESETS, ACCENT_PATTERNS } from '../constants';
 import { logger } from '../utils/logger';
 import {
@@ -163,7 +163,7 @@ const requireGeminiApiKey = (featureName: string) => {
   }
 };
 
-const getAI = () => {
+export const getAI = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     logger.warn(
@@ -1205,7 +1205,7 @@ async function generateImageWithGemini20(
 // --- COMFYUI-FIRST CASCADE ---
 // New Priority: ComfyUI MANDATORY for Face ID (best quality)
 // Fallback: Gemini → Pollinations (only for non-Face ID)
-async function generateImageWithCascade(
+export async function generateImageWithCascade(
   prompt: string,
   options: {
     useLora?: boolean;
@@ -2149,7 +2149,7 @@ async function generateImageWithCascade(
 
 // --- HELPER: ROBUST JSON EXTRACTION ---
 // Finds the first valid JSON object or array in text, ignoring conversational filler.
-function extractJsonFromResponse(text: string): string {
+export function extractJsonFromResponse(text: string): string {
   let clean = text.trim();
 
   // Remove Markdown code blocks first
@@ -3169,6 +3169,175 @@ export async function generateFullScriptOutline(
   }
 }
 
+/**
+ * 📍 Generate comprehensive Location Details for environment generation
+ * Creates rich atmospheric and environmental data for better AI image/video generation
+ */
+export async function generateLocationDetails(
+  location: string, // e.g., "INT. OFFICE - DAY"
+  sceneContext: {
+    sceneName: string;
+    moodTone: string;
+    situations: string;
+  },
+  language: string = 'Thai'
+): Promise<LocationDetails> {
+  try {
+    const languageInstruction = language === 'Thai'
+      ? 'Output all descriptions in THAI language (ภาษาไทยเท่านั้น)'
+      : 'Output all descriptions in English';
+
+    // Parse location string
+    const locMatch = location.match(/^(INT\.|EXT\.)\s*(.+?)\s*-\s*(DAY|NIGHT|DAWN|DUSK|GOLDEN HOUR|กลางวัน|กลางคืน|เช้า|เย็น)/i);
+    const locType = locMatch ? locMatch[1] : 'INT.';
+    const locName = locMatch ? locMatch[2].trim() : location;
+    const timeOfDay = locMatch ? locMatch[3] : 'DAY';
+
+    const prompt = `
+You are a professional location scout and production designer. Generate comprehensive location details for:
+
+LOCATION: ${location}
+SCENE: ${sceneContext.sceneName}
+MOOD: ${sceneContext.moodTone}
+SITUATION: ${sceneContext.situations}
+
+${languageInstruction}
+
+Create a detailed JSON with this EXACT structure (no additional fields):
+{
+  "locationType": "${locType}",
+  "locationName": "${locName}",
+  "timeOfDay": "${timeOfDay}",
+  "environment": {
+    "description": "Comprehensive 3-4 sentence description of the location's physical appearance, layout, and overall feel",
+    "architecture": "Architectural style, building materials, design elements (if applicable)",
+    "landscaping": "Natural or artificial environmental elements, plants, terrain features",
+    "dimensions": "Approximate size and scale (e.g., '20x30 meters, 4 meter ceiling height')",
+    "capacity": "How many people the space can accommodate"
+  },
+  "atmosphere": {
+    "weather": "Current weather condition (sunny, cloudy, rainy, etc.)",
+    "temperature": "Temperature with unit (e.g., '28°C warm and humid', 'Cold 15°C')",
+    "humidity": "Humidity level description (dry/moderate/humid/very humid with details)",
+    "windSpeed": "Wind condition (calm/breezy/windy/stormy)",
+    "visibility": "Visibility condition (clear/hazy/foggy)"
+  },
+  "sensory": {
+    "smell": "Dominant scents and aromas in the location (2-3 specific smells)",
+    "sounds": "Ambient sounds and noises (3-4 specific sounds)",
+    "lighting": "Quality and character of light (natural/artificial, intensity, color temperature)",
+    "colors": "Dominant color palette and visual tones (4-5 main colors)"
+  },
+  "production": {
+    "setDressing": "Key furniture, decorations, and set elements (5-7 specific items)",
+    "props": "Important props that should be present (4-6 items)",
+    "practicalLights": "Light sources visible in scene (lamps, windows, fixtures)",
+    "specialRequirements": "Any special production needs or considerations"
+  },
+  "references": {
+    "realWorldLocation": "Real-world location or place that this resembles",
+    "culturalContext": "Cultural or historical context relevant to this location"
+  }
+}
+
+IMPORTANT:
+- Be specific and detailed, avoid generic descriptions
+- Consider the scene's mood when describing atmosphere
+- Think about what would make this location feel authentic and lived-in
+- Include sensory details that would help visualize the space
+- ${language === 'Thai' ? 'ใช้ภาษาไทยในทุก description' : 'Use English for all descriptions'}
+`;
+
+    requireGeminiApiKey('generateLocationDetails');
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
+    });
+
+    const text = extractJsonFromResponse(response.text || '{}');
+    const locationDetails = JSON.parse(text);
+    console.log('📍 Generated Location Details:', locationDetails);
+    
+    return locationDetails;
+  } catch (error) {
+    console.error('Error generating location details:', error);
+    // Return minimal fallback data
+    return {
+      locationType: location.startsWith('INT') ? 'INT.' : 'EXT.',
+      locationName: location,
+      timeOfDay: 'DAY',
+      environment: {
+        description: language === 'Thai' ? 'สถานที่ทั่วไป' : 'General location',
+      },
+      atmosphere: {
+        weather: language === 'Thai' ? 'ปกติ' : 'Normal',
+        temperature: language === 'Thai' ? '25°C สบาย' : '25°C Comfortable',
+        humidity: language === 'Thai' ? 'ปานกลาง' : 'Moderate',
+      },
+      sensory: {},
+      production: {},
+      references: {},
+    };
+  }
+}
+
+/**
+ * Format Location Details into a prompt-friendly string
+ */
+function formatLocationDetailsForPrompt(locationDetails: LocationDetails | null | undefined): string {
+  if (!locationDetails) return '';
+
+  const sections: string[] = [];
+
+  // Environment
+  if (locationDetails.environment?.description) {
+    sections.push(`📍 ENVIRONMENT: ${locationDetails.environment.description}`);
+    if (locationDetails.environment.architecture) {
+      sections.push(`   Architecture: ${locationDetails.environment.architecture}`);
+    }
+    if (locationDetails.environment.dimensions) {
+      sections.push(`   Dimensions: ${locationDetails.environment.dimensions}`);
+    }
+  }
+
+  // Atmosphere
+  if (locationDetails.atmosphere) {
+    const atmo: string[] = [];
+    if (locationDetails.atmosphere.weather) atmo.push(`Weather: ${locationDetails.atmosphere.weather}`);
+    if (locationDetails.atmosphere.temperature) atmo.push(`Temp: ${locationDetails.atmosphere.temperature}`);
+    // Note: lighting is in sensory, not atmosphere
+    if (atmo.length > 0) {
+      sections.push(`🌤️ ATMOSPHERE: ${atmo.join(', ')}`);
+    }
+  }
+
+  // Sensory Details
+  if (locationDetails.sensory) {
+    const sensory: string[] = [];
+    if (locationDetails.sensory.smell) sensory.push(`Smell: ${locationDetails.sensory.smell}`);
+    if (locationDetails.sensory.sounds) sensory.push(`Sounds: ${locationDetails.sensory.sounds}`);
+    if (locationDetails.sensory.lighting) sensory.push(`Light: ${locationDetails.sensory.lighting}`);
+    if (locationDetails.sensory.colors) sensory.push(`Colors: ${locationDetails.sensory.colors}`);
+    if (sensory.length > 0) {
+      sections.push(`👃 SENSORY: ${sensory.join(' | ')}`);
+    }
+  }
+
+  // Production Details
+  if (locationDetails.production) {
+    const prod: string[] = [];
+    if (locationDetails.production.setDressing) prod.push(`Set: ${locationDetails.production.setDressing}`);
+    if (locationDetails.production.props) prod.push(`Props: ${locationDetails.production.props}`);
+    if (locationDetails.production.practicalLights) prod.push(`Lights: ${locationDetails.production.practicalLights}`);
+    if (prod.length > 0) {
+      sections.push(`🎬 PRODUCTION: ${prod.join(' | ')}`);
+    }
+  }
+
+  return sections.length > 0 ? `\n\n=== LOCATION DETAILS (for environment authenticity) ===\n${sections.join('\n')}\n` : '';
+}
+
 export async function generateScene(
   scriptData: ScriptData,
   plotPoint: PlotPoint,
@@ -3313,6 +3482,18 @@ IMPORTANT: Use these psychological profiles to:
 4. Portray realistic emotional responses based on their dominant emotions
   `;
 
+  // 📍 NOTE: Location Details will be generated AFTER scene creation,
+  // so we include a placeholder here for Prop List and Breakdown guidance
+  const locationGuidance = `
+=== LOCATION PRODUCTION GUIDELINES ===
+When generating Prop List and Breakdown:
+- Consider the physical environment and what props would naturally exist there
+- Think about set dressing appropriate for the location type
+- Include atmosphere elements (weather, lighting) in production notes
+- Account for practical lights and environmental fixtures
+- List props that support the sensory and visual atmosphere
+  `;
+
   const prompt = `
     Generate Scene #${sceneNumber} (${_sceneIndex + 1}/${_totalScenesForPoint}) for plot point: "${plotPoint.title}".
     Context: ${plotPoint.description}
@@ -3324,6 +3505,8 @@ IMPORTANT: Use these psychological profiles to:
     ${previousWardrobeInfo || 'N/A'}
 
     ${characterPsychology}
+
+    ${locationGuidance}
 
     Return JSON with the following structure:
     {
@@ -3508,6 +3691,30 @@ IMPORTANT: Use these psychological profiles to:
         })),
       },
     };
+
+    // 📍 AUTO-GENERATE Location Details for environment generation
+    try {
+      console.log('📍 Generating Location Details...');
+      const situationsText = processedScene.sceneDesign.situations
+        .map((s: any) => s.description)
+        .join(' ');
+      
+      const locationDetails = await generateLocationDetails(
+        processedScene.sceneDesign.location,
+        {
+          sceneName: processedScene.sceneDesign.sceneName,
+          moodTone: processedScene.sceneDesign.moodTone,
+          situations: situationsText,
+        },
+        scriptData.language
+      );
+
+      processedScene.sceneDesign.locationDetails = locationDetails;
+      console.log('✅ Location Details added to scene');
+    } catch (locError) {
+      console.error('⚠️ Failed to generate location details:', locError);
+      // Continue without location details if generation fails
+    }
 
     // ✅ Record usage after successful generation
     if (userId) {
@@ -5617,6 +5824,10 @@ export async function generateShotListForScene(
           .join('\n\n')
       : '';
 
+    // 📍 Extract Location Details if available
+    const locationDetails = (scene.sceneDesign as any)?.locationDetails;
+    const locationContext = formatLocationDetailsForPrompt(locationDetails);
+
     const prompt = `You are a professional cinematographer and script supervisor.
 
 Task: Generate a COMPLETE Shot List (5-8 shots) for the scene below.
@@ -5635,6 +5846,7 @@ ${continuityAnchors || 'N/A'}
 
 Previous scene wardrobe canon (use if this scene is continuous with prior scene(s)):
 ${previousWardrobeCanon || 'N/A'}
+${locationContext}
 
 CRITICAL REQUIREMENTS:
 - Return ONLY valid JSON (no markdown).
@@ -5647,6 +5859,8 @@ CRITICAL REQUIREMENTS:
   "Style Concept", "Main Outfit", "Shoe", "Color Palette", "Accessories", "Condition/Texture"
 - Keep costumes consistent across the scene unless a change is explicitly required by the action.
 - If the scene is continuous with previous scene(s), COPY the wardrobe canon EXACTLY (especially costumeFashion keys/values) unless the story explicitly requires a change.
+- USE Location Details to enhance shot descriptions with accurate environmental context (atmosphere, lighting, colors, sensory details).
+- Consider the physical space dimensions when planning camera movements and shot sizes.
 
 Example shot object:
 {
@@ -5741,7 +5955,8 @@ export async function regenerateShotListItem(
     previousScenes?: Array<
       Pick<GeneratedScene, 'sceneNumber' | 'sceneDesign' | 'shotList' | 'characterOutfits'>
     >;
-  }
+  },
+  mode?: 'fresh' | 'refine' | 'edited'
 ): Promise<GeneratedScene['shotList'][number]> {
   try {
     requireGeminiApiKey('regenerateShotListItem');
@@ -5808,9 +6023,41 @@ export async function regenerateShotListItem(
           .join('\n\n')
       : '';
 
+    // Determine instructions based on mode
+    const regenerationMode = mode || 'refine';
+    let modeInstructions = '';
+    
+    if (regenerationMode === 'fresh') {
+      modeInstructions = `
+🔄 FRESH START MODE:
+- Create a completely NEW shot from scratch
+- Use ONLY basic scene information (Scene Details, characters, location)
+- DO NOT reference or consider the existing shot data
+- Focus on creating a fresh, innovative approach
+`;
+    } else if (regenerationMode === 'refine') {
+      modeInstructions = `
+✨ REFINE EXISTING MODE:
+- Improve the CURRENT shot while keeping its core structure
+- Analyze and enhance the existing shot details
+- Add missing details, improve descriptions, ensure continuity
+- Keep the same general approach but make it better
+`;
+    } else if (regenerationMode === 'edited') {
+      modeInstructions = `
+📝 USE EDITED DATA MODE:
+- Take into account ANY manual edits made to the shot
+- Build upon the edited data provided in "Current shot"
+- Create new content that aligns with and complements the edits
+- Ensure consistency between edited fields and newly generated ones
+`;
+    }
+
     const prompt = `You are a professional cinematographer and script supervisor.
 
 Task: Regenerate ONLY one shot list row for the scene below.
+
+${modeInstructions}
 
 Language: ${lang}
 Scene: ${scene.sceneNumber}${sceneName ? ` — ${sceneName}` : ''}
@@ -5917,13 +6164,27 @@ export async function generateMoviePoster(
       console.log('\n🎭 ✅ Protagonist found:', protagonist.name);
       console.log('   Role:', protagonist.role);
       
-      // Get face image
+      // Get face image - validate Base64 format
       if (protagonist.faceReferenceImage) {
-        protagonistFaceImage = protagonist.faceReferenceImage;
-        console.log('   📸 ✅ Using faceReferenceImage:', protagonist.faceReferenceImage.substring(0, 80) + '...');
+        const imageData = protagonist.faceReferenceImage;
+        // Validate that it's actually a Base64 image, not text
+        if (imageData.startsWith('data:image/') || imageData.match(/^[A-Za-z0-9+/=]+$/)) {
+          protagonistFaceImage = imageData;
+          console.log('   📸 ✅ Using faceReferenceImage:', imageData.substring(0, 80) + '...');
+        } else {
+          console.warn('   ⚠️ faceReferenceImage is not Base64 data (found text):', imageData.substring(0, 100));
+          console.log('   📸 ❌ Skipping invalid image data');
+        }
       } else if (protagonist.image) {
-        protagonistFaceImage = protagonist.image;
-        console.log('   📸 ✅ Using image:', protagonist.image.substring(0, 80) + '...');
+        const imageData = protagonist.image;
+        // Validate that it's actually a Base64 image, not text
+        if (imageData.startsWith('data:image/') || imageData.match(/^[A-Za-z0-9+/=]+$/)) {
+          protagonistFaceImage = imageData;
+          console.log('   📸 ✅ Using image:', imageData.substring(0, 80) + '...');
+        } else {
+          console.warn('   ⚠️ image is not Base64 data (found text):', imageData.substring(0, 100));
+          console.log('   📸 ❌ Skipping invalid image data');
+        }
       } else {
         console.log('   📸 ❌ NO FACE IMAGE - will use text-only prompt');
       }
