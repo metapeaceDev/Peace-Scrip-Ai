@@ -1041,6 +1041,15 @@ async function generateImageWithGemini25(
 
   // IMPORTANT: Add reference image FIRST for better Face ID matching
   if (referenceImageBase64) {
+    // ✅ VALIDATION: Ensure this is actually a base64 image, not text
+    const isValidBase64 = referenceImageBase64.startsWith('data:image/');
+    
+    if (!isValidBase64) {
+      console.error('❌ Invalid reference image format - not a base64 image');
+      console.error(`   Received: ${referenceImageBase64.substring(0, 100)}...`);
+      throw new Error('Invalid character reference image: Expected base64 image but received text description. Please re-upload character image.');
+    }
+    
     console.log('📸 Gemini 2.5: Adding reference image for Face ID matching');
     const imageSizeKB = Math.round((referenceImageBase64.length * 0.75) / 1024);
     console.log(`📏 Reference image size: ${imageSizeKB} KB`);
@@ -4483,8 +4492,19 @@ export async function generateStoryboardImage(
       // Use first character with image as primary reference
       const charWithImage = characters.find(c => c.image);
       if (charWithImage?.image) {
-        primaryCharacterRef = charWithImage.image;
-        console.log(`🎭 Using Face ID for character: ${charWithImage.name}`);
+        // ✅ VALIDATION: Check if this is a valid base64 image or URL
+        const img = charWithImage.image;
+        const isBase64 = img.startsWith('data:image/');
+        const isURL = img.startsWith('http://') || img.startsWith('https://');
+        const isValidImage = isBase64 || isURL;
+        
+        if (!isValidImage) {
+          console.warn(`⚠️ Invalid character image for ${charWithImage.name}: Not a base64 or URL (${img.substring(0, 50)}...)`);
+          console.warn('⏭️ Skipping Face ID - will generate without reference image');
+        } else {
+          primaryCharacterRef = charWithImage.image;
+          console.log(`🎭 Using Face ID for character: ${charWithImage.name}`);
+        }
       }
     }
 

@@ -548,6 +548,17 @@ const SceneDisplay: React.FC<{
   const [storyboardStyle, setStoryboardStyle] = useState<string>(CHARACTER_IMAGE_STYLES[0]);
   const [storyboardModel, setStoryboardModel] = useState<string>('auto'); // 🆕 Model selection for storyboard
   const [preferredVideoModel, setPreferredVideoModel] = useState<string>('auto');
+  
+  // 🆕 ADD ERROR MODAL STATE: For showing generation errors
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
   const [comfyBackendStatus, setComfyBackendStatus] = useState<ComfyBackendStatus | null>(null);
   const [progress, setProgress] = useState(0);
   const progressDisplayedRef = useRef(0);
@@ -1448,12 +1459,32 @@ ${
       // Immediate Save
       if (!isEditing) onSave(updatedScene);
     } catch (error) {
-      setErrorModal({
-        isOpen: true,
-        title: t('step5.error.generationFailed') || 'Generation Failed',
-        message: t('step5.error.imageFailed') || 'Failed to generate image. Please try again.',
-      });
       console.error(error);
+      
+      // 🔍 CHECK FOR INVALID CHARACTER IMAGE ERROR
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const isInvalidImageError = errorMsg.includes('Invalid character reference image') || 
+                                   errorMsg.includes('Expected base64 image but received text');
+      
+      if (isInvalidImageError) {
+        setErrorModal({
+          isOpen: true,
+          title: '⚠️ Invalid Character Image',
+          message: 'The character profile image is invalid (text description instead of actual image).\n\n' +
+                   'Please:\n' +
+                   '1. Go to Character Management\n' +
+                   '2. Re-upload the character image\n' +
+                   '3. Save the character profile\n\n' +
+                   'Or generate without Face ID by selecting a different model.',
+        });
+      } else {
+        setErrorModal({
+          isOpen: true,
+          title: '❌ Generation Failed',
+          message: 'Failed to generate image. Please try again.\n\n' +
+                   'Error: ' + (errorMsg.substring(0, 200) || 'Unknown error'),
+        });
+      }
     } finally {
       setGeneratingShotId(null);
       setProgress(0);
@@ -6030,6 +6061,28 @@ ${mode === 'fresh' ? `
           </div>
         )}
       </div>
+      
+      {/* 🆕 ERROR MODAL: Display generation errors */}
+      {errorModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+        >
+          <div
+            className="bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-red-400 mb-3">{errorModal.title}</h3>
+            <p className="text-gray-300 mb-4 whitespace-pre-line">{errorModal.message}</p>
+            <button
+              onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white font-semibold"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
