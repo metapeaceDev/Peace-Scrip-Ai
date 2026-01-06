@@ -34,6 +34,13 @@ const Studio: React.FC<StudioProps> = ({
   const [isAdmin, setIsAdmin] = useState(false); // Admin state
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 🎨 Modal State
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+
   // Check admin status
   useEffect(() => {
     checkIsAdmin().then(setIsAdmin);
@@ -41,7 +48,11 @@ const Studio: React.FC<StudioProps> = ({
 
   const handleCreate = () => {
     if (!newTitle.trim()) {
-      alert('Please enter a project title');
+      setErrorModal({
+        isOpen: true,
+        title: 'Missing Information',
+        message: 'Please enter a project title',
+      });
       return;
     }
     onCreateProject(newTitle, newType);
@@ -374,6 +385,52 @@ const Studio: React.FC<StudioProps> = ({
       )}
 
       {/* Real-time Notification Popup */}
+
+      {/* 🎨 Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full border border-red-500/30 animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-orange-500 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                  <svg
+                    className="h-8 w-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{errorModal.title}</h3>
+                  <p className="text-red-100 text-sm mt-1">Please check and try again</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed whitespace-pre-line">
+                {errorModal.message}
+              </p>
+
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-red-500/50 hover:scale-105"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

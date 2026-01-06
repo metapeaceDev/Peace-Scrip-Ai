@@ -63,6 +63,7 @@ const InputFieldWithRegenerate: React.FC<{
   onFocus?: () => void;
   onRegenerate: () => void;
   isGenerating?: boolean;
+  progress?: number;
   showRegenerate?: boolean;
 }> = ({
   label,
@@ -74,6 +75,7 @@ const InputFieldWithRegenerate: React.FC<{
   onFocus,
   onRegenerate,
   isGenerating = false,
+  progress = 0,
   showRegenerate = true,
 }) => (
   <div>
@@ -81,24 +83,39 @@ const InputFieldWithRegenerate: React.FC<{
       <label htmlFor={name} className="block text-sm font-medium text-gray-300">
         {label}
       </label>
-      {showRegenerate && (
-        <button
-          onClick={onRegenerate}
-          disabled={isGenerating}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Regenerate this field"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>Regenerate</span>
-        </button>
-      )}
+      <div className="flex items-center gap-2">
+        {isGenerating && progress > 0 && (
+          <div className="flex items-center gap-1.5 min-w-[90px]">
+            <div className="w-16 bg-gray-700/50 rounded-full h-1 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-semibold text-cyan-400 tabular-nums min-w-[28px]">
+              {Math.round(progress)}%
+            </span>
+          </div>
+        )}
+        {showRegenerate && (
+          <button
+            onClick={onRegenerate}
+            disabled={isGenerating}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Regenerate this field"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>Regen</span>
+          </button>
+        )}
+      </div>
     </div>
     {isTextArea ? (
       <textarea
@@ -108,7 +125,7 @@ const InputFieldWithRegenerate: React.FC<{
         onChange={onChange}
         onFocus={onFocus}
         rows={2}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        className="w-full bg-gray-700/70 border border-gray-600 rounded-lg py-2.5 px-3.5 text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-gray-800/30 hover:scrollbar-thumb-cyan-500/50"
         placeholder={placeholder}
       ></textarea>
     ) : (
@@ -119,7 +136,7 @@ const InputFieldWithRegenerate: React.FC<{
         value={value}
         onChange={onChange}
         onFocus={onFocus}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-cyan-500 focus:border-cyan-500"
+        className="w-full bg-gray-700/70 border border-gray-600 rounded-lg py-2.5 px-3.5 text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all"
         placeholder={placeholder}
       />
     )}
@@ -135,6 +152,8 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState(0);
+  const [fieldProgress, setFieldProgress] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [regenerateModal, setRegenerateModal] = useState<{
     isOpen: boolean;
@@ -349,7 +368,34 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
 
     // Add field to generating set
     setGeneratingFields(prev => new Set(prev).add(fieldName));
-    if (fieldName === 'all') setIsGenerating(true);
+    if (fieldName === 'all') {
+      setIsGenerating(true);
+      setGenerateProgress(0);
+      
+      // Start progress simulation
+      const progressInterval = setInterval(() => {
+        setGenerateProgress(prev => {
+          if (prev >= 90) return 90;
+          return prev + Math.random() * 10;
+        });
+      }, 500);
+      
+      // Store interval ID for cleanup
+      (window as any)._step2ProgressInterval = progressInterval;
+    } else {
+      // Individual field regeneration - start progress
+      setFieldProgress(prev => ({ ...prev, [fieldName]: 0 }));
+      
+      const fieldProgressInterval = setInterval(() => {
+        setFieldProgress(prev => ({
+          ...prev,
+          [fieldName]: Math.min((prev[fieldName] || 0) + Math.random() * 10, 90),
+        }));
+      }, 500);
+      
+      // Store interval ID for cleanup
+      (window as any)[`_field_${fieldName}_interval`] = fieldProgressInterval;
+    }
     setError(null);
 
     try {
@@ -411,6 +457,17 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
           : (fieldName as 'bigIdea' | 'premise' | 'theme' | 'logLine' | 'synopsis' | 'timeline')
       );
 
+      // Clear progress interval and update to 95%
+      if (fieldName === 'all') {
+        const interval = (window as any)._step2ProgressInterval;
+        if (interval) clearInterval(interval);
+        setGenerateProgress(95);
+      } else {
+        const fieldInterval = (window as any)[`_field_${fieldName}_interval`];
+        if (fieldInterval) clearInterval(fieldInterval);
+        setFieldProgress(prev => ({ ...prev, [fieldName]: 95 }));
+      }
+
       // Update only the requested field(s)
       if (fieldName === 'all') {
         updateScriptData({
@@ -428,6 +485,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             environment: result.timeline?.environment || scriptData.timeline.environment,
           },
         });
+        setGenerateProgress(100);
       } else if (fieldName === 'timeline') {
         updateScriptData({
           timeline: {
@@ -439,10 +497,12 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             environment: result.timeline?.environment || scriptData.timeline.environment,
           },
         });
+        setFieldProgress(prev => ({ ...prev, [fieldName]: 100 }));
       } else {
         updateScriptData({
           [fieldName]: (result as any)[fieldName] || (scriptData as any)[fieldName],
         });
+        setFieldProgress(prev => ({ ...prev, [fieldName]: 100 }));
       }
 
       setError(null);
@@ -455,7 +515,26 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
         newSet.delete(fieldName);
         return newSet;
       });
-      if (fieldName === 'all') setIsGenerating(false);
+      if (fieldName === 'all') {
+        // Clean up interval
+        const interval = (window as any)._step2ProgressInterval;
+        if (interval) clearInterval(interval);
+        setIsGenerating(false);
+        setGenerateProgress(0);
+      } else {
+        // Clean up field interval
+        const fieldInterval = (window as any)[`_field_${fieldName}_interval`];
+        if (fieldInterval) clearInterval(fieldInterval);
+        
+        // Clear progress after brief delay
+        setTimeout(() => {
+          setFieldProgress(prev => {
+            const newPrev = { ...prev };
+            delete newPrev[fieldName];
+            return newPrev;
+          });
+        }, 1000);
+      }
     }
   };
 
@@ -536,37 +615,50 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
       )}
 
       {isGenerating && (
-        <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500 rounded-lg">
-          <div className="flex items-start gap-3">
-            <svg
-              className="animate-spin h-5 w-5 text-purple-400 mt-0.5"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
+        <div className="mb-6 bg-gray-800/50 border border-cyan-500/30 rounded-lg p-4 animate-pulse">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              📝 กำลังสร้างขอบเขตเรื่อง...
+            </span>
+            <span className="text-sm font-bold text-cyan-400">
+              {Math.round(generateProgress)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${generateProgress}%` }}
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <div className="text-sm text-purple-300">
-              <p className="font-bold mb-1">{t('step2.aiAnalyzing')}</p>
-              <p className="text-xs text-purple-400">
-                • {t('step2.aiDetails.analyzingGenre')} {scriptData.mainGenre}
-                <br />• {t('step2.aiDetails.analyzingType')} {scriptData.projectType}
-                <br />• {t('step2.aiDetails.creating')}
-              </p>
+              {generateProgress > 10 && (
+                <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                  {Math.round(generateProgress)}%
+                </span>
+              )}
             </div>
           </div>
+          <p className="text-xs text-gray-400 mt-2">
+            กำลังวิเคราะห์แนวเรื่อง ธีม และสร้างโครงเรื่องพื้นฐาน
+          </p>
         </div>
       )}
 
@@ -739,6 +831,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             onFocus={handleFocus}
             onRegenerate={() => handleRegenerateField('bigIdea', 'Big Idea')}
             isGenerating={generatingFields.has('bigIdea')}
+            progress={fieldProgress['bigIdea'] || 0}
           />
 
           <InputFieldWithRegenerate
@@ -751,6 +844,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             onFocus={handleFocus}
             onRegenerate={() => handleRegenerateField('premise', 'Premise')}
             isGenerating={generatingFields.has('premise')}
+            progress={fieldProgress['premise'] || 0}
           />
 
           {/* ⭐ THEME - MOST IMPORTANT (Minimal Design) */}
@@ -771,7 +865,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
                 <button
                   onClick={() => handleRegenerateField('theme', 'Theme')}
                   disabled={generatingFields.has('theme')}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 rounded border border-amber-500/30 hover:border-amber-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-md border border-amber-500/20 hover:border-amber-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Regenerate Theme"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -782,9 +876,22 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
-                  <span>Regenerate</span>
+                  <span>Regen</span>
                 </button>
               </div>
+              {generatingFields.has('theme') && fieldProgress['theme'] > 0 && (
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex-1 bg-gray-700/50 rounded-full h-1 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${fieldProgress['theme']}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-semibold text-amber-400 tabular-nums min-w-[32px]">
+                    {Math.round(fieldProgress['theme'])}%
+                  </span>
+                </div>
+              )}
               <textarea
                 id="theme"
                 name="theme"
@@ -792,12 +899,9 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
                 onChange={handleChange}
                 onFocus={handleFocus}
                 rows={3}
-                className="w-full bg-gray-700 border-2 border-amber-500/40 focus:border-amber-500 rounded-md py-3 px-4 text-white focus:ring-2 focus:ring-amber-500/50 placeholder-gray-500"
+                className="w-full bg-gray-700/70 border-2 border-amber-500/40 focus:border-amber-500 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-amber-500/50 placeholder-gray-500 transition-all scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-gray-800/30 hover:scrollbar-thumb-amber-500/50"
                 placeholder={t('step2.fields.themePlaceholder')}
               ></textarea>
-              <p className="mt-1.5 text-xs text-amber-400/70">
-                💡 ความจริงสากลที่ตัวละครและผู้ชมจะได้เรียนรู้ไปพร้อมกัน
-              </p>
             </div>
           </div>
 
@@ -811,6 +915,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             onFocus={handleFocus}
             onRegenerate={() => handleRegenerateField('logLine', 'Log Line')}
             isGenerating={generatingFields.has('logLine')}
+            progress={fieldProgress['logLine'] || 0}
             showRegenerate={true}
           />
         </div>
@@ -835,22 +940,37 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             </svg>
             {t('step2.fields.timeline')}
           </h3>
-          <button
-            onClick={() => handleRegenerateField('timeline', 'Timeline')}
-            disabled={generatingFields.has('timeline')}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Regenerate Timeline"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span>Regenerate</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {generatingFields.has('timeline') && fieldProgress['timeline'] > 0 && (
+              <div className="flex items-center gap-1.5 min-w-[90px]">
+                <div className="w-16 bg-gray-700/50 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${fieldProgress['timeline']}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-semibold text-cyan-400 tabular-nums min-w-[28px]">
+                  {Math.round(fieldProgress['timeline'])}%
+                </span>
+              </div>
+            )}
+            <button
+              onClick={() => handleRegenerateField('timeline', 'Timeline')}
+              disabled={generatingFields.has('timeline')}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Regenerate Timeline"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>Regenerate</span>
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField
@@ -899,7 +1019,7 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
       </div>
 
       {/* 📖 Synopsis Section - Beautiful Reading Format */}
-      <div className="mb-6 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-lg">
+      <div className="mb-6 p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-lg shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-200 flex items-center gap-2">
             <svg
@@ -917,118 +1037,130 @@ const Step2StoryScope: React.FC<Step2StoryScopeProps> = ({
             </svg>
             Synopsis
           </h3>
-          <button
-            onClick={() => handleRegenerateField('synopsis', 'Synopsis')}
-            disabled={generatingFields.has('synopsis')}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded border border-cyan-500/30 hover:border-cyan-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Regenerate Synopsis"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span>Regenerate</span>
-          </button>
-        </div>
-
-        <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-5">
-          {scriptData.synopsis ? (
-            <div className="prose prose-invert max-w-none space-y-4">
-              {/* Parse and display synopsis with 3-Act structure */}
-              {(() => {
-                // const acts = scriptData.synopsis.split(/ACT [123]/i);
-                const hasActStructure = scriptData.synopsis.match(/ACT [123]/i);
-
-                if (hasActStructure) {
-                  // Display with 3-Act structure
-                  const actMatches = scriptData.synopsis.matchAll(
-                    /ACT ([123])\s*\(([^)]+)\):\s*([^A]*?)(?=ACT [123]|$)/gi
-                  );
-                  const parsedActs = Array.from(actMatches);
-
-                  if (parsedActs.length > 0) {
-                    return parsedActs.map((match, index) => {
-                      const actNumber = match[1];
-                      const actName = match[2].trim();
-                      const actContent = match[3].trim();
-
-                      const actColors = [
-                        {
-                          bg: 'bg-cyan-900/20',
-                          border: 'border-cyan-500/30',
-                          text: 'text-cyan-400',
-                          icon: '🎬',
-                        },
-                        {
-                          bg: 'bg-purple-900/20',
-                          border: 'border-purple-500/30',
-                          text: 'text-purple-400',
-                          icon: '⚡',
-                        },
-                        {
-                          bg: 'bg-green-900/20',
-                          border: 'border-green-500/30',
-                          text: 'text-green-400',
-                          icon: '🎯',
-                        },
-                      ];
-                      const color = actColors[parseInt(actNumber) - 1] || actColors[0];
-
-                      return (
-                        <div
-                          key={index}
-                          className={`border-l-4 ${color.border} ${color.bg} pl-4 pr-3 py-3 rounded-r`}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xl">{color.icon}</span>
-                            <h4
-                              className={`font-bold ${color.text} text-sm uppercase tracking-wide`}
-                            >
-                              ACT {actNumber}: {actName}
-                            </h4>
-                          </div>
-                          <p className="text-gray-300 leading-relaxed text-justify">{actContent}</p>
-                        </div>
-                      );
-                    });
-                  }
-                }
-
-                // Fallback: Display as single paragraph if no ACT structure detected
-                return (
-                  <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-justify">
-                    {scriptData.synopsis}
-                  </p>
-                );
-              })()}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <svg
-                className="w-16 h-16 mx-auto mb-3 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+          <div className="flex items-center gap-2">
+            {generatingFields.has('synopsis') && fieldProgress['synopsis'] > 0 && (
+              <div className="flex items-center gap-1.5 min-w-[90px]">
+                <div className="w-16 bg-gray-700/50 rounded-full h-1 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${fieldProgress['synopsis']}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-semibold text-cyan-400 tabular-nums min-w-[28px]">
+                  {Math.round(fieldProgress['synopsis'])}%
+                </span>
+              </div>
+            )}
+            <button
+              onClick={() => handleRegenerateField('synopsis', 'Synopsis')}
+              disabled={generatingFields.has('synopsis')}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Regenerate Synopsis"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              <p className="text-sm">Click &quot;Generate AI&quot; button to create synopsis</p>
-              <p className="text-xs mt-2 text-gray-600">
-                Synopsis will be generated from Title, Big Idea, Premise, Theme, Log Line, and
-                Timeline
-              </p>
-            </div>
-          )}
+              <span>Regen</span>
+            </button>
+          </div>
         </div>
+        {scriptData.synopsis ? (
+          <div className="prose prose-invert max-w-none space-y-4">
+            {/* Parse and display synopsis with 3-Act structure */}
+            {(() => {
+              // const acts = scriptData.synopsis.split(/ACT [123]/i);
+              const hasActStructure = scriptData.synopsis.match(/ACT [123]/i);
+
+              if (hasActStructure) {
+                // Display with 3-Act structure
+                const actMatches = scriptData.synopsis.matchAll(
+                  /ACT ([123])\s*\(([^)]+)\):\s*([^A]*?)(?=ACT [123]|$)/gi
+                );
+                const parsedActs = Array.from(actMatches);
+
+                if (parsedActs.length > 0) {
+                  return parsedActs.map((match, index) => {
+                    const actNumber = match[1];
+                    const actName = match[2].trim();
+                    const actContent = match[3].trim();
+
+                    const actColors = [
+                      {
+                        bg: 'bg-cyan-900/20',
+                        border: 'border-cyan-500/30',
+                        text: 'text-cyan-400',
+                        icon: '🎬',
+                      },
+                      {
+                        bg: 'bg-purple-900/20',
+                        border: 'border-purple-500/30',
+                        text: 'text-purple-400',
+                        icon: '⚡',
+                      },
+                      {
+                        bg: 'bg-green-900/20',
+                        border: 'border-green-500/30',
+                        text: 'text-green-400',
+                        icon: '🎯',
+                      },
+                    ];
+                    const color = actColors[parseInt(actNumber) - 1] || actColors[0];
+
+                    return (
+                      <div
+                        key={index}
+                        className={`border-l-4 ${color.border} ${color.bg} pl-4 pr-3 py-3 rounded-r`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">{color.icon}</span>
+                          <h4
+                            className={`font-bold ${color.text} text-sm uppercase tracking-wide`}
+                          >
+                            ACT {actNumber}: {actName}
+                          </h4>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-justify">{actContent}</p>
+                      </div>
+                    );
+                  });
+                }
+              }
+
+              // Fallback: Display as single paragraph if no ACT structure detected
+              return (
+                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-justify">
+                  {scriptData.synopsis}
+                </p>
+              );
+            })()}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <svg
+              className="w-16 h-16 mx-auto mb-3 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <p className="text-sm">Click &quot;Generate AI&quot; button to create synopsis</p>
+            <p className="text-xs mt-2 text-gray-600">
+              Synopsis will be generated from Title, Big Idea, Premise, Theme, Log Line, and
+              Timeline
+            </p>
+          </div>
+        )}
 
         {/* Edit Synopsis Button */}
         <div className="mt-4">

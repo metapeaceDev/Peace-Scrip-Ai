@@ -21,7 +21,23 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateProgress, setGenerateProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Act collapse state
+  const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({
+    1: false,
+    2: false,
+    3: false,
+  });
+
+  // Track which plot point is being regenerated and its progress
+  const [regeneratingPlotIndex, setRegeneratingPlotIndex] = useState<number | null>(null);
+  const [plotPointProgress, setPlotPointProgress] = useState(0);
+
+  const toggleAct = (actNum: number) => {
+    setCollapsedActs(prev => ({ ...prev, [actNum]: !prev[actNum] }));
+  };
 
   // Story Structure Modal State
   const [structureModal, setStructureModal] = useState<{
@@ -73,11 +89,24 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 
     if (onRegisterUndo) onRegisterUndo();
     setIsGenerating(true);
+    setRegeneratingPlotIndex(index);
+    setPlotPointProgress(0);
     setError(null);
+
+    // Start progress simulation
+    const progressInterval = setInterval(() => {
+      setPlotPointProgress(prev => {
+        if (prev >= 85) return 85;
+        return prev + Math.random() * 8;
+      });
+    }, 400);
 
     try {
       console.log(`🌐 [Step4] Regenerating Plot Point ${index} with mode: ${mode}`);
       const result = await generateSinglePlotPoint(scriptData, index, mode);
+
+      clearInterval(progressInterval);
+      setPlotPointProgress(95);
 
       if (result.description) {
         const newStructure = [...scriptData.structure];
@@ -102,13 +131,17 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
         }));
       }
 
+      setPlotPointProgress(100);
       setPlotPointModal({ isOpen: false, plotPointIndex: null });
       setError(null);
     } catch (err) {
       console.error('Failed to regenerate plot point:', err);
       setError(t('step4.errors.generateFailed'));
+      clearInterval(progressInterval);
     } finally {
       setIsGenerating(false);
+      setRegeneratingPlotIndex(null);
+      setPlotPointProgress(0);
     }
   };
 
@@ -121,13 +154,25 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 
     if (onRegisterUndo) onRegisterUndo();
     setIsGenerating(true);
+    setGenerateProgress(0);
     setError(null);
+
+    // Start progress simulation
+    const progressInterval = setInterval(() => {
+      setGenerateProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + Math.random() * 10;
+      });
+    }, 500);
 
     try {
       console.log(
         `🌐 [Step4] Generating Structure with mode: ${mode}, language: ${scriptData.language}`
       );
       const result = await generateStructure(scriptData, mode);
+
+      clearInterval(progressInterval);
+      setGenerateProgress(95);
 
       if (result.structure) {
         setScriptData(prev => ({
@@ -137,12 +182,15 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
         }));
       }
 
+      setGenerateProgress(100);
       setError(null);
     } catch (err) {
       console.error('Failed to generate structure:', err);
       setError(t('step4.errors.generateFailed'));
     } finally {
+      clearInterval(progressInterval);
       setIsGenerating(false);
+      setGenerateProgress(0);
     }
   };
 
@@ -161,11 +209,32 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
 
   const getActColor = (actNum: number) => {
     const colors = {
-      1: 'from-cyan-600 to-blue-600',
-      2: 'from-purple-600 to-violet-600',
-      3: 'from-pink-600 to-rose-600',
+      1: 'bg-blue-500/90',
+      2: 'bg-blue-600/90',
+      3: 'bg-blue-700/90',
     };
-    return colors[actNum as keyof typeof colors] || 'from-gray-600 to-gray-700';
+    return colors[actNum as keyof typeof colors] || 'bg-gray-600';
+  };
+
+  const getActIcon = (actNum: number) => {
+    const icons = {
+      1: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
+      2: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      3: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    };
+    return icons[actNum as keyof typeof icons] || null;
   };
 
   return (
@@ -235,60 +304,123 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
       )}
 
       {isGenerating && (
-        <div className="mb-6 p-4 bg-indigo-900/20 border border-indigo-500 rounded-lg">
-          <div className="flex items-start gap-3">
-            <svg
-              className="animate-spin h-5 w-5 text-indigo-400 mt-0.5"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
+        <div className="mb-8 bg-gray-800/50 border border-cyan-500/30 rounded-lg p-4 animate-pulse">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              🎬 กำลังสร้างโครงสร้างเรื่อง...
+            </span>
+            <span className="text-sm font-bold text-cyan-400">
+              {Math.round(generateProgress)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${generateProgress}%` }}
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <div className="text-sm text-indigo-300">
-              <p className="font-bold mb-1">{t('step4.aiAnalyzing')}</p>
-              <p className="text-xs text-indigo-400">
-                • {t('step4.aiDetails.analyzing')}
-                <br />• {t('step4.aiDetails.creating')}
-              </p>
+              {generateProgress > 10 && (
+                <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                  {Math.round(generateProgress)}%
+                </span>
+              )}
             </div>
           </div>
+          <p className="text-xs text-gray-400 mt-2">
+            กำลังสร้างโครงเรื่อง 3 องก์ พร้อม Plot Points และจุดเชื่อมต่อ
+          </p>
         </div>
       )}
 
-      <div className="space-y-8">
-        {/* Render each Act */}
-        {([1, 2, 3] as const).map(actNum => {
-          const points = actGroups[actNum];
-          if (!points || points.length === 0) return null;
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* LEFT COLUMN: Movie Poster */}
+        <div className="lg:col-span-1">
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sticky top-4">
+            <h3 className="text-lg font-semibold text-gray-200 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Movie Poster
+            </h3>
+            <div className="aspect-[2/3] bg-gray-900/50 border-2 border-dashed border-gray-600 rounded-lg overflow-hidden">
+              {scriptData.posterImage ? (
+                <img src={scriptData.posterImage} alt="Movie Poster" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm text-center p-4">
+                  <p>Generate poster in Step 1</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-          const actInfo = actLabels[actNum];
-          const startIndex = scriptData.structure.findIndex(p => p.act === actNum);
+        {/* RIGHT COLUMN: Act Structure */}
+        <div className="lg:col-span-2">
+          <div className="space-y-8">
+            {/* Render each Act */}
+            {([1, 2, 3] as const).map(actNum => {
+              const points = actGroups[actNum];
+              if (!points || points.length === 0) return null;
 
-          return (
-            <div key={actNum} className="space-y-4">
-              {/* Act Header */}
-              <div className={`bg-gradient-to-r ${getActColor(actNum)} p-4 rounded-lg shadow-lg`}>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <span className="text-2xl">📖</span>
-                  {actInfo.title}
-                </h3>
-              </div>
+              const actInfo = actLabels[actNum];
+              const startIndex = scriptData.structure.findIndex(p => p.act === actNum);
 
-              {/* Plot Points in this Act */}
-              <div className="space-y-4 pl-4 border-l-4 border-gray-700">
+              return (
+                <div key={actNum} className="space-y-4">
+                  {/* Act Header - Minimal Design */}
+                  <div 
+                    className={`
+                      ${getActColor(actNum)} 
+                      px-4 py-3 rounded-lg
+                      cursor-pointer 
+                      hover:opacity-90
+                      transition-opacity duration-200
+                    `}
+                    onClick={() => toggleAct(actNum)}
+                  >
+                    <h3 className="text-lg font-semibold text-white flex items-center justify-between">
+                      <span className="flex items-center gap-2.5">
+                        {getActIcon(actNum)}
+                        <span>{actInfo.title}</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-normal text-white/70">
+                          {points.length}
+                        </span>
+                        <svg 
+                          className={`w-5 h-5 transition-transform duration-200 ${collapsedActs[actNum] ? '' : 'rotate-180'}`}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </h3>
+                  </div>
+
+                  {/* Plot Points in this Act - Collapsible */}
+                  {!collapsedActs[actNum] && (
+                    <div className="space-y-4 pl-4 border-l-4 border-gray-700">
                 {points.map((point, indexInAct) => {
                   const globalIndex = startIndex + indexInAct;
                   return (
@@ -302,31 +434,48 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                           {point.title}
                         </h4>
                         <div className="flex items-center gap-3">
-                          {/* Regenerate Plot Point Button */}
-                          <button
-                            onClick={() => handleRegeneratePlotPoint(globalIndex)}
-                            disabled={isGenerating}
-                            className={`px-3 py-1.5 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm ${
-                              isGenerating
-                                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg'
-                            }`}
-                            title={`Regenerate ${point.title}`}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
+                          {/* Regenerate Plot Point Button or Progress Bar */}
+                          {regeneratingPlotIndex === globalIndex ? (
+                            <div className="flex flex-col gap-1 min-w-[140px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-violet-400 font-semibold">Regenerating...</span>
+                                <span className="text-xs font-bold text-violet-400">
+                                  {Math.round(plotPointProgress)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300"
+                                  style={{ width: `${plotPointProgress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleRegeneratePlotPoint(globalIndex)}
+                              disabled={isGenerating}
+                              className={`px-3 py-1.5 rounded-md font-medium transition-all duration-200 flex items-center gap-1.5 text-sm ${
+                                isGenerating
+                                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                  : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg'
+                              }`}
+                              title={`Regenerate ${point.title}`}
                             >
-                              <path
-                                fillRule="evenodd"
-                                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>Regenerate</span>
-                          </button>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>Regenerate</span>
+                            </button>
+                          )}
                           <div className="flex items-center gap-2">
                             <label
                               htmlFor={`scene-count-${globalIndex}`}
@@ -362,11 +511,15 @@ const Step4Structure: React.FC<Step4StructureProps> = ({
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          );
-        })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
       <div className="mt-8 flex justify-between">
         <button
           onClick={prevStep}

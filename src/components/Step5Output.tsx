@@ -1429,6 +1429,7 @@ ${
           seed: sceneSeed, // 🔧 STABLE SEED per scene
           previousShotImage: previousShotImage, // 🔧 CONTINUITY reference
           preferredModel: storyboardModel, // 🆕 USER SELECTED MODEL
+          locationDetails: editedScene.sceneDesign?.locationDetails, // 📍 Location Details
         }
       );
 
@@ -1922,6 +1923,7 @@ ${
             seed: sceneSeed, // 🔧 STABLE SEED per scene
             previousShotImage: previousShotImage, // 🔧 CONTINUITY reference
             preferredModel: storyboardStyle.includes('ComfyUI') ? 'comfyui-sdxl' : undefined,
+            locationDetails: currentSceneState.sceneDesign?.locationDetails, // 📍 Location Details
           }
         );
 
@@ -6376,6 +6378,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         {
           seed: sceneSeed,
           previousShotImage: previousShotImage,
+          locationDetails: sceneData.sceneDesign?.locationDetails, // 📍 Send Location Details
         }
       );
 

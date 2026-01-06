@@ -4473,6 +4473,7 @@ export async function generateStoryboardImage(
     seed?: number; // 🆕 Stable seed for scene consistency
     previousShotImage?: string; // 🆕 Previous shot for continuity
     preferredModel?: string; // 🆕 User-selected model
+    locationDetails?: LocationDetails; // 📍 Location Details for environment context
   }
 ): Promise<string> {
   try {
@@ -4497,6 +4498,39 @@ export async function generateStoryboardImage(
         })
         .join('; ');
       enhancedPrompt = `${prompt}\n\nCharacter Emotions & Expressions: ${psychologyContext}`;
+    }
+
+    // 📍 ADD LOCATION DETAILS: Enhance with environment context
+    if (options?.locationDetails) {
+      const loc = options.locationDetails;
+      const envContext: string[] = [];
+      
+      if (loc.environment?.description) {
+        envContext.push(`Environment: ${loc.environment.description}`);
+      }
+      if (loc.environment?.architecture) {
+        envContext.push(`Architecture: ${loc.environment.architecture}`);
+      }
+      if (loc.atmosphere?.weather) {
+        envContext.push(`Weather: ${loc.atmosphere.weather}`);
+      }
+      if (loc.atmosphere?.temperature) {
+        envContext.push(`Temperature: ${loc.atmosphere.temperature}`);
+      }
+      if (loc.sensory?.lighting) {
+        envContext.push(`Lighting: ${loc.sensory.lighting}`);
+      }
+      if (loc.sensory?.colors) {
+        envContext.push(`Color Palette: ${loc.sensory.colors}`);
+      }
+      if (loc.sensory?.sounds) {
+        envContext.push(`Ambient Sounds: ${loc.sensory.sounds}`);
+      }
+      
+      if (envContext.length > 0) {
+        enhancedPrompt += `\n\nLOCATION DETAILS:\n${envContext.join('\n')}`;
+        console.log('📍 Location Details added to image prompt');
+      }
     }
 
     // 🆕 CONTINUITY: Add previous shot context if available

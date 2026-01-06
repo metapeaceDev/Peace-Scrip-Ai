@@ -328,6 +328,25 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   const [error, setError] = useState<string | null>(null);
   const [fillEmptyOnly, setFillEmptyOnly] = useState(false);
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: Array<{ label: string; value: string }>;
+    onClose?: () => void;
+  }>({ isOpen: false, title: '', message: '' });
+
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
+
+  const [infoModal, setInfoModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
   const [keepExistingCharacters, setKeepExistingCharacters] = useState(false);
 
   // Psychology Test Panel State
@@ -490,11 +509,13 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     e.stopPropagation();
 
     if (characters.length <= 1) {
-      alert(
-        scriptData.language === 'Thai'
+      setErrorModal({
+        isOpen: true,
+        title: scriptData.language === 'Thai' ? 'ไม่สามารถลบได้' : 'Cannot Delete',
+        message: scriptData.language === 'Thai'
           ? 'ต้องมีตัวละครอย่างน้อย 1 ตัว'
           : 'You must have at least one character.'
-      );
+      });
       return;
     }
 
@@ -560,7 +581,17 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const handleGenerateDetailsConfirm = async (mode: RegenerationMode) => {
     if (onRegisterUndo) onRegisterUndo();
     setIsLoading(true);
+    setProgress(0);
     setError(null);
+
+    // ✅ Interval-based progress animation (0 → 90%)
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + Math.random() * 8;
+      });
+    }, 400);
+
     try {
       let updatedCharacter: Character;
 
@@ -599,10 +630,73 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           },
           goals: { ...activeCharacter.goals, ...(aiCharacterData.goals || {}) },
         };
+
+        // ✅ Auto-fill basic fields (name, role, characterType) if missing or default
+        const isDefaultName = !updatedCharacter.name || 
+          updatedCharacter.name.trim() === '' || 
+          /^New Character \d+$/i.test(updatedCharacter.name.trim());
+        
+        if (isDefaultName) {
+          updatedCharacter.name = aiCharacterData.external?.['First Name'] 
+            ? `${aiCharacterData.external['First Name']} ${aiCharacterData.external['Last Name'] || ''}`.trim()
+            : activeCharacter.name || 'Unnamed Character';
+        }
+
+        if (!updatedCharacter.role || updatedCharacter.role.trim() === '') {
+          updatedCharacter.role = activeCharacter.role || CHARACTER_ROLES[0];
+        }
+
+        if (!updatedCharacter.characterType || updatedCharacter.characterType.trim() === '') {
+          // Infer character type from role/description
+          const roleOrDesc = (updatedCharacter.role + ' ' + updatedCharacter.description).toLowerCase();
+          if (roleOrDesc.includes('protagonist') || roleOrDesc.includes('hero') || roleOrDesc.includes('main') || roleOrDesc.includes('พระเอก') || roleOrDesc.includes('นางเอก')) {
+            updatedCharacter.characterType = 'main';
+          } else if (roleOrDesc.includes('villain') || roleOrDesc.includes('antagonist') || roleOrDesc.includes('enemy') || roleOrDesc.includes('ตัวร้าย') || roleOrDesc.includes('ปฏิปักษ์')) {
+            updatedCharacter.characterType = 'antagonist';
+          } else {
+            updatedCharacter.characterType = 'supporting'; // Default to supporting
+          }
+        }
+
+        // ✅ Auto-fill description if missing or generic
+        const isDefaultDescription = !updatedCharacter.description || 
+          updatedCharacter.description.trim() === '' ||
+          updatedCharacter.description.trim().startsWith('A former') || // Generic starter
+          updatedCharacter.description.length < 10; // Too short
+        
+        if (isDefaultDescription && (aiCharacterData.goals?.objective || aiCharacterData.goals?.backstory)) {
+          // Create description from goals
+          const parts = [];
+          if (aiCharacterData.goals?.backstory) parts.push(aiCharacterData.goals.backstory);
+          if (aiCharacterData.goals?.objective) parts.push(`Seeks to ${aiCharacterData.goals.objective.toLowerCase()}`);
+          updatedCharacter.description = parts.join('. ');
+        }
       }
 
+      // ✅ API complete → 95%
+      clearInterval(progressInterval);
+      setProgress(95);
+
       updateCharacterAtIndex(activeCharIndex, updatedCharacter);
+
+      // ✅ Data saved → 100%
+      setProgress(100);
+
+      // ✅ Show success modal (progress stays at 100% until OK clicked)
+      setSuccessModal({
+        isOpen: true,
+        title: shouldFillOnly ? legacyT('เติมข้อมูลสำเร็จ!', 'Details filled successfully!') : legacyT('สร้างตัวละครสำเร็จ!', 'Character generated successfully!'),
+        message: legacyT('ข้อมูลตัวละครถูกสร้างเรียบร้อยแล้ว', 'Character details generated successfully'),
+        details: [
+          { label: legacyT('ชื่อ', 'Name'), value: updatedCharacter.name },
+          { label: legacyT('บทบาท', 'Role'), value: updatedCharacter.role },
+          { label: legacyT('ประเภท', 'Type'), value: updatedCharacter.characterType || '-' }
+        ]
+        // No need to change activeCharIndex (already editing this character)
+      });
     } catch (e: any) {
+      clearInterval(progressInterval);
+      setProgress(0);
       setError(e.message || 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -658,12 +752,20 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
     const generationMode: 'replace' | 'add' = mode === 'fresh' ? 'replace' : 'add';
 
     if (onRegisterUndo) onRegisterUndo();
+    setActiveCharIndex(-1); // ✅ Force show purple progress bar (Generate All mode)
     setIsLoading(true);
     setError(null);
     setProgress(0);
 
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return 90;
+        return prev + Math.random() * 8;
+      });
+    }, 400);
+
     try {
-      setProgress(20);
       console.log(
         `🎭 Generating characters from story data (Mode: ${generationMode}, RegenerationMode: ${mode})...`
       );
@@ -682,48 +784,64 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         console.log(`✅ Generated ${newCharacters.length} new characters`);
       }
 
-      setProgress(80);
+      // Clear interval and set to 95%
+      clearInterval(progressInterval);
+      setProgress(95);
 
       if (generationMode === 'add') {
         // ADD MODE: Keep existing + add new
         const combinedCharacters = [...characters, ...newCharacters];
         setScriptData(prev => ({ ...prev, characters: combinedCharacters }));
-        setActiveCharIndex(characters.length); // Jump to first new character
 
-        alert(
-          `✅ ${legacyT('เพิ่มตัวละครสำเร็จ', 'Successfully added characters')}!\n\n` +
-            `${legacyT('เดิม', 'Existing')}: ${characters.length} ${legacyT('ตัว', 'characters')}\n` +
-            `${legacyT('ใหม่', 'New')}: ${newCharacters.length} ${legacyT('ตัว', 'characters')}\n` +
-            `${legacyT('รวม', 'Total')}: ${combinedCharacters.length} ${legacyT('ตัว', 'characters')}\n\n` +
-            `${legacyT('ตัวละครใหม่', 'New characters')}: ${newCharacters.map(c => c.name).join(', ')}`
-        );
+        setProgress(100);
+        const firstNewCharIndex = characters.length;
+        setSuccessModal({
+          isOpen: true,
+          title: legacyT('เพิ่มตัวละครสำเร็จ!', 'Successfully added characters!'),
+          message: legacyT('เพิ่มตัวละครใหม่เข้าไปในโครงเรื่องแล้ว', 'New characters added to the story'),
+          details: [
+            { label: legacyT('เดิม', 'Existing'), value: `${characters.length} ${legacyT('ตัว', 'characters')}` },
+            { label: legacyT('ใหม่', 'New'), value: `${newCharacters.length} ${legacyT('ตัว', 'characters')}` },
+            { label: legacyT('รวม', 'Total'), value: `${combinedCharacters.length} ${legacyT('ตัว', 'characters')}` },
+            { label: legacyT('ตัวละครใหม่', 'New characters'), value: newCharacters.map(c => c.name).join(', ') }
+          ],
+          onClose: () => setActiveCharIndex(firstNewCharIndex) // Jump to first new character
+        });
       } else {
         // REPLACE MODE: Replace all
         setScriptData(prev => ({ ...prev, characters: newCharacters }));
-        setActiveCharIndex(0);
 
-        alert(
-          `✅ ${legacyT('สร้างตัวละครสำเร็จ', 'Successfully created characters')} ${newCharacters.length} ${legacyT('ตัว', 'characters')}!\n\n` +
-            `${legacyT('ตัวละคร', 'Characters')}: ${newCharacters.map(c => c.name).join(', ')}`
-        );
+        setProgress(100);
+        setSuccessModal({
+          isOpen: true,
+          title: legacyT('สร้างตัวละครสำเร็จ!', 'Successfully created characters!'),
+          message: `${legacyT('สร้างตัวละครทั้งหมด', 'Generated all characters')} ${newCharacters.length} ${legacyT('ตัว', 'characters')}`,
+          details: [
+            { label: legacyT('ตัวละคร', 'Characters'), value: newCharacters.map(c => c.name).join(', ') }
+          ],
+          onClose: () => setActiveCharIndex(0) // Select first character
+        });
       }
-
-      setProgress(100);
     } catch (e: unknown) {
+      clearInterval(progressInterval);
       const error = e as Error;
       setError(
         error.message || legacyT('ไม่สามารถสร้างตัวละครได้', 'Failed to generate characters')
       );
       console.error('Error generating characters:', e);
+      setProgress(0);
     } finally {
       setIsLoading(false);
-      setProgress(0);
     }
   };
 
   const handleGeneratePortrait = async () => {
     if (!activeCharacter.description && !activeCharacter.physical['Physical Characteristics']) {
-      alert('Please enter a character description or physical details first.');
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('ข้อมูลไม่ครบถ้วน', 'Missing Information'),
+        message: legacyT('กรุณากรอกรายละเอียดตัวละครหรือคุณลักษณะทางกายภาพก่อน', 'Please enter a character description or physical details first.')
+      });
       return;
     }
     if (onRegisterUndo) onRegisterUndo();
@@ -823,7 +941,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       );
       updateCharacterAtIndex(activeCharIndex, { image: base64Image });
     } catch (e) {
-      alert('Failed to generate image.');
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('สร้างรูปล้มเหลว', 'Generation Failed'),
+        message: legacyT('ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง', 'Failed to generate image. Please try again.')
+      });
       console.error(e);
     } finally {
       setIsImgLoading(false);
@@ -834,7 +956,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const handleGenerateCostume = async () => {
     const mainOutfit = activeCharacter.fashion['Main Outfit'];
     if (!mainOutfit) {
-      alert("Please describe the 'Main Outfit' in the Costume section first.");
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('ข้อมูลไม่ครบถ้วน', 'Missing Information'),
+        message: legacyT("กรุณาอธิบาย 'Main Outfit' ในส่วนเครื่องแต่งกายก่อน", "Please describe the 'Main Outfit' in the Costume section first.")
+      });
       return;
     }
     if (onRegisterUndo) onRegisterUndo();
@@ -929,7 +1055,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
         if (trySpeedMode) {
           setGenerationMode('speed');
-          alert("✅ Switched to SPEED MODE. Please click 'Generate Outfit' again.");
+          setInfoModal({
+            isOpen: true,
+            title: legacyT('สลับโหมดสำเร็จ', 'Mode Switched'),
+            message: legacyT("✅ เปลี่ยนเป็น SPEED MODE แล้ว\nกรุณากดปุ่ม 'สร้างชุด' อีกครั้ง", "✅ Switched to SPEED MODE.\nPlease click 'Generate Outfit' again.")
+          });
         }
       }
       // Check if it's Face ID limitation error
@@ -979,7 +1109,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             const retryMsg = retryError?.message || 'Unknown error';
             // Only show alert if retry also failed
             if (!retryMsg.includes('Face ID matching requires')) {
-              alert(`Retry failed: ${retryMsg}`);
+              setErrorModal({
+                isOpen: true,
+                title: legacyT('ลองใหม่ล้มเหลว', 'Retry Failed'),
+                message: `${legacyT('ไม่สามารถลองสร้างชุดใหม่ได้', 'Failed to regenerate outfit')}: ${retryMsg}`
+              });
             }
             console.error('Retry error:', retryError);
           } finally {
@@ -996,7 +1130,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             : generationMode === 'balanced'
               ? '\n\n💡 Tip: If issues persist, try SPEED MODE for faster results.'
               : '';
-        alert(`Failed to generate costume image.\n\n${errorMsg}${modeInfo}`);
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('สร้างชุดล้มเหลว', 'Generation Failed'),
+          message: `${legacyT('ไม่สามารถสร้างรูปภาพชุดได้', 'Failed to generate costume image.')}\n\n${errorMsg}${modeInfo}`
+        });
         console.error('Costume generation error:', e);
       }
     } finally {
@@ -1014,7 +1152,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       if (onRegisterUndo) onRegisterUndo();
       const outfit = activeCharacter.outfitCollection[selectedOutfitIndex];
       updateCharacterAtIndex(activeCharIndex, { image: outfit.image });
-      alert('Profile picture updated!');
+      setSuccessModal({
+        isOpen: true,
+        title: legacyT('อัพเดตสำเร็จ!', 'Updated Successfully!'),
+        message: legacyT('รูปโปรไฟล์ถูกอัพเดตแล้ว', 'Profile picture updated successfully')
+      });
     }
   };
 
@@ -1089,7 +1231,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
-      alert('Unable to access camera. Please allow camera permissions.');
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('ไม่สามารถเข้าถึงกล้อง', 'Camera Access Denied'),
+        message: legacyT('ไม่สามารถเข้าถึงกล้องได้\nกรุณาอนุญาตการเข้าถึงกล้องในการตั้งค่าเบราว์เซอร์', 'Unable to access camera.\nPlease allow camera permissions in browser settings.')
+      });
       setIsCameraOpen(false);
     }
   };
@@ -1194,7 +1340,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   // Voice Preview Handler
   const handlePlayVoiceSample = async () => {
     if (!activeCharacter.voiceCloneId) {
-      alert('ไม่พบข้อมูลเสียงที่โคลน');
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('ไม่พบข้อมูล', 'Data Not Found'),
+        message: legacyT('ไม่พบข้อมูลเสียงที่โคลน', 'Voice cloning data not found')
+      });
       return;
     }
 
@@ -1211,7 +1361,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       // Verify voice exists first
       const voiceDetails = await voiceCloningService.getVoiceDetails(activeCharacter.voiceCloneId);
       if (!voiceDetails) {
-        alert('ไม่พบไฟล์เสียงที่โคลน กรุณาอัพโหลดเสียงใหม่');
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('ไม่พบไฟล์', 'File Not Found'),
+          message: legacyT('ไม่พบไฟล์เสียงที่โคลน\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง', 'Voice clone file not found.\nPlease upload voice again.')
+        });
         return;
       }
 
@@ -1229,19 +1383,23 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       audio.onerror = e => {
         console.error('Audio playback error:', e);
         setIsPlayingVoice(false);
-        alert(
-          'ไม่สามารถเล่นไฟล์เสียงได้ อาจเป็นเพราะไฟล์ถูกลบหรือเสียหาย\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง'
-        );
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('เล่นไฟล์ล้มเหลว', 'Playback Failed'),
+          message: legacyT('ไม่สามารถเล่นไฟล์เสียงได้\nไฟล์อาจถูกลบหรือเสียหาย\nกรุณาอัพโหลดเสียงใหม่อีกครั้ง', 'Cannot play audio file.\nFile may be deleted or corrupted.\nPlease upload voice again.')
+        });
       };
 
       await audio.play();
     } catch (error) {
       console.error('Error playing voice sample:', error);
       setIsPlayingVoice(false);
-      alert(
-        'เกิดข้อผิดพลาดในการเล่นเสียง: ' +
-          (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ')
-      );
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('เกิดข้อผิดพลาด', 'Error Occurred'),
+        message: legacyT('เกิดข้อผิดพลาดในการเล่นเสียง', 'Error playing voice') + ': ' +
+          (error instanceof Error ? error.message : legacyT('ไม่ทราบสาเหตุ', 'Unknown error'))
+      });
     }
   };
 
@@ -1251,7 +1409,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       !activeCharacter.voiceCloning?.hasVoiceSample ||
       !activeCharacter.voiceCloning.voiceSampleId
     ) {
-      alert('กรุณาอัพโหลดเสียงตัวอย่างก่อนใช้งานฟีเจอร์นี้');
+      setInfoModal({
+        isOpen: true,
+        title: legacyT('ต้องอัพโหลดเสียงก่อน', 'Upload Required'),
+        message: legacyT('กรุณาอัพโหลดเสียงตัวอย่างก่อนใช้งานฟีเจอร์นี้', 'Please upload voice sample before using this feature')
+      });
       return;
     }
 
@@ -1272,7 +1434,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       const introText = generateIntroductionScript(activeCharacter);
 
       if (!introText || introText.trim().length === 0) {
-        alert('ไม่สามารถสร้างข้อความแนะนำตัวได้ กรุณากรอกข้อมูลตัวละครให้ครบถ้วน');
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('สร้างล้มเหลว', 'Generation Failed'),
+          message: legacyT('ไม่สามารถสร้างข้อความแนะนำตัวได้\nกรุณากรอกข้อมูลตัวละครให้ครบถ้วน', 'Failed to generate introduction.\nPlease fill in character details.')
+        });
         setIsPreviewingVoice(false);
         return;
       }
@@ -1303,7 +1469,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         URL.revokeObjectURL(audioUrl);
         setIsPreviewingVoice(false);
         audioRef.current = null;
-        alert('ไม่สามารถเล่นเสียงได้ กรุณาลองใหม่อีกครั้ง');
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('เล่นเสียงล้มเหลว', 'Playback Failed'),
+          message: legacyT('ไม่สามารถเล่นเสียงได้\nกรุณาลองใหม่อีกครั้ง', 'Failed to play audio.\nPlease try again.')
+        });
       };
 
       await audio.play();
@@ -1316,7 +1486,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       if (error instanceof Error) {
         errorMessage += `: ${error.message}`;
       }
-      alert(errorMessage);
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('เกิดข้อผิดพลาด', 'Error Occurred'),
+        message: errorMessage
+      });
     }
   };
 
@@ -1432,7 +1606,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
   const handleTestVoiceIntroduction = async () => {
     if (!activeCharacter.voiceCloneId) {
-      alert('กรุณาอัพโหลดเสียงก่อนทดสอบ');
+      setInfoModal({
+        isOpen: true,
+        title: legacyT('ต้องอัพโหลดเสียงก่อน', 'Upload Required'),
+        message: legacyT('กรุณาอัพโหลดเสียงก่อนทดสอบ', 'Please upload voice sample before testing')
+      });
       return;
     }
 
@@ -1453,7 +1631,11 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
       const script = generateIntroductionScript(activeCharacter);
 
       if (!script) {
-        alert('ไม่สามารถสร้างสคริปต์แนะนำตัวได้ กรุณาเพิ่มข้อมูลตัวละคร');
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('สร้างสคริปต์ล้มเหลว', 'Script Generation Failed'),
+          message: legacyT('ไม่สามารถสร้างสคริปต์แนะนำตัวได้\nกรุณาเพิ่มข้อมูลตัวละครให้ครบถ้วน', 'Failed to generate introduction script.\nPlease add more character details.')
+        });
         setIsTestingVoice(false);
         return;
       }
@@ -1488,17 +1670,23 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
         console.error('Test audio playback error:', e);
         setIsTestingVoice(false);
         setTestAudioUrl(null);
-        alert('ไม่สามารถเล่นเสียงทดสอบได้\nระบบอาจยังไม่รองรับ Voice Cloning TTS');
+        setErrorModal({
+          isOpen: true,
+          title: legacyT('เล่นเสียงล้มเหลว', 'Playback Failed'),
+          message: legacyT('ไม่สามารถเล่นเสียงทดสอบได้\nระบบอาจยังไม่รองรับ Voice Cloning TTS', 'Cannot play test audio.\nSystem may not support Voice Cloning TTS yet.')
+        });
       };
 
       await audio.play();
     } catch (error) {
       console.error('Error testing voice:', error);
       setIsTestingVoice(false);
-      alert(
-        'เกิดข้อผิดพลาดในการสร้างเสียงทดสอบ: ' +
-          (error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ')
-      );
+      setErrorModal({
+        isOpen: true,
+        title: legacyT('เกิดข้อผิดพลาด', 'Error Occurred'),
+        message: legacyT('เกิดข้อผิดพลาดในการสร้างเสียงทดสอบ', 'Error generating test voice') + ': ' +
+          (error instanceof Error ? error.message : legacyT('ไม่ทราบสาเหตุ', 'Unknown error'))
+      });
     }
   };
 
@@ -1521,6 +1709,118 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           onClose={() => setIsVoiceUploadModalOpen(false)}
           onVoiceUploaded={handleVoiceUploadSuccess}
         />
+      )}
+
+      {/* Success Modal */}
+      {successModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-cyan-500/30 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-purple-600 px-6 py-4 rounded-t-2xl flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg">{successModal.title}</h3>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 space-y-4">
+              <p className="text-gray-300 text-base leading-relaxed">{successModal.message}</p>
+              
+              {successModal.details && successModal.details.length > 0 && (
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 space-y-2.5">
+                  {successModal.details.map((detail, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <span className="text-cyan-400 font-semibold text-sm min-w-[80px]">{detail.label}:</span>
+                      <span className="text-gray-200 text-sm flex-1">{detail.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-800/30 rounded-b-2xl border-t border-gray-700">
+              <button
+                onClick={() => {
+                  const onClose = successModal.onClose;
+                  setSuccessModal({ isOpen: false, title: '', message: '' });
+                  setProgress(0);
+                  if (onClose) onClose();
+                }}
+                className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                ตกลง / OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-red-500/30 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-orange-600 px-6 py-4 rounded-t-2xl flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg">{errorModal.title}</h3>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6">
+              <p className="text-gray-300 text-base leading-relaxed whitespace-pre-line">{errorModal.message}</p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-800/30 rounded-b-2xl border-t border-gray-700">
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                ตกลง / OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Info Modal */}
+      {infoModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-blue-500/30 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-scaleIn">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg">{infoModal.title}</h3>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6">
+              <p className="text-gray-300 text-base leading-relaxed whitespace-pre-line">{infoModal.message}</p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-800/30 rounded-b-2xl border-t border-gray-700">
+              <button
+                onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                ตกลง / OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* --- RETURN NAVIGATION BAR (CONDITIONAL) --- */}
@@ -1548,6 +1848,39 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             </svg>
             {t('step3.returnButton')}
           </button>
+        </div>
+      )}
+
+      {/* Progress Bar for Generate All Characters */}
+      {isLoading && progress > 0 && activeCharIndex < 0 && (
+        <div className="bg-gray-800/50 border border-purple-500/30 rounded-lg p-4 animate-pulse mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-purple-400 flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              🎭 กำลังสร้างตัวละคร...
+            </span>
+            <span className="text-sm font-bold text-purple-400">
+              {Math.round(progress)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-2"
+              style={{ width: `${progress}%` }}
+            >
+              {progress > 10 && (
+                <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                  {Math.round(progress)}%
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            กำลังวิเคราะห์เรื่องและสร้างตัวละครที่เหมาะสม
+          </p>
         </div>
       )}
 
@@ -2134,6 +2467,42 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
 
         {/* Right Column: Descriptions & Details */}
         <div className="lg:col-span-8 flex flex-col gap-4">
+          {/* ✅ Progress Bar for Single Character Generation */}
+          {isLoading && progress > 0 && activeCharIndex >= 0 && (
+            <div className="bg-gray-800/50 border border-teal-500/30 rounded-lg p-4 animate-pulse">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-teal-400 flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  ✨ {legacyT('กำลังสร้างตัวละคร...', 'Generating character...')}
+                </span>
+                <span className="text-sm font-bold text-teal-400">
+                  {Math.round(progress)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-2"
+                  style={{ width: `${progress}%` }}
+                >
+                  {progress > 10 && (
+                    <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                      {Math.round(progress)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {legacyT(
+                  'กำลังสร้างชื่อ, บทบาท, ประเภท และรายละเอียดตัวละคร',
+                  'Generating name, role, type, and character details'
+                )}
+              </p>
+            </div>
+          )}
+
           <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               {/* Name Input */}
