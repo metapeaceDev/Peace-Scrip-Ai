@@ -2,9 +2,11 @@
  * Admin Dashboard Component
  *
  * Dashboard หลักสำหรับ admin ดู analytics และจัดการระบบ
+ * 
+ * Performance optimized with lazy loading for heavy components
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { auth } from '../../config/firebase';
 import { initAdminSession } from '../../services/adminAuthService';
 import {
@@ -28,20 +30,32 @@ import { OverviewCards } from './OverviewCards';
 import { UserTable } from './UserTable';
 import { ExportButton } from './ExportButton';
 import { UserDetailsModal } from './UserDetailsModal';
-import { EnhancedUserDetailsModal } from './EnhancedUserDetailsModal';
-import { AdminUserManagement } from './AdminUserManagement';
+import { AdminAlerts } from './AdminAlerts';
 import { RevenueChart } from './RevenueChart';
 import { UsageChartsSection } from './UsageChartsSection';
 import { EnhancedUsageBarChart } from './EnhancedUsageBarChart';
 import { QueueGaugeChart } from './QueueGaugeChart';
 import { CollapsibleTierCard } from './CollapsibleTierCard';
-import { AdminAlerts } from './AdminAlerts';
-import { ProjectCostDashboard } from './ProjectCostDashboard';
-import { ProfitLossComparisonDashboard } from './ProfitLossComparisonDashboard';
 import { Top10Users } from './Top10Users';
 import { logger } from '../../utils/logger';
 import './AdminDashboard.css';
 import './EnhancedUserDetailsModal.css';
+
+// 🚀 Lazy load heavy components
+const EnhancedUserDetailsModal = lazy(() => import('./EnhancedUserDetailsModal').then(m => ({ default: m.EnhancedUserDetailsModal })));
+const AdminUserManagement = lazy(() => import('./AdminUserManagement').then(m => ({ default: m.AdminUserManagement })));
+const ProjectCostDashboard = lazy(() => import('./ProjectCostDashboard').then(m => ({ default: m.ProjectCostDashboard })));
+const ProfitLossComparisonDashboard = lazy(() => import('./ProfitLossComparisonDashboard').then(m => ({ default: m.ProfitLossComparisonDashboard })));
+
+// Loading fallback component
+const LoadingFallback: React.FC<{ message?: string }> = ({ message = 'Loading...' }) => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-400">{message}</p>
+    </div>
+  </div>
+);
 
 type TabView = 'analytics' | 'users-management' | 'alerts' | 'project-costs' | 'profit-loss';
 
@@ -412,10 +426,12 @@ export const AdminDashboard: React.FC = () => {
 
           {/* User Details Modal */}
           {selectedUserId && useEnhancedModal && (
-            <EnhancedUserDetailsModal
-              userId={selectedUserId}
-              onClose={() => setSelectedUserId(null)}
-            />
+            <Suspense fallback={<LoadingFallback message="Loading User Details..." />}>
+              <EnhancedUserDetailsModal
+                userId={selectedUserId}
+                onClose={() => setSelectedUserId(null)}
+              />
+            </Suspense>
           )}
           {selectedUserId && !useEnhancedModal && (
             <UserDetailsModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
@@ -426,21 +442,27 @@ export const AdminDashboard: React.FC = () => {
       {/* Project Costs Tab */}
       {activeTab === 'project-costs' && (
         <div className="tab-content">
-          <ProjectCostDashboard />
+          <Suspense fallback={<LoadingFallback message="Loading Project Cost Dashboard..." />}>
+            <ProjectCostDashboard />
+          </Suspense>
         </div>
       )}
 
       {/* Profit & Loss Tab */}
       {activeTab === 'profit-loss' && (
         <div className="tab-content">
-          <ProfitLossComparisonDashboard />
+          <Suspense fallback={<LoadingFallback message="Loading Profit & Loss Dashboard..." />}>
+            <ProfitLossComparisonDashboard />
+          </Suspense>
         </div>
       )}
 
       {/* Admin Users Management Tab */}
       {activeTab === 'users-management' && (
         <div className="tab-content">
-          <AdminUserManagement />
+          <Suspense fallback={<LoadingFallback message="Loading User Management..." />}>
+            <AdminUserManagement />
+          </Suspense>
         </div>
       )}
 

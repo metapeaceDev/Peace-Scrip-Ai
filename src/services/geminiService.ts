@@ -655,7 +655,7 @@ async function generateImageWithStableDiffusion(prompt: string, seed?: number): 
       // Remove remaining Thai characters (untranslated text)
       translatedPrompt = translatedPrompt.replace(/[\u0E00-\u0E7F]+/g, '');
 
-      console.log('✅ Translated prompt:', translatedPrompt);
+      logger.debug('Translated prompt:', { translatedPrompt });
     }
 
     // Add seed to URL if provided for reproducibility and variation
@@ -665,7 +665,7 @@ async function generateImageWithStableDiffusion(prompt: string, seed?: number): 
       pollinationsUrl += `&seed=${seed}`;
     }
 
-    console.log('🌐 Pollinations URL:', pollinationsUrl);
+    logger.debug('Pollinations URL:', { pollinationsUrl });
 
     // Fetch image
     const response = await fetch(pollinationsUrl);
@@ -701,7 +701,7 @@ async function generateImageWithStableDiffusion(prompt: string, seed?: number): 
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error('Error with Stable Diffusion fallback:', error);
+    logger.error('Error with Stable Diffusion fallback', error);
     throw error;
   }
 }
@@ -740,7 +740,7 @@ async function generateImageWithComfyUI(
   }
 
   // Legacy local ComfyUI support (deprecated)
-  console.warn('⚠️ Local ComfyUI is deprecated. Please enable backend service.');
+  logger.warn('Local ComfyUI is deprecated. Please enable backend service.');
   throw new Error('Local ComfyUI not supported. Please enable VITE_USE_COMFYUI_BACKEND=true');
 }
 
@@ -786,10 +786,7 @@ async function generateVideoWithComfyUI(
     // 🔥 LAYER 7: FORCE CLEANUP before video generation
     const cachedUrl = localStorage.getItem('comfyui_url');
     if (cachedUrl && cachedUrl.includes('trycloudflare.com')) {
-      console.warn(
-        '🗑️ LAYER 7 CLEANUP: Removing Cloudflare URL before video generation:',
-        cachedUrl
-      );
+      logger.warn('LAYER 7 CLEANUP: Removing Cloudflare URL before video generation', { cachedUrl });
       localStorage.removeItem('comfyui_url');
     }
 

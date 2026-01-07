@@ -26,6 +26,7 @@ import {
 import { updatePsychologyTimeline } from '../services/psychologyEvolution';
 import { CHARACTER_IMAGE_STYLES } from '../constants';
 import { hasAccessToModel } from '../services/userStore';
+import { logger } from '../utils/logger';
 import { RegenerateOptionsModal, type RegenerationMode } from './RegenerateOptionsModal';
 import { LocationDetailsModal } from './LocationDetailsModal';
 import { generateLocationImage } from './locationImageGenerator';
@@ -1440,8 +1441,8 @@ ${
       // If costume change, don't enforce costume consistency
       const shouldEnforceCostumeConsistency = previousShotImage && !isCostumeChangeShot;
 
-      console.log(
-        `🎨 Generating shot ${shotNumber} with seed: ${sceneSeed}, previous shot: ${previousShotNumber || 'none'}, costume change: ${isCostumeChangeShot}`
+      logger.debug(
+        `Generating shot ${shotNumber} with seed: ${sceneSeed}, previous shot: ${previousShotNumber || 'none'}, costume change: ${isCostumeChangeShot}`
       );
 
       const base64Image = await generateStoryboardImage(
@@ -1472,7 +1473,7 @@ ${
       // Immediate Save
       if (!isEditing) onSave(updatedScene);
     } catch (error) {
-      console.error(error);
+      logger.error('Failed to generate shot image', error);
       
       // 🔍 CHECK FOR INVALID CHARACTER IMAGE ERROR
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1525,10 +1526,10 @@ ${
     const sceneDialogueLines =
       editedScene.sceneDesign?.situations?.flatMap(s => s.dialogue || []) || [];
     if (sceneDialogueLines.length === 0) {
-      console.warn('⚠️ Warning: No dialogue found in scene');
+      logger.warn('No dialogue found in scene');
     }
     if (!scriptData?.characters?.[0]) {
-      console.warn('⚠️ Warning: No character data found');
+      logger.warn('No character data found');
     }
 
     // 🎙️ Automatic Voice Detection & Fallback System
