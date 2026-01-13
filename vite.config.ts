@@ -56,18 +56,11 @@ export default defineConfig({
             if (id.includes('@google/genai') || id.includes('generative-ai')) {
               return 'ai-vendor';
             }
-            // Firebase (split by service to reduce chunk size)
-            if (id.includes('firebase/app') || id.includes('firebase/auth')) {
-              return 'firebase-core';
-            }
-            if (id.includes('firebase/firestore')) {
-              return 'firebase-firestore';
-            }
-            if (id.includes('firebase/storage') || id.includes('firebase/functions')) {
-              return 'firebase-services';
-            }
-            if (id.includes('firebase')) {
-              return 'firebase-other';
+            // Firebase
+            // IMPORTANT: keep Firebase in a single chunk to avoid rare TDZ/circular-init
+            // issues in production builds (e.g. "Cannot access 'Se' before initialization").
+            if (id.includes('/node_modules/firebase/') || id.includes('/node_modules/@firebase/')) {
+              return 'firebase';
             }
             // Microsoft Speech SDK (large - separate)
             if (id.includes('microsoft.cognitiveservices.speech')) {
@@ -81,48 +74,6 @@ export default defineConfig({
             if (id.includes('@stripe/')) {
               return 'stripe-vendor';
             }
-          }
-
-          // Code split large app modules
-          if (id.includes('src/components/admin/AdminDashboard')) {
-            return 'admin-dashboard';
-          }
-          if (id.includes('src/components/admin/ProfitLossComparisonDashboard')) {
-            return 'admin-profit-loss';
-          }
-          if (id.includes('src/components/admin/ProjectCostDashboard')) {
-            return 'admin-project-costs';
-          }
-          if (id.includes('src/components/admin/AdminUserManagement')) {
-            return 'admin-user-mgmt';
-          }
-          if (id.includes('src/components/admin/EnhancedUserDetailsModal')) {
-            return 'admin-user-details';
-          }
-          if (id.includes('src/components/admin/')) {
-            return 'admin-components';
-          }
-          if (id.includes('src/components/Step5Output')) {
-            return 'step5-output';
-          }
-          if (id.includes('src/components/ComfyUISettings')) {
-            return 'comfyui-settings';
-          }
-          if (id.includes('src/pages/')) {
-            return 'pages';
-          }
-          // Split gemini service from other services
-          if (id.includes('src/services/geminiService')) {
-            return 'gemini-service';
-          }
-          if (id.includes('src/services/comfyui')) {
-            return 'comfyui-services';
-          }
-          if (id.includes('src/services/videoGenerationService')) {
-            return 'video-service';
-          }
-          if (id.includes('src/services/audio')) {
-            return 'audio-services';
           }
         },
       },

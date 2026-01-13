@@ -126,11 +126,16 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, () => {
-  const cloudAvailable = workerManager.getCloudManager().isAvailable();
-  const lbStats = loadBalancer.getStats();
-  
-  console.log(`
+const MAX_LISTEN_RETRIES = 8;
+let listenAttempts = 0;
+
+const startServer = () => {
+  listenAttempts += 1;
+  const server = app.listen(PORT, () => {
+    const cloudAvailable = workerManager.getCloudManager().isAvailable();
+    const lbStats = loadBalancer.getStats();
+
+    console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║          ComfyUI Service - Peace Script AI                ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -155,7 +160,26 @@ const server = app.listen(PORT, () => {
 
 [READY] ComfyUI Service is ready! ${cloudAvailable ? '[CLOUD] Hybrid cloud/local mode' : '[LOCAL] Local mode'}
   `);
-});
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE' && listenAttempts < MAX_LISTEN_RETRIES) {
+      const delayMs = Math.min(2000, 250 * Math.pow(2, listenAttempts - 1));
+      console.warn(
+        `⚠️ Port ${PORT} is in use (attempt ${listenAttempts}/${MAX_LISTEN_RETRIES}). Retrying in ${delayMs}ms...`
+      );
+      setTimeout(() => startServer(), delayMs);
+      return;
+    }
+
+    console.error('❌ Server failed to start:', err);
+    process.exit(1);
+  });
+
+  return server;
+};
+
+const server = startServer();
 
 // Graceful shutdown
 const gracefulShutdown = async (signal) => {

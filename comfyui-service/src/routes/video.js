@@ -271,10 +271,10 @@ router.post('/generate/svd', authenticateOptional, async (req, res, next) => {
  * Body:
  * - prompt: string (required)
  * - negativePrompt: string (optional)
- * - numFrames: number (default: 16, max: 128)
+ * - numFrames: number (default: 61, max: 201)
  * - fps: number (default: 8)
- * - width: number (default: 512)
- * - height: number (default: 512)
+ * - width: number (default: 832)
+ * - height: number (default: 480)
  * - modelPath: string (optional, default from VIDEO_MODELS.wan)
  * - seed: number (optional)
  * - priority: number (1-10, default: 5)
@@ -315,9 +315,37 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
       });
     }
 
+    // 🔧 WAN frame validation
+    // Revert to the previously stable baseline: 61 requested frames.
+    // We still apply the stricter 16k+1 snapping after clamping.
+    // Some WanVideoWrapper builds are stricter than the usual (4k+1). In practice we must snap to:
+    //   num_frames = 16k + 1  (17, 33, 49, 65, 81, 97, 113, 129, ...)
+    // This avoids rare but fatal RuntimeError: "upper bound and lower bound inconsistent with step sign"
+    // from torch.arange(...) inside split_cross_attn_ffn.
+    const minStableRequestedFrames = 61;
+    const clampedFrames = Math.max(
+      minStableRequestedFrames,
+      Math.min(Number(numFrames) || VIDEO_MODELS.wan.defaultFrames, VIDEO_MODELS.wan.maxFrames)
+    );
+    const stride = 16;
+    const base = Math.max(0, clampedFrames - 1);
+    const down = Math.floor(base / stride) * stride + 1;
+    const up = Math.ceil(base / stride) * stride + 1;
+    // Keep candidates on the 16k+1 lattice; minimum stability is achieved by clamping the request
+    // before snapping, not by forcing the snapped candidates to be >= 61 (which would break the lattice).
+    const boundedDown = Math.max(17, Math.min(down, VIDEO_MODELS.wan.maxFrames));
+    const boundedUp = Math.max(17, Math.min(up, VIDEO_MODELS.wan.maxFrames));
+    const wanSafeFrames = Math.abs(boundedUp - clampedFrames) <= Math.abs(clampedFrames - boundedDown)
+      ? boundedUp
+      : boundedDown;
+
+    if (wanSafeFrames !== clampedFrames) {
+      console.warn(`⚠️ WAN frame adjustment: requested=${numFrames} → effective=${wanSafeFrames} (snapped to 16k+1)`);
+    }
+
     const workflow = buildWanWorkflow(prompt, {
       negativePrompt,
-      numFrames,
+      numFrames: wanSafeFrames, // Use validated frame count
       fps,
       width,
       height,
@@ -348,7 +376,7 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
         videoType: 'wan',
         videoNodeId: '8',
         filenamePrefix: 'peace-script-wan',
-        numFrames,
+        numFrames: wanSafeFrames, // Use validated frame count in metadata
         fps,
         width,
         height,
@@ -362,7 +390,7 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
       data: {
         jobId: job.jobId,
         type: 'wan',
-        estimatedTime: Math.ceil(numFrames * 3),
+        estimatedTime: Math.ceil(wanSafeFrames * 3),
         queuePosition: job.queuePosition
       }
     });
@@ -597,6 +625,207 @@ router.get('/detect-models', async (req, res, next) => {
     res.json({
       success: true,
       data: models
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/video/refresh-urls
+ * Refresh expired Firebase Storage URLs
+ * 
+ * Body:
+ * - videoUrls: string[] (array of expired signed URLs)
+ * 
+ * Returns:
+ * - refreshedUrls: { oldUrl: string, newUrl: string, status: 'success' | 'failed' }[]
+ */
+router.post('/refresh-urls', authenticateOptional, async (req, res, next) => {
+  try {
+    const { videoUrls } = req.body;
+
+    if (!Array.isArray(videoUrls) || videoUrls.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'videoUrls must be a non-empty array'
+      });
+    }
+
+    const { getStorage } = await import('../config/firebase.js');
+    const storage = getStorage();
+
+    const normalizeBucketName = (bucketName) => {
+      if (!bucketName) return null;
+      let name = String(bucketName).trim();
+      if (!name) return null;
+      name = name.replace(/^gs:\/\//, '');
+      name = name.replace(/\/$/, '');
+      return name || null;
+    };
+
+    const swapBucketSuffix = (bucketName) => {
+      if (!bucketName) return null;
+      if (bucketName.endsWith('.appspot.com')) {
+        return bucketName.replace(/\.appspot\.com$/, '.firebasestorage.app');
+      }
+      if (bucketName.endsWith('.firebasestorage.app')) {
+        return bucketName.replace(/\.firebasestorage\.app$/, '.appspot.com');
+      }
+      return null;
+    };
+
+    const decodePath = (path) => {
+      const parts = String(path || '')
+        .split('/')
+        .filter(Boolean)
+        .map(p => {
+          try {
+            return decodeURIComponent(p);
+          } catch {
+            return p;
+          }
+        });
+      return parts.join('/');
+    };
+
+    const parseFirebaseStorageUrl = (input) => {
+      try {
+        const u = new URL(input);
+
+        // Firebase token URL style:
+        // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedObject>?...
+        if (u.hostname === 'firebasestorage.googleapis.com') {
+          const m = u.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+          if (!m) return null;
+          const bucketName = normalizeBucketName(m[1]);
+          let objectPath;
+          try {
+            objectPath = decodeURIComponent(m[2]);
+          } catch {
+            objectPath = m[2];
+          }
+          return bucketName && objectPath ? { bucketName, objectPath } : null;
+        }
+
+        // GCS URL style:
+        // - https://storage.googleapis.com/<bucket>/<object>
+        // - https://<bucket>.storage.googleapis.com/<object>
+        if (u.hostname === 'storage.googleapis.com') {
+          const parts = u.pathname.split('/').filter(Boolean);
+          if (parts.length < 2) return null;
+          const bucketName = normalizeBucketName(parts[0]);
+          const objectPath = decodePath(parts.slice(1).join('/'));
+          return bucketName && objectPath ? { bucketName, objectPath } : null;
+        }
+
+        if (u.hostname.endsWith('.storage.googleapis.com')) {
+          const bucketName = normalizeBucketName(
+            u.hostname.replace(/\.storage\.googleapis\.com$/, '')
+          );
+          const objectPath = decodePath(u.pathname);
+          return bucketName && objectPath ? { bucketName, objectPath } : null;
+        }
+
+        // Some environments may use the bucket domain directly.
+        // e.g. https://<project>.firebasestorage.app/<object>
+        if (u.hostname.endsWith('.firebasestorage.app')) {
+          const bucketName = normalizeBucketName(u.hostname);
+          const objectPath = decodePath(u.pathname);
+          return bucketName && objectPath ? { bucketName, objectPath } : null;
+        }
+
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
+    const refreshedUrls = [];
+
+    for (const oldUrl of videoUrls) {
+      try {
+        const parsed = parseFirebaseStorageUrl(oldUrl);
+        if (!parsed) {
+          refreshedUrls.push({
+            oldUrl,
+            newUrl: null,
+            status: 'failed',
+            error: 'Invalid Firebase Storage URL format'
+          });
+          continue;
+        }
+
+        const defaultBucket = storage.bucket();
+        const bucketCandidates = [
+          normalizeBucketName(parsed.bucketName),
+          swapBucketSuffix(normalizeBucketName(parsed.bucketName)),
+          normalizeBucketName(defaultBucket?.name),
+          swapBucketSuffix(normalizeBucketName(defaultBucket?.name)),
+          normalizeBucketName(process.env.FIREBASE_STORAGE_BUCKET),
+          swapBucketSuffix(normalizeBucketName(process.env.FIREBASE_STORAGE_BUCKET))
+        ].filter(Boolean);
+
+        let foundBucket = null;
+        let file = null;
+        for (const candidate of bucketCandidates) {
+          try {
+            const b = storage.bucket(candidate);
+            const f = b.file(parsed.objectPath);
+            const [exists] = await f.exists();
+            if (exists) {
+              foundBucket = b;
+              file = f;
+              break;
+            }
+          } catch {
+            // ignore candidate
+          }
+        }
+
+        if (!foundBucket || !file) {
+          refreshedUrls.push({
+            oldUrl,
+            newUrl: null,
+            status: 'failed',
+            error: `File not found in storage (objectPath=${parsed.objectPath}; triedBuckets=${bucketCandidates.join(', ')})`
+          });
+          continue;
+        }
+
+        // Generate new token-based URL (never expires)
+        const firebaseService = (await import('../services/firebaseService.js')).default;
+        const token = await firebaseService.getOrCreateFirebaseDownloadToken(file);
+        const newUrl = firebaseService.getFirebaseTokenUrl(foundBucket.name, parsed.objectPath, token);
+
+        refreshedUrls.push({
+          oldUrl,
+          newUrl,
+          status: 'success'
+        });
+
+      } catch (error) {
+        console.error(`❌ Failed to refresh URL: ${oldUrl}`, error);
+        refreshedUrls.push({
+          oldUrl,
+          newUrl: null,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        refreshedUrls,
+        summary: {
+          total: videoUrls.length,
+          success: refreshedUrls.filter(r => r.status === 'success').length,
+          failed: refreshedUrls.filter(r => r.status === 'failed').length
+        }
+      }
     });
 
   } catch (error) {

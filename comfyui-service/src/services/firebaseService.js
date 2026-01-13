@@ -392,5 +392,7 @@ export default {
   getJobFromFirebase,
   getUserJobs,
   saveImageToStorage,
-  saveVideoToStorage
+  saveVideoToStorage,
+  getOrCreateFirebaseDownloadToken,
+  getFirebaseTokenUrl
 };

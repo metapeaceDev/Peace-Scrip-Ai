@@ -6,6 +6,8 @@
  */
 
 import { auth } from '../config/firebase';
+import app from '../config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { recordGeneration } from './modelUsageTracker';
 import { API_PRICING } from '../types/analytics';
 import { buildWorkflow, buildFluxWorkflow } from './comfyuiWorkflowBuilder';
@@ -686,6 +688,77 @@ export async function detectVideoModels(): Promise<{
 }
 
 /**
+ * Refresh expired Firebase Storage URLs (signed URLs) into non-expiring token URLs.
+ */
+export async function refreshVideoUrls(
+  videoUrls: string[]
+): Promise<
+  Array<{
+    oldUrl: string;
+    newUrl: string | null;
+    status: 'success' | 'failed';
+    error?: string;
+  }>
+> {
+  const configuredBackendUrl = String(import.meta.env.VITE_COMFYUI_SERVICE_URL || '').trim();
+  const isLocalBackend =
+    configuredBackendUrl.includes('localhost') || configuredBackendUrl.includes('127.0.0.1');
+  const canUseBackend = configuredBackendUrl.length > 0 && !(import.meta.env.PROD && isLocalBackend);
+
+  // 1) Prefer ComfyUI backend when configured (local/dev or deployed backend).
+  if (canUseBackend) {
+    const isHealthy = await checkServiceHealth();
+    if (!isHealthy) {
+      throw new Error('ComfyUI backend service is not available');
+    }
+
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Backend allows anonymous refresh; use auth when available.
+    try {
+      const idToken = await getIdToken();
+      headers = { ...headers, Authorization: `Bearer ${idToken}` };
+    } catch {
+      // ignore
+    }
+
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/refresh-urls`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ videoUrls }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || 'Failed to refresh video URLs');
+    }
+
+    const result = await response.json();
+    return result?.data?.refreshedUrls || [];
+  }
+
+  // 2) Production fallback: use Firebase Functions callable.
+  const functions = getFunctions(app);
+  const callable = httpsCallable<
+    { videoUrls: string[] },
+    {
+      refreshedUrls: Array<{
+        oldUrl: string;
+        newUrl: string | null;
+        status: 'success' | 'failed';
+        error?: string;
+      }>;
+      summary: { total: number; success: number; failed: number };
+    }
+  >(functions, 'refreshVideoUrls');
+
+  const resp = await callable({ videoUrls });
+  return resp?.data?.refreshedUrls || [];
+}
+
+/**
  * Poll video job status until complete
  */
 async function pollVideoJob(
@@ -698,7 +771,20 @@ async function pollVideoJob(
   }
 ): Promise<string> {
   const startTime = Date.now();
-  const maxWait = 2400000; // 🆕 40 minutes for video (increased from 20)
+  // Base cap for typical video models.
+  // WAN 14B (and heavy workflows) can legitimately exceed 40 minutes, especially with more frames/steps.
+  // Use the caller's estimate (progressRamp.durationMs) to scale maxWait upward while keeping a hard ceiling.
+  const baseMaxWait = 2400000; // 40 minutes
+  const hardMaxWait = 3 * 60 * 60 * 1000; // 3 hours
+  const estimatedMs =
+    typeof progressRamp?.durationMs === 'number' && Number.isFinite(progressRamp.durationMs)
+      ? Math.max(0, progressRamp.durationMs)
+      : 0;
+
+  // Example: if estimated duration is 25min, allow ~72.5min total before timing out.
+  // If estimate is small/zero, fall back to baseMaxWait.
+  const scaledMaxWait = estimatedMs > 0 ? Math.round(estimatedMs * 2.5 + 10 * 60 * 1000) : baseMaxWait;
+  const maxWait = Math.max(baseMaxWait, Math.min(hardMaxWait, scaledMaxWait));
   const pollInterval = 3000; // 3 seconds
 
   // Ensure progress starts from 0% and never goes backwards.
@@ -886,7 +972,10 @@ async function pollVideoJob(
     }
   }
 
-  throw new Error('Video generation timed out');
+  const waitedSec = Math.round((Date.now() - startTime) / 1000);
+  throw new Error(
+    `Video generation timed out after ${waitedSec}s (jobId=${jobId}). The ComfyUI job may still be running on http://localhost:8188.`
+  );
 }
 
 /**
@@ -1008,8 +1097,24 @@ export async function generateWithComfyUI(
       // Conservative caps aligned with backend/model expectations.
       if (videoType === 'svd') return 25;
       if (videoType === 'animatediff') return clampInt(requested, 8, 128);
+      
       // WAN maxFrames in this project defaults to 201.
-      return clampInt(requested, 8, 201);
+      // WAN (WanVideoWrapper) frame constraint is stricter than typical VAE stride in some builds.
+      // To avoid rare but fatal RuntimeError from torch.arange(...) inside split_cross_attn_ffn,
+      // we snap to: num_frames = 16k + 1 (17, 33, 49, 65, 81, 97, ...).
+      const clamped = clampInt(requested, 17, 201);
+
+      const stride = 16;
+      const base = Math.max(0, clamped - 1);
+      const down = Math.floor(base / stride) * stride + 1;
+      const up = Math.ceil(base / stride) * stride + 1;
+      const boundedDown = clampInt(down, 17, 201);
+      const boundedUp = clampInt(up, 17, 201);
+
+      // Prefer the nearest value; tie-break upward to preserve duration.
+      return Math.abs(boundedUp - clamped) <= Math.abs(clamped - boundedDown)
+        ? boundedUp
+        : boundedDown;
     };
 
     const rawMotionStrength =
@@ -1132,7 +1237,12 @@ export async function generateWithComfyUI(
     };
 
     let effectiveFps = requestedFps;
-    let effectiveWanFrames = effectiveNumFrames;
+    
+    // 🔧 WAN: Always validate frame count through WAN formula
+    let effectiveWanFrames =
+      videoType === 'wan' && typeof effectiveNumFrames === 'number'
+        ? getEffectiveFrameCount('wan', effectiveNumFrames)
+        : effectiveNumFrames;
 
     if (videoType === 'wan' && typeof requestedFps === 'number') {
       const safeFps = clampWanFps(requestedFps);

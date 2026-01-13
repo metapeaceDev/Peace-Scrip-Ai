@@ -290,6 +290,25 @@ class IntelligentLoadBalancer extends EventEmitter {
     const maxRetries = 3;
     const startTime = Date.now();
 
+    const isFatalCudaKernelIncompatibility = (message) => {
+      const m = String(message || '').toLowerCase();
+
+      // Explicit marker from comfyuiClient when we know it's deterministic.
+      if (m.includes('fatal_cuda_kernel_incompatibility')) return true;
+
+      // Common PyTorch/CUDA error on RTX 5090 when torch build lacks sm_120 kernels.
+      if (m.includes('no kernel image is available for execution on the device')) return true;
+      if (m.includes('cuda error: no kernel image')) return true;
+
+      // More lenient fallback for variant formatting / escaped JSON.
+      return m.includes('no kernel image') && m.includes('cuda');
+    };
+
+    const sm120Hint =
+      'Your ComfyUI Python/Torch build does not include CUDA kernels for RTX 5090 (sm_120). ' +
+      'Fix: run ComfyUI via the CUDA13 + PyTorch nightly container (docker-compose.cuda13.yml) ' +
+      'or install a PyTorch nightly wheel that supports sm_120 (e.g. cu130/nightly).';
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         // Select backend
@@ -319,7 +338,13 @@ class IntelligentLoadBalancer extends EventEmitter {
         };
 
       } catch (error) {
-        console.error(`❌ Job failed on attempt ${attempt}: ${error.message}`);
+        const errorMessage = String(error?.message || error);
+        console.error(`❌ Job failed on attempt ${attempt}: ${errorMessage}`);
+
+        // Deterministic failure: retrying will not help.
+        if (isFatalCudaKernelIncompatibility(errorMessage)) {
+          throw new Error(`Job failed (no retries): ${errorMessage} | ${sm120Hint}`);
+        }
 
         // Record failover
         this.stats.failoverCount++;
@@ -331,7 +356,7 @@ class IntelligentLoadBalancer extends EventEmitter {
 
         // If this was the last attempt, throw error
         if (attempt === maxRetries) {
-          throw new Error(`Job failed after ${maxRetries} attempts: ${error.message}`);
+          throw new Error(`Job failed after ${maxRetries} attempts: ${errorMessage}`);
         }
 
         // Wait before retry

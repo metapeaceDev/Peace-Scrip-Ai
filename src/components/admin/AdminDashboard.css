@@ -2441,8 +2441,3 @@
     margin-bottom: 0.5rem;
   }
 }
-
-firebase.auth().currentUser.getIdToken(true).then(() => {
-  console.log('✅ Token refreshed! กรุณารีเฟรชหน้าเว็บ (F5)');
-  window.location.reload();
-});

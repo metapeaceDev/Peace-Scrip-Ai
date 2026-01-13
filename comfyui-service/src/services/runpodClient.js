@@ -20,7 +20,7 @@ class RunPodClient extends EventEmitter {
     this.apiKey = apiKey || process.env.RUNPOD_API_KEY;
     
     if (!this.apiKey) {
-      console.warn('⚠️  RunPod API key not configured. Cloud workers will not be available.');
+      console.log('ℹ️  RunPod API key not configured. Cloud workers will not be available.');
     }
   }
 

@@ -80,7 +80,10 @@
     {
       "source": "functions",
       "runtime": "nodejs20",
-      "codebase": "default"
+      "codebase": "default",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
   ]
 }

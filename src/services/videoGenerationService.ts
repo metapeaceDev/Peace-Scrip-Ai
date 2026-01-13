@@ -54,6 +54,10 @@ export interface VideoGenerationOptions {
   frameCount?: number;
   motionStrength?: number;
 
+  // 🆕 ComfyUI/WAN advanced parameters
+  steps?: number;
+  cfg?: number;
+
   // 🆕 VIDEO EXTENSION: Sequential Generation Support
   previousVideo?: string; // URL of previous video for seamless continuation
   previousShot?: VideoShot; // Previous shot metadata for prompt continuity
@@ -212,7 +216,7 @@ export async function generateShotVideo(
   shot: VideoShot,
   baseImage?: string,
   options: VideoGenerationOptions = {},
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number, details?: any, jobId?: string) => void
 ): Promise<string> {
   try {
     console.log(`🎬 Generating video for shot: ${shot.shotType || shot.shotSize || 'Unknown'}`);

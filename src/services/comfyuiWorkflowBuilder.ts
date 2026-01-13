@@ -310,7 +310,7 @@ export function buildSDXLFaceIDWorkflow(
     const genderLower = options.gender.toLowerCase();
     isMale = genderLower.includes('male') || genderLower.includes('man') || genderLower.includes('ชาย') || genderLower.includes('ผู้ชาย');
     isFemale = genderLower.includes('female') || genderLower.includes('woman') || genderLower.includes('หญิง') || genderLower.includes('ผู้หญิง');
-    console.log(`👤 Gender from profile: ${options.gender} → isMale=${isMale}, isFemale=${isFemale}`);
+    console.log(`👤 Gender from profile: ${options.gender} → isMale=${isMale}, isFemale=${isFemale} - comfyuiWorkflowBuilder.ts:313`);
   } else {
     // Fallback: ตรวจจาก prompt (ความแม่นยำต่ำกว่า)
     isMale =
@@ -335,7 +335,7 @@ export function buildSDXLFaceIDWorkflow(
       promptLower.includes('หญิง') ||
       promptLower.includes('สาว') ||
       promptLower.includes('เด็กหญิง');
-    console.log(`🔍 Gender from prompt: isMale=${isMale}, isFemale=${isFemale}`);
+    console.log(`🔍 Gender from prompt: isMale=${isMale}, isFemale=${isFemale} - comfyuiWorkflowBuilder.ts:338`);
   }
   
   // Check facial hair
@@ -392,17 +392,17 @@ export function buildSDXLFaceIDWorkflow(
     // Portrait: 3:4 aspect ratio (head and shoulders)
     resolutionWidth = 896;
     resolutionHeight = 1152;
-    console.log('📸 Using PORTRAIT resolution: 896x1152 (3:4 ratio) - comfyuiWorkflowBuilder.ts:380');
+    console.log('📸 Using PORTRAIT resolution: 896x1152 (3:4 ratio) - comfyuiWorkflowBuilder.ts:395');
   } else {
     // Full Body: 13:19 aspect ratio (wider frame to prevent face zoom)
     // 🔧 Iteration 11: Changed from 768x1408 to 832x1216 (wider, less tall)
     resolutionWidth = 832; // เพิ่มจาก 768 เพื่อไม่ให้ซูมหน้า
     resolutionHeight = 1216; // ลดจาก 1408 เพื่อ full body ไม่ซูมเข้ามา
-    console.log('👔 Using FULL BODY resolution: 832x1216 (13:19 ratio  wider frame, antizoom) - comfyuiWorkflowBuilder.ts:386');
+    console.log('👔 Using FULL BODY resolution: 832x1216 (13:19 ratio  wider frame, antizoom) - comfyuiWorkflowBuilder.ts:401');
   }
 
   // 🔍 DEBUG: Verify resolution is being set
-  console.log(`🔍 Resolution check: width=${resolutionWidth}, height=${resolutionHeight} - comfyuiWorkflowBuilder.ts:390`);
+  console.log(`🔍 Resolution check: width=${resolutionWidth}, height=${resolutionHeight} - comfyuiWorkflowBuilder.ts:405`);
 
   // 🍌 BANANA QUALITY APPROACH: Low CFG for natural look, moderate LoRA for detail
   const baseWorkflow = buildSDXLWorkflow(prompt, {
@@ -495,7 +495,7 @@ export function buildSDXLFaceIDWorkflow(
     class_type: 'ApplyInstantIDAdvanced',
   };
   
-  console.log(`🎚️ InstantID Settings: ip_weight=0.55, cn_strength=${isFullBody ? 0.12 : 0.48}, end_at=${isFullBody ? 0.35 : 0.70} (${isFullBody ? 'FULL BODY' : 'PORTRAIT'}  HIGH FACIAL SIMILARITY) - comfyuiWorkflowBuilder.ts:483`);
+  console.log(`🎚️ InstantID Settings: ip_weight=0.55, cn_strength=${isFullBody ? 0.12 : 0.48}, end_at=${isFullBody ? 0.35 : 0.70} (${isFullBody ? 'FULL BODY' : 'PORTRAIT'}  HIGH FACIAL SIMILARITY) - comfyuiWorkflowBuilder.ts:498`);
 
   // Update KSampler to use InstantID-augmented model + conditioning
   baseWorkflow['3'].inputs.model = ['14', 0];
@@ -635,12 +635,12 @@ export function buildIPAdapterWorkflow(
     // Portrait: 3:4 aspect ratio (head and shoulders)
     width = 896;
     height = 1152;
-    console.log('📸 IPAdapter using PORTRAIT resolution: 896x1152 (3:4 ratio) - comfyuiWorkflowBuilder.ts:623');
+    console.log('📸 IPAdapter using PORTRAIT resolution: 896x1152 (3:4 ratio) - comfyuiWorkflowBuilder.ts:638');
   } else {
     // Full Body: ~8:13 aspect ratio (head to feet)
     width = 768;
     height = 1312;
-    console.log('👔 IPAdapter using FULL BODY resolution: 768x1312 (~8:13 ratio) - comfyuiWorkflowBuilder.ts:628');
+    console.log('👔 IPAdapter using FULL BODY resolution: 768x1312 (~8:13 ratio) - comfyuiWorkflowBuilder.ts:643');
   }
 
   // Start with base SDXL workflow
@@ -705,19 +705,19 @@ export function buildIPAdapterWorkflow(
  */
 export function buildWorkflow(prompt: string, options: WorkflowOptions = {}): any {
   // 🔍 DEBUG: Log imageType to verify it's being passed correctly
-  console.log('🎭 buildWorkflow called with imageType: - comfyuiWorkflowBuilder.ts:693', options.imageType || 'undefined (will default to full-body)');
+  console.log('🎭 buildWorkflow called with imageType: - comfyuiWorkflowBuilder.ts:708', options.imageType || 'undefined (will default to full-body)');
   
   // ถ้ามี reference image
   if (options.referenceImage) {
     // Mac/MPS: ใช้ IP-Adapter (เร็วกว่า InstantID มาก)
     if (options.useIPAdapter) {
-      console.log('🍎 Using IPAdapter workflow (Mac Optimized) - comfyuiWorkflowBuilder.ts:699');
+      console.log('🍎 Using IPAdapter workflow (Mac Optimized) - comfyuiWorkflowBuilder.ts:714');
       return buildIPAdapterWorkflow(prompt, options.referenceImage, options);
     }
 
     // Windows/Linux + NVIDIA: ใช้ InstantID (ความเหมือนสูงสุด)
-    console.log('🚀 Using InstantID workflow (Windows/Linux + NVIDIA) - comfyuiWorkflowBuilder.ts:704');
-    console.log('🎭 Passing imageType to buildSDXLFaceIDWorkflow: - comfyuiWorkflowBuilder.ts:705', options.imageType || 'undefined');
+    console.log('🚀 Using InstantID workflow (Windows/Linux + NVIDIA) - comfyuiWorkflowBuilder.ts:719');
+    console.log('🎭 Passing imageType to buildSDXLFaceIDWorkflow: - comfyuiWorkflowBuilder.ts:720', options.imageType || 'undefined');
     return buildSDXLFaceIDWorkflow(prompt, options.referenceImage, options);
   }
 
@@ -776,7 +776,7 @@ function buildAnimateDiffWithFaceIDWorkflow(
   // Update AnimateDiff Loader to use IP-Adapter modified model
   baseWorkflow['5'].inputs.model = ['12', 0]; // Use Face ID model instead of base model
 
-  console.log('🎭 Face ID enabled for AnimateDiff video generation - comfyuiWorkflowBuilder.ts:764');
+  console.log('🎭 Face ID enabled for AnimateDiff video generation - comfyuiWorkflowBuilder.ts:779');
   return baseWorkflow;
 }
 
@@ -805,7 +805,7 @@ export function buildAnimateDiffWorkflow(prompt: string, options: WorkflowOption
 
   // 🆕 CHARACTER FACE ID: ถ้ามีรูปตัวละคร ใช้ Face ID workflow
   if (options.characterImages && options.characterImages.length > 0) {
-    console.log(`🎭 Using Face ID for ${options.characterImages.length} character(s) - comfyuiWorkflowBuilder.ts:793`);
+    console.log(`🎭 Using Face ID for ${options.characterImages.length} character(s) - comfyuiWorkflowBuilder.ts:808`);
     // สำหรับตอนนี้ใช้ตัวละครแรก (primary character)
     return buildAnimateDiffWithFaceIDWorkflow(prompt, options.characterImages[0], options);
   }
@@ -1048,6 +1048,6 @@ export function buildAnimateDiffControlNetWorkflow(
   // - ControlNetApply node
   // - Batch processing for multiple control frames
 
-  console.warn('⚠️ AnimateDiff + ControlNet workflow not yet implemented - comfyuiWorkflowBuilder.ts:1036');
+  console.warn('⚠️ AnimateDiff + ControlNet workflow not yet implemented - comfyuiWorkflowBuilder.ts:1051');
   return baseWorkflow;
 }

@@ -5196,6 +5196,14 @@ export async function generateStoryboardVideo(
       if (COMFYUI_ENABLED || USE_COMFYUI_BACKEND) {
         try {
           const isWan = mappedModel.startsWith('comfyui-wan');
+          const isMotionEditorMode = Boolean(options?.motionEdit && options?.character);
+
+          // 🔁 Stability rollback: WAN works most reliably with the previously stable baseline.
+          // If Motion Editor explicitly sets a frame_count, keep it; otherwise force 61 frames.
+          if (isWan && !isMotionEditorMode) {
+            finalFrameCount = 61;
+            finalFPS = finalFPS || 8;
+          }
           const useAnimateDiff =
             mappedModel === 'comfyui-animatediff' ||
             mappedModel === 'comfyui-animatediff-v3' ||
@@ -5316,6 +5324,7 @@ export async function generateStoryboardVideo(
           // 🆕 WAN MODEL SELECTION: Map UI model ID to backend modelPath (Kijai format)
           let wanModelPath: string | undefined = undefined;
           if (isWan) {
+            const hasWanConditioningImage = typeof base64Image === 'string' && base64Image.length > 0;
             switch (preferredModel) {
               case 'comfyui-wan-i2v':
                 wanModelPath = 'Wan2_1-I2V-14B-480P_fp8_e4m3fn';
@@ -5332,10 +5341,14 @@ export async function generateStoryboardVideo(
                 console.log('📦 WAN Model: Wan2_1-I2V-14B-480P_fp8_e4m3fn (Fallback) ⭐');
                 break;
               default:
-                // Default to T2V FP8 for prompt-driven consistency and to avoid conditioning/mode mismatches.
-                // Users can still explicitly select I2V if they want image-driven identity.
-                wanModelPath = 'Wan2_1-T2V-14B_fp8_e4m3fn';
-                console.log('📦 WAN Model: Wan2_1-T2V-14B_fp8_e4m3fn (Default) 🎬');
+                // Auto-select I2V when we have a storyboard/base image.
+                // This improves camera/framing adherence and reduces "random angle" drift.
+                wanModelPath = hasWanConditioningImage
+                  ? 'Wan2_1-I2V-14B-480P_fp8_e4m3fn'
+                  : 'Wan2_1-T2V-14B_fp8_e4m3fn';
+                console.log(
+                  `📦 WAN Model: ${wanModelPath} (Auto: ${hasWanConditioningImage ? 'I2V (image provided)' : 'T2V'})`
+                );
             }
           }
 
@@ -5375,7 +5388,7 @@ export async function generateStoryboardVideo(
             height: finalHeight,
             // 🆕 QUALITY BOOST: Use user settings or safe Wan defaults
             cfg: options?.cfg || 6, // Wan 2.1 optimal: 5-8
-            steps: options?.steps || 25, // Wan 2.1 safe max: 30
+            steps: options?.steps || 25, // Keep legacy default for non-WAN fallback
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,
@@ -5728,7 +5741,7 @@ export async function generateStoryboardVideo(
             useAnimateDiff: useAnimateDiff,
             useSVD: useSVD,
             cfg: options?.cfg || 6, // Wan 2.1 optimal: 5-8
-            steps: options?.steps || 25, // Wan 2.1 safe max: 30
+            steps: options?.steps || 25,
             character: options?.character,
             shotData: options?.shotData,
             currentScene: options?.currentScene,

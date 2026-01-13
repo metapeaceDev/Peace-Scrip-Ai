@@ -29,6 +29,45 @@ export async function generateWithComfyUI({
   const startTime = Date.now();
   // clientId is used for ComfyUI WebSocket routing
   const clientId = uuidv4();
+
+  const isWanVideo = Boolean(isVideo && metadata && String(metadata.videoType || '').toLowerCase() === 'wan');
+
+  const isWanStepSignError = (err) => {
+    const msg = String(err?.message || '').toLowerCase();
+    const resp = err?.response?.data;
+    const respStr = resp ? JSON.stringify(resp).toLowerCase() : '';
+    const needle = 'upper bound and lower bound inconsistent with step sign';
+    return msg.includes(needle) || respStr.includes(needle);
+  };
+
+  const patchWanFrames = (wf, newFrames) => {
+    if (!wf || typeof wf !== 'object') return;
+    for (const node of Object.values(wf)) {
+      if (!node || typeof node !== 'object') continue;
+      const classType = String(node.class_type || '');
+      if (!classType.startsWith('WanVideo')) continue;
+      if (!node.inputs || typeof node.inputs !== 'object') continue;
+      if (typeof node.inputs.num_frames === 'number') {
+        node.inputs.num_frames = newFrames;
+      }
+      if (typeof node.inputs.frames === 'number') {
+        node.inputs.frames = newFrames;
+      }
+      if (typeof node.inputs.batch_size === 'number') {
+        node.inputs.batch_size = newFrames;
+      }
+    }
+  };
+
+  const nextWanRetryFrames = (currentFrames) => {
+    const n = Number(currentFrames);
+    if (!Number.isFinite(n) || n <= 0) return 65;
+    if (n < 65) return 65;
+    if (n < 81) return 81;
+    // keep within WAN's max (201) while staying on 16k+1 lattice
+    const bumped = n + 16;
+    return Math.min(201, bumped);
+  };
   
   try {
     // Prepare workflow
@@ -45,58 +84,86 @@ export async function generateWithComfyUI({
     }
 
     let result;
-    try {
-      // Submit workflow to ComfyUI
-      // /prompt should respond quickly (enqueue + prompt_id). If this hangs, the whole job appears stuck.
-      const response = await axios.post(`${worker.url}/prompt`, {
-        prompt: finalWorkflow,
-        client_id: clientId
-      }, {
-        timeout: 15000
-      });
 
-      const { prompt_id } = response.data;
-      console.log(`📤 Submitted workflow to ${worker.url}, prompt_id: ${prompt_id}`);
+    // WAN retry behavior:
+    // Some WanVideoWrapper builds can still throw the fatal torch.arange "step sign" error even when
+    // frames are snapped. When that happens, retry once with a larger safe frame count.
+    const maxAttempts = isWanVideo ? 2 : 1;
+    let attemptMeta = metadata;
 
-      // Track progress via WebSocket (enhanced for video)
-      result = await trackProgress(
-        worker.url, 
-        prompt_id, 
-        clientId,
-        onProgress,
-        isVideo,
-        metadata
-      );
-    } catch (innerError) {
-      // Fallback for testing/dev if ComfyUI is missing nodes or fails
-      // This allows verifying the pipeline logic even if local ComfyUI is incomplete
-      // IMPORTANT: Do NOT auto-mock in development. Only mock when explicitly enabled.
-      if (process.env.MOCK_COMFYUI) {
-        console.warn('⚠️ ComfyUI request failed, using MOCK response for testing (MOCK_COMFYUI enabled):', innerError.message);
-        if (innerError.response) {
-          console.warn('⚠️ ComfyUI Error:', JSON.stringify(innerError.response.data));
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Submit workflow to ComfyUI
+        // /prompt should respond quickly (enqueue + prompt_id). If this hangs, the whole job appears stuck.
+        const response = await axios.post(`${worker.url}/prompt`, {
+          prompt: finalWorkflow,
+          client_id: clientId
+        }, {
+          timeout: 15000
+        });
+
+        const { prompt_id } = response.data;
+        console.log(`📤 Submitted workflow to ${worker.url}, prompt_id: ${prompt_id}`);
+
+        // Track progress via WebSocket (enhanced for video)
+        result = await trackProgress(
+          worker.url,
+          prompt_id,
+          clientId,
+          onProgress,
+          isVideo,
+          attemptMeta
+        );
+        break;
+      } catch (innerError) {
+        const canRetry = isWanVideo && attempt === 1 && isWanStepSignError(innerError);
+        if (canRetry) {
+          const currentFrames = Number(attemptMeta?.numFrames ?? metadata?.numFrames);
+          const retryFrames = nextWanRetryFrames(currentFrames);
+          console.warn(
+            `⚠️ WAN detected step-sign torch.arange error; retrying once with numFrames ${currentFrames} -> ${retryFrames}`
+          );
+          patchWanFrames(finalWorkflow, retryFrames);
+          attemptMeta = { ...metadata, numFrames: retryFrames, _wanRetry: true };
+          continue;
         }
-        
-        // Simulate progress
-        if (onProgress) {
-          for (let i = 10; i <= 100; i += 20) {
-            await new Promise(r => setTimeout(r, 500));
-            onProgress(i);
+
+        // Fallback for testing/dev if ComfyUI is missing nodes or fails
+        // This allows verifying the pipeline logic even if local ComfyUI is incomplete
+        // IMPORTANT: Do NOT auto-mock in development. Only mock when explicitly enabled.
+        if (process.env.MOCK_COMFYUI) {
+          console.warn('⚠️ ComfyUI request failed, using MOCK response for testing (MOCK_COMFYUI enabled):', innerError.message);
+          if (innerError.response) {
+            console.warn('⚠️ ComfyUI Error:', JSON.stringify(innerError.response.data));
           }
+          
+          // Simulate progress
+          if (onProgress) {
+            for (let i = 10; i <= 100; i += 20) {
+              await new Promise(r => setTimeout(r, 500));
+              onProgress(i);
+            }
+          }
+          
+          result = {
+            imageUrl: isVideo ? null : 'https://placehold.co/512x512.png',
+            videoUrl: isVideo ? 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4' : null,
+            images: [],
+            _debug_error: innerError.message,
+            _debug_details: innerError.response ? innerError.response.data : 'No response data'
+          };
+          break;
         }
-        
-        result = {
-          imageUrl: isVideo ? null : 'https://placehold.co/512x512.png',
-          videoUrl: isVideo ? 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4' : null,
-          images: [],
-          _debug_error: innerError.message,
-          _debug_details: innerError.response ? innerError.response.data : 'No response data'
-        };
-      } else {
+
         throw innerError;
       }
     }
-    
+
+    if (!result) {
+      throw new Error('ComfyUI generation failed: no result');
+    }
+
+  
     const processingTime = Date.now() - startTime;
     
     return {
@@ -110,7 +177,21 @@ export async function generateWithComfyUI({
       console.error('❌ ComfyUI Error Response:', JSON.stringify(error.response.data, null, 2));
     }
     console.error(`❌ ComfyUI generation failed:`, error.message);
-    const details = error.response?.data ? ` | details: ${JSON.stringify(error.response.data)}` : '';
+    const data = error.response?.data;
+    const details = data ? ` | details: ${JSON.stringify(data)}` : '';
+
+    const exceptionMessage = String(data?.exception_message || data?.error || '').toLowerCase();
+    if (
+      exceptionMessage.includes('no kernel image is available for execution on the device') ||
+      exceptionMessage.includes('cuda error: no kernel image')
+    ) {
+      throw new Error(
+        `ComfyUI generation failed: ${error.message}${details} | ` +
+          'Likely cause: PyTorch CUDA build does not support RTX 5090 (sm_120). ' +
+          'Use the CUDA13 + PyTorch nightly setup (docker-compose.cuda13.yml) or upgrade ComfyUI\'s torch to a nightly wheel with sm_120 support.'
+      );
+    }
+
     throw new Error(`ComfyUI generation failed: ${error.message}${details}`);
   }
 }
@@ -338,6 +419,81 @@ async function ensureWanPrereqs(workflow, workerId, opts = {}) {
     }
     node.inputs.model = resolved;
   }
+
+  // Also validate/auto-fix WAN text encoder and VAE selections.
+  // These nodes have their own enumerated choice lists and will reject unknown values.
+  const resolveChoiceFromList = (requested, choices) => {
+    const normalize = (s) => String(s || '').replace(/\\/g, '/').trim().toLowerCase();
+    const baseName = (s) => normalize(s).split('/').pop() || normalize(s);
+    const stripExt = (s) => s.replace(/\.(safetensors|ckpt|pt)$/i, '');
+
+    const req = String(requested || '').trim();
+    if (!req) return null;
+
+    // 1) Exact match
+    const reqNorm = normalize(req);
+    const exact = choices.find((c) => normalize(c) === reqNorm);
+    if (exact) return exact;
+
+    // 2) Append .safetensors if basename was passed
+    if (!/\.(safetensors|ckpt|pt)$/i.test(req)) {
+      const withExt = choices.find((c) => normalize(c) === normalize(`${req}.safetensors`));
+      if (withExt) return withExt;
+    }
+
+    // 3) Match by basename without extension (handles subfolders)
+    const reqBase = stripExt(baseName(req));
+    const candidates = choices.filter((c) => stripExt(baseName(c)) === reqBase);
+    if (candidates.length === 1) return candidates[0];
+    if (candidates.length > 1) return candidates[0];
+
+    return null;
+  };
+
+  const fetchNodeChoices = async (nodeName, inputKey) => {
+    try {
+      const response = await axios.get(`${worker.url}/object_info/${nodeName}`, { timeout: 10000 });
+      const raw = response.data?.[nodeName]?.input?.required?.[inputKey]?.[0];
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      // Fallback to full object_info
+      const response = await axios.get(`${worker.url}/object_info`, { timeout: 10000 });
+      const raw = response.data?.[nodeName]?.input?.required?.[inputKey]?.[0];
+      return Array.isArray(raw) ? raw : [];
+    }
+  };
+
+  const fixEnumeratedNode = async (classType, inputKey) => {
+    const nodes = Object.entries(workflow).filter(([, n]) => n?.class_type === classType);
+    if (nodes.length === 0) return;
+
+    const choices = await fetchNodeChoices(classType, inputKey);
+    if (choices.length === 0) {
+      // Don't hard-fail here; some builds omit choices but still accept raw filenames.
+      return;
+    }
+
+    for (const [nodeId, node] of nodes) {
+      node.inputs = node.inputs || {};
+      const requested = node.inputs?.[inputKey];
+      const resolved = requested ? resolveChoiceFromList(requested, choices) : choices[0];
+      if (!resolved) {
+        const requestedLabel = requested ? String(requested) : '(missing)';
+        const sample = choices.slice(0, 12).join(', ');
+        throw new Error(
+          `WAN node ${classType} missing required choice. Requested: ${requestedLabel}. ` +
+            `Choices: ${choices.length}. Sample: ${sample}`
+        );
+      }
+      if (requested !== resolved) {
+        console.log(`🔧 WAN auto-resolve: ${classType} node ${nodeId}: ${requested || '(unset)'} -> ${resolved}`);
+      }
+      node.inputs[inputKey] = resolved;
+    }
+  };
+
+  await fixEnumeratedNode('LoadWanVideoT5TextEncoder', 'model_name');
+  await fixEnumeratedNode('WanVideoVAELoader', 'model_name');
 }
 
 async function ensureWanI2VConditioning(workflow, workerId, referenceImage) {
@@ -811,10 +967,26 @@ function trackProgress(workerUrl, promptId, onProgress, isVideo = false, metadat
         
         if (message.type === 'execution_error') {
           console.error(`❌ Execution error:`, message.data);
-          const errorMsg = videoFlag 
-            ? `Video generation error: ${JSON.stringify(message.data)}`
-            : `Execution error: ${JSON.stringify(message.data)}`;
-          safeReject(new Error(errorMsg));
+          const payloadJson = JSON.stringify(message.data);
+          const exceptionMessage = String(message?.data?.exception_message || '').toLowerCase();
+          const isFatalKernel =
+            exceptionMessage.includes('no kernel image is available for execution on the device') ||
+            exceptionMessage.includes('cuda error: no kernel image') ||
+            (exceptionMessage.includes('no kernel image') && exceptionMessage.includes('cuda'));
+
+          const sm120Hint =
+            'Likely cause: PyTorch CUDA build does not support RTX 5090 (sm_120). ' +
+            'Use the CUDA13 + PyTorch nightly setup (docker-compose.cuda13.yml) or upgrade ComfyUI\'s torch to a nightly wheel with sm_120 support.';
+
+          const baseMsg = videoFlag
+            ? `Video generation error: ${payloadJson}`
+            : `Execution error: ${payloadJson}`;
+
+          const marked = isFatalKernel
+            ? `FATAL_CUDA_KERNEL_INCOMPATIBILITY: ${baseMsg} | ${sm120Hint}`
+            : baseMsg;
+
+          safeReject(new Error(marked));
         }
         
         if (message.type === 'execution_cached') {

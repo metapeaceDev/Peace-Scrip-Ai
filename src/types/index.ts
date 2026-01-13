@@ -266,6 +266,12 @@ export interface GeneratedScene {
     shot: number;
     image: string; // Base64 string
     video?: string; // URI for generated video
+    // 🆕 Persist in-progress video jobs so the UI can resume after navigation
+    videoJobId?: string;
+    videoStatus?: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
+    videoProgress?: number; // 0-100 (last known)
+    videoModel?: string;
+    videoError?: string;
   }[];
   propList: {
     scene: string;

@@ -41,9 +41,9 @@ export const VIDEO_MODELS = {
     // Available WAN models (Kijai's converted models - downloaded and ready to use)
     models: {
       // Wan 2.1 I2V 14B FP8 - Image-to-Video (best for character animation with face ID)
-      i2v14B_fp8: 'Wan2_1-I2V-14B-480P_fp8_e4m3fn',
+      i2v14B_fp8: 'Wan2_1-I2V-14B-480P_fp8_e4m3fn.safetensors',
       // Wan 2.1 T2V 14B FP8 - Text-to-Video (general purpose)
-      t2v14B_fp8: 'Wan2_1-T2V-14B_fp8_e4m3fn',
+      t2v14B_fp8: 'Wan2_1-T2V-14B_fp8_e4m3fn.safetensors',
       // Alternative models (not downloaded yet):
       // phantom14B: 'Phantom-Wan-14B_fp16',  // 29GB
     },
@@ -51,10 +51,12 @@ export const VIDEO_MODELS = {
     // buildWanWorkflow() creates a text-to-video graph (WanVideoEmptyEmbeds -> WanVideoSampler).
     // I2V models require an image-embed conditioning node; those are injected later in prepareWorkflow
     // when a reference image is provided and the worker supports it.
-    defaultModelPath: 'Wan2_1-T2V-14B_fp8_e4m3fn',
+    defaultModelPath: 'Wan2_1-T2V-14B_fp8_e4m3fn.safetensors',
     defaultT5Encoder: 'umt5-xxl-enc-bf16.safetensors',
-    defaultVae: 'wanvideo/Wan2_1_VAE_bf16.safetensors',
-    defaultFrames: 81,
+    defaultVae: 'Wan2_1_VAE_bf16.safetensors',
+    // Stability-first default: 61 requested frames (snaps to 65 by 16k+1 safety)
+    // This matches the previously stable configuration in this project.
+    defaultFrames: 61,
     maxFrames: 201,
     fps: 8,
     width: 832,

@@ -565,6 +565,64 @@ const SceneDisplay: React.FC<{
   const progressDisplayedRef = useRef(0);
   const progressTimeoutsRef = useRef<number[]>([]);
 
+  // Track one refresh attempt per shot+URL to avoid loops
+  const refreshedVideoAttemptRef = useRef<Record<string, boolean>>({});
+
+  // 🆕 Persist/resume in-progress video jobs across navigation
+  const lastPersistedVideoProgressRef = useRef<Record<string, number>>({});
+  const activeResumeJobIdRef = useRef<string | null>(null);
+
+  const getVideoJobStorageKey = useCallback(
+    (sceneNumber: number, shotNumber: number) => `ps:videoJob:${sceneNumber}:${shotNumber}`,
+    []
+  );
+
+  const readPersistedVideoJob = useCallback(
+    (sceneNumber: number, shotNumber: number):
+      | { jobId: string; progress?: number; status?: string; updatedAt?: number }
+      | null => {
+      try {
+        const raw = localStorage.getItem(getVideoJobStorageKey(sceneNumber, shotNumber));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.jobId !== 'string') return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    },
+    [getVideoJobStorageKey]
+  );
+
+  const persistVideoJob = useCallback(
+    (
+      sceneNumber: number,
+      shotNumber: number,
+      payload: { jobId: string; progress?: number; status?: string }
+    ) => {
+      try {
+        localStorage.setItem(
+          getVideoJobStorageKey(sceneNumber, shotNumber),
+          JSON.stringify({ ...payload, updatedAt: Date.now() })
+        );
+      } catch {
+        // ignore storage failures (private mode/quota)
+      }
+    },
+    [getVideoJobStorageKey]
+  );
+
+  const clearPersistedVideoJob = useCallback(
+    (sceneNumber: number, shotNumber: number) => {
+      try {
+        localStorage.removeItem(getVideoJobStorageKey(sceneNumber, shotNumber));
+      } catch {
+        // ignore
+      }
+    },
+    [getVideoJobStorageKey]
+  );
+
   // Keep the ref in sync even if other handlers call setProgress directly.
   useEffect(() => {
     progressDisplayedRef.current = progress;
@@ -665,6 +723,153 @@ const SceneDisplay: React.FC<{
     [clearProgressAnimation, setProgressImmediate]
   );
 
+  // 🆕 Resume in-progress video job after navigation/unmount
+  useEffect(() => {
+    // Only resume when nothing is actively generating in this UI.
+    if (generatingVideoShotId != null) return;
+
+    const pending: any = editedScene.storyboard?.find(
+      s =>
+        typeof (s as any).videoJobId === 'string' &&
+        ((s as any).videoStatus === 'queued' || (s as any).videoStatus === 'processing')
+    );
+
+    const pendingJobId = pending && typeof pending.videoJobId === 'string' ? pending.videoJobId : null;
+    const pendingShotNumber = pending && typeof pending.shot === 'number' ? pending.shot : null;
+
+    if (!pendingJobId || pendingShotNumber == null) return;
+    if (activeResumeJobIdRef.current === pendingJobId) return;
+
+    const shotIndex =
+      editedScene.shotList?.findIndex(sl => isSameShotNumber(sl.shot, pendingShotNumber)) ?? -1;
+    if (shotIndex < 0) return;
+
+    activeResumeJobIdRef.current = pendingJobId;
+    setGeneratingVideoShotId(shotIndex);
+    setCurrentVideoJobId(pendingJobId);
+
+    const persisted = readPersistedVideoJob(editedScene.sceneNumber, pendingShotNumber);
+    if (persisted && typeof persisted.progress === 'number') {
+      setProgressImmediate(persisted.progress);
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { getVideoJobStatus } = await import('../services/comfyuiBackendClient');
+
+        while (!cancelled) {
+          const status = await getVideoJobStatus(pendingJobId);
+
+          const rawStatus = (status.status || status.state || 'processing') as string;
+          const nextStatus =
+            rawStatus === 'completed' || rawStatus === 'failed' || rawStatus === 'queued' || rawStatus === 'processing'
+              ? rawStatus
+              : 'processing';
+
+          const nextProgress =
+            typeof status.progress === 'number' && Number.isFinite(status.progress)
+              ? Math.max(0, Math.min(100, Math.round(status.progress)))
+              : 0;
+
+          animateProgressTo(nextProgress);
+
+          const progressKey = `${editedScene.sceneNumber}:${pendingShotNumber}`;
+          const lastPersisted = lastPersistedVideoProgressRef.current[progressKey];
+          if (lastPersisted == null || Math.abs(nextProgress - lastPersisted) >= 1) {
+            lastPersistedVideoProgressRef.current[progressKey] = nextProgress;
+            persistVideoJob(editedScene.sceneNumber, pendingShotNumber, {
+              jobId: pendingJobId,
+              progress: nextProgress,
+              status: nextStatus,
+            });
+          }
+
+          if (nextStatus === 'completed') {
+            const videoUrl =
+              (typeof status.videoUrl === 'string' && status.videoUrl) ||
+              (typeof (status.result as any)?.videoUrl === 'string' && (status.result as any).videoUrl) ||
+              (typeof (status.result as any)?.url === 'string' && (status.result as any).url) ||
+              null;
+
+            if (videoUrl) {
+              const oldItem =
+                editedScene.storyboard?.find(s => isSameShotNumber(s.shot, pendingShotNumber)) ||
+                ({ shot: pendingShotNumber, image: '' } as any);
+              const newItem = {
+                ...oldItem,
+                video: videoUrl,
+                videoJobId: undefined,
+                videoStatus: undefined,
+                videoProgress: undefined,
+                videoError: undefined,
+              };
+              const updatedStoryboard = [
+                ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, pendingShotNumber)) || []),
+                newItem,
+              ];
+              const updatedScene = { ...editedScene, storyboard: updatedStoryboard };
+              setEditedScene(updatedScene);
+              if (!isEditing) onSave(updatedScene);
+            }
+
+            clearPersistedVideoJob(editedScene.sceneNumber, pendingShotNumber);
+            break;
+          }
+
+          if (nextStatus === 'failed') {
+            const errorMsg = typeof status.error === 'string' ? status.error : 'Video job failed';
+
+            const oldItem =
+              editedScene.storyboard?.find(s => isSameShotNumber(s.shot, pendingShotNumber)) ||
+              ({ shot: pendingShotNumber, image: '' } as any);
+            const newItem = {
+              ...oldItem,
+              videoJobId: pendingJobId,
+              videoStatus: 'failed' as const,
+              videoProgress: nextProgress,
+              videoError: errorMsg,
+            };
+            const updatedStoryboard = [
+              ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, pendingShotNumber)) || []),
+              newItem,
+            ];
+            const updatedScene = { ...editedScene, storyboard: updatedStoryboard };
+            setEditedScene(updatedScene);
+            if (!isEditing) onSave(updatedScene);
+
+            break;
+          }
+
+          await new Promise(r => setTimeout(r, 3000));
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to resume video job polling:', e);
+      } finally {
+        if (!cancelled) {
+          setGeneratingVideoShotId(null);
+          setCurrentVideoJobId(null);
+          activeResumeJobIdRef.current = null;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    animateProgressTo,
+    clearPersistedVideoJob,
+    editedScene,
+    generatingVideoShotId,
+    isEditing,
+    onSave,
+    persistVideoJob,
+    readPersistedVideoJob,
+    setProgressImmediate,
+  ]);
+
   // 🎙️ Voice Generation States
 
   // @ts-ignore - audioTimeline reserved for future audio preview feature
@@ -675,18 +880,18 @@ const SceneDisplay: React.FC<{
   // 🆕 Video Generation Settings
   // WAN defaults (reset when WAN is selected)
   // Baseline proven in this project: lower FPS + calmer motion tends to reduce noise/blur/drift.
-  const [videoCfg, setVideoCfg] = useState<number>(5.5);
+  const [videoCfg, setVideoCfg] = useState<number>(6.0);
   const [videoSteps, setVideoSteps] = useState<number>(30);
-  const [videoFps, setVideoFps] = useState<number>(12);
-  const [videoMotionStrength, setVideoMotionStrength] = useState<number>(92);
+  const [videoFps, setVideoFps] = useState<number>(8);
+  const [videoMotionStrength, setVideoMotionStrength] = useState<number>(80);
 
   // If user selects Wan, re-apply Wan defaults (helps when they previously tuned values for other models).
   useEffect(() => {
-    if (preferredVideoModel === 'comfyui-wan') {
-      setVideoCfg(5.5);
+    if (preferredVideoModel.startsWith('comfyui-wan')) {
+      setVideoCfg(6.0);
       setVideoSteps(30);
-      setVideoFps(12);
-      setVideoMotionStrength(92);
+      setVideoFps(8);
+      setVideoMotionStrength(80);
     }
   }, [preferredVideoModel]);
 
@@ -1577,6 +1782,7 @@ ${
     setGeneratingVideoShotId(shotIndex);
     setCurrentVideoJobId(null); // Reset job ID
     setProgress(0);
+    setProgressImmediate(0);
     setAudioProgress(0);
 
     try {
@@ -1617,6 +1823,35 @@ ${
 
       console.warn('  Has Base Image:', !!existingImage);
       console.warn('  Has Previous Video:', !!previousVideo);
+
+      // 🆕 Persist a "pending" storyboard item immediately so navigation doesn't hide the clip card.
+      // We update again once we receive a jobId from the backend.
+      {
+        const oldStoryboardItem =
+          editedScene.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber)) ||
+          ({ shot: shotNumber, image: existingImage || '' } as any);
+        const pendingItem = {
+          ...oldStoryboardItem,
+          videoJobId: oldStoryboardItem.videoJobId,
+          videoStatus: 'processing' as const,
+          videoProgress: 0,
+          videoModel: preferredVideoModel,
+          videoError: undefined,
+        };
+        const updatedStoryboard = [
+          ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
+          pendingItem,
+        ];
+        const updatedScene = { ...editedScene, storyboard: updatedStoryboard };
+        setEditedScene(updatedScene);
+        if (!isEditing) onSave(updatedScene);
+
+        persistVideoJob(editedScene.sceneNumber, shotNumber, {
+          jobId: pendingItem.videoJobId || 'pending',
+          progress: 0,
+          status: 'processing',
+        });
+      }
 
       // 🆕 Avoid "same clip" on regenerate:
       // Video generation uses stable/deterministic seeding by default for consistency.
@@ -1707,6 +1942,8 @@ ${
         timestamp: new Date().toISOString(),
       });
 
+      let persistedJobId = false;
+
       const videoUri = await generateShotVideo(
         shotData,
         existingImage,
@@ -1723,11 +1960,55 @@ ${
           aspectRatio: videoAspectRatio,
           width: videoAspectRatio === 'custom' ? customWidth : undefined,
           height: videoAspectRatio === 'custom' ? customHeight : undefined,
-          // Note: cfg, steps, fps, motionStrength are handled internally by video generation service
+          // 🆕 Use Advanced Settings (WAN/ComfyUI)
+          cfg: videoCfg,
+          steps: videoSteps,
+          fps: videoFps,
+          motionStrength: videoMotionStrength,
+          // Keep duration coherent with shot timing
+          duration: typeof shotData.durationSec === 'number' ? shotData.durationSec : undefined,
         },
-        (p: number) => {
-          console.info(`🎬 UI Progress Update: ${Math.round(p)}%`);
-          animateProgressTo(p);
+        (p: number, _details?: any, jobId?: string) => {
+          const pct = Math.round(p);
+          console.info(`🎬 UI Progress Update: ${pct}%`);
+          animateProgressTo(pct);
+
+          const effectiveJobId = typeof jobId === 'string' && jobId.length > 0 ? jobId : null;
+          if (effectiveJobId && effectiveJobId !== currentVideoJobId) {
+            setCurrentVideoJobId(effectiveJobId);
+          }
+
+          // Persist progress + job id for resume-after-navigation UX.
+          persistVideoJob(editedScene.sceneNumber, shotNumber, {
+            jobId: effectiveJobId || currentVideoJobId || 'pending',
+            progress: pct,
+            status: 'processing',
+          });
+
+          // Save jobId into storyboard once (so we can resume even after reload).
+          if (effectiveJobId && !persistedJobId) {
+            persistedJobId = true;
+            setEditedScene(prev => {
+              const oldItem =
+                prev.storyboard?.find(s => isSameShotNumber(s.shot, shotNumber)) ||
+                ({ shot: shotNumber, image: existingImage || '' } as any);
+              const newItem = {
+                ...oldItem,
+                videoJobId: effectiveJobId,
+                videoStatus: 'processing' as const,
+                videoProgress: pct,
+                videoModel: preferredVideoModel,
+                videoError: undefined,
+              };
+              const updatedStoryboard = [
+                ...(prev.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
+                newItem,
+              ];
+              const updatedScene = { ...prev, storyboard: updatedStoryboard };
+              if (!isEditing) onSave(updatedScene);
+              return updatedScene;
+            });
+          }
         }
       );
 
@@ -1818,7 +2099,15 @@ ${
         shot: shotNumber,
         image: '',
       };
-      const newItem = { ...oldStoryboardItem, video: finalVideoUri };
+      const newItem = {
+        ...oldStoryboardItem,
+        video: finalVideoUri,
+        videoJobId: undefined,
+        videoStatus: undefined,
+        videoProgress: undefined,
+        videoError: undefined,
+        videoModel: preferredVideoModel,
+      };
 
       const updatedStoryboard = [
         ...(editedScene.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
@@ -1829,6 +2118,8 @@ ${
       setEditedScene(updatedScene);
 
       if (!isEditing) onSave(updatedScene);
+
+      clearPersistedVideoJob(editedScene.sceneNumber, shotNumber);
     } catch (error) {
       // 🔍 Show actual error message instead of generic message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -5540,6 +5831,7 @@ ${mode === 'fresh' ? `
                           // Check if it's a GIF (use img tag) or video (use video tag)
                           shotVideo.endsWith('.gif') || shotVideo.includes('.gif?') ? (
                             <img
+                              key={shotVideo}
                               src={shotVideo}
                               alt={`Shot ${shot.shot} video`}
                               className="w-full h-full object-cover"
@@ -5552,6 +5844,42 @@ ${mode === 'fresh' ? `
                                   shotVideo.includes('firebasestorage')
                                 );
                                 console.error('📹 Has token?', shotVideo.includes('token='));
+
+                                const looksSigned =
+                                  shotVideo.includes('X-Goog-') ||
+                                  shotVideo.includes('GoogleAccessId=') ||
+                                  shotVideo.includes('Signature=');
+                                const hasToken = shotVideo.includes('token=');
+                                const attemptKey = `${shot.shot}::${shotVideo}`;
+                                if (looksSigned && !hasToken && !refreshedVideoAttemptRef.current[attemptKey]) {
+                                  refreshedVideoAttemptRef.current[attemptKey] = true;
+                                  (async () => {
+                                    try {
+                                      const { refreshVideoUrls } = await import(
+                                        '../services/comfyuiBackendClient'
+                                      );
+                                      const refreshed = await refreshVideoUrls([shotVideo]);
+                                      const r0 = refreshed?.[0];
+                                      if (r0?.status === 'success' && r0?.newUrl) {
+                                        setEditedScene(prev => {
+                                          const updated = {
+                                            ...prev,
+                                            storyboard: (prev.storyboard || []).map(s =>
+                                              isSameShotNumber(s.shot, shot.shot)
+                                                ? { ...s, video: r0.newUrl as string }
+                                                : s
+                                            ),
+                                          };
+                                          if (!isEditing) onSave(updated);
+                                          return updated;
+                                        });
+                                      }
+                                    } catch (err) {
+                                      console.error('❌ Failed to auto-refresh GIF URL:', err);
+                                    }
+                                  })();
+                                }
+
                                 // Hide broken image element
                                 e.currentTarget.style.display = 'none';
                                 // Show error message
@@ -5566,6 +5894,7 @@ ${mode === 'fresh' ? `
                             />
                           ) : (
                             <video
+                              key={shotVideo}
                               src={shotVideo}
                               controls
                               className="w-full h-full object-cover"
@@ -5580,6 +5909,42 @@ ${mode === 'fresh' ? `
                                   shotVideo.includes('firebasestorage')
                                 );
                                 console.error('📹 Has token?', shotVideo.includes('token='));
+
+                                const looksSigned =
+                                  shotVideo.includes('X-Goog-') ||
+                                  shotVideo.includes('GoogleAccessId=') ||
+                                  shotVideo.includes('Signature=');
+                                const hasToken = shotVideo.includes('token=');
+                                const attemptKey = `${shot.shot}::${shotVideo}`;
+                                if (looksSigned && !hasToken && !refreshedVideoAttemptRef.current[attemptKey]) {
+                                  refreshedVideoAttemptRef.current[attemptKey] = true;
+                                  (async () => {
+                                    try {
+                                      const { refreshVideoUrls } = await import(
+                                        '../services/comfyuiBackendClient'
+                                      );
+                                      const refreshed = await refreshVideoUrls([shotVideo]);
+                                      const r0 = refreshed?.[0];
+                                      if (r0?.status === 'success' && r0?.newUrl) {
+                                        setEditedScene(prev => {
+                                          const updated = {
+                                            ...prev,
+                                            storyboard: (prev.storyboard || []).map(s =>
+                                              isSameShotNumber(s.shot, shot.shot)
+                                                ? { ...s, video: r0.newUrl as string }
+                                                : s
+                                            ),
+                                          };
+                                          if (!isEditing) onSave(updated);
+                                          return updated;
+                                        });
+                                      }
+                                    } catch (err) {
+                                      console.error('❌ Failed to auto-refresh video URL:', err);
+                                    }
+                                  })();
+                                }
+
                                 // Hide broken video element
                                 e.currentTarget.style.display = 'none';
                                 // Show error message
@@ -5622,6 +5987,7 @@ ${mode === 'fresh' ? `
                         {/* Video Error Fallback (hidden by default) */}
                         {shotVideo && (
                           <div
+                            key={shotVideo}
                             className="video-error-fallback absolute inset-0 bg-red-900/20 border-2 border-red-500/50 rounded-lg flex-col items-center justify-center text-center p-4"
                             style={{ display: 'none' }}
                           >

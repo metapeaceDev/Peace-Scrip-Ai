@@ -6,6 +6,240 @@ import * as crypto from 'crypto';
 admin.initializeApp();
 
 /**
+ * Refresh expired Firebase Storage URLs into non-expiring token URLs.
+ *
+ * Callable: refreshVideoUrls({ videoUrls: string[] })
+ * Returns: { refreshedUrls: Array<{ oldUrl, newUrl, status, error? }>, summary }
+ */
+export const refreshVideoUrls = functions.https.onCall(async (data, context) => {
+  // Require auth by default to reduce abuse.
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const videoUrls: unknown = data?.videoUrls;
+  if (!Array.isArray(videoUrls) || videoUrls.length === 0) {
+    throw new functions.https.HttpsError('invalid-argument', 'videoUrls must be a non-empty array');
+  }
+
+  // Limit to prevent large scans.
+  if (videoUrls.length > 50) {
+    throw new functions.https.HttpsError('invalid-argument', 'videoUrls too large (max 50)');
+  }
+
+  const normalizeBucketName = (bucketName: unknown): string | null => {
+    if (!bucketName) return null;
+    let name = String(bucketName).trim();
+    if (!name) return null;
+    name = name.replace(/^gs:\/\//, '');
+    name = name.replace(/\/$/, '');
+    return name || null;
+  };
+
+  const swapBucketSuffix = (bucketName: string | null): string | null => {
+    if (!bucketName) return null;
+    if (bucketName.endsWith('.appspot.com')) {
+      return bucketName.replace(/\.appspot\.com$/, '.firebasestorage.app');
+    }
+    if (bucketName.endsWith('.firebasestorage.app')) {
+      return bucketName.replace(/\.firebasestorage\.app$/, '.appspot.com');
+    }
+    return null;
+  };
+
+  const decodePath = (path: unknown): string => {
+    const parts = String(path || '')
+      .split('/')
+      .filter(Boolean)
+      .map((p) => {
+        try {
+          return decodeURIComponent(p);
+        } catch {
+          return p;
+        }
+      });
+    return parts.join('/');
+  };
+
+  const parseStorageUrl = (input: unknown): { bucketName: string; objectPath: string } | null => {
+    try {
+      const u = new URL(String(input));
+
+      // Firebase token URL style:
+      // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedObject>?...
+      if (u.hostname === 'firebasestorage.googleapis.com') {
+        const m = u.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+        if (!m) return null;
+        const bucketName = normalizeBucketName(m[1]);
+        let objectPath = m[2];
+        try {
+          objectPath = decodeURIComponent(objectPath);
+        } catch {
+          // ignore
+        }
+        if (!bucketName || !objectPath) return null;
+        return { bucketName, objectPath };
+      }
+
+      // GCS URL style:
+      // - https://storage.googleapis.com/<bucket>/<object>
+      // - https://<bucket>.storage.googleapis.com/<object>
+      if (u.hostname === 'storage.googleapis.com') {
+        const parts = u.pathname.split('/').filter(Boolean);
+        if (parts.length < 2) return null;
+        const bucketName = normalizeBucketName(parts[0]);
+        const objectPath = decodePath(parts.slice(1).join('/'));
+        if (!bucketName || !objectPath) return null;
+        return { bucketName, objectPath };
+      }
+
+      if (u.hostname.endsWith('.storage.googleapis.com')) {
+        const bucketName = normalizeBucketName(u.hostname.replace(/\.storage\.googleapis\.com$/, ''));
+        const objectPath = decodePath(u.pathname);
+        if (!bucketName || !objectPath) return null;
+        return { bucketName, objectPath };
+      }
+
+      // Bucket domain directly:
+      // e.g. https://<project>.firebasestorage.app/<object>
+      if (u.hostname.endsWith('.firebasestorage.app')) {
+        const bucketName = normalizeBucketName(u.hostname);
+        const objectPath = decodePath(u.pathname);
+        if (!bucketName || !objectPath) return null;
+        return { bucketName, objectPath };
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const ensureDownloadToken = async (file: any): Promise<string> => {
+    const [meta] = await file.getMetadata();
+    const existing = meta?.metadata?.firebaseStorageDownloadTokens;
+    if (existing && typeof existing === 'string' && existing.trim()) {
+      // If multiple tokens exist, use the first.
+      return existing.split(',')[0].trim();
+    }
+
+    const token = crypto.randomBytes(16).toString('hex');
+    await file.setMetadata({
+      metadata: {
+        ...(meta?.metadata || {}),
+        firebaseStorageDownloadTokens: token,
+      },
+    });
+    return token;
+  };
+
+  const makeTokenUrl = (bucketName: string, objectPath: string, token: string): string => {
+    return (
+      'https://firebasestorage.googleapis.com/v0/b/' +
+      encodeURIComponent(bucketName) +
+      '/o/' +
+      encodeURIComponent(objectPath) +
+      '?alt=media&token=' +
+      encodeURIComponent(token)
+    );
+  };
+
+  const storage = admin.storage();
+  const defaultBucketName = normalizeBucketName(admin.app().options.storageBucket as unknown);
+
+  const refreshedUrls: Array<{
+    oldUrl: string;
+    newUrl: string | null;
+    status: 'success' | 'failed';
+    error?: string;
+  }> = [];
+
+  for (const oldUrl of videoUrls as string[]) {
+    try {
+      const parsed = parseStorageUrl(oldUrl);
+      if (!parsed) {
+        refreshedUrls.push({
+          oldUrl,
+          newUrl: null,
+          status: 'failed',
+          error: 'Invalid Storage URL format',
+        });
+        continue;
+      }
+
+      // Basic path restriction to reduce abuse.
+      // Adjust this allowlist if your project stores videos elsewhere.
+      const allowedPrefixes = ['comfyui-videos/', 'videos/', 'outputs/'];
+      const allowed = allowedPrefixes.some((p) => parsed.objectPath.startsWith(p));
+      if (!allowed) {
+        refreshedUrls.push({
+          oldUrl,
+          newUrl: null,
+          status: 'failed',
+          error: 'Object path not allowed',
+        });
+        continue;
+      }
+
+      const bucketCandidates = [
+        normalizeBucketName(parsed.bucketName),
+        swapBucketSuffix(normalizeBucketName(parsed.bucketName)),
+        defaultBucketName,
+        swapBucketSuffix(defaultBucketName),
+      ].filter(Boolean) as string[];
+
+      let foundBucket: any | null = null;
+      let foundFile: any | null = null;
+
+      for (const candidate of bucketCandidates) {
+        const b = storage.bucket(candidate);
+        const f = b.file(parsed.objectPath);
+        const [exists] = await f.exists();
+        if (exists) {
+          foundBucket = b;
+          foundFile = f;
+          break;
+        }
+      }
+
+      if (!foundBucket || !foundFile) {
+        refreshedUrls.push({
+          oldUrl,
+          newUrl: null,
+          status: 'failed',
+          error: `File not found (objectPath=${parsed.objectPath})`,
+        });
+        continue;
+      }
+
+      const token = await ensureDownloadToken(foundFile);
+      const newUrl = makeTokenUrl(foundBucket.name, parsed.objectPath, token);
+
+      refreshedUrls.push({
+        oldUrl,
+        newUrl,
+        status: 'success',
+      });
+    } catch (err) {
+      refreshedUrls.push({
+        oldUrl,
+        newUrl: null,
+        status: 'failed',
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  }
+
+  const summary = {
+    total: videoUrls.length,
+    success: refreshedUrls.filter((r) => r.status === 'success').length,
+    failed: refreshedUrls.filter((r) => r.status === 'failed').length,
+  };
+
+  return { refreshedUrls, summary };
+});
+
+/**
  * BOOTSTRAP FUNCTION: Initialize First Super Admin
  * ⚠️ ใช้ครั้งเดียวเพื่อสร้าง super-admin คนแรก
  * ⚠️ ลบออกหลังจากใช้งานเสร็จ
