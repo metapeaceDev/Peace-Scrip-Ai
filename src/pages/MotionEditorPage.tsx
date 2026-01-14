@@ -111,6 +111,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   const [previewMediaType, setPreviewMediaType] = useState<'video' | 'image'>(
     videoUrl ? 'video' : 'image'
   );
+  const [previewClipStartTime, setPreviewClipStartTime] = useState<number>(0); // Global timeline start position
 
   console.log('🎬 MotionEditor - Current Shot Data:', {
     shotId,
@@ -120,6 +121,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     hasVideo: !!videoUrl,
     hasImage: !!imageUrl,
     previewClipId,
+    previewClipStartTime,
     previewMediaUrl: previewMediaUrl?.substring(0, 50) + '...',
     videoUrl: videoUrl?.substring(0, 50) + '...',
     imageUrl: imageUrl?.substring(0, 50) + '...',
@@ -798,8 +800,10 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                       preload="metadata"
                       key={previewMediaUrl || videoUrl}
                       onTimeUpdate={e => {
-                        // Sync timeline with video playback
-                        setCurrentTime(e.currentTarget.currentTime);
+                        // Sync timeline with video playback - use GLOBAL timeline position
+                        const videoLocalTime = e.currentTarget.currentTime;
+                        const globalTimelinePosition = previewClipStartTime + videoLocalTime;
+                        setCurrentTime(globalTimelinePosition);
                       }}
                       onEnded={() => {
                         // Auto-play next clip when current clip ends
@@ -812,10 +816,11 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                           // Play next clip
                           const nextClip = allClips[currentClipIndex + 1];
                           if (nextClip.mediaUrl) {
-                            console.log('🎬 Auto-playing next clip:', nextClip.label);
+                            console.log('🎬 Auto-playing next clip:', nextClip.label, 'starts at', nextClip.start);
                             setPreviewClipId(nextClip.id);
                             setPreviewMediaUrl(nextClip.mediaUrl);
                             setPreviewMediaType(nextClip.mediaType || 'video');
+                            setPreviewClipStartTime(nextClip.start); // Update global start position
                             // Keep playing
                             setIsPlaying(true);
                           }
@@ -1629,12 +1634,15 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                   locked: false,
                 }))}
                 onClipClick={clip => {
-                  console.log('🎬 Clip clicked:', clip);
+                  console.log('🎬 Clip clicked:', clip, 'starts at', clip.start);
                   // Update preview when clicking on a clip
                   if (clip.mediaUrl) {
                     setPreviewClipId(clip.id);
                     setPreviewMediaUrl(clip.mediaUrl);
                     setPreviewMediaType(clip.mediaType || 'video');
+                    setPreviewClipStartTime(clip.start ?? 0); // Set global timeline start position
+                    // Update timeline position to clip start
+                    setCurrentTime(clip.start ?? 0);
                     // Pause current playback
                     setIsPlaying(false);
                     if (videoRef.current) {
