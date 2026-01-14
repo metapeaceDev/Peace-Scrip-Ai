@@ -218,19 +218,21 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
 
   // Tracks for Multi-track Timeline - Load ALL shots from script
   const [tracks, setTracks] = useState(() => {
-    // Initialize with all shots from scriptData
+    // Initialize with all shots from scriptData with ESTIMATED durations
+    // Real durations will be updated when videos load
     const videoClips: TimelineClip[] = [];
     let currentTime = 0;
 
     allShots.forEach((shot, index) => {
       const board = shot.storyboard;
-      const shotDuration = shot.duration || 3;
+      // Use storyboard duration or estimate 5s per shot (more realistic than 3s)
+      const estimatedDuration = board.duration || shot.duration || 5;
 
       if (board.video) {
         videoClips.push({
           id: `shot_${shot.shotId}_${index}`,
           start: currentTime,
-          end: currentTime + shotDuration,
+          end: currentTime + estimatedDuration,
           label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
           color: '#ef4444',
           mediaUrl: board.video,
@@ -240,7 +242,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
         videoClips.push({
           id: `shot_${shot.shotId}_${index}`,
           start: currentTime,
-          end: currentTime + shotDuration,
+          end: currentTime + estimatedDuration,
           label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
           color: '#8b5cf6',
           mediaUrl: board.image,
@@ -248,10 +250,10 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
         });
       }
 
-      currentTime += shotDuration;
+      currentTime += estimatedDuration;
     });
 
-    console.log('🎬 Initialized timeline with clips:', videoClips.length);
+    console.log('🎬 Initialized timeline with clips:', videoClips.length, '(using estimated durations)');
 
     return [
       {
@@ -277,10 +279,94 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     ];
   });
 
-  // Calculate total duration from all shots
+  // Calculate total duration from all clips (using actual clip durations)
   const totalDuration = useMemo(() => {
-    return allShots.reduce((total, shot) => total + (shot.duration || 3), 0);
-  }, [allShots]);
+    const allClips = tracks[0]?.clips || [];
+    if (allClips.length === 0) {
+      return allShots.reduce((total, shot) => total + (shot.duration || 5), 0);
+    }
+    const lastClip = allClips[allClips.length - 1];
+    return lastClip.end;
+  }, [tracks, allShots]);
+
+  // Load actual video durations and update timeline
+  useEffect(() => {
+    const loadVideoDurations = async () => {
+      const allClips = tracks[0]?.clips || [];
+      const updatedClips: TimelineClip[] = [];
+      let currentTime = 0;
+      let hasChanges = false;
+
+      for (const clip of allClips) {
+        if (clip.mediaType === 'video' && clip.mediaUrl) {
+          try {
+            // Create temporary video element to get duration
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            const duration = await new Promise<number>((resolve) => {
+              video.onloadedmetadata = () => {
+                resolve(video.duration);
+              };
+              video.onerror = () => {
+                console.warn('Failed to load video duration for:', clip.label);
+                resolve(clip.end - clip.start); // Keep estimated duration
+              };
+              video.src = clip.mediaUrl!;
+            });
+
+            const actualDuration = Math.round(duration * 100) / 100; // Round to 2 decimals
+            const estimatedDuration = clip.end - clip.start;
+
+            if (Math.abs(actualDuration - estimatedDuration) > 0.5) {
+              // Duration differs significantly, update it
+              hasChanges = true;
+              console.log(`📏 ${clip.label}: ${estimatedDuration}s → ${actualDuration}s (actual)`);
+            }
+
+            updatedClips.push({
+              ...clip,
+              start: currentTime,
+              end: currentTime + actualDuration,
+            });
+            currentTime += actualDuration;
+          } catch (error) {
+            console.warn('Error loading video duration:', error);
+            updatedClips.push({
+              ...clip,
+              start: currentTime,
+              end: currentTime + (clip.end - clip.start),
+            });
+            currentTime += clip.end - clip.start;
+          }
+        } else {
+          // Image or fallback - keep estimated duration
+          const clipDuration = clip.end - clip.start;
+          updatedClips.push({
+            ...clip,
+            start: currentTime,
+            end: currentTime + clipDuration,
+          });
+          currentTime += clipDuration;
+        }
+      }
+
+      if (hasChanges && updatedClips.length > 0) {
+        console.log('🎬 Updated timeline with actual video durations');
+        setTracks(prev => [
+          {
+            ...prev[0],
+            clips: updatedClips,
+          },
+          ...prev.slice(1),
+        ]);
+      }
+    };
+
+    if (tracks[0]?.clips.length > 0) {
+      loadVideoDurations();
+    }
+  }, [allShots]); // Only run once on mount
 
   // Auto-play video when preview clip changes (for seamless playback)
   useEffect(() => {
