@@ -218,7 +218,7 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current) return;
     const rect = timelineRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const x = e.clientX - rect.left - 192; // Subtract track header width (192px = w-48)
     const time = Math.max(0, Math.min(duration, x / pixelsPerSecond));
     onTimeChange(snapTime(time));
   };
@@ -272,8 +272,11 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
 
       {/* Timeline Container */}
       <div className="timeline-container relative overflow-x-auto overflow-y-auto max-h-[500px]">
-        {/* Time Ruler */}
-        <div className="time-ruler bg-gray-800 border-b border-gray-700 h-8 sticky top-0 z-10">
+        {/* Time Ruler with left offset */}
+        <div className="time-ruler bg-gray-800 border-b border-gray-700 h-8 sticky top-0 z-10 flex">
+          {/* Left spacer for track headers */}
+          <div className="w-48 flex-shrink-0 bg-gray-800 border-r border-gray-700"></div>
+          {/* Time markers */}
           <div className="relative h-full" style={{ width: `${duration * pixelsPerSecond}px` }}>
             {Array.from({ length: Math.ceil(duration) + 1 }).map((_, i) => (
               <div
@@ -302,13 +305,13 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
             tracks.map((track) => (
               <div
                 key={track.id}
-                className={`timeline-track border-b border-gray-700 ${
+                className={`timeline-track flex border-b border-gray-700 ${
                   track.locked ? 'opacity-50' : ''
                 }`}
                 style={{ height: `${track.height}px` }}
               >
-                {/* Track Header */}
-                <div className="track-header absolute left-0 w-48 h-full bg-gray-800 border-r border-gray-700 p-2 flex flex-col justify-between">
+                {/* Track Header - Fixed width left side */}
+                <div className="track-header w-48 flex-shrink-0 bg-gray-800 border-r border-gray-700 p-2 flex flex-col justify-between">
                   <div>
                     <div className="font-medium text-sm truncate" title={track.name}>
                       {track.name}
@@ -351,9 +354,9 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
                   </div>
                 </div>
 
-                {/* Track Clips */}
+                {/* Track Clips - Scrollable right side */}
                 <div
-                  className="track-clips relative ml-48"
+                  className="track-clips relative"
                   style={{
                     width: `${duration * pixelsPerSecond}px`,
                     height: `${track.height}px`,
@@ -420,7 +423,7 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
           <div
             ref={playheadRef}
             className="playhead absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-            style={{ left: `${currentTime * pixelsPerSecond}px` }}
+            style={{ left: `${192 + currentTime * pixelsPerSecond}px` }}
           >
             <div
               className="playhead-handle absolute -top-1 -left-2 w-4 h-4 bg-red-500 rounded-sm cursor-grab active:cursor-grabbing pointer-events-auto"
