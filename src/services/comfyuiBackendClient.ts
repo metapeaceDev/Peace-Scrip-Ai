@@ -12,6 +12,122 @@ import { recordGeneration } from './modelUsageTracker';
 import { API_PRICING } from '../types/analytics';
 import { buildWorkflow, buildFluxWorkflow } from './comfyuiWorkflowBuilder';
 
+const WAN_DEFAULT_NEGATIVE_PROMPT =
+  'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, stutter, frozen frame, freeze frame, jump cuts, scene changes, camera switches, angle changes, multiple shots, multiple angles, blurry, low resolution, watermark';
+
+export const __test__buildWanNegativePromptForShot = (
+  base: string | undefined,
+  shotSizeLower: string,
+  perspectiveKey?: string
+) => {
+  const baseNeg = (
+    typeof base === 'string' && base.trim().length > 0 ? base.trim() : WAN_DEFAULT_NEGATIVE_PROMPT
+  ).trim();
+
+  const isCloseUpShot = ['ecu', 'cu', 'mcu'].includes(shotSizeLower);
+  const isMediumShot = shotSizeLower === 'ms';
+  const isWideishShot = ['ls', 'ws', 'ews', 'est'].includes(shotSizeLower);
+
+  // If we don't recognize the shot size, don't mutate negatives (but we may still apply perspective negatives).
+  const hasShotSize = isCloseUpShot || isMediumShot || isWideishShot;
+
+  // Add high-signal negatives to keep framing aligned with shot size.
+  // (We prefer negative prompts over heavily re-writing the positive prompt, to reduce prompt dilution.)
+  const closeUpFramingNegatives =
+    'medium shot, wide shot, long shot, full shot, full body, full body shot, full length, distant subject, small face, tiny face, feet visible, shoes visible, legs visible';
+  const mediumShotFramingNegatives =
+    'extreme close-up, close-up, wide shot, long shot, extreme wide shot, full body, full body shot, full length, tiny face, small face';
+  const wideShotFramingNegatives =
+    'extreme close-up, close-up, face fills frame, huge face, cropped face, head only, portrait crop';
+
+  const framingExtra = hasShotSize
+    ? isCloseUpShot
+      ? closeUpFramingNegatives
+      : isMediumShot
+        ? mediumShotFramingNegatives
+        : wideShotFramingNegatives
+    : '';
+
+  const pk = typeof perspectiveKey === 'string' ? perspectiveKey.toLowerCase().trim() : '';
+  const perspectiveExtra = (() => {
+    // Keep this short/high-signal; we only add contradictions to help lock the intended angle.
+    if (!pk) return '';
+    if (pk === 'eye') return 'high angle, low angle, dutch angle, over the shoulder, birds eye, top-down, worm\'s eye';
+    if (pk === 'high') return 'low angle, worm\'s eye, from below';
+    if (pk === 'low') return 'high angle, birds eye, top-down, overhead';
+    if (pk === 'dutch') return 'level horizon, straight horizon, no tilt';
+    if (pk === 'ots') return 'front-on, centered symmetrical framing, over the head';
+    if (pk === 'bird') return 'low angle, eye-level, from below, worm\'s eye';
+    if (pk === 'worm') return 'top-down, overhead, birds eye, high angle';
+    if (pk === 'pov') return 'third-person, over-the-shoulder, wide establishing';
+    return '';
+  })();
+
+  const extras = [framingExtra, perspectiveExtra].filter(s => typeof s === 'string' && s.trim());
+  return extras.length > 0 ? `${baseNeg}, ${extras.join(', ')}` : baseNeg;
+};
+
+export const __test__buildWanPositivePerspectiveDirectiveForShot = (
+  promptText: string,
+  perspectiveKey?: string
+): string | undefined => {
+  const raw = typeof promptText === 'string' ? promptText : '';
+  const hasAuthoritative = /CAMERA\s+PERSPECTIVE\s*\(AUTHORITATIVE\)/i.test(raw);
+  if (hasAuthoritative) return undefined;
+
+  const pk = typeof perspectiveKey === 'string' ? perspectiveKey.toLowerCase().trim() : '';
+  if (!pk) return undefined;
+
+  switch (pk) {
+    case 'eye':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Eye-level perspective: camera at subject eye height; natural horizon; NOT high-angle/NOT low-angle.';
+    case 'high':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): High-angle perspective: camera above subject looking down; horizon higher; NOT low-angle/NOT worm\'s-eye.';
+    case 'low':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Low-angle perspective: camera below subject looking up; horizon lower; NOT high-angle/NOT bird\'s-eye.';
+    case 'dutch':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Dutch angle (tilted): diagonal horizon; keep tilt consistent; NOT level horizon.';
+    case 'ots':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Over-the-shoulder (OTS): behind shoulder foreground visible; frame the other subject clearly.';
+    case 'bird':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Bird\'s-eye / top-down: overhead view from above; subjects seen from above; NOT eye-level.';
+    case 'worm':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): Worm\'s-eye / from below: camera near ground looking up; dramatic upward perspective; NOT top-down.';
+    case 'pov':
+      return 'CAMERA PERSPECTIVE (AUTHORITATIVE): POV / first-person: camera represents character viewpoint; NOT third-person framing.';
+    default:
+      return undefined;
+  }
+};
+
+export const __test__buildWanPositiveFramingDirectiveForShot = (
+  promptText: string,
+  shotSizeLower: string
+): string | undefined => {
+  const raw = typeof promptText === 'string' ? promptText : '';
+  const hasAuthoritative = /CAMERA\s+FRAMING\s*\(AUTHORITATIVE\)/i.test(raw);
+  if (hasAuthoritative) return undefined;
+
+  switch (shotSizeLower) {
+    case 'ecu':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Extreme Close-Up (ECU): eyes/face detail fill frame; background minimal; NO wide framing.';
+    case 'cu':
+    case 'mcu':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Close-Up (CU): head/shoulders; face clearly readable; background secondary; NO wide framing.';
+    case 'ms':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Medium Shot (MS): waist-up; faces clearly visible; background present but not dominant; NOT wide shot/NOT long shot.';
+    case 'ls':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Long Shot (LS): full bodies visible; show surrounding space; NOT close-up.';
+    case 'ws':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Wide Shot (WS): show environment/context; characters smaller in frame; NOT close-up.';
+    case 'ews':
+    case 'est':
+      return 'CAMERA FRAMING (AUTHORITATIVE): Extreme Wide Shot (EWS): environment dominates; characters small; NOT close-up.';
+    default:
+      return undefined;
+  }
+};
+
 const COMFYUI_SERVICE_URL = import.meta.env.VITE_COMFYUI_SERVICE_URL || 'http://localhost:8000';
 const USE_BACKEND_SERVICE = import.meta.env.VITE_USE_COMFYUI_BACKEND === 'true';
 const FACEID_SDXL_CHECKPOINT = (
@@ -503,7 +619,17 @@ export async function generateVideo(params: {
   }
 
   try {
-    const idToken = await getIdToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Backend routes are authenticateOptional; attach auth when available.
+    try {
+      const idToken = await getIdToken();
+      headers.Authorization = `Bearer ${idToken}`;
+    } catch {
+      // ignore
+    }
 
     const endpoint =
       params.type === 'animatediff'
@@ -514,10 +640,7 @@ export async function generateVideo(params: {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers,
       body: JSON.stringify({
         prompt: params.prompt,
         numFrames: params.numFrames,
@@ -581,13 +704,15 @@ export async function getVideoJobStatus(jobId: string): Promise<{
   videoUrl?: string;
 }> {
   try {
-    const idToken = await getIdToken();
+    const headers: Record<string, string> = {};
+    try {
+      const idToken = await getIdToken();
+      headers.Authorization = `Bearer ${idToken}`;
+    } catch {
+      // ignore
+    }
 
-    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/job/${jobId}`, {
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+    const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/job/${jobId}`, { headers });
 
     if (!response.ok) {
       throw new Error('Failed to get video job status');
@@ -612,13 +737,17 @@ export async function cancelVideoJob(
   jobId: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const idToken = await getIdToken();
+    const headers: Record<string, string> = {};
+    try {
+      const idToken = await getIdToken();
+      headers.Authorization = `Bearer ${idToken}`;
+    } catch {
+      // ignore
+    }
 
     const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/cancel/${jobId}`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -632,6 +761,83 @@ export async function cancelVideoJob(
     console.error('❌ Failed to cancel video job:', error);
     throw error;
   }
+}
+
+/**
+ * Start an InfiniteTalk lip-sync dubbing job (video+audio -> talking video).
+ * Requires comfyui-service backend to be running and configured with INFINITETALK_URL.
+ */
+export async function startInfiniteTalkDubJob(params: {
+  videoBlob: Blob;
+  audioBlob: Blob;
+  priority?: number;
+  userId?: string;
+}): Promise<{ jobId: string; queuePosition: number }> {
+  const isHealthy = await checkServiceHealth();
+  if (!isHealthy) {
+    throw new Error('ComfyUI backend service is not available');
+  }
+
+  const headers: Record<string, string> = {};
+  // Backend routes are authenticateOptional; attach auth when available.
+  try {
+    const idToken = await getIdToken();
+    headers.Authorization = `Bearer ${idToken}`;
+  } catch {
+    // ignore
+  }
+
+  const formData = new FormData();
+  formData.append('video', params.videoBlob, 'input.mp4');
+
+  const audioType = String(params.audioBlob.type || '').toLowerCase();
+  const audioFilename = audioType.includes('mpeg') ? 'audio.mp3' : 'audio.wav';
+  formData.append('audio', params.audioBlob, audioFilename);
+
+  if (typeof params.priority === 'number') {
+    formData.append('priority', String(params.priority));
+  }
+  if (typeof params.userId === 'string' && params.userId.trim().length > 0) {
+    formData.append('userId', params.userId.trim());
+  }
+
+  const response = await fetch(`${COMFYUI_SERVICE_URL}/api/video/dub/infinite-talk`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Failed to queue InfiniteTalk dubbing job: ${response.status} ${text}`);
+  }
+
+  const result = await response.json();
+  const data = result?.data || result;
+  if (!data?.jobId) {
+    throw new Error('InfiniteTalk dubbing API did not return a jobId');
+  }
+
+  return {
+    jobId: data.jobId as string,
+    queuePosition: Number(data.queuePosition ?? 0),
+  };
+}
+
+/**
+ * High-level helper: queue + poll an InfiniteTalk dubbing job until it completes.
+ */
+export async function generateTalkingVideoWithInfiniteTalk(
+  videoBlob: Blob,
+  audioBlob: Blob,
+  onProgress?: (progress: number, details?: any, jobId?: string) => void
+): Promise<string> {
+  const job = await startInfiniteTalkDubJob({ videoBlob, audioBlob });
+  return await pollVideoJob(job.jobId, onProgress, {
+    startPct: 0,
+    endPct: 99,
+    durationMs: 15 * 60_000,
+  });
 }
 
 /**
@@ -1048,8 +1254,39 @@ export async function generateWithComfyUI(
     const movement = typeof shotData?.movement === 'string' ? shotData.movement.toLowerCase() : '';
     const shotSizeRaw =
       typeof shotData?.shotSize === 'string' ? shotData.shotSize.toLowerCase() : '';
+    const perspectiveRaw =
+      typeof shotData?.perspective === 'string' ? shotData.perspective.toLowerCase() : '';
 
-    const isCloseUp = ['ecu', 'cu', 'mcu'].includes(shotSizeRaw);
+    const canonicalPerspectiveKey = (() => {
+      const p = perspectiveRaw;
+      if (!p) return '';
+      if (/(\bots\b|over\s*the\s*shoulder|over-the-shoulder|ข้ามไหล่|เหนือไหล่)/iu.test(p)) return 'ots';
+      if (/(\bpov\b|first\s*person|มุมมองบุคคลที่หนึ่ง)/iu.test(p)) return 'pov';
+      if (/(bird\s*'?s\s*eye|birds\s*eye|top\s*-?down|overhead|from\s+above|มุมมองจากด้านบน)/iu.test(p)) return 'bird';
+      if (/(worm\s*'?s\s*eye|from\s+below|มุมมองจากพื้น|มุมเงย)/iu.test(p)) return 'worm';
+      if (/(dutch\s*(angle|tilt)|tilted|ดัตช์|เอียงกล้อง|กล้องเอียง)/iu.test(p)) return 'dutch';
+      if (/(high\s*(angle|shot)|มุมสูง|มุมกด)/iu.test(p)) return 'high';
+      if (/(low\s*(angle|shot)|มุมต่ำ|มุมเงย)/iu.test(p)) return 'low';
+      if (/(eye\s*-?level|ระดับสายตา)/iu.test(p)) return 'eye';
+      return '';
+    })();
+
+    const canonicalShotSizeLower = (() => {
+      const s = shotSizeRaw;
+      if (!s) return '';
+      // Order matters: 'ecu' and 'mcu' contain 'cu'.
+      if (s.includes('ecu')) return 'ecu';
+      if (s.includes('mcu')) return 'mcu';
+      if (s.includes('cu')) return 'cu';
+      if (s.includes('ews') || s.includes('extreme wide')) return 'ews';
+      if (s.includes('est') || s.includes('establishing')) return 'est';
+      if (s.includes('ws') || s.includes('wide')) return 'ws';
+      if (s.includes('ls') || s.includes('long') || s.includes('full shot')) return 'ls';
+      if (s.includes('ms') || s.includes('medium')) return 'ms';
+      return s.trim();
+    })();
+
+    const isCloseUp = ['ecu', 'cu', 'mcu'].includes(canonicalShotSizeLower);
 
     const rawCast = (shotData as any)?.cast;
     const hasCast =
@@ -1268,6 +1505,29 @@ export async function generateWithComfyUI(
     let safeCfg = typeof options.cfg === 'number' ? (options.cfg as number) : 6.0;
 
     if (videoType === 'wan') {
+      // Apply a shot-size-aware negative prompt tweak to help enforce framing.
+      finalNegativePrompt = __test__buildWanNegativePromptForShot(
+        finalNegativePrompt,
+        canonicalShotSizeLower,
+        canonicalPerspectiveKey
+      );
+
+      const framingDirective = __test__buildWanPositiveFramingDirectiveForShot(
+        typeof finalPrompt === 'string' ? finalPrompt : String(finalPrompt ?? ''),
+        canonicalShotSizeLower
+      );
+      if (framingDirective && typeof finalPrompt === 'string' && finalPrompt.trim().length > 0) {
+        finalPrompt = `${finalPrompt}\n\n${framingDirective}`;
+      }
+
+      const perspectiveDirective = __test__buildWanPositivePerspectiveDirectiveForShot(
+        typeof finalPrompt === 'string' ? finalPrompt : String(finalPrompt ?? ''),
+        canonicalPerspectiveKey
+      );
+      if (perspectiveDirective && typeof finalPrompt === 'string' && finalPrompt.trim().length > 0) {
+        finalPrompt = `${finalPrompt}\n\n${perspectiveDirective}`;
+      }
+
       const originalSteps = safeSteps;
       const originalCfg = safeCfg;
 

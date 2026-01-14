@@ -139,4 +139,29 @@ describe('videoMotionEngine camera framing', () => {
     expect(actionLine).not.toMatch(/\bCU\b/iu);
     expect(actionLine).not.toMatch(/\bECU\b/iu);
   });
+
+  it('perspective stays authoritative and action line strips conflicting angle terms', () => {
+    const character = makeMinimalCharacter('พีท');
+    const scene = makeMinimalScene();
+
+    const shotData = {
+      shot: 9,
+      scene: '1',
+      description: 'low angle (มุมต่ำ) พีทพูดกับกล้องอย่างมั่นใจ',
+      shotSize: 'MS',
+      perspective: 'High angle (มุมสูง)',
+      movement: 'Static',
+      equipment: 'Tripod',
+      durationSec: 5,
+      cast: 'พีท',
+      aspectRatio: '16:9',
+    };
+
+    const prompt = buildVideoPrompt(shotData, scene, character, 'base prompt');
+    expect(prompt).toContain('CAMERA PERSPECTIVE (AUTHORITATIVE): High-angle');
+
+    const actionLine = getActionLine(prompt);
+    expect(actionLine).not.toMatch(/low\s*angle/iu);
+    expect(actionLine).not.toMatch(/มุมต่ำ/iu);
+  });
 });

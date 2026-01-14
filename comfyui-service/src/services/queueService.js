@@ -13,6 +13,8 @@ import Queue from 'bull';
 import { getWorkerManager } from './workerManager.js';
 import { generateWithComfyUI } from './comfyuiClient.js';
 import { saveJobToFirebase, updateJobStatus } from './firebaseService.js';
+import { dubWithInfiniteTalk } from './infiniteTalkClient.js';
+import fs from 'fs/promises';
 import { 
   processImageGenerationSmart, 
   processVideoGenerationSmart,
@@ -315,7 +317,9 @@ export async function initializeQueue() {
     
     videoQueue.process(1, async (job) => {
       console.log(`🔧 Processing video job ${job.id}...`);
-      return useSmartRouting
+      const jobType = String(job?.data?.type || '').toLowerCase();
+      const bypassSmartRouting = jobType === 'infinitetalk';
+      return useSmartRouting && !bypassSmartRouting
         ? await processVideoGenerationSmart(job)
         : await processVideoGeneration(job);
     });
@@ -397,7 +401,9 @@ export async function initializeQueue() {
   // Process video jobs (lower concurrency due to resource intensity)
   videoQueue.process(parseInt(process.env.VIDEO_QUEUE_CONCURRENCY) || 1, async (job) => {
     // Use smart routing if enabled, otherwise fallback to legacy processing
-    return useSmartRouting
+    const jobType = String(job?.data?.type || '').toLowerCase();
+    const bypassSmartRouting = jobType === 'infinitetalk';
+    return useSmartRouting && !bypassSmartRouting
       ? await processVideoGenerationSmart(job)
       : await processVideoGeneration(job);
   });
@@ -872,7 +878,13 @@ export async function addVideoJob(jobData) {
  * Process video generation
  */
 async function processVideoGeneration(job) {
-  const { type, prompt, workflow, referenceImage, metadata, userId } = job.data;
+  const { type } = job.data;
+
+  if (String(type).toLowerCase() === 'infinitetalk') {
+    return await processInfiniteTalkDub(job);
+  }
+
+  const { prompt, workflow, referenceImage, metadata, userId } = job.data;
   
   try {
     // Get available worker
@@ -965,6 +977,80 @@ async function processVideoGeneration(job) {
   } catch (error) {
     console.error(`❌ Video job ${job.id} processing error:`, error);
     throw error;
+  }
+}
+
+async function processInfiniteTalkDub(job) {
+  const startedAt = Date.now();
+  const { sourceVideoPath, audioPath, userId, metadata } = job.data;
+
+  try {
+    console.log(`🗣️ Processing InfiniteTalk dubbing job ${job.id}...`);
+
+    await job.progress(5);
+    await updateJobProgress(job.id, 'processing', {
+      progress: 5,
+      details: {
+        stage: 'starting',
+        videoType: 'infiniteTalk',
+        ...metadata,
+      },
+    });
+
+    await job.progress(25);
+    await updateJobProgress(job.id, 'processing', {
+      progress: 25,
+      details: {
+        stage: 'calling_infiniteTalk',
+        videoType: 'infiniteTalk',
+      },
+    });
+
+    const dubResult = await dubWithInfiniteTalk({
+      videoPath: sourceVideoPath,
+      audioPath,
+    });
+
+    await job.progress(98);
+
+    let videoUrl = null;
+    let uploadError = null;
+    try {
+      const { saveVideoToStorage } = await import('./firebaseService.js');
+      const userIdForStorage = userId || 'anonymous';
+      console.log(`⬆️ Uploading InfiniteTalk result to Firebase Storage for user: ${userIdForStorage}`);
+      videoUrl = await saveVideoToStorage(dubResult.videoData, userIdForStorage, job.id);
+      console.log(`✅ InfiniteTalk video uploaded successfully: ${videoUrl}`);
+    } catch (storageError) {
+      console.error(`❌ Failed to upload InfiniteTalk video to Firebase Storage:`, storageError);
+      uploadError = storageError?.message || String(storageError);
+    }
+
+    await job.progress(100);
+
+    const finalResult = {
+      videoUrl,
+      provider: 'infiniteTalk',
+      processingTime: Date.now() - startedAt,
+      filename: dubResult.filename,
+      upstreamVideoUrl: dubResult.upstreamVideoUrl,
+    };
+
+    if (uploadError) {
+      finalResult.storageError = uploadError;
+    }
+
+    await updateJobProgress(job.id, 'completed', {
+      result: finalResult,
+      progress: 100,
+    });
+
+    return finalResult;
+  } finally {
+    await Promise.allSettled([
+      typeof sourceVideoPath === 'string' ? fs.unlink(sourceVideoPath) : Promise.resolve(),
+      typeof audioPath === 'string' ? fs.unlink(audioPath) : Promise.resolve(),
+    ]);
   }
 }
 

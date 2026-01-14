@@ -8,7 +8,6 @@ import type {
   DialogueLine,
   PsychologySnapshot,
   PsychologyChange,
-  LocationDetails,
 } from '../types';
 import { useTranslation } from './LanguageSwitcher';
 import {
@@ -17,7 +16,7 @@ import {
   VIDEO_MODELS_CONFIG,
   getAI,
 } from '../services/geminiService';
-import { checkBackendStatus } from '../services/comfyuiBackendClient';
+import { checkBackendStatus, generateTalkingVideoWithInfiniteTalk } from '../services/comfyuiBackendClient';
 import {
   generateSceneAudio,
   mergeVideoWithAudio,
@@ -239,6 +238,75 @@ const safeRender = (value: unknown): string => {
   return String(value);
 };
 
+// --- Video Versioning Helpers (per-shot) ---
+type StoryboardItem = GeneratedScene['storyboard'][number];
+type VideoAlbumEntry = NonNullable<StoryboardItem['videoAlbum']>[number];
+
+const makeVideoVersionId = (): string => {
+  // Avoid relying on crypto.randomUUID for older browsers.
+  return `vid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const normalizeVideoAlbum = (item: any): VideoAlbumEntry[] => {
+  const existing: VideoAlbumEntry[] = Array.isArray(item?.videoAlbum) ? item.videoAlbum : [];
+  // Back-compat: if `video` exists but album doesn't include it, synthesize a legacy entry.
+  const videoUrl = typeof item?.video === 'string' && item.video.length > 0 ? item.video : null;
+  const hasVideoInAlbum =
+    !!videoUrl && existing.some(e => typeof e?.url === 'string' && e.url === videoUrl);
+  const legacyEntry: VideoAlbumEntry | null =
+    videoUrl && !hasVideoInAlbum
+      ? {
+          id: item?.selectedVideoId || makeVideoVersionId(),
+          url: videoUrl,
+          timestamp: 0,
+          model: typeof item?.videoModel === 'string' ? item.videoModel : undefined,
+        }
+      : null;
+  const merged = legacyEntry ? [legacyEntry, ...existing] : existing;
+  // De-dupe by url; keep the newest timestamp (or first occurrence if mixed).
+  const seen = new Set<string>();
+  const deduped: VideoAlbumEntry[] = [];
+  for (const entry of merged) {
+    if (!entry || typeof entry.url !== 'string' || entry.url.length === 0) continue;
+    if (seen.has(entry.url)) continue;
+    seen.add(entry.url);
+    deduped.push(entry);
+  }
+  return deduped;
+};
+
+const getSelectedVideoIdForItem = (item: any): string | null => {
+  const album = normalizeVideoAlbum(item);
+  const selected = typeof item?.selectedVideoId === 'string' ? item.selectedVideoId : null;
+  if (selected && album.some(e => e.id === selected)) return selected;
+  const activeUrl = typeof item?.video === 'string' ? item.video : null;
+  const match = activeUrl ? album.find(e => e.url === activeUrl) : undefined;
+  return match?.id || album[0]?.id || null;
+};
+
+const applySelectedVideoIdToItem = (item: any, selectedId: string): any => {
+  const album = normalizeVideoAlbum(item);
+  const selected = album.find(e => e.id === selectedId);
+  if (!selected) return item;
+  return {
+    ...item,
+    selectedVideoId: selectedId,
+    video: selected.url,
+    videoAlbum: album,
+  };
+};
+
+const replaceVideoUrlInItem = (item: any, oldUrl: string, newUrl: string): any => {
+  if (!item || typeof oldUrl !== 'string' || typeof newUrl !== 'string') return item;
+  const album = normalizeVideoAlbum(item);
+  const updatedAlbum = album.map(e => (e.url === oldUrl ? { ...e, url: newUrl } : e));
+  return {
+    ...item,
+    video: item?.video === oldUrl ? newUrl : item?.video,
+    videoAlbum: updatedAlbum,
+  };
+};
+
 // --- EXPORT GENERATORS ---
 
 // Helper to center text for screenplay output
@@ -450,15 +518,6 @@ const generateStoryboardHTML = (data: ScriptData): string => {
   return html;
 };
 
-const LoadingSpinner: React.FC = () => (
-  <div role="status" className="flex items-center justify-center space-x-2 h-full">
-    <span className="sr-only">Loading...</span>
-    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse [animation-delay:-0.3s]"></div>
-    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse [animation-delay:-0.15s]"></div>
-    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-  </div>
-);
-
 const SceneDisplay: React.FC<{
   sceneData: GeneratedScene;
   onSave: (updatedScene: GeneratedScene) => void;
@@ -510,6 +569,8 @@ const SceneDisplay: React.FC<{
   onDeleteLocationImage,
   handleGenerateLocationImage,
 }) => {
+  const { t } = useTranslation();
+
   // Sub-tabs for Scene Design only
   const [activeTab, setActiveTab] = useState('design');
   const [isEditing, setIsEditing] = useState(false);
@@ -877,21 +938,26 @@ const SceneDisplay: React.FC<{
   const [audioProgress, setAudioProgress] = useState(0);
   const [generatingAudioForShot, setGeneratingAudioForShot] = useState<number | null>(null);
 
+  // 🗣️ Lip-sync (InfiniteTalk)
+  const [enableLipSync, setEnableLipSync] = useState<boolean>(false);
+
   // 🆕 Video Generation Settings
   // WAN defaults (reset when WAN is selected)
   // Baseline proven in this project: lower FPS + calmer motion tends to reduce noise/blur/drift.
   const [videoCfg, setVideoCfg] = useState<number>(6.0);
   const [videoSteps, setVideoSteps] = useState<number>(30);
-  const [videoFps, setVideoFps] = useState<number>(8);
-  const [videoMotionStrength, setVideoMotionStrength] = useState<number>(80);
+  const [videoFps, setVideoFps] = useState<number>(12);
+  // Default motion: 128 (mid-range) ให้สมดุลระหว่าง static กับ dynamic shots
+  const [videoMotionStrength, setVideoMotionStrength] = useState<number>(128);
 
   // If user selects Wan, re-apply Wan defaults (helps when they previously tuned values for other models).
   useEffect(() => {
     if (preferredVideoModel.startsWith('comfyui-wan')) {
       setVideoCfg(6.0);
       setVideoSteps(30);
-      setVideoFps(8);
-      setVideoMotionStrength(80);
+      // 8fps looks noticeably choppy for most shots; 12fps is a smoother baseline.
+      setVideoFps(12);
+      setVideoMotionStrength(128); // ✅ Mid-range for balanced character motion
     }
   }, [preferredVideoModel]);
 
@@ -1750,7 +1816,7 @@ ${
         return {
           name: charName,
           hasVoiceSample: !!char?.voiceCloning?.hasVoiceSample,
-          hasSpeechPattern: !!(char?.speechPattern || char?.dialect),
+          hasSpeechPattern: !!(char?.speechPattern || char?.speechPattern?.dialect),
           character: char
         };
       });
@@ -1759,23 +1825,17 @@ ${
       const charactersWithSpeechPattern = voiceStatus.filter(s => !s.hasVoiceSample && s.hasSpeechPattern);
       const charactersWithoutAnyData = voiceStatus.filter(s => !s.hasVoiceSample && !s.hasSpeechPattern);
 
-      // แจ้งเตือนผู้ใช้เกี่ยวกับการใช้เสียง
-      if (charactersWithVoice.length > 0 || charactersWithSpeechPattern.length > 0) {
-        console.warn('🎙️ Voice Generation Status:');
-        if (charactersWithVoice.length > 0) {
-          console.warn(`  ✅ Voice Cloning (${charactersWithVoice.length}):`, charactersWithVoice.map(c => c.name));
-        }
-        if (charactersWithSpeechPattern.length > 0) {
-          console.warn(`  📝 Speech Pattern Fallback (${charactersWithSpeechPattern.length}):`, charactersWithSpeechPattern.map(c => c.name));
-        }
-        if (charactersWithoutAnyData.length > 0) {
-          console.warn(`  ⚠️ No Voice Data (${charactersWithoutAnyData.length}):`, charactersWithoutAnyData.map(c => c.name));
-          
-          const shouldContinue = confirm(
-            `⚠️ Warning: Some characters have no voice data:\n${charactersWithoutAnyData.map(c => c.name).join(', ')}\n\nContinue without voice for these characters?`
-          );
-          if (!shouldContinue) return;
-        }
+      // แจ้งเตือนใน console เท่านั้น (ไม่บล็อกการทำงาน)
+      console.warn('🎙️ Voice Generation Status:');
+      if (charactersWithVoice.length > 0) {
+        console.warn(`  ✅ Voice Cloning (${charactersWithVoice.length}):`, charactersWithVoice.map(c => c.name));
+      }
+      if (charactersWithSpeechPattern.length > 0) {
+        console.warn(`  📝 Speech Pattern Fallback (${charactersWithSpeechPattern.length}):`, charactersWithSpeechPattern.map(c => c.name));
+      }
+      if (charactersWithoutAnyData.length > 0) {
+        console.warn(`  ⚠️ No Voice Data (${charactersWithoutAnyData.length}):`, charactersWithoutAnyData.map(c => c.name));
+        console.warn('  ↪ Will use generic fallback TTS for these lines.');
       }
     }
 
@@ -2026,32 +2086,20 @@ ${
           setGeneratingAudioForShot(shotIndex);
           setAudioProgress(0);
 
-          // แยก dialogues ตามประเภทการสร้างเสียง
-          const dialoguesWithVoice = sceneDialogueLines.filter(d => {
-            const char = scriptData.characters.find(c => c.name === d.character);
-            return char?.voiceCloning?.hasVoiceSample;
-          });
-
-          const dialoguesWithSpeechPattern = sceneDialogueLines.filter(d => {
-            const char = scriptData.characters.find(c => c.name === d.character);
-            return !char?.voiceCloning?.hasVoiceSample && (char?.speechPattern || char?.dialect);
-          });
-
-          if (dialoguesWithVoice.length > 0 || dialoguesWithSpeechPattern.length > 0) {
+          if (sceneDialogueLines.length > 0) {
             setAudioProgress(20);
-            console.warn(`🎙️ Generating audio:`);
-            console.warn(`  ✅ Voice Cloning: ${dialoguesWithVoice.length} lines`);
-            console.warn(`  📝 Speech Pattern: ${dialoguesWithSpeechPattern.length} lines`);
+            console.warn(`🎙️ Generating audio from Scene Details dialogue (${sceneDialogueLines.length} lines)...`);
 
-            // สร้าง audio timeline รวมทั้ง voice cloning และ speech pattern
-            const allDialogues = [...dialoguesWithVoice, ...dialoguesWithSpeechPattern];
+            // สร้าง audio timeline จากบทสนทนาทั้งหมดในฉาก
+            // - ถ้ามี voice sample -> ใช้ voice cloning
+            // - ถ้าไม่มี -> ใช้ fallback TTS (hybrid)
             const { audioBlob, timeline } = await generateSceneAudio(
-              allDialogues,
+              sceneDialogueLines,
               scriptData.characters,
               {
                 gapBetweenLines: 0.5,
                 startDelay: 0.5,
-                useSpeechPatternFallback: true, // เปิดใช้ Speech Pattern fallback
+                useSpeechPatternFallback: true,
               }
             );
 
@@ -2065,19 +2113,45 @@ ${
 
             setAudioProgress(80);
 
-            // Merge video + audio
-            const finalVideoBlob = await mergeVideoWithAudio(videoBlob, audioBlob, {
-              fadeIn: 0.5,
-              fadeOut: 0.5,
-            });
+            if (enableLipSync) {
+              try {
+                console.warn('🗣️ Lip-sync enabled: sending to InfiniteTalk...');
+                const dubbedUrl = await generateTalkingVideoWithInfiniteTalk(
+                  videoBlob,
+                  audioBlob,
+                  (p: number) => {
+                    const clamped = Math.max(0, Math.min(100, Math.round(p)));
+                    const mapped = Math.min(99, 80 + Math.round((clamped / 100) * 19));
+                    setAudioProgress(mapped);
+                  }
+                );
 
-            setAudioProgress(100);
+                finalVideoUri = dubbedUrl;
+                setAudioProgress(100);
+                console.warn('🗣️ InfiniteTalk lip-sync complete!');
+              } catch (lipSyncError) {
+                console.error('❌ Lip-sync failed, falling back to normal mux:', lipSyncError);
 
-            // Convert to data URL (for now - later can upload to storage)
-            finalVideoUri = URL.createObjectURL(finalVideoBlob);
-            console.warn('🎙️ Video+Audio merge complete!');
-          } else {
-            console.warn('🎙️ No dialogues with voice data in this shot');
+                const finalVideoBlob = await mergeVideoWithAudio(videoBlob, audioBlob, {
+                  fadeIn: 0.5,
+                  fadeOut: 0.5,
+                });
+
+                setAudioProgress(100);
+                finalVideoUri = URL.createObjectURL(finalVideoBlob);
+                console.warn('🎙️ Video+Audio merge complete (fallback).');
+              }
+            } else {
+              // Merge video + audio (voiceover only)
+              const finalVideoBlob = await mergeVideoWithAudio(videoBlob, audioBlob, {
+                fadeIn: 0.5,
+                fadeOut: 0.5,
+              });
+
+              setAudioProgress(100);
+              finalVideoUri = URL.createObjectURL(finalVideoBlob);
+              console.warn('🎙️ Video+Audio merge complete!');
+            }
           }
         } catch (audioError) {
           console.error('❌ Audio generation failed:', audioError);
@@ -2099,9 +2173,36 @@ ${
         shot: shotNumber,
         image: '',
       };
+      const videoEntry: VideoAlbumEntry = {
+        id: makeVideoVersionId(),
+        url: finalVideoUri,
+        timestamp: Date.now(),
+        model: preferredVideoModel,
+        seed: typeof requestSeed === 'number' ? requestSeed : undefined,
+        params: {
+          fps: typeof videoFps === 'number' ? videoFps : undefined,
+          steps: typeof videoSteps === 'number' ? videoSteps : undefined,
+          cfg: typeof videoCfg === 'number' ? videoCfg : undefined,
+          motionStrength: typeof videoMotionStrength === 'number' ? videoMotionStrength : undefined,
+          aspectRatio: typeof videoAspectRatio === 'string' ? videoAspectRatio : undefined,
+          width: videoAspectRatio === 'custom' ? customWidth : undefined,
+          height: videoAspectRatio === 'custom' ? customHeight : undefined,
+          duration: typeof shotData.durationSec === 'number' ? shotData.durationSec : undefined,
+          useImage: !!useImage,
+        },
+      };
+
+      const priorAlbum = normalizeVideoAlbum(oldStoryboardItem);
+      const nextAlbum = [
+        videoEntry,
+        ...priorAlbum.filter(e => typeof e?.url === 'string' && e.url !== videoEntry.url),
+      ];
+
       const newItem = {
         ...oldStoryboardItem,
         video: finalVideoUri,
+        selectedVideoId: videoEntry.id,
+        videoAlbum: nextAlbum,
         videoJobId: undefined,
         videoStatus: undefined,
         videoProgress: undefined,
@@ -2155,14 +2256,14 @@ ${
       const result = await cancelVideoJob(currentVideoJobId);
 
       if (result.success) {
-        setSuccessModal({
+        setErrorModal({
           isOpen: true,
           title: '✅ Cancelled',
           message: 'Video generation cancelled successfully',
         });
         console.log('✅ Cancellation result:', result);
       } else {
-        setInfoModal({
+        setErrorModal({
           isOpen: true,
           title: '⚠️ Cancellation Result',
           message: result.message,
@@ -2180,10 +2281,6 @@ ${
       setCurrentVideoJobId(null);
       setProgress(0);
     }
-  };
-
-  const handleStopGeneration = () => {
-    abortGenerationRef.current = true;
   };
 
   const handleGenerateAllShots = async () => {
@@ -2286,13 +2383,13 @@ ${
     setGeneratingShotId(null);
     setProgress(0);
     if (abortGenerationRef.current) {
-      setInfoModal({
+      setErrorModal({
         isOpen: true,
         title: 'Stopped',
         message: 'Auto-generation stopped by user.',
       });
     } else {
-      setSuccessModal({
+      setErrorModal({
         isOpen: true,
         title: '✅ Complete!',
         message: 'Batch generation complete!',
@@ -2365,10 +2462,9 @@ ${
   const [singleShotProgress, setSingleShotProgress] = useState(0);
   const [singlePropProgress, setSinglePropProgress] = useState(0);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isGeneratingLocationDetails, setIsGeneratingLocationDetails] = useState(false);
   // Regenerate Shot List Modal (for regenerating all shots)
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
-  const [selectedRegenerateMode, setSelectedRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
+  const [, setSelectedRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
   // Regenerate Single Shot Modal
   const [regenerateSingleShotModal, setRegenerateSingleShotModal] = useState<{
     isOpen: boolean;
@@ -2377,7 +2473,7 @@ ${
   // Regenerate Prop List Modal (for regenerating all props)
   const [isRegeneratePropModalOpen, setIsRegeneratePropModalOpen] = useState(false);
   const [isRegeneratingAllProps, setIsRegeneratingAllProps] = useState(false);
-  const [selectedPropRegenerateMode, setSelectedPropRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
+  const [, setSelectedPropRegenerateMode] = useState<'fresh' | 'refine' | 'edited' | null>(null);
   // Regenerate Single Prop Modal
   const [regenerateSinglePropModal, setRegenerateSinglePropModal] = useState<{
     isOpen: boolean;
@@ -2536,7 +2632,7 @@ ${
         onSave({ ...editedScene, shotList: newShotList });
       }
 
-      setSuccessModal({
+      setErrorModal({
         isOpen: true,
         title: '✅ รีเจนเสร็จสิ้น',
         message: `รีเจน Shot List เสร็จสิ้น: ${totalShots} ช็อต\n\nระบบรักษา Continuity ของชุด พร็อพ และอารมณ์ตัวละครไว้แล้ว`,
@@ -3376,21 +3472,6 @@ ${mode === 'fresh' ? `
       setIsRegeneratingAllShots(false);
       setSelectedRegenerateMode(null);
       setRegenerationProgress(0);
-    }
-  };
-
-  const handleClearAllStoryboard = () => {
-    if (confirmClearSection === 'storyboard') {
-      if (onRegisterUndo) onRegisterUndo();
-      setEditedScene(prev => {
-        const updated = { ...prev, storyboard: [] as any[] };
-        if (!isEditing) onSave(updated);
-        return updated;
-      });
-      setConfirmClearSection(null);
-    } else {
-      setConfirmClearSection('storyboard');
-      setTimeout(() => setConfirmClearSection(null), 3000);
     }
   };
 
@@ -5697,7 +5778,7 @@ ${mode === 'fresh' ? `
                     </label>
                     <input
                       type="range"
-                      min="8"
+                      min="12"
                       max="60"
                       step="1"
                       value={videoFps}
@@ -5705,16 +5786,50 @@ ${mode === 'fresh' ? `
                       className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                     />
                     <p className="text-[10px] text-gray-500 mt-1">
-                      Frames per second. Standard is 24.
+                      12-16 fps smooth, 24 fps cinematic. Min 12 to avoid choppy motion.
                     </p>
                   </div>
 
-                  {/* Motion Strength */}
+                  {/* Motion Strength with Presets */}
                   <div>
                     <label className="block text-xs font-bold text-gray-400 mb-1 flex justify-between">
                       <span>Motion Strength</span>
                       <span className="text-cyan-400">{videoMotionStrength}</span>
                     </label>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setVideoMotionStrength(50)}
+                        className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-[10px] text-white transition-colors"
+                        title="สำหรับ Static shots: กล้องตรึง ตัวละครขยับน้อย"
+                      >
+                        🧊 Subtle (50)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoMotionStrength(128)}
+                        className="flex-1 px-2 py-1 bg-cyan-700 hover:bg-cyan-600 rounded text-[10px] text-white transition-colors"
+                        title="สำหรับ Close-up/Medium shots: ใบหน้าและร่างกายเคลื่อนไหวธรรมชาติ"
+                      >
+                        ⚡ Normal (128)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoMotionStrength(190)}
+                        className="flex-1 px-2 py-1 bg-purple-700 hover:bg-purple-600 rounded text-[10px] text-white transition-colors"
+                        title="สำหรับ Action shots: เคลื่อนไหวรวดเร็ว มีพลัง"
+                      >
+                        🚀 Dynamic (190)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoMotionStrength(240)}
+                        className="flex-1 px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-[10px] text-white transition-colors"
+                        title="สำหรับ Extreme action: การเคลื่อนไหวที่รุนแรง"
+                      >
+                        💥 Extreme (240)
+                      </button>
+                    </div>
                     <input
                       type="range"
                       min="1"
@@ -5724,7 +5839,28 @@ ${mode === 'fresh' ? `
                       onChange={e => setVideoMotionStrength(parseInt(e.target.value))}
                       className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                     />
-                    <p className="text-[10px] text-gray-500 mt-1">Intensity of movement (1-255).</p>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      💡 Static shots: 30-70 | Close-ups: 100-150 | Action: 180-240
+                    </p>
+                  </div>
+
+                  {/* Lip-sync toggle */}
+                  <div className="col-span-2">
+                    <label className="flex items-start gap-3 text-xs text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={enableLipSync}
+                        onChange={e => setEnableLipSync(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-purple-500"
+                      />
+                      <span>
+                        <span className="font-bold text-purple-300">Lip-sync (InfiniteTalk)</span>
+                        <span className="block text-[10px] text-gray-500 mt-0.5">
+                          Dubs video so mouth/face sync to the generated audio. Requires comfyui-service env{' '}
+                          <span className="font-mono text-gray-400">INFINITETALK_URL</span>.
+                        </span>
+                      </span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -5811,12 +5947,15 @@ ${mode === 'fresh' ? `
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {(editedScene.shotList?.length || 0) > 0 ? (
                 (editedScene.shotList || []).map((shot, idx) => {
-                  const shotImg = editedScene.storyboard?.find(s =>
+                  const storyboardItem = editedScene.storyboard?.find(s =>
                     isSameShotNumber(s.shot, shot.shot)
-                  )?.image;
-                  const shotVideo = editedScene.storyboard?.find(s =>
-                    isSameShotNumber(s.shot, shot.shot)
-                  )?.video;
+                  );
+                  const shotImg = storyboardItem?.image;
+                  const shotVideo = storyboardItem?.video;
+                  const videoVersionsSorted = normalizeVideoAlbum(storyboardItem).slice().sort((a, b) =>
+                    (b?.timestamp || 0) - (a?.timestamp || 0)
+                  );
+                  const selectedVideoId = getSelectedVideoIdForItem(storyboardItem);
                   const isGenerating = generatingShotId === idx;
                   const isGeneratingVideo = generatingVideoShotId === idx;
 
@@ -5866,7 +6005,7 @@ ${mode === 'fresh' ? `
                                             ...prev,
                                             storyboard: (prev.storyboard || []).map(s =>
                                               isSameShotNumber(s.shot, shot.shot)
-                                                ? { ...s, video: r0.newUrl as string }
+                                                ? replaceVideoUrlInItem(s, shotVideo, r0.newUrl as string)
                                                 : s
                                             ),
                                           };
@@ -5931,7 +6070,7 @@ ${mode === 'fresh' ? `
                                             ...prev,
                                             storyboard: (prev.storyboard || []).map(s =>
                                               isSameShotNumber(s.shot, shot.shot)
-                                                ? { ...s, video: r0.newUrl as string }
+                                                ? replaceVideoUrlInItem(s, shotVideo, r0.newUrl as string)
                                                 : s
                                             ),
                                           };
@@ -6193,6 +6332,49 @@ ${mode === 'fresh' ? `
                             {shot.shotSize}
                           </span>
                         </div>
+
+                        {/* 🆕 Video Version Picker */}
+                        {videoVersionsSorted.length > 1 && shotVideo && (
+                          <div className="mb-2">
+                            <label className="block text-[10px] font-bold text-gray-400 mb-1">
+                              Video version
+                            </label>
+                            <select
+                              value={selectedVideoId || ''}
+                              onChange={e => {
+                                const nextId = e.target.value;
+                                if (!nextId) return;
+                                setEditedScene(prev => {
+                                  const updated = {
+                                    ...prev,
+                                    storyboard: (prev.storyboard || []).map(s =>
+                                      isSameShotNumber(s.shot, shot.shot)
+                                        ? applySelectedVideoIdToItem(s, nextId)
+                                        : s
+                                    ),
+                                  };
+                                  if (!isEditing) onSave(updated);
+                                  return updated;
+                                });
+                              }}
+                              className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-white focus:ring-cyan-500 focus:border-cyan-500"
+                              title="Select which generated video is active for this shot"
+                            >
+                              {videoVersionsSorted.map((v, i) => {
+                                const label =
+                                  v.timestamp && v.timestamp > 0
+                                    ? `#${i + 1} • ${new Date(v.timestamp).toLocaleString()}`
+                                    : `Legacy • #${i + 1}`;
+                                return (
+                                  <option key={v.id} value={v.id}>
+                                    {label}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        )}
+
                         <p className="text-sm text-gray-300 mb-4 line-clamp-3 flex-grow">
                           {shot.description}
                         </p>
@@ -6618,9 +6800,7 @@ const SceneItem: React.FC<{
               setIsRegenerateLocationModalOpen={setIsRegenerateLocationModalOpen}
               isRegeneratingAllLocation={isRegeneratingAllLocation}
               locationRegenerationProgress={locationRegenerationProgress}
-              handleRegenerateAllLocationDetails={(mode) =>
-                handleRegenerateAllLocationDetails(mode, pointTitle, sceneIndex, sceneData)
-              }
+              handleRegenerateAllLocationDetails={handleRegenerateAllLocationDetails}
               locationImageAlbum={locationImageAlbum}
               selectedLocationImageId={selectedLocationImageId}
               isGeneratingLocationImage={isGeneratingLocationImage}
@@ -6690,8 +6870,6 @@ const Step5Output: React.FC<Step5OutputProps> = ({
   const [motionEditorProgress, setMotionEditorProgress] = useState(0);
 
   // 📍 Location Details Modal state
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isGeneratingLocationDetails, setIsGeneratingLocationDetails] = useState(false);
   const [isRegenerateLocationModalOpen, setIsRegenerateLocationModalOpen] = useState(false);
   const [isRegeneratingAllLocation, setIsRegeneratingAllLocation] = useState(false);
   const [locationRegenerationProgress, setLocationRegenerationProgress] = useState(0);
@@ -6706,8 +6884,8 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     }> = [];
     
     // Collect all location images from all scenes
-    Object.entries(scriptData.generatedScenes).forEach(([pointTitle, scenes]) => {
-      scenes.forEach((scene, sceneIndex) => {
+    Object.entries(scriptData.generatedScenes).forEach(([, scenes]) => {
+      scenes.forEach((scene) => {
         if (scene?.sceneDesign?.locationImageAlbum) {
           allImages.push(...scene.sceneDesign.locationImageAlbum);
         }
@@ -6729,7 +6907,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
     // Try to get the selected image from the first scene that has one
     let savedSelection: string | null = null;
     
-    Object.entries(scriptData.generatedScenes).forEach(([pointTitle, scenes]) => {
+    Object.entries(scriptData.generatedScenes).forEach(([, scenes]) => {
       scenes.forEach((scene) => {
         if (scene?.sceneDesign?.selectedLocationImageId && !savedSelection) {
           savedSelection = scene.sceneDesign.selectedLocationImageId;
@@ -6865,6 +7043,11 @@ const Step5Output: React.FC<Step5OutputProps> = ({
       const shotDesc = currentShot.shot.description || '';
       const movement = currentShot.shot.movement || 'Static';
       const duration = currentShot.shot.durationSec || 3;
+      const shotSize = currentShot.shot.shotSize || '';
+      const perspective = currentShot.shot.perspective || currentShot.shot.angle || '';
+      const equipment = currentShot.shot.equipment || '';
+      const focalLength = currentShot.shot.focalLength || '';
+      const lighting = currentShot.shot.lightingDesign || currentShot.shot.lighting || '';
       const location = sceneData.sceneDesign?.location || '';
       const inferTimeOfDay = (loc: string): string => {
         const t = (loc || '').toLowerCase();
@@ -6875,7 +7058,17 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         return '';
       };
       const timeOfDay = inferTimeOfDay(location);
-      const prompt = `Cinematic video: ${shotDesc}. Location: ${location}.${timeOfDay ? ` Time: ${timeOfDay}.` : ''} Camera: ${movement}. Duration: ${duration}s. ${currentShot.shot.shotSize}.`;
+      const prompt =
+        `Cinematic video: ${shotDesc}. ` +
+        `Location: ${location}.` +
+        (timeOfDay ? ` Time: ${timeOfDay}.` : '') +
+        (shotSize ? ` Shot size: ${shotSize}.` : '') +
+        (perspective ? ` Camera angle: ${perspective}.` : '') +
+        (equipment ? ` Camera equipment: ${equipment}.` : '') +
+        (focalLength ? ` Lens/focal length: ${focalLength}.` : '') +
+        ` Camera movement: ${movement}.` +
+        (lighting ? ` Lighting: ${lighting}.` : '') +
+        ` Duration: ${duration}s.`;
 
       // Resolve characters for this scene/shot (continuity + Face ID)
       const sceneCharacterNames = (sceneData.sceneDesign?.characters || []).filter(Boolean);
@@ -6965,11 +7158,29 @@ const Step5Output: React.FC<Step5OutputProps> = ({
         shot: shotNumber,
         image: '',
       };
+      const videoEntry: VideoAlbumEntry = {
+        id: makeVideoVersionId(),
+        url: videoUri,
+        timestamp: Date.now(),
+        model: 'auto',
+        params: {
+          aspectRatio: '16:9',
+          duration: typeof duration === 'number' ? duration : undefined,
+        },
+      };
+
+      const priorAlbum = normalizeVideoAlbum(oldStoryboardItem);
+      const nextAlbum = [
+        videoEntry,
+        ...priorAlbum.filter(e => typeof e?.url === 'string' && e.url !== videoEntry.url),
+      ];
       const newItem = {
         ...oldStoryboardItem,
         shot: shotNumber,
         image: oldStoryboardItem.image || '',
         video: videoUri,
+        selectedVideoId: videoEntry.id,
+        videoAlbum: nextAlbum,
       };
       const updatedStoryboard = [
         ...(sceneData.storyboard?.filter(s => !isSameShotNumber(s.shot, shotNumber)) || []),
@@ -7038,8 +7249,7 @@ const Step5Output: React.FC<Step5OutputProps> = ({
 SCENE DETAILS:
 - Scene Name: ${currentScene.sceneDesign.sceneName}
 - Location: ${currentScene.sceneDesign.location}
-- Time: ${currentScene.sceneDesign.time}
-- Mood: ${currentScene.sceneDesign.mood}
+- Mood: ${currentScene.sceneDesign.moodTone}
 - Characters: ${currentScene.sceneDesign.characters.join(', ')}
 - Situations: ${currentScene.sceneDesign.situations.map((s: any) => s.description).join('; ')}
 `;
@@ -7106,7 +7316,7 @@ Create a detailed JSON with this EXACT structure (no additional fields):
 
 IMPORTANT GUIDELINES:
 - Be EXTREMELY specific and detailed, avoid generic descriptions
-- Consider the scene's mood (${currentScene.sceneDesign.mood}) when describing atmosphere
+- Consider the scene's mood (${currentScene.sceneDesign.moodTone}) when describing atmosphere
 - Think about what would make this location feel authentic and lived-in
 - Include sensory details that would help visualize the space
 - เขียนรายละเอียดเป็นภาษาไทยที่สละสลวย มีความหมายชัดเจน
@@ -7121,7 +7331,7 @@ IMPORTANT GUIDELINES:
           'You are a professional location scout and production designer with expertise in Thai film production. Generate comprehensive, detailed location information in Thai language.',
         contents: prompt,
         config: { responseMimeType: 'application/json' },
-      });
+      } as any);
 
       setLocationRegenerationProgress(80);
       const text = response.text || '';
@@ -9359,9 +9569,64 @@ IMPORTANT GUIDELINES:
                           const storyboardItem = sceneData?.storyboard?.find(s =>
                             isSameShotNumber(s.shot, currentShot.shot.shot)
                           );
+                          const videoVersionsSorted = normalizeVideoAlbum(storyboardItem).slice().sort((a, b) =>
+                            (b?.timestamp || 0) - (a?.timestamp || 0)
+                          );
+                          const selectedVideoId = getSelectedVideoIdForItem(storyboardItem);
 
                           return (
                             <>
+                              {videoVersionsSorted.length > 1 && (
+                                <div className="mb-3">
+                                  <label className="block text-xs font-bold text-gray-400 mb-1">
+                                    Video version
+                                  </label>
+                                  <select
+                                    value={selectedVideoId || ''}
+                                    onChange={e => {
+                                      const nextId = e.target.value;
+                                      if (!nextId) return;
+
+                                      setScriptData(prev => {
+                                        const scenes = prev.generatedScenes[currentShot.sceneTitle] || [];
+                                        const updatedScenes = [...scenes];
+                                        const current = updatedScenes[currentShot.sceneIndex];
+                                        if (!current) return prev;
+                                        const updatedScene: GeneratedScene = {
+                                          ...current,
+                                          storyboard: (current.storyboard || []).map(s =>
+                                            isSameShotNumber(s.shot, currentShot.shot.shot)
+                                              ? applySelectedVideoIdToItem(s, nextId)
+                                              : s
+                                          ),
+                                        };
+                                        updatedScenes[currentShot.sceneIndex] = updatedScene;
+                                        return {
+                                          ...prev,
+                                          generatedScenes: {
+                                            ...prev.generatedScenes,
+                                            [currentShot.sceneTitle]: updatedScenes,
+                                          },
+                                        };
+                                      });
+                                    }}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:ring-cyan-500 focus:border-cyan-500"
+                                    title="Select which generated video is active for this shot"
+                                  >
+                                    {videoVersionsSorted.map((v, i) => {
+                                      const label =
+                                        v.timestamp && v.timestamp > 0
+                                          ? `#${i + 1} • ${new Date(v.timestamp).toLocaleString()}`
+                                          : `Legacy • #${i + 1}`;
+                                      return (
+                                        <option key={v.id} value={v.id}>
+                                          {label}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </div>
+                              )}
                               {storyboardItem?.video ? (
                                 <div className="mb-3">
                                   <video

@@ -342,3 +342,40 @@ COMFYUI_*.md
 # Completion reports
 COMPLETION_*.md
 FINAL_*.md
+
+# ================================
+# Project-specific ignores
+# Added by organize-files.ps1
+# ================================
+
+# Temporary folders
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Analysis/Planning docs (moved to docs/)
+/CETASIKA_52_ANALYSIS.md
+/MOTION_EDITOR_IMPROVEMENT_PLAN.md
+/COMPARISON_TWO_PROJECTS.md
+/PROJECT_ORGANIZATION_2025.md
+/FILE_ORGANIZATION_PLAN.md
+
+# Development scripts (moved to scripts/)
+/organize-project.ps1
+/organize-files.ps1
+/restart-services.cmd
+/verify-setup.bat
+
+# Logs
+vite-dev.log
+*.log.old
+*.log.backup
+
+# OS temporary files
+Thumbs.db
+desktop.ini
+.Spotlight-V100
+.Trashes
+
+# ================================

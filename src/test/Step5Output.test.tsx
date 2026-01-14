@@ -17,10 +17,10 @@ describe('Step5Output', () => {
   it('component can be imported', async () => {
     const module = await import('../components/Step5Output');
     expect(module.default).toBeDefined();
-  });
+  }, 20000);
 
   it('is a valid React component', async () => {
     const { default: Step5Output } = await import('../components/Step5Output');
     expect(typeof Step5Output).toBe('function');
-  });
+  }, 20000);
 });

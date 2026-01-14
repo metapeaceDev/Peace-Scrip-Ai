@@ -58,7 +58,7 @@ export const VIDEO_MODELS = {
     // This matches the previously stable configuration in this project.
     defaultFrames: 61,
     maxFrames: 201,
-    fps: 8,
+    fps: 12,
     width: 832,
     height: 480,
   },
@@ -83,7 +83,7 @@ export const VIDEO_MODELS = {
  */
 export function buildWanWorkflow(prompt, options = {}) {
   const {
-    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, static, frozen, blurry, low resolution, watermark',
+    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, stutter, frozen frame, freeze frame, jump cuts, scene changes, camera switches, angle changes, multiple shots, multiple angles, blurry, low resolution, watermark',
     modelPath = VIDEO_MODELS.wan.defaultModelPath,
     t5Encoder = VIDEO_MODELS.wan.defaultT5Encoder,
     vae = VIDEO_MODELS.wan.defaultVae,
@@ -212,7 +212,7 @@ export function buildWanWorkflow(prompt, options = {}) {
  */
 export function buildAnimateDiffWorkflow(prompt, options = {}) {
   const {
-    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, static, frozen, blurry, low resolution, watermark, scene changes, jump cuts, multiple shots, multiple angles, camera switches, angle changes, noisy, grainy, pixelated, poor quality',
+    negativePrompt = 'morphing, distorted face, bad anatomy, cartoon, anime, illustration, glitch, jerky motion, stutter, frozen frame, freeze frame, blurry, low resolution, watermark, scene changes, jump cuts, multiple shots, multiple angles, camera switches, angle changes, noisy, grainy, pixelated, poor quality',
     steps = 25,
     cfg = 6.5,
     seed = Math.floor(Math.random() * 1000000000),

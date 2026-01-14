@@ -801,10 +801,12 @@ async function generateVideoWithComfyUI(
     if (options.shotData && options.character) {
       // Use video motion engine for intelligent parameter calculation
       const recommendedFPS = getRecommendedFPS(options.shotData);
-      const recommendedFrames = getRecommendedFrameCount(options.shotData, recommendedFPS);
+      const effectiveFPS =
+        typeof finalFPS === 'number' && Number.isFinite(finalFPS) ? finalFPS : recommendedFPS;
+      const recommendedFrames = getRecommendedFrameCount(options.shotData, effectiveFPS);
       const recommendedStrength = getMotionModuleStrength(options.shotData, options.character);
 
-      finalFPS = finalFPS || recommendedFPS;
+      finalFPS = effectiveFPS;
       finalFrameCount = finalFrameCount || recommendedFrames;
       finalMotionStrength = finalMotionStrength || recommendedStrength;
 
@@ -5198,11 +5200,28 @@ export async function generateStoryboardVideo(
           const isWan = mappedModel.startsWith('comfyui-wan');
           const isMotionEditorMode = Boolean(options?.motionEdit && options?.character);
 
-          // 🔁 Stability rollback: WAN works most reliably with the previously stable baseline.
-          // If Motion Editor explicitly sets a frame_count, keep it; otherwise force 61 frames.
+          // WAN: derive fps + frames coherently (do NOT force 8fps/61f).
+          // The backend already clamps + snaps frames to the required lattice.
           if (isWan && !isMotionEditorMode) {
-            finalFrameCount = 61;
-            finalFPS = finalFPS || 8;
+            const shotDurationSecRaw = options?.shotData?.durationSec;
+            const durationSec =
+              typeof options?.duration === 'number' && Number.isFinite(options.duration)
+                ? options.duration
+                : typeof shotDurationSecRaw === 'number' && Number.isFinite(shotDurationSecRaw)
+                  ? shotDurationSecRaw
+                  : 5;
+
+            const recommendedFPS = options?.shotData ? getRecommendedFPS(options.shotData) : 12;
+            const effectiveFPS =
+              typeof finalFPS === 'number' && Number.isFinite(finalFPS) ? finalFPS : recommendedFPS;
+
+            finalFPS = effectiveFPS;
+
+            // If caller didn't explicitly provide a frame count, request frames based on duration.
+            // (WAN backend will snap to its expected 16k+1/limits.)
+            if (!(typeof finalFrameCount === 'number' && Number.isFinite(finalFrameCount))) {
+              finalFrameCount = Math.max(1, Math.round(durationSec * effectiveFPS));
+            }
           }
           const useAnimateDiff =
             mappedModel === 'comfyui-animatediff' ||

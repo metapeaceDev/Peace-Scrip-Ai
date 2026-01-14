@@ -2,6 +2,7 @@ export interface Character {
   id: string; // Mandatory for robust deletion and list management
   name: string;
   role: string; // New: Protagonist, Supporting, Extra, etc.
+  characterType?: 'main' | 'supporting' | 'antagonist';
   description: string;
   image?: string; // Base64 string for profile picture
   faceReferenceImage?: string; // New: Master face reference for identity consistency
@@ -266,6 +267,28 @@ export interface GeneratedScene {
     shot: number;
     image: string; // Base64 string
     video?: string; // URI for generated video
+    // 🆕 Video Version History (per-shot)
+    videoAlbum?: Array<{
+      id: string;
+      url: string;
+      timestamp: number;
+      model?: string;
+      seed?: number;
+      // Optional capture of generation parameters for traceability
+      params?: {
+        fps?: number;
+        steps?: number;
+        cfg?: number;
+        motionStrength?: number;
+        aspectRatio?: string;
+        width?: number;
+        height?: number;
+        duration?: number;
+        useImage?: boolean;
+      };
+    }>;
+    // Selected version id (the active video is also mirrored in `video` for compatibility)
+    selectedVideoId?: string | null;
     // 🆕 Persist in-progress video jobs so the UI can resume after navigation
     videoJobId?: string;
     videoStatus?: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';

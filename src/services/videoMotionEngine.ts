@@ -429,6 +429,103 @@ export function buildVideoPrompt(
     return undefined;
   };
 
+  type CanonicalPerspective =
+    | 'EYE_LEVEL'
+    | 'HIGH_ANGLE'
+    | 'LOW_ANGLE'
+    | 'DUTCH_ANGLE'
+    | 'OTS'
+    | 'BIRDSEYE'
+    | 'WORMSEYE'
+    | 'POV';
+
+  const normalizePerspective = (raw: string): CanonicalPerspective | undefined => {
+    const s = safeText(raw);
+    if (!s) return undefined;
+
+    const upper = s.toUpperCase();
+    if (/(\bOTS\b|OVER\s*THE\s*SHOULDER|OVER-THE-SHOULDER|ข้ามไหล่|เหนือไหล่)/iu.test(s)) return 'OTS';
+    if (/(\bPOV\b|FIRST\s*PERSON|SUBJECTIVE\s*CAMERA|มุมมองบุคคลที่หนึ่ง|มุมมองผู้เห็นเหตุการณ์)/iu.test(s))
+      return 'POV';
+    if (
+      /(BIRD\s*'?S\s*EYE|BIRDS\s*EYE|TOP\s*-?DOWN|OVERHEAD|FROM\s+ABOVE|มุมมองจากด้านบน|มุมสูงจากบน|มุมกดจากบน)/iu.test(
+        s
+      )
+    )
+      return 'BIRDSEYE';
+    if (
+      /(WORM\s*'?S\s*EYE|FROM\s+BELOW|LOW\s+FROM\s+GROUND|มุมมองจากพื้น|มุมเงยจากล่าง|มุมเงย)/iu.test(
+        s
+      )
+    )
+      return 'WORMSEYE';
+    if (/(DUTCH\s*(ANGLE|TILT)|TILTED\s+CAMERA|CAMERA\s+TILT|ดัตช์|เอียงกล้อง|กล้องเอียง)/iu.test(s))
+      return 'DUTCH_ANGLE';
+    if (/(HIGH\s*(ANGLE|SHOT)|มุมสูง|มุมกด)/iu.test(s)) return 'HIGH_ANGLE';
+    if (/(LOW\s*(ANGLE|SHOT)|มุมต่ำ|มุมเงย)/iu.test(s)) return 'LOW_ANGLE';
+    if (/(EYE\s*-?LEVEL|LEVEL\s+ANGLE|ระดับสายตา|มุมระดับสายตา)/iu.test(s)) return 'EYE_LEVEL';
+
+    // Fallback: tolerate stored strings like "Eye Level".
+    if (upper.includes('EYE')) return 'EYE_LEVEL';
+    if (upper.includes('HIGH')) return 'HIGH_ANGLE';
+    if (upper.includes('LOW')) return 'LOW_ANGLE';
+    if (upper.includes('DUTCH') || upper.includes('TILT')) return 'DUTCH_ANGLE';
+    return undefined;
+  };
+
+  const sanitizeTextForPerspective = (
+    text: string,
+    canonical: CanonicalPerspective | undefined
+  ): string => {
+    const d = safeText(text);
+    if (!d || !canonical) return d;
+
+    // Strip camera angle/perspective phrases from free-text sections so the structured perspective stays authoritative.
+    let out = d
+      .replace(
+        /\b(over\s*the\s*shoulder|over-the-shoulder|ots|dutch\s*(angle|tilt)|tilted\s+camera|high\s*(angle|shot)|low\s*(angle|shot)|eye\s*-?level|bird\s*'?s\s*eye|birds\s*eye|top\s*-?down|overhead|worm\s*'?s\s*eye|pov|first\s*person)\b/giu,
+        ''
+      )
+      .replace(/มุมสูง|มุมต่ำ|มุมกด|มุมเงย|ระดับสายตา|ข้ามไหล่|เหนือไหล่|ดัตช์|เอียงกล้อง|กล้องเอียง|มุมมองจากด้านบน|มุมมองจากพื้น/giu, '');
+
+    out = out
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^[\s,.:;\-–—]+/g, '')
+      .replace(/[\s,.:;\-–—]+$/g, '')
+      .trim();
+
+    return out || d;
+  };
+
+  // Back-compat alias: older code/tests call this name.
+  const sanitizeActionDescriptionForPerspective = sanitizeTextForPerspective;
+
+  const buildCameraPerspectiveDirective = (
+    canonical: CanonicalPerspective | undefined
+  ): string | undefined => {
+    if (!canonical) return undefined;
+    switch (canonical) {
+      case 'EYE_LEVEL':
+        return 'Eye-level perspective: camera at subject eye height; natural horizon; NOT high-angle/NOT low-angle.';
+      case 'HIGH_ANGLE':
+        return 'High-angle perspective: camera above subject looking down; horizon higher; NOT low-angle/NOT worm\'s-eye.';
+      case 'LOW_ANGLE':
+        return 'Low-angle perspective: camera below subject looking up; horizon lower; NOT high-angle/NOT bird\'s-eye.';
+      case 'DUTCH_ANGLE':
+        return 'Dutch angle (tilted): camera intentionally tilted; diagonal horizon; keep the tilt consistent; NOT level shot.';
+      case 'OTS':
+        return 'Over-the-shoulder (OTS): camera behind one character\'s shoulder, framing the other subject; shoulder/edge foreground visible.';
+      case 'BIRDSEYE':
+        return 'Bird\'s-eye / top-down: overhead view from above; ground plane visible; subjects seen from above; NOT eye-level.';
+      case 'WORMSEYE':
+        return 'Worm\'s-eye / from below: camera near ground looking up; dramatic upward perspective; NOT top-down.';
+      case 'POV':
+        return 'POV / first-person: camera represents character viewpoint; hands/foreground allowed; NOT third-person framing.';
+      default:
+        return undefined;
+    }
+  };
+
   const sanitizeActionDescriptionForShotSize = (
     description: string,
     canonicalSize?: CanonicalShotSize
@@ -646,11 +743,13 @@ export function buildVideoPrompt(
   const leadHairSignature = getLeadHairSignature(character);
 
   const canonicalShotSize = normalizeShotSize(shotSize);
-  const sanitizedAction = sanitizeActionDescriptionForShotSize(
-    shotData.description,
-    canonicalShotSize
+  const canonicalPerspective = normalizePerspective(perspective);
+  const sanitizedAction = sanitizeActionDescriptionForPerspective(
+    sanitizeActionDescriptionForShotSize(shotData.description, canonicalShotSize),
+    canonicalPerspective
   );
   const cameraFramingDirective = buildCameraFramingDirective(canonicalShotSize, requiredCast);
+  const cameraPerspectiveDirective = buildCameraPerspectiveDirective(canonicalPerspective);
 
   const sceneProps = (() => {
     if (!Array.isArray(currentScene.propList)) return [] as string[];
@@ -716,6 +815,7 @@ export function buildVideoPrompt(
     : '';
 
   const compactBase = trimBasePrompt(basePrompt);
+  const compactBaseSanitized = sanitizeTextForPerspective(compactBase, canonicalPerspective);
 
   // 🎬 IMPORTANT: Keep the prompt structured and prioritized.
   // WAN/AnimateDiff are sensitive to overload; long repeated rules dilute identity/action constraints.
@@ -727,6 +827,7 @@ export function buildVideoPrompt(
 ${optionalCast.length > 0 ? `- Background/Extras (OPTIONAL): ${optionalCast.join(', ')}` : ''}
 - ON-SCREEN CAST LOCK: ${requiredCast.length > 0 ? `Required cast must be visible on-screen (NO missing key characters). Visible people count must be AT LEAST ${requiredCast.length}.` : 'N/A'}
 - CAMERA FRAMING (AUTHORITATIVE): ${cameraFramingDirective || (canonicalShotSize ? `${canonicalShotSize} framing` : 'Follow shot size')}
+- CAMERA PERSPECTIVE (AUTHORITATIVE): ${cameraPerspectiveDirective || (perspective ? perspective : 'Follow perspective field')}
 - ACTION (CONTENT ONLY; framing is controlled by shot size above): ${sanitizedAction || safeText(shotData.description)}
 
 CHARACTERS (IDENTITY LOCK):
@@ -756,7 +857,7 @@ ${safeText(resolvedShotRow?.costume) ? `- Costume Notes: ${safeText(resolvedShot
 ${sceneProps.length > 0 ? `- Props: ${sceneProps.join(', ')}` : ''}
 
 STYLE / BASE PROMPT (COMPACT):
-${compactBase || 'N/A'}
+${compactBaseSanitized || 'N/A'}
 
 MOTION DIRECTION:
 ${characterMotion}

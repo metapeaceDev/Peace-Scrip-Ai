@@ -2,6 +2,7 @@ export interface Character {
   id: string; // Mandatory for robust deletion and list management
   name: string;
   role: string; // New: Protagonist, Supporting, Extra, etc.
+  characterType?: 'main' | 'supporting' | 'antagonist';
   description: string;
   image?: string; // Base64 string for profile picture
   faceReferenceImage?: string; // New: Master face reference for identity consistency

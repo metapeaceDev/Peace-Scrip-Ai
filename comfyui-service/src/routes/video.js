@@ -14,6 +14,7 @@ import express from 'express';
 import { addVideoJob, getJobStatus, cancelVideoJob } from '../services/queueService.js';
 import { getWorkerManager } from '../services/workerManager.js';
 import { authenticateOptional } from '../middleware/auth.js';
+import formidable from 'formidable';
 import { 
   buildAnimateDiffWorkflow, 
   buildSVDWorkflow,
@@ -380,7 +381,10 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
         fps,
         width,
         height,
-        modelPath
+        modelPath,
+        // ✅ Store incoming prompt for debug inspection (has authoritative blocks)
+        requestPrompt: prompt,
+        requestNegativePrompt: negativePrompt,
       }
     });
 
@@ -392,6 +396,93 @@ router.post('/generate/wan', authenticateOptional, async (req, res, next) => {
         type: 'wan',
         estimatedTime: Math.ceil(wanSafeFrames * 3),
         queuePosition: job.queuePosition
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/video/dub/infinite-talk
+ * Lip-sync dubbing using an external InfiniteTalk service.
+ *
+ * Multipart form-data:
+ * - video: mp4 file (required)
+ * - audio: wav/mp3 file (required)
+ * - priority: number (optional)
+ * - userId: string (optional)
+ */
+router.post('/dub/infinite-talk', authenticateOptional, async (req, res, next) => {
+  try {
+    const infiniteTalkUrl = String(
+      process.env.INFINITETALK_URL || process.env.INFINITE_TALK_URL || ''
+    ).trim();
+    if (!infiniteTalkUrl) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'InfiniteTalk is not configured on comfyui-service. Set INFINITETALK_URL (or INFINITE_TALK_URL) and restart the backend.',
+      });
+    }
+
+    const form = formidable({
+      multiples: false,
+      maxFileSize: Number(process.env.MAX_UPLOAD_BYTES || 500 * 1024 * 1024),
+      keepExtensions: true,
+    });
+
+    const { fields, files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, f, fl) => {
+        if (err) return reject(err);
+        resolve({ fields: f || {}, files: fl || {} });
+      });
+    });
+
+    const pickFile = (value) => {
+      if (!value) return null;
+      return Array.isArray(value) ? value[0] : value;
+    };
+
+    const videoFile = pickFile(files.video);
+    const audioFile = pickFile(files.audio);
+
+    if (!videoFile || !audioFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required files: video and audio'
+      });
+    }
+
+    const priorityRaw = Array.isArray(fields.priority) ? fields.priority[0] : fields.priority;
+    const priority = Number(priorityRaw || 5);
+    const userIdRaw = Array.isArray(fields.userId) ? fields.userId[0] : fields.userId;
+
+    const job = await addVideoJob({
+      type: 'infiniteTalk',
+      priority: Number.isFinite(priority) ? priority : 5,
+      userId: userIdRaw || req.user?.uid || 'anonymous',
+      createdBy: req.user?.email || 'anonymous',
+      // Store file paths (avoid putting big binary blobs into the queue payload)
+      sourceVideoPath: videoFile.filepath,
+      audioPath: audioFile.filepath,
+      metadata: {
+        videoType: 'infiniteTalk',
+        filenamePrefix: 'peace-script-infiniteTalk',
+        inputVideoBytes: videoFile.size,
+        inputAudioBytes: audioFile.size,
+        inputVideoName: videoFile.originalFilename,
+        inputAudioName: audioFile.originalFilename,
+      }
+    });
+
+    res.status(202).json({
+      success: true,
+      message: 'InfiniteTalk dubbing job queued successfully',
+      data: {
+        jobId: job.jobId,
+        type: 'infiniteTalk',
+        queuePosition: job.queuePosition,
       }
     });
   } catch (error) {
@@ -459,6 +550,58 @@ router.get('/job/:jobId', authenticateOptional, async (req, res, next) => {
         completedAt: status.completedAt || status.finishedAt
       }
     };
+
+    // Optional debug payload (disabled by default).
+    // Enable with ENABLE_DEBUG_JOB_PAYLOAD=true (or in non-production), then call: /api/video/job/:jobId?debug=1
+    const wantsDebug = String(req.query?.debug || '').toLowerCase();
+    const debugAllowed =
+      String(process.env.ENABLE_DEBUG_JOB_PAYLOAD || '').toLowerCase() === 'true' ||
+      String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    if (debugAllowed && (wantsDebug === '1' || wantsDebug === 'true')) {
+      const jobData = status.data || {};
+      const workflow = jobData.workflow;
+      const promptText = typeof jobData.prompt === 'string' ? jobData.prompt : undefined;
+      const metadata = jobData.metadata || {};
+
+      const wfPositive =
+        workflow && workflow['3'] && workflow['3'].inputs && typeof workflow['3'].inputs.positive_prompt === 'string'
+          ? workflow['3'].inputs.positive_prompt
+          : undefined;
+      const wfNegative =
+        workflow && workflow['3'] && workflow['3'].inputs && typeof workflow['3'].inputs.negative_prompt === 'string'
+          ? workflow['3'].inputs.negative_prompt
+          : undefined;
+
+      const wfNumFrames =
+        workflow && workflow['4'] && workflow['4'].inputs && typeof workflow['4'].inputs.num_frames === 'number'
+          ? workflow['4'].inputs.num_frames
+          : undefined;
+      const wfFps =
+        workflow && workflow['8'] && workflow['8'].inputs && typeof workflow['8'].inputs.frame_rate === 'number'
+          ? workflow['8'].inputs.frame_rate
+          : undefined;
+
+      // ✅ Check metadata.requestPrompt first (contains authoritative blocks), then fallback to wfPositive/promptText
+      const rawPromptForChecks = 
+        (typeof metadata.requestPrompt === 'string' ? metadata.requestPrompt : null) ||
+        wfPositive || 
+        promptText || 
+        '';
+      const hasPerspective = /CAMERA\s+PERSPECTIVE\s*\(AUTHORITATIVE\)/i.test(rawPromptForChecks);
+      const hasFraming = /CAMERA\s+FRAMING\s*\(AUTHORITATIVE\)/i.test(rawPromptForChecks);
+
+      response.data.debug = {
+        hasCameraPerspectiveAuthoritative: hasPerspective,
+        hasCameraFramingAuthoritative: hasFraming,
+        fps: wfFps,
+        numFrames: wfNumFrames,
+        promptPreview: rawPromptForChecks ? String(rawPromptForChecks).slice(0, 800) : undefined,
+        negativePreview: 
+          (typeof metadata.requestNegativePrompt === 'string' ? metadata.requestNegativePrompt : wfNegative) 
+            ? String(metadata.requestNegativePrompt || wfNegative).slice(0, 400) 
+            : undefined,
+      };
+    }
     
     // 🆕 Add result object if it exists (frontend needs this!)
     if (status.result && Object.keys(status.result).length > 0) {

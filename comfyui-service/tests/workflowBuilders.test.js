@@ -71,5 +71,20 @@ describe('workflowBuilders', () => {
       const wfSeed = buildWanWorkflow('test', { seed: 123 });
       expect(wfSeed['5']?.inputs?.seed).toBe(123);
     });
+
+    it('should preserve authoritative camera perspective directives in the prompt node', () => {
+      const prompt = [
+        'SHOT LIST (HIGHEST PRIORITY):',
+        '- Shot: 1 | Size: MS | Perspective: High angle | Camera: Static',
+        '- CAMERA FRAMING (AUTHORITATIVE): Medium Shot (MS): waist-up',
+        '- CAMERA PERSPECTIVE (AUTHORITATIVE): High-angle perspective: camera above subject looking down',
+        '- ACTION: character speaks to camera',
+      ].join('\n');
+
+      const wf = buildWanWorkflow(prompt);
+      expect(wf['3']?.class_type).toBe('WanVideoTextEncode');
+      expect(wf['3']?.inputs?.positive_prompt).toContain('CAMERA PERSPECTIVE (AUTHORITATIVE)');
+      expect(wf['3']?.inputs?.positive_prompt).toContain('High-angle perspective');
+    });
   });
 });

@@ -34,7 +34,9 @@ import IntelligentLoadBalancer from './services/loadBalancer.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT_RAW = process.env.PORT ?? '8000';
+const PORT_STR = String(PORT_RAW).trim();
+const PORT = /^\d+$/.test(PORT_STR) ? Number(PORT_STR) : PORT_STR;
 
 // Initialize services
 await initializeFirebase();

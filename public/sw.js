@@ -3,7 +3,6 @@ const CACHE_NAME = 'peace-script-v1.0.0';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/index.css',
 ];
 
 // Install event - cache assets
@@ -33,15 +32,27 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+
+  // Only handle safe cacheable requests.
+  // - Skip non-GET
+  // - Skip cross-origin (e.g., Firebase Storage video URLs)
+  // - Skip media streaming and range requests (common source of cache errors)
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (req.headers && req.headers.has('range')) return;
+
+  const dest = req.destination;
+  const cacheableDestinations = new Set(['document', 'script', 'style', 'image', 'font']);
+  if (dest && !cacheableDestinations.has(dest)) return;
+
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
+    caches.match(req).then((response) => {
+      if (response) return response;
+      return fetch(req);
+    })
   );
 });

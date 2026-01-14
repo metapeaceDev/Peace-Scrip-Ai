@@ -13,6 +13,7 @@
  */
 
 import { voiceCloningService } from './voiceCloningService';
+import { hybridTTS } from './hybridTTSService';
 import type { Character, DialogueLine } from '../types';
 
 let cachedFfmpeg: any | null = null;
@@ -84,6 +85,36 @@ export interface AudioGenerationOptions {
     volume?: number; // 0-1
   };
   outputFormat?: 'wav' | 'mp3';
+  /**
+   * When true, characters without voice samples will fall back to Hybrid TTS
+   * (psychologyTTS if available, otherwise Azure if configured).
+   */
+  useSpeechPatternFallback?: boolean;
+}
+
+function getCharacterVoiceSampleId(character: Character): string | undefined {
+  // Prefer Plan C config, fall back to legacy field.
+  return character.voiceCloning?.voiceSampleId || character.voiceCloneId;
+}
+
+function characterHasVoiceSample(character: Character): boolean {
+  const hasId = !!getCharacterVoiceSampleId(character);
+
+  // Plan C: explicit flag + ID
+  if (character.voiceCloning?.hasVoiceSample && hasId) return true;
+
+  // Legacy: voiceCloneId present (treat as available)
+  if (character.voiceCloneId && hasId) return true;
+
+  return false;
+}
+
+function pickAudioFilenameAndMime(audioBlob: Blob): { filename: string; mime: string } {
+  const t = (audioBlob.type || '').toLowerCase();
+  if (t.includes('mpeg') || t.includes('mp3')) return { filename: 'audio.mp3', mime: 'audio/mp3' };
+  if (t.includes('wav')) return { filename: 'audio.wav', mime: 'audio/wav' };
+  // Default to WAV (most common for local TTS / XTTS backends)
+  return { filename: 'audio.wav', mime: 'audio/wav' };
 }
 
 /**
@@ -97,22 +128,38 @@ export async function generateDialogueAudio(
   console.log(`🎙️ Generating audio for character: ${character.name}`);
   console.log(`   Text: "${dialogue.dialogue}"`);
 
-  // Check if character has voice cloning configured
-  if (!character.voiceCloning?.hasVoiceSample || !character.voiceCloning.voiceSampleId) {
-    throw new Error(`Character "${character.name}" does not have voice cloning configured`);
-  }
+  const voiceSampleId = getCharacterVoiceSampleId(character);
+  const hasVoice = characterHasVoiceSample(character);
 
   try {
-    // Synthesize speech using voice cloning service
-    const audioBlob = await voiceCloningService.synthesizeSpeech({
-      text: dialogue.dialogue,
-      voice_id: character.voiceCloning.voiceSampleId,
-      language: character.voiceCloning.language || 'th',
-      speed: options?.voiceSettings?.speed || 1.0,
-    });
+    if (hasVoice && voiceSampleId) {
+      // Synthesize speech using voice cloning service
+      const audioBlob = await voiceCloningService.synthesizeSpeech({
+        text: dialogue.dialogue,
+        voice_id: voiceSampleId,
+        language: character.voiceCloning?.language || 'th',
+        speed: options?.voiceSettings?.speed || 1.0,
+      });
 
-    console.log(`✅ Audio generated: ${audioBlob.size} bytes`);
-    return audioBlob;
+      console.log(`✅ Audio generated (voice clone): ${audioBlob.size} bytes`);
+      return audioBlob;
+    }
+
+    // Optional fallback for characters without voice samples.
+    if (options?.useSpeechPatternFallback) {
+      const audioBlob = await hybridTTS.synthesize({
+        text: dialogue.dialogue,
+        fallbackEnabled: true,
+      });
+
+      console.log(`✅ Audio generated (fallback TTS): ${audioBlob.size} bytes`);
+      return audioBlob;
+    }
+
+    throw new Error(
+      `Character "${character.name}" does not have voice cloning configured (and fallback is disabled)`
+    );
+
   } catch (error) {
     console.error(`❌ Failed to generate audio for ${character.name}:`, error);
     throw new Error(
@@ -131,9 +178,26 @@ export async function generateAudioTimeline(
   options?: {
     gapBetweenLines?: number; // seconds between dialogue lines (default: 0.5)
     startDelay?: number; // initial silence (default: 0)
+    useSpeechPatternFallback?: boolean;
+    voiceSettings?: {
+      speed?: number;
+      pitch?: number;
+      volume?: number;
+    };
   }
 ): Promise<AudioTimeline> {
   console.log(`🎬 Generating audio timeline for ${dialogues.length} dialogue lines`);
+
+  const findCharacter = (name: string): Character | undefined => {
+    const normalized = (name || '').trim();
+    if (!normalized) return undefined;
+    // Prefer exact match first.
+    const exact = characters.find(c => c.name === normalized);
+    if (exact) return exact;
+    // Fallback: case-insensitive match.
+    const lowered = normalized.toLowerCase();
+    return characters.find(c => (c.name || '').trim().toLowerCase() === lowered);
+  };
 
   const segments: AudioSegment[] = [];
   let currentTime = options?.startDelay || 0;
@@ -141,21 +205,16 @@ export async function generateAudioTimeline(
 
   for (let i = 0; i < dialogues.length; i++) {
     const dialogue = dialogues[i];
-    const character = characters.find(c => c.name === dialogue.character);
+    const character = findCharacter(dialogue.character);
 
-    if (!character) {
-      console.warn(`⚠️ Character "${dialogue.character}" not found, skipping`);
-      continue;
-    }
-
-    if (!character.voiceCloning?.hasVoiceSample) {
-      console.warn(`⚠️ Character "${character.name}" has no voice sample, skipping`);
+    if (!character && !options?.useSpeechPatternFallback) {
+      console.warn(`⚠️ Character "${dialogue.character}" not found (fallback disabled), skipping`);
       continue;
     }
 
     const segment: AudioSegment = {
       dialogueIndex: i,
-      character: character.name,
+      character: character?.name || dialogue.character,
       text: dialogue.dialogue,
       startTime: currentTime,
       duration: 0, // Will be updated after audio generation
@@ -165,10 +224,20 @@ export async function generateAudioTimeline(
     try {
       segment.status = 'generating';
       console.log(
-        `   [${i + 1}/${dialogues.length}] Generating "${character.name}": "${dialogue.dialogue.substring(0, 50)}..."`
+        `   [${i + 1}/${dialogues.length}] Generating "${segment.character}": "${dialogue.dialogue.substring(0, 50)}..."`
       );
 
-      const audioBlob = await generateDialogueAudio(dialogue, character);
+      // If character is missing but fallback is enabled, still generate audio via fallback TTS.
+      const audioBlob = character
+        ? await generateDialogueAudio(dialogue, character, {
+            character,
+            useSpeechPatternFallback: options?.useSpeechPatternFallback,
+            voiceSettings: options?.voiceSettings,
+          })
+        : await hybridTTS.synthesize({
+            text: dialogue.dialogue,
+            fallbackEnabled: true,
+          });
 
       // Calculate duration from audio blob
       const duration = await getAudioDuration(audioBlob);
@@ -230,40 +299,34 @@ async function getAudioDuration(audioBlob: Blob): Promise<number> {
 export async function mergeAudioSegments(timeline: AudioTimeline): Promise<Blob> {
   console.log(`🎵 Merging ${timeline.segments.length} audio segments...`);
 
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const sampleRate = 22050; // Match XTTS-v2 sample rate
-
-  // Calculate total samples needed
+  // Use OfflineAudioContext for sample-rate-safe merging/resampling.
+  // This avoids timing drift when input segments have different sample rates (mp3/wav/etc).
+  const sampleRate = 48000;
   const totalSamples = Math.ceil(timeline.totalDuration * sampleRate);
-  const outputBuffer = audioContext.createBuffer(1, totalSamples, sampleRate);
-  const outputData = outputBuffer.getChannelData(0);
+  const offline = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(
+    1,
+    Math.max(1, totalSamples),
+    sampleRate
+  );
 
-  // Process each segment
   for (const segment of timeline.segments) {
-    if (segment.status !== 'completed' || !segment.audioBlob) {
-      continue;
-    }
-
+    if (segment.status !== 'completed' || !segment.audioBlob) continue;
     try {
       const arrayBuffer = await segment.audioBlob.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const segmentData = audioBuffer.getChannelData(0);
+      const decoded = await offline.decodeAudioData(arrayBuffer.slice(0));
+      const source = offline.createBufferSource();
+      source.buffer = decoded;
+      source.connect(offline.destination);
+      source.start(segment.startTime);
 
-      const startSample = Math.floor(segment.startTime * sampleRate);
-
-      // Copy segment data to output buffer
-      for (let i = 0; i < segmentData.length && startSample + i < totalSamples; i++) {
-        outputData[startSample + i] = segmentData[i];
-      }
-
-      console.log(`   ✅ Merged: ${segment.character} at ${segment.startTime.toFixed(2)}s`);
+      console.log(`   ✅ Queued: ${segment.character} at ${segment.startTime.toFixed(2)}s`);
     } catch (error) {
-      console.error(`   ❌ Failed to merge segment:`, error);
+      console.error(`   ❌ Failed to queue segment:`, error);
     }
   }
 
-  // Convert buffer to WAV blob
-  const wavBlob = await audioBufferToWav(outputBuffer);
+  const rendered = await offline.startRendering();
+  const wavBlob = await audioBufferToWav(rendered);
 
   console.log(`✅ Audio merge complete: ${wavBlob.size} bytes`);
   return wavBlob;
@@ -348,7 +411,8 @@ export async function mergeVideoWithAudio(
     const audioData = new Uint8Array(await audioBlob.arrayBuffer());
 
     await ffmpeg.writeFile('input.mp4', videoData);
-    await ffmpeg.writeFile('audio.wav', audioData);
+    const { filename: audioFilename } = pickAudioFilenameAndMime(audioBlob);
+    await ffmpeg.writeFile(audioFilename, audioData);
     console.log('✅ Files written to FFmpeg');
 
     // Build FFmpeg command
@@ -356,7 +420,7 @@ export async function mergeVideoWithAudio(
       '-i',
       'input.mp4',
       '-i',
-      'audio.wav',
+      audioFilename,
       '-c:v',
       'copy',
       '-c:a',
@@ -415,6 +479,12 @@ export async function generateSceneAudio(
     startDelay?: number;
     fadeIn?: number;
     fadeOut?: number;
+    useSpeechPatternFallback?: boolean;
+    voiceSettings?: {
+      speed?: number;
+      pitch?: number;
+      volume?: number;
+    };
   }
 ): Promise<{ audioBlob: Blob; timeline: AudioTimeline }> {
   console.log(`🎬 Generating complete scene audio...`);
