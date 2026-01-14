@@ -20,6 +20,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { ScriptData, GeneratedScene } from '../types';
 import KeyframeTimeline from '../components/KeyframeTimeline';
+import MultiTrackTimeline from '../components/timeline/MultiTrackTimeline';
 
 interface MotionEditorPageProps {
   scriptData?: ScriptData;
@@ -127,7 +128,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   const [duration, setDuration] = useState(5.0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [timelineMode, setTimelineMode] = useState<'keyframe' | 'multitrack'>('multitrack');
+  const [timelineMode, setTimelineMode] = useState<'keyframe' | 'multitrack' | 'legacy'>('multitrack');
   const [timelineZoom, setTimelineZoom] = useState(1.0);
 
   // Keyframes for animation
@@ -1531,6 +1532,75 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
           )}
 
           {timelineMode === 'multitrack' && (
+            <div>
+              {/* NEW: Professional Multi-Track Timeline */}
+              <MultiTrackTimeline
+                duration={duration}
+                fps={24}
+                tracks={tracks.map(track => ({
+                  id: String(track.id),
+                  name: track.name,
+                  type: track.name.includes('Video')
+                    ? 'video'
+                    : track.name.includes('Image')
+                      ? 'video'
+                      : track.name.includes('SFX')
+                        ? 'sfx'
+                        : track.name.includes('Dialogue')
+                          ? 'dialogue'
+                          : 'motion',
+                  order: track.id - 1,
+                  clips: track.clips.map(clip => ({
+                    id: clip.id,
+                    trackId: String(track.id),
+                    type: 'shot' as const,
+                    name: clip.label,
+                    start: clip.start,
+                    end: clip.end,
+                    duration: clip.end - clip.start,
+                    mediaUrl: 'mediaUrl' in clip ? clip.mediaUrl : undefined,
+                    mediaType: 'mediaType' in clip ? clip.mediaType : undefined,
+                  })),
+                  enabled: true,
+                  muted: false,
+                  solo: false,
+                  volume: 1.0,
+                  color: track.clips[0]?.color || '#3b82f6',
+                  height: 80,
+                  locked: false,
+                }))}
+                onTracksChange={newTracks => {
+                  console.log('🎬 Tracks updated:', newTracks);
+                  // Convert back to original format
+                  setTracks(
+                    newTracks.map(track => ({
+                      id: parseInt(track.id),
+                      name: track.name,
+                      clips: track.clips.map(clip => ({
+                        id: clip.id,
+                        start: clip.start ?? 0,
+                        end: clip.end ?? (clip.duration ? clip.start! + clip.duration : 1),
+                        label: clip.name,
+                        color: track.color,
+                        ...(clip.mediaUrl && { mediaUrl: clip.mediaUrl }),
+                        ...(clip.mediaType && { mediaType: clip.mediaType }),
+                      })),
+                    }))
+                  );
+                }}
+                currentTime={currentTime}
+                onTimeChange={setCurrentTime}
+                playing={isPlaying}
+                onPlayingChange={setIsPlaying}
+                zoom={1.0}
+                onZoomChange={() => {}}
+                gridSize={1.0}
+                snapToGrid={true}
+              />
+            </div>
+          )}
+
+          {timelineMode === 'legacy' && (
             <div>
               {/* Playback Controls - Removed Play button, keeping time display and controls */}
               <div className="flex items-center gap-3 mb-2">
