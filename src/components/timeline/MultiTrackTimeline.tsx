@@ -61,6 +61,7 @@ interface MultiTrackTimelineProps {
   onZoomChange?: (zoom: number) => void;
   gridSize?: number;
   snapToGrid?: boolean;
+  onClipClick?: (clip: TimelineClip) => void;
 }
 
 const TRACK_COLORS: Record<TimelineTrack['type'], string> = {
@@ -87,6 +88,7 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
   onZoomChange = () => {},
   gridSize = 1.0,
   snapToGrid = true,
+  onClipClick = () => {},
 }) => {
   const [tracks, setTracks] = useState<TimelineTrack[]>(initialTracks);
   const [selectedClip, setSelectedClip] = useState<string | null>(null);
@@ -380,6 +382,8 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedClip(clip.id);
+                          // Notify parent about clip click for preview
+                          onClipClick(clip);
                         }}
                       >
                         <div className="clip-content p-2 flex flex-col justify-between h-full overflow-hidden">

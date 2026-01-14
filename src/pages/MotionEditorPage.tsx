@@ -105,6 +105,13 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   const videoUrl = storyboardItem?.video || null;
   const imageUrl = storyboardItem?.image || null;
 
+  // State for preview - which clip is being previewed
+  const [previewClipId, setPreviewClipId] = useState<string | null>(null);
+  const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(videoUrl || imageUrl);
+  const [previewMediaType, setPreviewMediaType] = useState<'video' | 'image'>(
+    videoUrl ? 'video' : 'image'
+  );
+
   console.log('🎬 MotionEditor - Current Shot Data:', {
     shotId,
     totalShots: allShots.length,
@@ -112,6 +119,8 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     hasStoryboard: !!storyboardItem,
     hasVideo: !!videoUrl,
     hasImage: !!imageUrl,
+    previewClipId,
+    previewMediaUrl: previewMediaUrl?.substring(0, 50) + '...',
     videoUrl: videoUrl?.substring(0, 50) + '...',
     imageUrl: imageUrl?.substring(0, 50) + '...',
   });
@@ -761,14 +770,16 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                           : 'aspect-[9/16]'
                   }`}
                 >
-                  {videoUrl ? (
+                  {/* Show preview from clicked clip or default to current shot */}
+                  {(previewMediaUrl && previewMediaType === 'video') || videoUrl ? (
                     <video
                       ref={videoRef}
-                      src={videoUrl}
+                      src={previewMediaUrl || videoUrl || undefined}
                       className="w-full h-full rounded-lg object-contain"
                       controls
                       playsInline
                       preload="metadata"
+                      key={previewMediaUrl || videoUrl}
                       onTimeUpdate={e => {
                         // Sync timeline with video playback
                         setCurrentTime(e.currentTarget.currentTime);
@@ -780,12 +791,13 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                       <source src={videoUrl} type="video/mp4" />
                       Your browser does not support the video tag.
                     </video>
-                  ) : imageUrl ? (
+                  ) : (previewMediaUrl && previewMediaType === 'image') || imageUrl ? (
                     <div className="w-full h-full flex items-center justify-center p-4">
                       <img
-                        src={imageUrl}
-                        alt={`Shot ${shotId}`}
+                        src={previewMediaUrl || imageUrl || undefined}
+                        alt={previewClipId ? `Clip ${previewClipId}` : `Shot ${shotId}`}
                         className="max-w-full max-h-full object-contain rounded-lg"
+                        key={previewMediaUrl || imageUrl}
                         onError={e => {
                           console.warn('Image load error');
                           e.currentTarget.style.display = 'none';
@@ -1575,6 +1587,21 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                   height: 80,
                   locked: false,
                 }))}
+                onClipClick={clip => {
+                  console.log('🎬 Clip clicked:', clip);
+                  // Update preview when clicking on a clip
+                  if (clip.mediaUrl) {
+                    setPreviewClipId(clip.id);
+                    setPreviewMediaUrl(clip.mediaUrl);
+                    setPreviewMediaType(clip.mediaType || 'video');
+                    // Pause current playback
+                    setIsPlaying(false);
+                    if (videoRef.current) {
+                      videoRef.current.pause();
+                      videoRef.current.load(); // Force reload new video
+                    }
+                  }
+                }}
                 onTracksChange={newTracks => {
                   console.log('🎬 Tracks updated:', newTracks);
                   // Convert back to original format
