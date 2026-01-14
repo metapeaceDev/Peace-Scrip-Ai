@@ -1,0 +1,17 @@
+<MultiTrackTimeline
+              duration={duration}
+              fps={24}
+              tracks={tracks}
+              onTracksChange={(newTracks) => {
+                console.log('🎬 Tracks updated:', newTracks);
+                setTracks(newTracks);
+              }}
+              currentTime={currentTime}
+              onTimeChange={setCurrentTime}
+              playing={isPlaying}
+              onPlayingChange={setIsPlaying}
+              zoom={timelineZoom}
+              onZoomChange={setTimelineZoom}
+              gridSize={1.0}
+              snapToGrid={true}
+            />

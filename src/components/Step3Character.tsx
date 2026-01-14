@@ -32,6 +32,8 @@ import { PsychologyDisplay } from './PsychologyDisplay';
 import { PsychologyDashboard } from './PsychologyDashboard';
 import { CharacterComparison } from './CharacterComparison';
 import { PsychologyTimeline } from './PsychologyTimeline';
+import { CetasikaViewer } from './psychology/CetasikaViewer';
+import { calculateCetasikaProfile } from '../services/cetasikaCalculator';
 import { hybridTTS, HybridTTSService } from '../services/hybridTTSService';
 import { VoiceUploadModal } from './VoiceUploadModal';
 import { voiceCloningService } from '../services/voiceCloningService';
@@ -353,6 +355,7 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
   const [showPsychologyTest, setShowPsychologyTest] = useState(false);
   const [showCharacterComparison, setShowCharacterComparison] = useState(false);
   const [showPsychologyDashboard, setShowPsychologyDashboard] = useState(false);
+  const [showCetasikaViewer, setShowCetasikaViewer] = useState(false);
 
   // New state for robust delete confirmation
   const [confirmDeleteCharId, setConfirmDeleteCharId] = useState<string | null>(null);
@@ -3609,6 +3612,16 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
             </button>
 
             <button
+              onClick={() => setShowCetasikaViewer(true)}
+              className="mt-3 w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg shadow-cyan-900/30 flex items-center justify-center gap-3"
+            >
+              <span className="text-2xl">🧘</span>
+              <span className="uppercase tracking-wider">
+                Cetasika 52 Mental Factors (เจตสิก 52)
+              </span>
+            </button>
+
+            <button
               onClick={() => setShowPsychologyTimeline(true)}
               className="mt-3 w-full bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-500/30 font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-3"
             >
@@ -4021,6 +4034,39 @@ const Step3Character: React.FC<Step3CharacterProps> = ({
           characters={characters}
           onClose={() => setShowCharacterComparison(false)}
         />
+      )}
+
+      {/* --- CETASIKA 52 MENTAL FACTORS VIEWER --- */}
+      {showCetasikaViewer && activeCharacter && (
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+              {/* Close Button */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowCetasikaViewer(false)}
+                  className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-all shadow-lg"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Cetasika Viewer */}
+              <CetasikaViewer
+                profile={calculateCetasikaProfile(activeCharacter)}
+                character={activeCharacter}
+                onClose={() => setShowCetasikaViewer(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* --- PSYCHOLOGY TIMELINE --- */}
