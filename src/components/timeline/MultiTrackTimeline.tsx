@@ -271,7 +271,7 @@ export const MultiTrackTimeline: React.FC<MultiTrackTimelineProps> = ({
       </div>
 
       {/* Timeline Container */}
-      <div className="timeline-container relative overflow-x-auto overflow-y-auto max-h-[500px]">
+      <div className="timeline-container relative overflow-x-auto overflow-y-auto max-h-[200px]">
         {/* Time Ruler with left offset */}
         <div className="time-ruler bg-gray-800 border-b border-gray-700 h-8 sticky top-0 z-10 flex">
           {/* Left spacer for track headers */}

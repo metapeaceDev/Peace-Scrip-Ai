@@ -280,6 +280,23 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     return allShots.reduce((total, shot) => total + (shot.duration || 3), 0);
   }, [allShots]);
 
+  // Auto-play video when preview clip changes (for seamless playback)
+  useEffect(() => {
+    if (previewMediaUrl && previewMediaType === 'video' && isPlaying && videoRef.current) {
+      // Wait for video to load then play
+      const playVideo = async () => {
+        try {
+          await videoRef.current?.play();
+          console.log('🎬 Auto-playing clip:', previewClipId);
+        } catch (error) {
+          console.warn('Auto-play failed:', error);
+          setIsPlaying(false);
+        }
+      };
+      playVideo();
+    }
+  }, [previewMediaUrl, previewMediaType, previewClipId, isPlaying]);
+
   // Prompts
   const [prompts, setPrompts] = useState([
     { id: 1, text: 'A worn warrior stands alert in a misty forest clearing', enabled: true },
@@ -783,6 +800,30 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
                       onTimeUpdate={e => {
                         // Sync timeline with video playback
                         setCurrentTime(e.currentTarget.currentTime);
+                      }}
+                      onEnded={() => {
+                        // Auto-play next clip when current clip ends
+                        const allClips = tracks[0]?.clips || [];
+                        const currentClipIndex = allClips.findIndex(
+                          clip => clip.mediaUrl === (previewMediaUrl || videoUrl)
+                        );
+
+                        if (currentClipIndex >= 0 && currentClipIndex < allClips.length - 1) {
+                          // Play next clip
+                          const nextClip = allClips[currentClipIndex + 1];
+                          if (nextClip.mediaUrl) {
+                            console.log('🎬 Auto-playing next clip:', nextClip.label);
+                            setPreviewClipId(nextClip.id);
+                            setPreviewMediaUrl(nextClip.mediaUrl);
+                            setPreviewMediaType(nextClip.mediaType || 'video');
+                            // Keep playing
+                            setIsPlaying(true);
+                          }
+                        } else {
+                          // No more clips, stop playback
+                          console.log('🎬 Playback complete - all clips played');
+                          setIsPlaying(false);
+                        }
                       }}
                       onError={e => {
                         console.warn('Video load error:', e);
