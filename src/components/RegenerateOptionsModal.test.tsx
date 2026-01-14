@@ -132,7 +132,8 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      expect(screen.getByText(/สร้าง Idea ใหม่ทั้งหมด/)).toBeInTheDocument();
+      // UI concatenates Thai + English tokens without spaces in some places.
+      expect(screen.getByText(/สร้าง\s*Idea\s*ใหม่ทั้งหมด/)).toBeInTheDocument();
     });
   });
 
@@ -164,7 +165,8 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      expect(screen.getByText(/สร้าง Character ใหม่ทั้งหมด/)).toBeInTheDocument();
+      // UI concatenates Thai + English tokens without spaces in some places.
+      expect(screen.getByText(/สร้าง\s*Character\s*ใหม่ทั้งหมด/)).toBeInTheDocument();
     });
 
     it('should detect Character Details mode', () => {
@@ -598,7 +600,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      expect(screen.getByText(/ใช้ Idea ปัจจุบันเป็นพื้นฐาน/)).toBeInTheDocument();
+      expect(screen.getByText(/ใช้\s*Idea\s*ปัจจุบันเป็นพื้นฐาน/)).toBeInTheDocument();
     });
 
     it('should show refine details for Character mode', () => {
@@ -611,7 +613,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={false}
         />
       );
-      expect(screen.getByText(/ใช้ Character ปัจจุบันเป็นพื้นฐาน/)).toBeInTheDocument();
+      expect(screen.getByText(/ใช้\s*Character\s*ปัจจุบันเป็นพื้นฐาน/)).toBeInTheDocument();
     });
   });
 
@@ -626,7 +628,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={true}
         />
       );
-      expect(screen.getByText(/นำการแก้ไข Idea/)).toBeInTheDocument();
+      expect(screen.getByText(/นำการแก้ไข\s*Idea/)).toBeInTheDocument();
     });
 
     it('should show use-edited details for Character mode', () => {
@@ -639,7 +641,7 @@ describe('RegenerateOptionsModal', () => {
           hasEdits={true}
         />
       );
-      expect(screen.getByText(/นำการแก้ไข Character/)).toBeInTheDocument();
+      expect(screen.getByText(/นำการแก้ไข\s*Character/)).toBeInTheDocument();
     });
   });
 

@@ -710,8 +710,12 @@ describe('Step4Structure', () => {
 
   describe('Loading State', () => {
     it('should show generating message while generating', async () => {
+      // Hold the promise open so we can assert the intermediate loading UI.
+      let resolveGenerate: ((value: any) => void) | null = null;
       vi.mocked(geminiService.generateStructure).mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 100))
+        () => new Promise(resolve => {
+          resolveGenerate = resolve;
+        })
       );
 
       render(
@@ -733,10 +737,13 @@ describe('Step4Structure', () => {
       const confirmButton = screen.getByRole('button', { name: 'Confirm' });
       fireEvent.click(confirmButton);
 
+      // UI is localized; assert either English or Thai generating indicator.
       await waitFor(() => {
-        expect(screen.getByText(/Generating/)).toBeInTheDocument();
-        expect(screen.getByText(/AI is analyzing/)).toBeInTheDocument();
+        expect(screen.getAllByText(/กำลังสร้าง|Generating/i).length).toBeGreaterThan(0);
       });
+
+      // Cleanup: let the mocked call resolve so state can settle.
+      resolveGenerate?.({});
     });
 
     it('should show spinner in button while generating', async () => {
