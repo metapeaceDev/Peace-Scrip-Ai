@@ -45,11 +45,45 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   onSave,
   onClose,
 }) => {
-  // 🎬 PHASE 1: Extract Storyboard Data from ScriptData
+  // 🎬 PHASE 1: Extract ALL Shots from ScriptData for Timeline
+  const allShots = useMemo(() => {
+    if (!scriptData) return [];
+
+    const shots: Array<{
+      shotId: string;
+      sceneTitle: string;
+      plotPoint: string;
+      storyboard: any;
+      duration: number;
+    }> = [];
+
+    // Collect all shots from all scenes
+    for (const plotPoint of scriptData.structure) {
+      const scenes = scriptData.generatedScenes[plotPoint.title] || [];
+      for (const scene of scenes) {
+        if (scene.storyboard && Array.isArray(scene.storyboard)) {
+          scene.storyboard.forEach((board, idx) => {
+            const shotNumber = board.shot || idx + 1;
+            shots.push({
+              shotId: String(shotNumber),
+              sceneTitle: scene.title || `Scene ${idx + 1}`,
+              plotPoint: plotPoint.title,
+              storyboard: board,
+              duration: board.duration || 3, // Default 3s per shot
+            });
+          });
+        }
+      }
+    }
+
+    console.log('🎬 MotionEditor - Loaded ALL shots:', shots.length);
+    return shots;
+  }, [scriptData]);
+
+  // Get current scene for selected shot
   const currentScene = useMemo<GeneratedScene | null>(() => {
     if (!scriptData || !shotId) return null;
 
-    // Find scene containing this shot
     for (const plotPoint of scriptData.structure) {
       const scenes = scriptData.generatedScenes[plotPoint.title] || [];
       for (const scene of scenes) {
@@ -71,8 +105,9 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
   const videoUrl = storyboardItem?.video || null;
   const imageUrl = storyboardItem?.image || null;
 
-  console.log('🎬 MotionEditor - Media Data:', {
+  console.log('🎬 MotionEditor - Current Shot Data:', {
     shotId,
+    totalShots: allShots.length,
     hasScene: !!currentScene,
     hasStoryboard: !!storyboardItem,
     hasVideo: !!videoUrl,
@@ -170,110 +205,71 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl, imageUrl, duration]);
 
-  // Tracks for Multi-track Timeline
-  const [tracks, setTracks] = useState([
-    {
-      id: 1,
-      name: '🎬 Video',
-      clips: videoUrl
-        ? [
-            {
-              id: 'video_main',
-              start: 0,
-              end: duration,
-              label: `Shot ${shotId}`,
-              color: '#ef4444',
-              mediaUrl: videoUrl,
-              mediaType: 'video' as const,
-            },
-          ]
-        : [],
-    },
-    {
-      id: 2,
-      name: '🖼️ Image',
-      clips:
-        imageUrl && !videoUrl
-          ? [
-              {
-                id: 'image_main',
-                start: 0,
-                end: duration,
-                label: `Shot ${shotId}`,
-                color: '#8b5cf6',
-                mediaUrl: imageUrl,
-                mediaType: 'image' as const,
-              },
-            ]
-          : [],
-    },
-    {
-      id: 3,
-      name: '🔊 SFX',
-      clips: [
-        { id: 'sfx1', start: 0, end: 2, label: 'Wind', color: '#10b981' },
-        { id: 'sfx2', start: 2.5, end: 4, label: 'Footsteps', color: '#10b981' },
-      ],
-    },
-    {
-      id: 4,
-      name: '💬 Dialogue',
-      clips: [{ id: 'dlg1', start: 1.2, end: 2.5, label: 'Speech', color: '#3b82f6' }],
-    },
-    {
-      id: 5,
-      name: '🎭 Actions',
-      clips: [{ id: 'act1', start: 0, end: 5, label: 'Movement', color: '#8b5cf6' }],
-    },
-  ]);
+  // Tracks for Multi-track Timeline - Load ALL shots from script
+  const [tracks, setTracks] = useState(() => {
+    // Initialize with all shots from scriptData
+    const videoClips: TimelineClip[] = [];
+    let currentTime = 0;
 
-  // 🎬 Update tracks when media changes
-  useEffect(() => {
-    setTracks(prev => {
-      const newTracks = [...prev];
+    allShots.forEach((shot, index) => {
+      const board = shot.storyboard;
+      const shotDuration = shot.duration || 3;
 
-      // Update Video track
-      newTracks[0] = {
-        id: 1,
-        name: '🎬 Video',
-        clips: videoUrl
-          ? [
-              {
-                id: 'video_main',
-                start: 0,
-                end: duration,
-                label: `Shot ${shotId}`,
-                color: '#ef4444',
-                mediaUrl: videoUrl,
-                mediaType: 'video' as const,
-              },
-            ]
-          : [],
-      };
+      if (board.video) {
+        videoClips.push({
+          id: `shot_${shot.shotId}_${index}`,
+          start: currentTime,
+          end: currentTime + shotDuration,
+          label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
+          color: '#ef4444',
+          mediaUrl: board.video,
+          mediaType: 'video',
+        });
+      } else if (board.image) {
+        videoClips.push({
+          id: `shot_${shot.shotId}_${index}`,
+          start: currentTime,
+          end: currentTime + shotDuration,
+          label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
+          color: '#8b5cf6',
+          mediaUrl: board.image,
+          mediaType: 'image',
+        });
+      }
 
-      // Update Image track
-      newTracks[1] = {
-        id: 2,
-        name: '🖼️ Image',
-        clips:
-          imageUrl && !videoUrl
-            ? [
-                {
-                  id: 'image_main',
-                  start: 0,
-                  end: duration,
-                  label: `Shot ${shotId}`,
-                  color: '#8b5cf6',
-                  mediaUrl: imageUrl,
-                  mediaType: 'image' as const,
-                },
-              ]
-            : [],
-      };
-
-      return newTracks;
+      currentTime += shotDuration;
     });
-  }, [videoUrl, imageUrl, shotId, duration]);
+
+    console.log('🎬 Initialized timeline with clips:', videoClips.length);
+
+    return [
+      {
+        id: 1,
+        name: '🎬 All Shots',
+        clips: videoClips,
+      },
+      {
+        id: 2,
+        name: '🔊 SFX',
+        clips: [],
+      },
+      {
+        id: 3,
+        name: '💬 Dialogue',
+        clips: [],
+      },
+      {
+        id: 4,
+        name: '🎭 Actions',
+        clips: [],
+      },
+    ];
+  });
+
+  // Calculate total duration from all shots
+  const totalDuration = useMemo(() => {
+    return allShots.reduce((total, shot) => total + (shot.duration || 3), 0);
+  }, [allShots]);
 
   // Prompts
   const [prompts, setPrompts] = useState([
@@ -1533,9 +1529,19 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
 
           {timelineMode === 'multitrack' && (
             <div>
-              {/* NEW: Professional Multi-Track Timeline */}
+              {/* NEW: Professional Multi-Track Timeline - Shows ALL shots */}
+              <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-300">
+                  <span className="text-xl">🎬</span>
+                  <span>
+                    Timeline loaded with <strong>{allShots.length} shots</strong> (
+                    {totalDuration}s total)
+                  </span>
+                </div>
+              </div>
+              
               <MultiTrackTimeline
-                duration={duration}
+                duration={totalDuration}
                 fps={24}
                 tracks={tracks.map(track => ({
                   id: String(track.id),
