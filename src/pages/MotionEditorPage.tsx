@@ -62,6 +62,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
       const scenes = scriptData.generatedScenes[plotPoint.title] || [];
       for (const scene of scenes) {
         if (scene.storyboard && Array.isArray(scene.storyboard)) {
+          console.log(`🎬 Scene "${scene.title}" has ${scene.storyboard.length} shots in storyboard`);
           scene.storyboard.forEach((board, idx) => {
             const shotNumber = board.shot || idx + 1;
             shots.push({
@@ -77,6 +78,7 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     }
 
     console.log('🎬 MotionEditor - Loaded ALL shots:', shots.length);
+    console.log('📋 Shot details:', shots.map(s => `${s.sceneTitle} - Shot ${s.shotId}`));
     return shots;
   }, [scriptData]);
 
@@ -222,28 +224,38 @@ export const MotionEditorPage: React.FC<MotionEditorPageProps> = ({
     // Real durations will be updated when videos load
     const videoClips: TimelineClip[] = [];
     let currentTime = 0;
+    
+    // Group shots by scene to show shot numbers within each scene
+    const shotCountByScene = new Map<string, number>();
 
-    allShots.forEach((shot, index) => {
+    allShots.forEach((shot, globalIndex) => {
       const board = shot.storyboard;
       // Use storyboard duration or estimate 5s per shot (more realistic than 3s)
       const estimatedDuration = board.duration || shot.duration || 5;
 
+      // Calculate shot number within this scene
+      const sceneKey = shot.sceneTitle;
+      const shotNumberInScene = (shotCountByScene.get(sceneKey) || 0) + 1;
+      shotCountByScene.set(sceneKey, shotNumberInScene);
+
+      const clipLabel = `${shot.sceneTitle} - Shot ${shotNumberInScene}`;
+
       if (board.video) {
         videoClips.push({
-          id: `shot_${shot.shotId}_${index}`,
+          id: `shot_${shot.shotId}_${globalIndex}`,
           start: currentTime,
           end: currentTime + estimatedDuration,
-          label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
+          label: clipLabel,
           color: '#ef4444',
           mediaUrl: board.video,
           mediaType: 'video',
         });
       } else if (board.image) {
         videoClips.push({
-          id: `shot_${shot.shotId}_${index}`,
+          id: `shot_${shot.shotId}_${globalIndex}`,
           start: currentTime,
           end: currentTime + estimatedDuration,
-          label: `${shot.sceneTitle} - Shot ${shot.shotId}`,
+          label: clipLabel,
           color: '#8b5cf6',
           mediaUrl: board.image,
           mediaType: 'image',
